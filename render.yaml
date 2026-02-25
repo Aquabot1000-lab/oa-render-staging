@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: overassessed-ai
+    runtime: node
+    plan: starter
+    region: dallas
+    buildCommand: npm install
+    startCommand: node server/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: BASE_URL
+        value: https://overassessed.ai
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        value: notifications@wortheyaquatics.com
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        value: "+18557994738"
+      - key: NOTIFY_EMAIL
+        value: tyler@wortheyaquatics.com
+      - key: NOTIFY_PHONE
+        value: "+12105598725"
+      - key: RENTCAST_API_KEY
+        sync: false
