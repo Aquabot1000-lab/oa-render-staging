@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Texas property tax notices arrive mid-April 2026. Pre-register now for free and we'll analyze your property the day your notice drops. File before the May 15 deadline.">
+    <meta name="google-site-verification" content="fL8XizXZxJifMkLVjEQxnSVLgQCcBSy4JUKBKnAg38g">
+    <title>Pre-Register for TX Property Tax Protest Season | OverAssessed</title>
+    <link rel="canonical" href="https://overassessed.ai/pre-register">
+    <meta property="og:title" content="TX Property Tax Notices Are Coming — Pre-Register Now | OverAssessed">
+    <meta property="og:description" content="Notices arrive mid-April. Get ahead of the rush — pre-register free and we'll analyze your property the day your notice drops.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://overassessed.ai/pre-register">
+    <meta property="og:image" content="https://overassessed.ai/assets/logo/icon-512.png">
+    <meta property="og:site_name" content="OverAssessed">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 80 80' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%236c5ce7'/%3E%3Cstop offset='100%25' style='stop-color:%230984e3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='0' width='80' height='80' rx='18' fill='url(%23logoGrad)'/%3E%3Cpath d='M40 25v30M31 47l9 9 9-9' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        .prereg-hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 100px 0 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        .prereg-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(108,92,231,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(9,132,227,0.1) 0%, transparent 50%);
+            animation: slowPulse 8s ease-in-out infinite;
+        }
+        @keyframes slowPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .prereg-hero .container { position: relative; z-index: 1; }
+        .prereg-hero h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+        .prereg-hero h1 span { color: #a29bfe; }
+        .prereg-hero .subhead {
+            font-size: 1.15rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .countdown-strip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(108,92,231,0.2);
+            border: 1px solid rgba(108,92,231,0.4);
+            border-radius: 50px;
+            padding: 10px 24px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #a29bfe;
+            margin-bottom: 32px;
+        }
+        .countdown-strip .pulse-dot {
+            width: 10px; height: 10px;
+            background: #00b894;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        .prereg-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+        @media (max-width: 768px) {
+            .prereg-layout { grid-template-columns: 1fr; gap: 40px; }
+            .prereg-hero { padding: 80px 0 40px; }
+        }
+
+        /* Steps */
+        .steps { padding: 60px 0; background: var(--bg-tint); }
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+        .step-card {
+            text-align: center;
+            padding: 32px 20px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        .step-num {
+            width: 48px; height: 48px;
+            background: var(--gradient);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin: 0 auto 16px;
+        }
+        .step-card h3 { font-size: 1rem; margin-bottom: 8px; }
+        .step-card p { font-size: 0.9rem; color: var(--text-muted); }
+        @media (max-width: 768px) {
+            .steps-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .steps-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Benefits */
+        .benefits { padding: 60px 0; }
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 32px;
+        }
+        .benefit-card {
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-medium);
+            text-align: center;
+        }
+        .benefit-icon { font-size: 2rem; margin-bottom: 12px; }
+        .benefit-card h3 { font-size: 1.05rem; margin-bottom: 8px; }
+        .benefit-card p { font-size: 0.9rem; color: var(--text-muted); }
+        @media (max-width: 768px) {
+            .benefits-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Form card */
+        .prereg-form-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .prereg-form-card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+            color: var(--text-dark);
+        }
+        .prereg-form-card .form-sub {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .prereg-form-card label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-dark);
+        }
+        .prereg-form-card input,
+        .prereg-form-card select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--gray-medium);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-family: inherit;
+            margin-bottom: 14px;
+            transition: border-color 0.2s;
+        }
+        .prereg-form-card input:focus,
+        .prereg-form-card select:focus {
+            outline: none;
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(108,92,231,0.1);
+        }
+        .prereg-form-card .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .prereg-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        .prereg-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-purple);
+        }
+        .prereg-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .social-proof {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .social-proof strong { color: var(--purple); }
+        .form-success {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .form-success .check {
+            width: 64px; height: 64px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 2rem;
+            color: white;
+        }
+        .form-success h3 { font-size: 1.3rem; margin-bottom: 8px; }
+        .form-success p { color: var(--text-muted); }
+        .form-error {
+            background: #fff5f5;
+            color: #e53e3e;
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        /* Deadline CTA */
+        .deadline-cta {
+            background: var(--gradient);
+            color: white;
+            padding: 60px 0;
+            text-align: center;
+        }
+        .deadline-cta h2 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
+        .deadline-cta p { font-size: 1.1rem; opacity: 0.9; margin-bottom: 24px; }
+        .deadline-cta a {
+            display: inline-block;
+            background: white;
+            color: var(--purple);
+            padding: 14px 36px;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+        .deadline-cta a:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <a href="/" class="logo" style="text-decoration:none;">
+                <svg class="logo-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:40px;height:40px;">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#6c5ce7"/>
+                            <stop offset="100%" style="stop-color:#0984e3"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="0" y="0" width="80" height="80" rx="18" fill="url(#logoGrad)"/>
+                    <path d="M40 25v30M31 47l9 9 9-9" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <span class="logo-text">OverAssessed</span>
+            </a>
+            <nav class="nav">
+                <a href="/">Home</a>
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/exemptions">Exemptions</a>
+                <a href="#prereg-form" class="nav-cta">Pre-Register Free</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="prereg-hero">
+        <div class="container">
+            <div class="prereg-layout">
+                <div>
+                    <div class="countdown-strip">
+                        <span class="pulse-dot"></span>
+                        <span id="countdown-text">~7 weeks until notices arrive</span>
+                    </div>
+                    <h1>Texas Property Tax Notices Are Coming — <span>Be Ready</span></h1>
+                    <p class="subhead">Notices arrive mid-April. Get ahead of the rush — pre-register now and we'll analyze your property the day your notice drops.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            100% Free to pre-register
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            No obligation
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            May 15 deadline protected
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <div class="prereg-form-card" id="prereg-form">
+                    <div id="form-container">
+                        <h2>Pre-Register Free</h2>
+                        <p class="form-sub">We'll analyze your property the moment notices drop.</p>
+                        <div class="form-error" id="form-error"></div>
+                        <form id="prereg-form-el" autocomplete="on">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" placeholder="Jane Smith" required>
+
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="jane@example.com" required>
+
+                            <label for="phone">Phone</label>
+                            <input type="tel" id="phone" name="phone" placeholder="(210) 555-1234">
+
+                            <label for="property_address">Property Address</label>
+                            <input type="text" id="property_address" name="property_address" placeholder="123 Main St, San Antonio, TX" required>
+
+                            <div class="row-2">
+                                <div>
+                                    <label for="state">State</label>
+                                    <select id="state" name="state">
+                                        <option value="TX" selected>Texas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="county">County</label>
+                                    <select id="county" name="county" required>
+                                        <option value="">Select county…</option>
+                                        <option value="Bexar">Bexar</option>
+                                        <option value="Harris">Harris</option>
+                                        <option value="Dallas">Dallas</option>
+                                        <option value="Tarrant">Tarrant</option>
+                                        <option value="Travis">Travis</option>
+                                        <option value="Collin">Collin</option>
+                                        <option value="Denton">Denton</option>
+                                        <option value="Fort Bend">Fort Bend</option>
+                                        <option value="Williamson">Williamson</option>
+                                        <option value="Montgomery">Montgomery</option>
+                                        <option value="Hays">Hays</option>
+                                        <option value="El Paso">El Paso</option>
+                                        <option value="Galveston">Galveston</option>
+                                        <option value="Brazoria">Brazoria</option>
+                                        <option value="Comal">Comal</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="prereg-btn" id="submit-btn">Pre-Register Free →</button>
+                        </form>
+                        <p class="social-proof">Join <strong id="prereg-count">0</strong> homeowners already pre-registered</p>
+                    </div>
+                    <div class="form-success" id="form-success">
+                        <div class="check">✓</div>
+                        <h3>You're on the list!</h3>
+                        <p>We'll analyze your property the moment notices drop in April. Check your email for confirmation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Steps -->
+    <section class="steps">
+        <div class="container">
+            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;">How It Works</h2>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <h3>Pre-Register Now</h3>
+                    <p>Free, takes 30 seconds. No payment, no obligation.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <h3>We Pull Your Data</h3>
+                    <p>We gather your property data and comparable sales ahead of time.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <h3>Notice Drops → Instant Analysis</h3>
+                    <p>The day your notice arrives, we analyze it and build your evidence packet.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">4</div>
+                    <h3>We File Your Protest</h3>
+                    <p>We handle everything — filed before the May 15 deadline.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="benefits">
+        <div class="container">
+            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;">Why Pre-Register?</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">💰</div>
+                    <h3>No Upfront Cost</h3>
+                    <p>We only charge 20% of your savings — the lowest fee in Texas. If you don't save, you don't pay.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">⚡</div>
+                    <h3>First in Line</h3>
+                    <p>Pre-registered homeowners get analyzed first. Beat the rush when 5 million+ notices hit mailboxes.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🛡️</div>
+                    <h3>Deadline Protected</h3>
+                    <p>Miss May 15 and you're stuck overpaying for a full year. We make sure your protest is filed on time.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Deadline CTA -->
+    <section class="deadline-cta">
+        <div class="container">
+            <h2>Don't Wait Until It's Too Late</h2>
+            <p>The May 15 deadline doesn't move. Pre-register now and we handle the rest.</p>
+            <a href="#prereg-form">Pre-Register Free →</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background:var(--footer-dark);color:white;padding:40px 0;text-align:center;">
+        <div class="container">
+            <p style="opacity:0.7;font-size:0.9rem;">© 2026 OverAssessed, LLC — San Antonio, Texas</p>
+            <p style="opacity:0.5;font-size:0.8rem;margin-top:8px;">Questions? Email <a href="mailto:support@overassessed.ai" style="color:#a29bfe;">support@overassessed.ai</a> or call <a href="tel:2107607236" style="color:#a29bfe;">(210) 760-7236</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Countdown calculation
+        (function() {
+            const noticeDate = new Date('2026-04-15');
+            const now = new Date();
+            const diff = noticeDate - now;
+            const weeks = Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
+            document.getElementById('countdown-text').textContent = 
+                weeks > 0 ? `~${weeks} weeks until notices arrive` : 'Notices are arriving NOW — act fast!';
+        })();
+
+        // Fetch pre-reg count
+        (async function() {
+            try {
+                const res = await fetch('/api/pre-registrations/count');
+                if (res.ok) {
+                    const data = await res.json();
+                    const el = document.getElementById('prereg-count');
+                    if (data.count > 0) el.textContent = data.count;
+                }
+            } catch(e) {}
+        })();
+
+        // Form submission
+        document.getElementById('prereg-form-el').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const errEl = document.getElementById('form-error');
+            errEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Submitting…';
+
+            try {
+                const body = {
+                    name: document.getElementById('name').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    property_address: document.getElementById('property_address').value.trim(),
+                    county: document.getElementById('county').value
+                };
+                const res = await fetch('/api/pre-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+                document.getElementById('form-container').style.display = 'none';
+                document.getElementById('form-success').style.display = 'block';
+            } catch(err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Pre-Register Free →';
+            }
+        });
+    </script>
+</body>
+</html>

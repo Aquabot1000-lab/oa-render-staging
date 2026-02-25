@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="fL8XizXZxJifMkLVjEQxnSVLgQCcBSy4JUKBKnAg38g">
+    <meta name="description" content="File property tax exemptions — homestead, over-65, disability, veteran &amp; more. OverAssessed handles the paperwork for Texas &amp; Georgia homeowners.">
+    <title>Property Tax Exemptions | OverAssessed</title>
+    <link rel="canonical" href="https://overassessed.ai/exemptions">
+    <meta property="og:title" content="Property Tax Exemptions | OverAssessed">
+    <meta property="og:description" content="File property tax exemptions — homestead, over-65, disability, veteran &amp; more. We handle the paperwork.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://overassessed.ai/exemptions">
+    <meta property="og:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <meta property="og:site_name" content="OverAssessed">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Property Tax Exemptions | OverAssessed">
+    <meta name="twitter:description" content="File property tax exemptions — homestead, over-65, disability, veteran &amp; more.">
+    <meta name="twitter:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--purple:#6c5ce7;--blue:#0984e3;--gradient:linear-gradient(135deg,#6c5ce7,#0984e3);--dark:#2d3436;--muted:#6b7280;--bg:#f8f9ff;--green:#00b894;--radius:8px}
+        html{scroll-behavior:smooth}
+        body{font-family:'Inter',-apple-system,sans-serif;line-height:1.6;color:var(--dark);background:#fff}
+        .container{max-width:960px;margin:0 auto;padding:0 20px}
+        .lp-header{background:#fff;padding:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+        .lp-header .container{display:flex;justify-content:space-between;align-items:center}
+        .logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.3rem;color:var(--dark);text-decoration:none}
+        .header-cta{background:var(--gradient);color:#fff;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:700;font-size:.9rem}
+        .hero{background:var(--gradient);color:#fff;padding:80px 0 60px;text-align:center}
+        .hero h1{font-size:2.75rem;font-weight:900;margin-bottom:1rem}
+        .hero p{font-size:1.15rem;opacity:.9;max-width:620px;margin:0 auto 1.5rem}
+        .savings-callout{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:16px 32px;font-size:1.2rem;font-weight:700}
+        .section{padding:60px 0}
+        .section-alt{background:var(--bg)}
+        .section-title{text-align:center;font-size:2rem;font-weight:800;margin-bottom:.5rem}
+        .section-sub{text-align:center;color:var(--muted);margin-bottom:2.5rem}
+        .exemptions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-bottom:2rem}
+        .exemption-card{background:#fff;border-radius:16px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid transparent;transition:all .3s}
+        .exemption-card:hover{border-color:var(--purple);transform:translateY(-4px)}
+        .exemption-card .icon{font-size:2.5rem;margin-bottom:.75rem}
+        .exemption-card h3{font-size:1.1rem;margin-bottom:.5rem;color:var(--dark)}
+        .exemption-card p{font-size:.9rem;color:var(--muted)}
+        .exemption-card .savings{color:var(--green);font-weight:700;font-size:.95rem;margin-top:.5rem}
+        .form-section{background:var(--gradient);padding:60px 0;color:#fff}
+        .form-wrap{max-width:560px;margin:0 auto;background:#fff;border-radius:20px;padding:40px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+        .form-wrap h2{text-align:center;font-size:1.75rem;font-weight:800;margin-bottom:.4rem;color:var(--dark)}
+        .form-wrap .fsub{text-align:center;color:var(--muted);margin-bottom:1.5rem}
+        .form-wrap form{display:flex;flex-direction:column;gap:1rem}
+        .fg{display:flex;flex-direction:column}
+        .fg label{margin-bottom:4px;font-weight:600;color:var(--dark);font-size:.85rem}
+        .fg input,.fg select,.fg textarea{padding:12px 14px;border:2px solid #e2e8f0;border-radius:var(--radius);font-size:1rem;font-family:inherit;transition:border .3s}
+        .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(108,92,231,.15)}
+        .fg textarea{resize:vertical;min-height:80px}
+        .frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        .submit-btn{background:var(--gradient);color:#fff;border:none;padding:14px;font-size:1.1rem;font-weight:700;border-radius:50px;cursor:pointer;font-family:inherit;box-shadow:0 4px 15px rgba(108,92,231,.3)}
+        .submit-btn:hover{transform:translateY(-2px)}
+        .submit-btn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+        .form-note{font-size:.8rem;color:var(--muted);text-align:center;margin-top:.5rem}
+        .form-success{display:none;text-align:center;padding:2rem}
+        .lp-footer{background:#1a1a2e;color:#fff;padding:30px 0;text-align:center;font-size:.85rem;opacity:.8}
+        @media(max-width:768px){.hero h1{font-size:2rem}.frow{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <header class="lp-header">
+        <div class="container">
+            <a href="/" class="logo">OverAssessed</a>
+            <nav style="display:flex;gap:1.5rem;align-items:center;font-size:.9rem;font-weight:500">
+                <a href="/" style="color:var(--dark);text-decoration:none">Home</a>
+                <a href="referrals.html" style="color:var(--dark);text-decoration:none">Refer & Earn</a>
+                <a href="#exemption-form" class="header-cta">File My Exemptions →</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Property Tax Exemptions<br>Made Easy</h1>
+            <p>Most homeowners qualify for exemptions that reduce their property taxes — but many never file. We handle the paperwork so you don't miss out.</p>
+            <div class="savings-callout">💰 Texas homestead exemption saves ~$1,973/yr on average</div>
+        </div>
+    </section>
+
+    <section class="section section-alt">
+        <div class="container">
+            <h2 class="section-title">Available Exemptions</h2>
+            <p class="section-sub">Texas & Georgia — we file for all major exemption types</p>
+
+            <h3 style="text-align:center;color:var(--purple);margin-bottom:1.5rem;font-size:1.2rem">🤠 Texas Exemptions</h3>
+            <div class="exemptions-grid">
+                <div class="exemption-card">
+                    <div class="icon">🏠</div>
+                    <h3>Homestead Exemption</h3>
+                    <p>Primary residence exemption that removes a portion of your home's value from taxation. Available to all Texas homeowners.</p>
+                    <div class="savings">Saves ~$1,973/yr average</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">👴</div>
+                    <h3>Over-65 Exemption</h3>
+                    <p>Additional exemption for homeowners age 65+. Includes a tax ceiling that freezes your school district taxes.</p>
+                    <div class="savings">Additional $10K–$25K off value</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">♿</div>
+                    <h3>Disability Exemption</h3>
+                    <p>For homeowners who are disabled. Provides additional value reduction and a school tax ceiling similar to over-65.</p>
+                    <div class="savings">Additional $10K off value + tax freeze</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">🎖️</div>
+                    <h3>Veteran / Disabled Vet</h3>
+                    <p>Exemptions for veterans with service-connected disabilities. 100% disabled vets get full property tax exemption.</p>
+                    <div class="savings">Up to 100% tax exemption</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">🌾</div>
+                    <h3>AG / Timber (1-d-1)</h3>
+                    <p>Agricultural or timber use valuation. Land is taxed on productivity value rather than market value.</p>
+                    <div class="savings">Can reduce value 90%+</div>
+                </div>
+            </div>
+
+            <h3 style="text-align:center;color:var(--purple);margin:2.5rem 0 1.5rem;font-size:1.2rem">🍑 Georgia Exemptions</h3>
+            <div class="exemptions-grid">
+                <div class="exemption-card">
+                    <div class="icon">🏠</div>
+                    <h3>Homestead (S1)</h3>
+                    <p>Standard homestead exemption for Georgia homeowners on their primary residence.</p>
+                    <div class="savings">$2,000 off assessed value</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">👴</div>
+                    <h3>Senior (L5 — Age 65+)</h3>
+                    <p>Enhanced exemption for seniors age 65+ with income below threshold. Significant school tax reduction.</p>
+                    <div class="savings">Up to $4,000 off for school taxes</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">♿</div>
+                    <h3>Disability</h3>
+                    <p>For totally and permanently disabled homeowners. Provides additional exemption on top of homestead.</p>
+                    <div class="savings">Additional value reduction</div>
+                </div>
+                <div class="exemption-card">
+                    <div class="icon">🎖️</div>
+                    <h3>Veteran</h3>
+                    <p>Exemptions for disabled veterans and surviving spouses. 100% disabled vets receive full exemption.</p>
+                    <div class="savings">Up to full tax exemption</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="exemption-form">
+        <div class="container">
+            <div class="form-wrap">
+                <h2>File Your Exemptions</h2>
+                <p class="fsub">We handle all the paperwork — just tell us about your property.</p>
+                <form id="exemptionForm" enctype="multipart/form-data">
+                    <div class="frow">
+                        <div class="fg"><label for="ownerName">Owner Name *</label><input type="text" id="ownerName" required placeholder="Your full name"></div>
+                        <div class="fg"><label for="email">Email *</label><input type="email" id="email" required placeholder="you@example.com"></div>
+                    </div>
+                    <div class="frow">
+                        <div class="fg"><label for="phone">Phone *</label><input type="tel" id="phone" required placeholder="(210) 555-0123"></div>
+                        <div class="fg"><label for="state">State *</label><select id="state" required><option value="">Select</option><option value="TX">Texas</option><option value="GA">Georgia</option></select></div>
+                    </div>
+                    <div class="fg"><label for="propertyAddress">Property Address *</label><input type="text" id="propertyAddress" required placeholder="123 Main St, San Antonio, TX 78201"></div>
+                    <div class="frow">
+                        <div class="fg"><label for="propertyType">Property Type *</label><select id="propertyType" required>
+                            <option value="">Select</option>
+                            <option value="Single Family">Single Family</option>
+                            <option value="Condo/Townhome">Condo / Townhome</option>
+                            <option value="Multi-Family">Multi-Family</option>
+                            <option value="Mobile Home">Mobile Home</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Land">Land</option>
+                        </select></div>
+                        <div class="fg"><label for="yearPurchased">Year Purchased</label><input type="number" id="yearPurchased" placeholder="2020" min="1900" max="2030"></div>
+                    </div>
+                    <div class="fg"><label for="exemptionType">Exemption Type *</label><select id="exemptionType" required>
+                        <option value="">Select exemption</option>
+                        <optgroup label="Texas">
+                            <option value="TX Homestead">TX — Homestead</option>
+                            <option value="TX Over-65">TX — Over-65</option>
+                            <option value="TX Disability">TX — Disability</option>
+                            <option value="TX Veteran">TX — Veteran / Disabled Vet</option>
+                            <option value="TX AG/Timber">TX — AG / Timber</option>
+                        </optgroup>
+                        <optgroup label="Georgia">
+                            <option value="GA Homestead S1">GA — Homestead (S1)</option>
+                            <option value="GA Senior L5">GA — Senior (L5, 65+)</option>
+                            <option value="GA Disability">GA — Disability</option>
+                            <option value="GA Veteran">GA — Veteran</option>
+                        </optgroup>
+                    </select></div>
+                    <div class="fg"><label>Current Exemptions Already on File</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="None"> None</label>
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="Homestead"> Homestead</label>
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="Over-65"> Over-65</label>
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="Disability"> Disability</label>
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="Veteran"> Veteran</label>
+                            <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="Other"> Other</label>
+                        </div>
+                    </div>
+                    <div class="fg"><label for="documents">Upload Supporting Documents (optional)</label>
+                        <input type="file" id="documents" name="documents" multiple accept=".pdf,.jpg,.jpeg,.png" style="padding:10px;border:2px dashed #e2e8f0;border-radius:var(--radius);cursor:pointer;background:#f8f9ff">
+                        <span style="font-size:.75rem;color:var(--muted)">PDF, JPG, or PNG — up to 10 files</span>
+                    </div>
+                    <div class="fg"><label for="currentExemptions">Additional Notes</label><textarea id="currentExemptions" placeholder="Anything else we should know..."></textarea></div>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.9rem;padding:12px;background:#f0f7ff;border-radius:var(--radius);border:1px solid #d0e3ff">
+                        <input type="checkbox" id="crossSellProtest" checked>
+                        <span>✅ Also review my property's assessed value for a free protest analysis</span>
+                    </label>
+                    <button type="submit" class="submit-btn" id="submitBtn">Submit Exemption Request →</button>
+                    <p class="form-note">We'll review your eligibility and handle the filing. No upfront cost.</p>
+                </form>
+                <div class="form-success" id="formSuccess"><div style="font-size:3rem">✅</div><h3>Exemption Request Received!</h3><p>We'll review your eligibility and contact you within 24 hours.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="lp-footer"><p>&copy; 2026 OverAssessed, LLC — San Antonio, Texas | <a href="/" style="color:#6c5ce7">OverAssessed</a></p></footer>
+
+    <script>
+    document.getElementById('phone').addEventListener('input',function(e){let v=e.target.value.replace(/\D/g,'');if(v.length>=6)v=`(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6,10)}`;else if(v.length>=3)v=`(${v.slice(0,3)}) ${v.slice(3)}`;e.target.value=v});
+    document.getElementById('exemptionForm').addEventListener('submit',async function(e){
+        e.preventDefault();
+        const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Submitting...';
+        const fd=new FormData();
+        fd.append('ownerName',document.getElementById('ownerName').value);
+        fd.append('email',document.getElementById('email').value);
+        fd.append('phone',document.getElementById('phone').value);
+        fd.append('propertyAddress',document.getElementById('propertyAddress').value);
+        fd.append('state',document.getElementById('state').value);
+        fd.append('exemptionType',document.getElementById('exemptionType').value);
+        fd.append('propertyType',document.getElementById('propertyType').value);
+        fd.append('yearPurchased',document.getElementById('yearPurchased').value);
+        fd.append('currentExemptions',document.getElementById('currentExemptions').value);
+        fd.append('crossSellProtest',document.getElementById('crossSellProtest').checked);
+        // Collect existing exemptions checkboxes
+        const checked=Array.from(document.querySelectorAll('input[name="existingExemptions"]:checked')).map(c=>c.value);
+        fd.append('existingExemptions',JSON.stringify(checked));
+        // Attach files
+        const files=document.getElementById('documents').files;
+        for(let i=0;i<files.length;i++) fd.append('documents',files[i]);
+        try{
+            const r=await fetch('/api/exemptions/intake',{method:'POST',body:fd});
+            if(r.ok){
+                document.getElementById('exemptionForm').style.display='none';
+                document.getElementById('formSuccess').style.display='block';
+            } else throw new Error('fail');
+        }catch(err){
+            alert('Sorry, there was an error. Please call (210) 760-7236.');
+            btn.disabled=false;btn.textContent='Submit Exemption Request →';
+        }
+    });
+    </script>
+</body>
+</html>

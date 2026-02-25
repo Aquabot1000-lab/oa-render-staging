@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Refer a neighbor to OverAssessed and earn $50-$75 cash per referral. Neighbors Save Together referral program.">
+    <title>Referral Program — Neighbors Save Together | OverAssessed</title>
+    <link rel="canonical" href="https://overassessed.ai/referrals">
+    <meta property="og:title" content="Referral Program — Neighbors Save Together | OverAssessed">
+    <meta property="og:description" content="Refer a neighbor to OverAssessed and earn $50-$75 cash per referral.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://overassessed.ai/referrals">
+    <meta property="og:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <meta property="og:site_name" content="OverAssessed">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Referral Program | OverAssessed">
+    <meta name="twitter:description" content="Refer a neighbor and earn $50-$75 cash per referral.">
+    <meta name="twitter:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--purple:#6c5ce7;--blue:#0984e3;--gradient:linear-gradient(135deg,#6c5ce7,#0984e3);--dark:#2d3436;--muted:#6b7280;--bg:#f8f9ff;--green:#00b894;--radius:8px}
+        html{scroll-behavior:smooth}
+        body{font-family:'Inter',-apple-system,sans-serif;line-height:1.6;color:var(--dark);background:#fff}
+        .container{max-width:960px;margin:0 auto;padding:0 20px}
+        .lp-header{background:#fff;padding:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+        .lp-header .container{display:flex;justify-content:space-between;align-items:center}
+        .logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.3rem;color:var(--dark);text-decoration:none}
+        .header-cta{background:var(--gradient);color:#fff;padding:10px 24px;border-radius:50px;text-decoration:none;font-weight:700;font-size:.9rem}
+        .hero{background:var(--gradient);color:#fff;padding:80px 0 60px;text-align:center}
+        .hero h1{font-size:2.75rem;font-weight:900;margin-bottom:1rem}
+        .hero p{font-size:1.15rem;opacity:.9;max-width:620px;margin:0 auto}
+        .section{padding:60px 0}
+        .section-alt{background:var(--bg)}
+        .section-title{text-align:center;font-size:2rem;font-weight:800;margin-bottom:.5rem}
+        .section-sub{text-align:center;color:var(--muted);margin-bottom:2.5rem}
+        .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-bottom:2rem}
+        .step{text-align:center;padding:2rem 1.5rem;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+        .step-num{width:56px;height:56px;background:var(--gradient);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;margin:0 auto 1rem}
+        .step h3{font-size:1.1rem;margin-bottom:.4rem}
+        .step p{font-size:.9rem;color:var(--muted)}
+        .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+        .tier{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid transparent;transition:all .3s}
+        .tier:hover{border-color:var(--purple);transform:translateY(-4px)}
+        .tier.featured{border-color:var(--purple);background:linear-gradient(135deg,#f0efff,#e8f4fd)}
+        .tier .amount{font-size:2.5rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .tier h3{font-size:1.1rem;margin:.75rem 0 .5rem}
+        .tier p{font-size:.9rem;color:var(--muted)}
+        .tier .tag{display:inline-block;background:var(--gradient);color:#fff;padding:4px 12px;border-radius:50px;font-size:.75rem;font-weight:700;margin-top:.75rem}
+        .form-section{background:var(--gradient);padding:60px 0;color:#fff}
+        .form-wrap{max-width:560px;margin:0 auto;background:#fff;border-radius:20px;padding:40px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+        .form-wrap h2{text-align:center;font-size:1.75rem;font-weight:800;margin-bottom:.4rem;color:var(--dark)}
+        .form-wrap .fsub{text-align:center;color:var(--muted);margin-bottom:1.5rem}
+        .form-wrap form{display:flex;flex-direction:column;gap:1rem}
+        .fg{display:flex;flex-direction:column}
+        .fg label{margin-bottom:4px;font-weight:600;color:var(--dark);font-size:.85rem}
+        .fg input{padding:12px 14px;border:2px solid #e2e8f0;border-radius:var(--radius);font-size:1rem;font-family:inherit;transition:border .3s}
+        .fg input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(108,92,231,.15)}
+        .frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        .submit-btn{background:var(--gradient);color:#fff;border:none;padding:14px;font-size:1.1rem;font-weight:700;border-radius:50px;cursor:pointer;font-family:inherit;box-shadow:0 4px 15px rgba(108,92,231,.3)}
+        .submit-btn:hover{transform:translateY(-2px)}
+        .submit-btn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+        .form-note{font-size:.8rem;color:var(--muted);text-align:center;margin-top:.5rem}
+        .form-success{display:none;text-align:center;padding:2rem}
+        .referral-link-box{display:none;background:#f8f9ff;border:2px solid var(--purple);border-radius:12px;padding:20px;text-align:center;margin-top:1rem}
+        .referral-link-box input{width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;text-align:center;font-family:inherit;margin:.75rem 0}
+        .copy-btn{background:var(--gradient);color:#fff;border:none;padding:10px 24px;border-radius:50px;font-weight:700;cursor:pointer;font-family:inherit}
+        .lp-footer{background:#1a1a2e;color:#fff;padding:30px 0;text-align:center;font-size:.85rem;opacity:.8}
+        @media(max-width:768px){.hero h1{font-size:2rem}.steps,.tiers{grid-template-columns:1fr}.frow{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <header class="lp-header">
+        <div class="container">
+            <a href="/" class="logo">OverAssessed</a>
+            <nav style="display:flex;gap:1.5rem;align-items:center;font-size:.9rem;font-weight:500">
+                <a href="/" style="color:var(--dark);text-decoration:none">Home</a>
+                <a href="exemptions.html" style="color:var(--dark);text-decoration:none">Exemptions</a>
+                <a href="#referral-form" class="header-cta">Refer a Neighbor →</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Refer a Neighbor,<br>Earn $50 Cash 💰</h1>
+            <p>Neighbors Save Together — share your referral link, help your neighbors save on property taxes, and earn cash rewards for every successful referral.</p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-sub">Three simple steps to start earning</p>
+            <div class="steps">
+                <div class="step"><div class="step-num">1</div><h3>Share Your Link</h3><p>Get your unique referral link and share it with neighbors, friends, and family.</p></div>
+                <div class="step"><div class="step-num">2</div><h3>They Sign Up</h3><p>Your neighbor submits their property for a free analysis through your link.</p></div>
+                <div class="step"><div class="step-num">3</div><h3>You Get Paid</h3><p>When their appeal is filed, you earn cash — paid directly to you.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-alt">
+        <div class="container">
+            <h2 class="section-title">Referral Rewards</h2>
+            <p class="section-sub">The more you refer, the more you earn</p>
+            <div class="tiers">
+                <div class="tier">
+                    <div class="amount">$50</div>
+                    <h3>1 Referral</h3>
+                    <p>Earn $50 cash for your first successful referral.</p>
+                </div>
+                <div class="tier featured">
+                    <div class="amount">$175</div>
+                    <h3>3 Referrals</h3>
+                    <p>$50 each + $25 bonus = $175 total for 3 referrals.</p>
+                    <span class="tag">Most Popular</span>
+                </div>
+                <div class="tier">
+                    <div class="amount">$75<span style="font-size:.5em;-webkit-text-fill-color:var(--muted)"> each</span></div>
+                    <h3>5+ Referrals</h3>
+                    <p>$75 per referral — you're a Neighborhood Champion! 🏆</p>
+                    <span class="tag">🏆 Neighborhood Champion</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="referral-form">
+        <div class="container">
+            <div class="form-wrap">
+                <h2>Start Referring</h2>
+                <p class="fsub">Enter your info to get your unique referral link.</p>
+                <form id="referralForm">
+                    <div class="frow">
+                        <div class="fg"><label for="yourName">Your Name *</label><input type="text" id="yourName" required placeholder="Your full name"></div>
+                        <div class="fg"><label for="yourEmail">Your Email *</label><input type="email" id="yourEmail" required placeholder="you@example.com"></div>
+                    </div>
+                    <div class="fg"><label for="yourCaseId">Your Case ID (if you're an existing client)</label><input type="text" id="yourCaseId" placeholder="OA-0001"></div>
+                    <button type="submit" class="submit-btn" id="submitBtn">Get My Referral Link →</button>
+                    <p class="form-note">Already a client? Enter your case ID for faster setup.</p>
+                </form>
+                <div class="referral-link-box" id="referralLinkBox">
+                    <h3 style="color:var(--dark);margin-bottom:.25rem">🎉 Your Referral Link</h3>
+                    <p style="color:var(--muted);font-size:.9rem">Share this link with neighbors to start earning!</p>
+                    <input type="text" id="referralLink" readonly>
+                    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+                </div>
+                <div class="form-success" id="formSuccess"></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="lp-footer"><p>&copy; 2026 OverAssessed, LLC — San Antonio, Texas | <a href="/" style="color:#6c5ce7">OverAssessed</a></p></footer>
+
+    <script>
+    function copyLink(){
+        const input=document.getElementById('referralLink');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        document.querySelector('.copy-btn').textContent='✅ Copied!';
+        setTimeout(()=>document.querySelector('.copy-btn').textContent='📋 Copy Link',2000);
+    }
+    document.getElementById('referralForm').addEventListener('submit', async function(e){
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true; btn.textContent = 'Generating...';
+        try {
+            const res = await fetch('/api/referrals/signup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    yourName: document.getElementById('yourName').value,
+                    yourEmail: document.getElementById('yourEmail').value,
+                    yourCaseId: document.getElementById('yourCaseId').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            document.getElementById('referralLink').value = data.referral_link;
+            document.getElementById('referralForm').style.display = 'none';
+            document.getElementById('referralLinkBox').style.display = 'block';
+        } catch(err) {
+            alert('Error generating referral link. Please try again.');
+            btn.disabled = false; btn.textContent = 'Get My Referral Link →';
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<svg viewBox="0 0 720 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6c5ce7"/>
+      <stop offset="100%" stop-color="#0984e3"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6c5ce7"/>
+      <stop offset="100%" stop-color="#0984e3"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <rect x="0" y="0" width="200" height="200" rx="40" fill="url(#bg)"/>
+  <rect x="48" y="68" width="42" height="86" rx="3" fill="none" stroke="white" stroke-width="3" opacity="0.35"/>
+  <rect x="57" y="80" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <rect x="72" y="80" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <rect x="57" y="98" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <rect x="72" y="98" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <rect x="57" y="116" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <rect x="72" y="116" width="9" height="9" rx="1.5" fill="white" opacity="0.25"/>
+  <path d="M122 92L108 108V154H136V108L122 92Z" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
+  <rect x="116" y="130" width="12" height="24" rx="1" fill="none" stroke="white" stroke-width="2" opacity="0.25"/>
+  <path d="M100 46V140" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <path d="M76 116L100 140L124 116" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Wordmark -->
+  <text x="230" y="125" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="62" font-weight="700" fill="url(#textGrad)">OverAssessed</text>
+</svg>

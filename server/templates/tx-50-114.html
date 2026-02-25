@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; padding: 20px; }
+    
+    .form-header { text-align: center; margin-bottom: 15px; border-bottom: 3px solid #000; padding-bottom: 10px; }
+    .form-header h1 { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
+    .form-header h2 { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .form-header .form-number { font-size: 10px; color: #666; }
+    
+    .section { margin-bottom: 12px; border: 1px solid #999; padding: 10px; }
+    .section-title { font-weight: bold; font-size: 12px; background: #e8e8e8; padding: 4px 8px; margin: -10px -10px 8px -10px; }
+    
+    .field-row { display: flex; gap: 10px; margin-bottom: 6px; }
+    .field { flex: 1; }
+    .field label { display: block; font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 2px; font-weight: bold; }
+    .field .value { border-bottom: 1px solid #000; min-height: 18px; padding: 2px 4px; font-size: 11px; }
+    .field .value.highlight { background: {{HIGHLIGHT_DOB}}; border-bottom: 2px solid #ff9800; }
+    .field .value.sig-highlight { background: {{HIGHLIGHT_SIG}}; border-bottom: 2px solid #ff9800; }
+    
+    .checkbox-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .checkbox { width: 14px; height: 14px; border: 2px solid #000; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+    .checkbox.checked::after { content: "✓"; }
+    
+    .instructions { background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-size: 10px; }
+    .instructions strong { color: #856404; }
+    
+    .footer { margin-top: 15px; font-size: 9px; color: #666; text-align: center; border-top: 1px solid #ccc; padding-top: 8px; }
+    
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div class="form-header">
+    <h1>APPLICATION FOR RESIDENTIAL HOMESTEAD EXEMPTION</h1>
+    <h2>Texas Comptroller of Public Accounts</h2>
+    <div class="form-number">Form 50-114 — Tax Code Sections 11.13, 11.131, 11.132, 11.133, 11.134</div>
+</div>
+
+<div class="instructions">
+    <strong>⚠️ PRE-FILLED BY OVERASSESSED</strong> — Fields highlighted in yellow need to be completed by you (DOB, DL#, signature). All other fields have been pre-filled from your intake form. Please review for accuracy.
+</div>
+
+<!-- STEP 1: APPRAISAL DISTRICT -->
+<div class="section">
+    <div class="section-title">STEP 1: Appraisal District Information</div>
+    <div class="field-row">
+        <div class="field" style="flex:2"><label>Appraisal District Name</label><div class="value">{{COUNTY}} County Appraisal District</div></div>
+        <div class="field"><label>Phone</label><div class="value"></div></div>
+    </div>
+</div>
+
+<!-- STEP 2: PROPERTY OWNER -->
+<div class="section">
+    <div class="section-title">STEP 2: Property Owner / Applicant</div>
+    <div class="field-row">
+        <div class="field" style="flex:2"><label>Name of Property Owner</label><div class="value">{{OWNER_NAME}}</div></div>
+        <div class="field"><label>Date of Birth</label><div class="value highlight">{{DOB}}</div></div>
+    </div>
+    <div class="field-row">
+        <div class="field"><label>Driver's License / State ID / SSN (last 3 digits)</label><div class="value highlight">{{DL_NUMBER}}</div></div>
+        <div class="field"><label>Phone Number</label><div class="value">{{PHONE}}</div></div>
+        <div class="field"><label>Email Address</label><div class="value">{{EMAIL}}</div></div>
+    </div>
+    <div class="field-row">
+        <div class="field"><label>Mailing Address (if different from property)</label><div class="value"></div></div>
+    </div>
+</div>
+
+<!-- STEP 3: PROPERTY INFORMATION -->
+<div class="section">
+    <div class="section-title">STEP 3: Property Information</div>
+    <div class="field-row">
+        <div class="field" style="flex:2"><label>Physical Address of Homestead Property</label><div class="value">{{PROPERTY_ADDRESS}}</div></div>
+    </div>
+    <div class="field-row">
+        <div class="field"><label>City</label><div class="value">{{CITY}}</div></div>
+        <div class="field"><label>State</label><div class="value">{{STATE}}</div></div>
+        <div class="field"><label>Zip Code</label><div class="value">{{ZIP}}</div></div>
+        <div class="field"><label>County</label><div class="value">{{COUNTY}}</div></div>
+    </div>
+    <div class="field-row">
+        <div class="field"><label>Legal Description (if known)</label><div class="value"></div></div>
+    </div>
+    <div class="two-col">
+        <div class="field"><label>Date Acquired</label><div class="value">{{DATE_ACQUIRED}}</div></div>
+        <div class="field"><label>Date Began Occupying as Principal Residence</label><div class="value">{{DATE_OCCUPIED}}</div></div>
+    </div>
+    <div style="margin-top:6px;">
+        <div class="field"><label>Percentage of Property Used as Principal Residence</label><div class="value" style="width:80px;display:inline-block;">{{PERCENT_HOMESTEAD}}%</div></div>
+    </div>
+</div>
+
+<!-- STEP 4: EXEMPTIONS REQUESTED -->
+<div class="section">
+    <div class="section-title">STEP 4: Exemption(s) Requested</div>
+    <p style="font-size:10px;margin-bottom:8px;color:#555;">Check all that apply:</p>
+    
+    <div class="checkbox-row">
+        <div class="checkbox {{CHECK_GENERAL_HOMESTEAD}}"></div>
+        <span><strong>General Residential Homestead Exemption</strong> (Tax Code §11.13(a) and (b))</span>
+    </div>
+    <div class="checkbox-row">
+        <div class="checkbox {{CHECK_OVER_65}}"></div>
+        <span><strong>Age 65 or Older Exemption</strong> (Tax Code §11.13(c) and (d)) — Must be 65+ as of January 1 of tax year</span>
+    </div>
+    <div class="checkbox-row">
+        <div class="checkbox {{CHECK_DISABILITY}}"></div>
+        <span><strong>Disabled Person Exemption</strong> (Tax Code §11.13(c) and (d))</span>
+    </div>
+    <div class="checkbox-row">
+        <div class="checkbox {{CHECK_VETERAN}}"></div>
+        <span><strong>100% Disabled Veteran Exemption</strong> (Tax Code §11.131, 11.132)</span>
+    </div>
+    <div class="checkbox-row">
+        <div class="checkbox"></div>
+        <span><strong>Surviving Spouse of Deceased Veteran</strong> (Tax Code §11.133, 11.134)</span>
+    </div>
+    <div class="checkbox-row">
+        <div class="checkbox"></div>
+        <span><strong>Donated Residence of Partially Disabled Veteran</strong> (Tax Code §11.132)</span>
+    </div>
+</div>
+
+<!-- STEP 5: AFFIRMATION -->
+<div class="section">
+    <div class="section-title">STEP 5: Affirmation and Signature</div>
+    <p style="font-size:10px;margin-bottom:10px;">
+        I, <strong>{{OWNER_NAME}}</strong>, swear or affirm under penalty of perjury that the property described above 
+        is my principal residence, and I/my spouse do not claim a homestead exemption on any other property. 
+        All information provided in this application is true and correct to the best of my knowledge and belief.
+    </p>
+    <div class="field-row">
+        <div class="field" style="flex:2"><label>Signature of Property Owner</label><div class="value sig-highlight" style="min-height:30px;"></div></div>
+        <div class="field"><label>Date</label><div class="value sig-highlight">{{TODAYS_DATE}}</div></div>
+    </div>
+    <p style="font-size:9px;color:#888;margin-top:4px;">
+        If you make a false statement on this form, you could be found guilty of a Class A misdemeanor or a state jail felony under Section 37.10, Penal Code.
+    </p>
+</div>
+
+<div class="footer">
+    <p>Form 50-114 — Application for Residential Homestead Exemption</p>
+    <p>Pre-filled by OverAssessed, LLC — (210) 760-7236 — overassessed.ai</p>
+    <p>This is a working copy. The official form may be obtained from your county appraisal district or the Texas Comptroller's website.</p>
+</div>
+
+</body>
+</html>

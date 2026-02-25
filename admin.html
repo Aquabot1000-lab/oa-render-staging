@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverAssessed — Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5ce7;
+            --blue: #0984e3;
+            --gradient: linear-gradient(135deg, #6c5ce7, #0984e3);
+            --text-dark: #2d3436;
+            --text-muted: #6b7280;
+            --bg-tint: #f8f9ff;
+            --white: #ffffff;
+            --green: #00b894;
+            --red: #e17055;
+            --gray-light: #f7fafc;
+            --gray-medium: #e2e8f0;
+            --gray-dark: #4a5568;
+            --radius: 8px;
+            --radius-lg: 16px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-tint); color: var(--text-dark); }
+
+        /* Login */
+        .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--gradient); }
+        .login-box { background: var(--white); padding: 2.5rem; border-radius: var(--radius-lg); width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .login-box h2 { color: var(--text-dark); margin-bottom: 0.25rem; font-weight: 800; }
+        .login-box .subtitle { color: var(--text-muted); margin-bottom: 1.5rem; }
+        .login-box input { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--gray-medium); border-radius: var(--radius); font-size: 1rem; margin-bottom: 1rem; font-family: inherit; }
+        .login-box input:focus { outline: none; border-color: var(--purple); }
+        .login-box button { width: 100%; padding: 0.75rem; background: var(--gradient); color: white; border: none; border-radius: 50px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .login-box button:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(108,92,231,0.4); }
+        .login-error { color: var(--red); font-size: 0.9rem; margin-bottom: 1rem; display: none; }
+
+        /* Dashboard */
+        .dashboard { display: none; }
+        .topbar { background: var(--gradient); color: white; padding: 0.75rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .topbar h1 { font-size: 1.2rem; font-weight: 800; }
+        .topbar h1 span { opacity: 0.8; }
+        .topbar-right { display: flex; align-items: center; gap: 1rem; }
+        .topbar-right .user-name { font-size: 0.85rem; opacity: 0.8; }
+        .topbar-right button { background: rgba(255,255,255,0.15); color: white; border: none; padding: 0.4rem 0.75rem; border-radius: 50px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .topbar-right button:hover { background: rgba(255,255,255,0.25); }
+
+        .main { max-width: 1280px; margin: 0 auto; padding: 1.5rem; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: white; border-radius: var(--radius); padding: 4px; box-shadow: var(--shadow); }
+        .tab { padding: 0.6rem 1.25rem; border: none; background: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: var(--text-muted); font-family: inherit; transition: all 0.2s; }
+        .tab.active { background: var(--gradient); color: white; }
+        .tab:hover:not(.active) { background: var(--bg-tint); }
+
+        /* Tab content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Pipeline */
+        .pipeline-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .pipeline-card { background: white; padding: 1.25rem; border-radius: var(--radius-lg); box-shadow: var(--shadow); text-align: center; border-top: 3px solid var(--gray-medium); transition: all 0.3s; }
+        .pipeline-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .pipeline-card .count { font-size: 2rem; font-weight: 800; color: var(--purple); }
+        .pipeline-card .label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+        .pipeline-card.s-new { border-top-color: #3182ce; }
+        .pipeline-card.s-analysis { border-top-color: #6c5ce7; }
+        .pipeline-card.s-signed { border-top-color: #d69e2e; }
+        .pipeline-card.s-filed { border-top-color: #e17055; }
+        .pipeline-card.s-hearing { border-top-color: #805ad5; }
+        .pipeline-card.s-resolved { border-top-color: #00b894; }
+
+        /* KPI Cards */
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .kpi-card { background: white; padding: 1.25rem; border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+        .kpi-card .kpi-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem; font-weight: 600; }
+        .kpi-card .kpi-value { font-size: 1.75rem; font-weight: 800; color: var(--text-dark); }
+        .kpi-card .kpi-value.purple { color: var(--purple); }
+        .kpi-card .kpi-value.green { color: var(--green); }
+
+        /* Panel / Table */
+        .panel { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+        .panel-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--gray-medium); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+        .panel-header h2 { font-size: 1.1rem; }
+        .filter-bar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input { padding: 0.4rem 0.75rem; border: 1px solid var(--gray-medium); border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.6rem 1rem; background: var(--bg-tint); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; font-weight: 700; }
+        td { padding: 0.6rem 1rem; border-top: 1px solid var(--gray-medium); font-size: 0.85rem; }
+        tr:hover td { background: rgba(108,92,231,0.03); }
+        tr { cursor: pointer; }
+
+        .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+        .status-New { background: #ebf8ff; color: #2b6cb0; }
+        .status-Analysis-Complete { background: #e9d8fd; color: #6b46c1; }
+        .status-Form-Signed { background: #fefcbf; color: #975a16; }
+        .status-Protest-Filed { background: #fed7e2; color: #97266d; }
+        .status-Hearing-Scheduled { background: #e9d8fd; color: #553c9a; }
+        .status-Resolved { background: #c6f6d5; color: #276749; }
+        .status-In-Review { background: #fefcbf; color: #975a16; }
+        .status-Appeal-Filed { background: #e9d8fd; color: #6b46c1; }
+        .status-Won { background: #c6f6d5; color: #276749; }
+        .status-Lost { background: #fed7d7; color: #9b2c2c; }
+
+        /* New tab status badges */
+        .status-pending { background: #ebf8ff; color: #2b6cb0; }
+        .status-filed { background: #e9d8fd; color: #6b46c1; }
+        .status-approved { background: #c6f6d5; color: #276749; }
+        .status-denied { background: #fed7d7; color: #9b2c2c; }
+        .status-signed_up { background: #e9d8fd; color: #6b46c1; }
+        .status-converted { background: #c6f6d5; color: #276749; }
+        .status-expired { background: #e2e8f0; color: #4a5568; }
+        .status-monitoring { background: #ebf8ff; color: #2b6cb0; }
+        .status-received { background: #e2e8f0; color: #4a5568; }
+        .status-docs_needed { background: #fef3c7; color: #92400e; }
+        .status-confirmed { background: #c6f6d5; color: #276749; }
+        .status-value_increased { background: #fef3c7; color: #92400e; }
+        .status-auto_filed { background: #e9d8fd; color: #6b46c1; }
+        .status-resolved_mon { background: #c6f6d5; color: #276749; }
+
+        .badge-icon { display: inline-block; margin-right: 4px; font-size: 0.8rem; }
+
+        /* Bulk actions */
+        .bulk-bar { display: none; padding: 0.75rem 1.5rem; background: rgba(108,92,231,0.05); border-bottom: 1px solid var(--gray-medium); align-items: center; gap: 0.75rem; }
+        .bulk-bar.show { display: flex; }
+        .bulk-bar .count { font-weight: 700; color: var(--purple); }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 4px; padding: 0.4rem 0.75rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .btn-purple { background: var(--gradient); color: white; }
+        .btn-purple:hover { box-shadow: 0 4px 12px rgba(108,92,231,0.3); }
+        .btn-green { background: var(--green); color: white; }
+        .btn-outline { background: white; color: var(--purple); border: 1.5px solid var(--purple); }
+        .btn-outline:hover { background: var(--purple); color: white; }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+        .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        /* Detail Panel */
+        .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; }
+        .detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 520px; max-width: 95vw; background: white; z-index: 201; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.15); padding: 1.5rem; }
+        .detail-panel h2 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 1.1rem; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-dark); }
+        .detail-row { margin-bottom: 0.75rem; }
+        .detail-row label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; font-weight: 600; }
+        .detail-row .value { font-size: 0.95rem; font-weight: 500; }
+        .detail-row a { color: var(--purple); }
+        .detail-section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--gray-medium); }
+        .detail-section h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .status-select, .savings-input { width: 100%; padding: 0.5rem; border: 2px solid var(--gray-medium); border-radius: 6px; font-size: 0.9rem; margin-bottom: 0.5rem; font-family: inherit; }
+        .note-input { width: 100%; padding: 0.5rem; border: 2px solid var(--gray-medium); border-radius: 6px; font-size: 0.9rem; min-height: 60px; resize: vertical; margin-bottom: 0.5rem; font-family: inherit; }
+        .note-item { background: var(--bg-tint); padding: 0.6rem; border-radius: 6px; margin-bottom: 0.4rem; font-size: 0.8rem; }
+        .note-item .note-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }
+        .empty-msg { padding: 2rem; text-align: center; color: var(--text-muted); }
+
+        .sig-info { background: rgba(0,184,148,0.08); border: 1px solid rgba(0,184,148,0.2); border-radius: var(--radius); padding: 0.75rem; margin-top: 0.5rem; }
+        .sig-info p { font-size: 0.85rem; margin-bottom: 0.25rem; }
+
+        @media (max-width: 1024px) {
+            .pipeline-row { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .main { padding: 0.75rem; }
+            .pipeline-row { grid-template-columns: repeat(2, 1fr); }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .detail-panel { width: 100%; }
+            th, td { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+            .hide-mobile { display: none; }
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+            .tab { white-space: nowrap; font-size: 0.8rem; padding: 0.5rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-box">
+        <h2>OverAssessed</h2>
+        <p class="subtitle">Admin Dashboard</p>
+        <div class="login-error" id="loginError">Invalid email or password</div>
+        <input type="email" id="loginEmail" placeholder="Email" value="tyler@overassessed.ai">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="doLogin()">Sign In</button>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+    <div class="topbar">
+        <h1>OverAssessed Admin</h1>
+        <div class="topbar-right">
+            <span class="user-name" id="userName"></span>
+            <button onclick="doLogout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab" onclick="switchTab('submissions')">All Cases</button>
+            <button class="tab" onclick="switchTab('signatures')">Signatures</button>
+            <button class="tab" onclick="switchTab('notices')">Notices</button>
+            <button class="tab" onclick="switchTab('revenue')">Revenue</button>
+            <button class="tab" onclick="switchTab('exemptions')">Exemptions</button>
+            <button class="tab" onclick="switchTab('referrals')">Referrals</button>
+            <button class="tab" onclick="switchTab('monitoring')">Monitoring</button>
+            <button class="tab" onclick="switchTab('analysis')">🔍 Analysis</button>
+            <button class="tab" onclick="switchTab('prereg')">📋 Pre-Reg</button>
+            <button class="tab" onclick="switchTab('filings')">📋 Filings</button>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div class="tab-content active" id="tab-overview">
+            <div class="pipeline-row" id="pipelineRow"></div>
+
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Total Cases</div><div class="kpi-value" id="kpiTotal">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Forms Signed</div><div class="kpi-value purple" id="kpiSigned">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Notices Uploaded</div><div class="kpi-value purple" id="kpiNotices">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Est. Total Savings</div><div class="kpi-value green" id="kpiEstSavings">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Est. Revenue (20%)</div><div class="kpi-value green" id="kpiRevenue">$0</div></div>
+            </div>
+
+            <!-- Recent cases -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Recent Cases</h2>
+                    <button class="btn btn-purple" onclick="bulkAnalyzeAll()">🚀 Run Analysis on All New Cases</button>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th>Case</th><th>Date</th><th>Name</th><th>Property</th><th class="hide-mobile">Type</th><th>Status</th><th class="hide-mobile">Actions</th>
+                    </tr></thead>
+                    <tbody id="recentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SUBMISSIONS TAB -->
+        <div class="tab-content" id="tab-submissions">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>All Cases</h2>
+                    <div class="filter-bar">
+                        <select id="stateFilter" onchange="loadSubmissions()">
+                            <option value="">All States</option>
+                            <option value="TX">Texas</option>
+                            <option value="GA">Georgia</option>
+                        </select>
+                        <select id="statusFilter" onchange="loadSubmissions()">
+                            <option value="">All Statuses</option>
+                            <option value="New">New</option>
+                            <option value="Analysis Complete">Analysis Complete</option>
+                            <option value="Form Signed">Form Signed</option>
+                            <option value="Protest Filed">Protest Filed</option>
+                            <option value="Hearing Scheduled">Hearing Scheduled</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="In Review">In Review (legacy)</option>
+                            <option value="Won">Won (legacy)</option>
+                            <option value="Lost">Lost (legacy)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bulk-bar" id="bulkBar">
+                    <span class="count" id="bulkCount">0</span> selected
+                    <button class="btn btn-purple btn-sm" onclick="bulkAnalyze()">📊 Run Analysis</button>
+                    <button class="btn btn-outline btn-sm" onclick="clearBulk()">Clear</button>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th style="width:30px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                        <th>Case</th><th>Date</th><th>Name</th><th>Property</th><th class="hide-mobile">State</th><th class="hide-mobile">Value</th><th>Status</th><th class="hide-mobile">Source</th><th class="hide-mobile">Analysis</th><th class="hide-mobile">Savings</th>
+                    </tr></thead>
+                    <tbody id="submissionsBody"></tbody>
+                </table>
+                <div class="empty-msg" id="emptyMsg" style="display:none;">No submissions yet.</div>
+            </div>
+        </div>
+
+        <!-- SIGNATURES TAB -->
+        <div class="tab-content" id="tab-signatures">
+            <div class="panel">
+                <div class="panel-header"><h2>Signed 50-162 Forms</h2></div>
+                <table>
+                    <thead><tr><th>Case</th><th>Client</th><th>Signed Name</th><th>Date Signed</th><th>Property</th></tr></thead>
+                    <tbody id="signaturesBody"></tbody>
+                </table>
+                <div class="empty-msg" id="sigEmpty" style="display:none;">No signatures yet.</div>
+            </div>
+        </div>
+
+        <!-- NOTICES TAB -->
+        <div class="tab-content" id="tab-notices">
+            <div class="panel">
+                <div class="panel-header"><h2>Uploaded Notices</h2></div>
+                <table>
+                    <thead><tr><th>Case</th><th>Client</th><th>File</th><th>PIN</th><th>Property</th></tr></thead>
+                    <tbody id="noticesBody"></tbody>
+                </table>
+                <div class="empty-msg" id="noticeEmpty" style="display:none;">No notices uploaded yet.</div>
+            </div>
+        </div>
+
+        <!-- EXEMPTIONS TAB -->
+        <div class="tab-content" id="tab-exemptions">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Total Requests</div><div class="kpi-value" id="exKpiTotal">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Docs Needed</div><div class="kpi-value" id="exKpiDocsNeeded" style="color:#d69e2e;">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Filed</div><div class="kpi-value purple" id="exKpiFiled">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Confirmed</div><div class="kpi-value green" id="exKpiApproved">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Total Savings</div><div class="kpi-value green" id="exKpiSavings">$0</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Exemption Requests</h2>
+                    <div class="filter-bar">
+                        <select id="exStatusFilter" onchange="renderExemptions()">
+                            <option value="">All Statuses</option>
+                            <option value="received">Received</option>
+                            <option value="docs_needed">Docs Needed</option>
+                            <option value="filed">Filed</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="denied">Denied</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th>Client Name</th><th>Email</th><th>Property</th><th class="hide-mobile">State</th><th>Type</th><th>Status</th><th class="hide-mobile">Notes</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody id="exemptionsBody"></tbody>
+                </table>
+                <div class="empty-msg" id="exEmpty" style="display:none;">No exemption requests yet.</div>
+            </div>
+        </div>
+
+        <!-- EXEMPTION DETAIL OVERLAY -->
+        <div class="detail-overlay" id="exDetailOverlay" onclick="closeExDetail()"></div>
+        <div class="detail-panel" id="exDetailPanel" style="display:none;">
+            <h2><span id="exDetailName"></span><button class="close-btn" onclick="closeExDetail()">×</button></h2>
+            <div style="margin-bottom:1rem;"><span class="status-badge" id="exDetailBadge"></span></div>
+            <div class="detail-row"><label>Property</label><div class="value" id="exDetailAddress"></div></div>
+            <div class="detail-row"><label>Exemption Type</label><div class="value" id="exDetailType"></div></div>
+            <div class="detail-row"><label>Email</label><div class="value" id="exDetailEmail"></div></div>
+            <div class="detail-row"><label>Phone</label><div class="value" id="exDetailPhone"></div></div>
+            <div class="detail-row"><label>State</label><div class="value" id="exDetailState"></div></div>
+            <div class="detail-row" id="exDetailNotesData"><label>Intake Notes</label><div class="value" id="exDetailNotesText"></div></div>
+            <div class="detail-section">
+                <h3>Update Status</h3>
+                <select class="status-select" id="exDetailStatus">
+                    <option value="received">Received</option>
+                    <option value="docs_needed">Docs Needed</option>
+                    <option value="filed">Filed</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="denied">Denied</option>
+                </select>
+                <label style="font-size:.75rem;color:var(--text-muted);font-weight:600;">Docs Needed Note (sent to client)</label>
+                <textarea class="note-input" id="exDetailDocsNote" placeholder="What documents are needed..."></textarea>
+                <label style="font-size:.75rem;color:var(--text-muted);font-weight:600;">Est. Savings ($)</label>
+                <input type="number" class="savings-input" id="exDetailSavings" placeholder="0">
+                <label style="font-size:.75rem;color:var(--text-muted);font-weight:600;">Admin Notes</label>
+                <textarea class="note-input" id="exDetailAdminNote" placeholder="Internal notes..."></textarea>
+                <div class="btn-row" style="margin-top:.5rem;">
+                    <button class="btn btn-purple" onclick="saveExDetail()">Save & Notify</button>
+                    <button class="btn btn-outline" onclick="generateExForm()">📄 Generate Form 50-114</button>
+                    <button class="btn btn-green btn-sm" onclick="downloadExForm()">⬇️ Download Form</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REFERRALS TAB -->
+        <div class="tab-content" id="tab-referrals">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Total Referrals</div><div class="kpi-value" id="refKpiTotal">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Converted</div><div class="kpi-value green" id="refKpiConverted">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Total Rewards Paid</div><div class="kpi-value purple" id="refKpiPaid">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Pending Rewards</div><div class="kpi-value" id="refKpiPending">$0</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h2>Referrals</h2></div>
+                <table>
+                    <thead><tr>
+                        <th>Referral Code</th><th>Referrer</th><th>Referred Email</th><th class="hide-mobile">Referred Name</th><th>Status</th><th class="hide-mobile">Reward Amount</th><th class="hide-mobile">Reward Paid</th><th>Date</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody id="referralsBody"></tbody>
+                </table>
+                <div class="empty-msg" id="refEmpty" style="display:none;">No referrals yet.</div>
+            </div>
+        </div>
+
+        <!-- MONITORING TAB -->
+        <div class="tab-content" id="tab-monitoring">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Properties Monitored</div><div class="kpi-value" id="monKpiTotal">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Value Increases Detected</div><div class="kpi-value" id="monKpiIncreases">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Auto-Filed</div><div class="kpi-value purple" id="monKpiAutoFiled">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Savings from Re-files</div><div class="kpi-value green" id="monKpiSavings">$0</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Monitored Properties</h2>
+                    <button class="btn btn-purple" onclick="runAnnualCheck()">🔄 Run Annual Check</button>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th>Client</th><th>Property</th><th class="hide-mobile">Last Tax Year</th><th class="hide-mobile">Previous Value</th><th class="hide-mobile">New Value</th><th>Change %</th><th class="hide-mobile">Auto-Filed</th><th>Status</th>
+                    </tr></thead>
+                    <tbody id="monitoringBody"></tbody>
+                </table>
+                <div class="empty-msg" id="monEmpty" style="display:none;">No monitored properties yet.</div>
+            </div>
+        </div>
+
+        <!-- REVENUE TAB -->
+        <div class="tab-content" id="tab-revenue">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Total Estimated Savings</div><div class="kpi-value green" id="revSavings">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Total Fees (20%)</div><div class="kpi-value purple" id="revFees">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Resolved Cases</div><div class="kpi-value" id="revResolved">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Avg Savings/Case</div><div class="kpi-value green" id="revAvg">$0</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h2>Cases with Savings</h2></div>
+                <table>
+                    <thead><tr><th>Case</th><th>Client</th><th>Property</th><th>Est. Savings</th><th>Fee (20%)</th><th>Status</th></tr></thead>
+                    <tbody id="revenueBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- ANALYSIS TAB -->
+        <div class="tab-content" id="tab-analysis">
+            <div class="panel" style="margin-bottom:1.5rem;">
+                <div class="panel-header"><h2>🔍 RentCast Property Analysis</h2></div>
+                <div style="padding:1.5rem;">
+                    <p style="color:var(--text-muted);margin-bottom:1rem;">Enter any address to get an instant market valuation, county assessment comparison, and protest recommendation.</p>
+                    <div style="display:flex;gap:0.75rem;margin-bottom:1rem;">
+                        <input id="analysisAddress" type="text" placeholder="1234 Main St, San Antonio, TX 78201" style="flex:1;padding:0.75rem 1rem;border:2px solid var(--gray-medium);border-radius:var(--radius);font-size:1rem;font-family:inherit;">
+                        <button onclick="runAnalysis()" id="analysisBtn" style="padding:0.75rem 2rem;background:var(--gradient);color:white;border:none;border-radius:50px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Run Analysis</button>
+                    </div>
+                    <div id="analysisLoading" style="display:none;text-align:center;padding:2rem;color:var(--text-muted);">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>
+                        Querying RentCast AVM + Bexar County ArcGIS...
+                    </div>
+                    <div id="analysisError" style="display:none;color:var(--red);padding:1rem;background:#fff5f5;border-radius:var(--radius);"></div>
+                </div>
+            </div>
+            <div id="analysisResults" style="display:none;">
+                <div class="kpi-row" id="analysisKpis"></div>
+                <div class="panel" style="margin-bottom:1.5rem;">
+                    <div class="panel-header"><h2>Property Details</h2></div>
+                    <div id="analysisPropDetails" style="padding:1.5rem;"></div>
+                </div>
+                <div class="panel" style="margin-bottom:1.5rem;">
+                    <div class="panel-header"><h2>Comparable Properties</h2></div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead><tr><th>Address</th><th>Price</th><th>Sqft</th><th>Year</th><th>Beds/Bath</th><th>Correlation</th><th>Distance</th></tr></thead>
+                            <tbody id="analysisCompsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- DETAIL SLIDE-OVER -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel" style="display:none;">
+    <h2><span id="detailName"></span><button class="close-btn" onclick="closeDetail()">×</button></h2>
+    <div style="margin-bottom: 1rem;"><span class="status-badge" id="detailCaseBadge"></span></div>
+    <div class="detail-row"><label>Case ID</label><div class="value" id="detailCaseId"></div></div>
+    <div class="detail-row"><label>Property Address</label><div class="value" id="detailAddress"></div></div>
+    <div class="detail-row"><label>Property Type</label><div class="value" id="detailType"></div></div>
+    <div class="detail-row"><label>Assessed Value</label><div class="value" id="detailValue"></div></div>
+    <div class="detail-row"><label>Email</label><div class="value" id="detailEmail"></div></div>
+    <div class="detail-row"><label>Phone</label><div class="value" id="detailPhone"></div></div>
+    <div class="detail-row"><label>Submitted</label><div class="value" id="detailDate"></div></div>
+    <div class="detail-row" id="detailFileRow" style="display:none;"><label>Uploaded Notice</label><div class="value"><a id="detailFile" href="#" target="_blank">View File</a></div></div>
+    <div class="detail-row" id="detailNoticeRow" style="display:none;"><label>Notice of Value</label><div class="value"><a id="detailNotice" href="#" target="_blank">View Notice</a> <span id="detailPin" style="margin-left:8px;"></span></div></div>
+
+    <!-- Signature Info -->
+    <div id="detailSigSection" style="display:none;">
+        <div class="detail-section">
+            <h3>✍️ Form 50-162 Signature</h3>
+            <div class="sig-info">
+                <p><strong>Signed by:</strong> <span id="detailSigName"></span></p>
+                <p><strong>Date:</strong> <span id="detailSigDate"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis -->
+    <div id="detailAnalysisSection" style="display:none;">
+        <div class="detail-section">
+            <h3>📊 Analysis</h3>
+            <div class="detail-row"><label>Analysis Status</label><div class="value" id="detailAnalysisStatus" style="font-weight:700;"></div></div>
+            <div class="detail-row"><label>Recommended Value</label><div class="value" id="detailMarketVal"></div></div>
+            <div class="detail-row"><label>Potential Reduction</label><div class="value" id="detailReduction" style="color:var(--green);font-weight:700;"></div></div>
+            <div class="detail-row"><label>Est. Tax Savings</label><div class="value" id="detailEstSavings" style="color:var(--green);font-weight:700;"></div></div>
+        </div>
+    </div>
+
+    <!-- Comps -->
+    <div id="detailCompsSection" style="display:none;">
+        <div class="detail-section">
+            <h3>🏘️ Comparable Properties</h3>
+            <div id="detailComps" style="font-size:0.85rem;"></div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3>Actions</h3>
+        <div class="btn-row" style="margin-bottom: 0.5rem;">
+            <button class="btn btn-purple btn-sm" onclick="runAnalysis()">📊 Run Analysis</button>
+            <button class="btn btn-purple btn-sm" onclick="generateEvidence()">📄 Generate Evidence</button>
+            <button class="btn btn-green btn-sm" onclick="downloadEvidence()">⬇️ Download Evidence</button>
+        </div>
+        <div class="btn-row" style="margin-bottom: 1rem;">
+            <button class="btn btn-green btn-sm" onclick="prepareFiling()">📋 Prepare Filing</button>
+            <button class="btn btn-green btn-sm" onclick="downloadFiling()">⬇️ Download Filing</button>
+            <button class="btn btn-outline btn-sm" onclick="fileProtest()">📤 File Protest</button>
+            <button class="btn btn-outline btn-sm" onclick="resendNotify()">🔔 Re-notify</button>
+        </div>
+        <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Status</label>
+        <select class="status-select" id="detailStatus">
+            <option value="New">New</option>
+            <option value="Analysis Complete">Analysis Complete</option>
+            <option value="Form Signed">Form Signed</option>
+            <option value="Protest Filed">Protest Filed</option>
+            <option value="Hearing Scheduled">Hearing Scheduled</option>
+            <option value="Resolved">Resolved</option>
+            <option value="In Review">In Review</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+        </select>
+        <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Savings ($)</label>
+        <input type="number" class="savings-input" id="detailSavings" placeholder="0">
+        <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Add Note</label>
+        <textarea class="note-input" id="detailNote" placeholder="Add a note..."></textarea>
+        <div class="btn-row">
+            <button class="btn btn-purple" onclick="saveDetail()">Save Changes</button>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3>Notes</h3>
+        <div id="detailNotes"></div>
+    </div>
+</div>
+
+        <!-- PRE-REGISTRATION TAB -->
+        <div class="tab-content" id="tab-prereg">
+            <div class="panel">
+                <div class="panel-header"><h2>📋 Pre-Registrations</h2></div>
+                <div style="padding:1rem;">
+                    <table>
+                        <thead><tr><th>Name</th><th>Email</th><th>Property Address</th><th>County</th><th>Date</th></tr></thead>
+                        <tbody id="preregBody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILINGS TAB -->
+        <div class="tab-content" id="tab-filings">
+            <div id="filingsKpis" class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;"></div>
+            <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+                <select id="filingsCountyFilter" onchange="filterFilings()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;">
+                    <option value="">All Counties</option>
+                    <option value="bexar">Bexar</option><option value="harris">Harris</option>
+                    <option value="travis">Travis</option><option value="dallas">Dallas</option>
+                    <option value="tarrant">Tarrant</option><option value="fulton">Fulton</option>
+                </select>
+                <select id="filingsStatusFilter" onchange="filterFilings()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;">
+                    <option value="">All Statuses</option>
+                    <option value="draft">Draft</option><option value="form_generated">Form Generated</option>
+                    <option value="form_signed">Form Signed</option><option value="filed">Filed</option>
+                    <option value="hearing_scheduled">Hearing Scheduled</option><option value="settled">Settled</option>
+                    <option value="closed">Closed</option><option value="automation_failed">Failed</option>
+                </select>
+                <button onclick="bulkGeneratePackets()" style="padding:6px 12px;border:none;border-radius:6px;background:var(--blue);color:white;cursor:pointer;font-size:0.8rem;">Generate All Pending Packets</button>
+                <button onclick="bulkAutoFile()" style="padding:6px 12px;border:none;border-radius:6px;background:var(--gradient);color:white;cursor:pointer;font-size:0.8rem;">Auto-File All Ready</button>
+                <button onclick="exportFilingsCSV()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:0.8rem;">Export CSV</button>
+            </div>
+            <div class="panel">
+                <table>
+                    <thead><tr><th>Client</th><th>Property</th><th>County</th><th>Status</th><th>Filed</th><th>Hearing</th><th>Savings</th><th>Actions</th></tr></thead>
+                    <tbody id="filingsBody"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Select the Filings tab to load data</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+<script>
+let token = localStorage.getItem('oa_token');
+let currentUser = null;
+let submissions = [];
+let pipelineStats = {};
+let currentId = null;
+let selectedIds = new Set();
+
+if (token) showDashboard();
+
+// ===== AUTH =====
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('oa_token', token);
+        showDashboard();
+    } catch (e) {
+        const el = document.getElementById('loginError');
+        el.style.display = 'block';
+        el.textContent = e.message || 'Login failed';
+    }
+}
+document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() { token = null; localStorage.removeItem('oa_token'); location.reload(); }
+
+function showDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    if (currentUser) document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+    loadAll();
+}
+
+function authHeaders() { return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }; }
+
+// ===== TABS =====
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ===== DATA LOADING =====
+async function loadAll() {
+    await Promise.all([loadSubmissions(), loadPipelineStats()]);
+    renderOverview();
+    renderSignatures();
+    renderNotices();
+    renderRevenue();
+    loadExemptions();
+    loadReferrals();
+    loadMonitoring();
+    loadPreRegistrations();
+}
+
+async function loadPipelineStats() {
+    try {
+        const res = await fetch('/api/pipeline-stats', { headers: authHeaders() });
+        if (res.status === 401 || res.status === 403) { doLogout(); return; }
+        pipelineStats = await res.json();
+    } catch (e) { console.error(e); }
+}
+
+async function loadSubmissions() {
+    try {
+        const stateFilter = document.getElementById('stateFilter')?.value || '';
+        const stateParam = stateFilter ? `?state=${stateFilter}` : '';
+        const res = await fetch('/api/submissions' + stateParam, { headers: authHeaders() });
+        if (res.status === 401 || res.status === 403) { doLogout(); return; }
+        submissions = await res.json();
+        renderSubmissionsTable();
+    } catch (e) { console.error(e); }
+}
+
+// ===== RENDERING =====
+function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+function statusBadge(status) {
+    return `<span class="status-badge status-${(status||'New').replace(/\s/g,'-')}">${status||'New'}</span>`;
+}
+
+function renderOverview() {
+    const ps = pipelineStats;
+    const statuses = [
+        { key: 'New', label: 'New', cls: 's-new', icon: '📋' },
+        { key: 'Analysis Complete', label: 'Analyzed', cls: 's-analysis', icon: '📊' },
+        { key: 'Form Signed', label: 'Signed', cls: 's-signed', icon: '✍️' },
+        { key: 'Protest Filed', label: 'Filed', cls: 's-filed', icon: '📤' },
+        { key: 'Hearing Scheduled', label: 'Hearing', cls: 's-hearing', icon: '🏛️' },
+        { key: 'Resolved', label: 'Resolved', cls: 's-resolved', icon: '✅' }
+    ];
+    document.getElementById('pipelineRow').innerHTML = statuses.map(s =>
+        `<div class="pipeline-card ${s.cls}"><div class="count">${(ps.pipeline && ps.pipeline[s.key]) || 0}</div><div class="label">${s.icon} ${s.label}</div></div>`
+    ).join('');
+
+    document.getElementById('kpiTotal').textContent = ps.total || 0;
+    document.getElementById('kpiSigned').textContent = ps.signed || 0;
+    document.getElementById('kpiNotices').textContent = ps.notices || 0;
+    document.getElementById('kpiEstSavings').textContent = '$' + (ps.totalEstimatedSavings || 0).toLocaleString();
+    document.getElementById('kpiRevenue').textContent = '$' + (ps.totalFees || 0).toLocaleString();
+
+    // Recent 10
+    const recent = submissions.slice(0, 10);
+    document.getElementById('recentBody').innerHTML = recent.map(s => `
+        <tr onclick="openDetail('${s.id}')">
+            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td>${new Date(s.createdAt).toLocaleDateString()}</td>
+            <td>${esc(s.ownerName)}</td>
+            <td>${esc(s.propertyAddress).substring(0, 30)}</td>
+            <td class="hide-mobile">${esc(s.propertyType)}</td>
+            <td>${statusBadge(s.status)}</td>
+            <td class="hide-mobile">
+                ${s.status === 'New' ? `<button class="btn btn-purple btn-sm" onclick="event.stopPropagation();runAnalysisFor('${s.id}')">Analyze</button>` : ''}
+                ${s.status === 'Form Signed' ? `<button class="btn btn-green btn-sm" onclick="event.stopPropagation();fileProtestFor('${s.id}')">File</button>` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderSubmissionsTable() {
+    const filter = document.getElementById('statusFilter')?.value || '';
+    const filtered = filter ? submissions.filter(s => s.status === filter) : submissions;
+    const tbody = document.getElementById('submissionsBody');
+    const empty = document.getElementById('emptyMsg');
+
+    if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(s => `
+        <tr onclick="openDetail('${s.id}')">
+            <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="${s.id}" onchange="updateBulk()" ${selectedIds.has(s.id) ? 'checked' : ''}></td>
+            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td>${new Date(s.createdAt).toLocaleDateString()}</td>
+            <td>${esc(s.ownerName)}</td>
+            <td>${esc(s.propertyAddress).substring(0, 25)}</td>
+            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
+            <td class="hide-mobile">${s.assessedValue || '—'}</td>
+            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
+            <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '—')}</td>
+            <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
+            <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '—'}</td>
+        </tr>
+    `).join('');
+}
+
+function renderSignatures() {
+    const signed = submissions.filter(s => s.signature);
+    if (!signed.length) { document.getElementById('sigEmpty').style.display = 'block'; document.getElementById('signaturesBody').innerHTML = ''; return; }
+    document.getElementById('sigEmpty').style.display = 'none';
+    document.getElementById('signaturesBody').innerHTML = signed.map(s => `
+        <tr onclick="openDetail('${s.id}')">
+            <td><strong>${esc(s.caseId)}</strong></td>
+            <td>${esc(s.ownerName)}</td>
+            <td style="font-family:Georgia,serif;font-style:italic;">${esc(s.signature.fullName)}</td>
+            <td>${new Date(s.signature.signedAt).toLocaleDateString()}</td>
+            <td>${esc(s.propertyAddress).substring(0, 30)}</td>
+        </tr>
+    `).join('');
+}
+
+function renderNotices() {
+    const withNotice = submissions.filter(s => s.noticeOfValue);
+    if (!withNotice.length) { document.getElementById('noticeEmpty').style.display = 'block'; document.getElementById('noticesBody').innerHTML = ''; return; }
+    document.getElementById('noticeEmpty').style.display = 'none';
+    document.getElementById('noticesBody').innerHTML = withNotice.map(s => `
+        <tr onclick="openDetail('${s.id}')">
+            <td><strong>${esc(s.caseId)}</strong></td>
+            <td>${esc(s.ownerName)}</td>
+            <td><a href="${s.noticeOfValue}" target="_blank" onclick="event.stopPropagation()">📄 View</a></td>
+            <td>${s.pin || '—'}</td>
+            <td>${esc(s.propertyAddress).substring(0, 30)}</td>
+        </tr>
+    `).join('');
+}
+
+function renderRevenue() {
+    const withSavings = submissions.filter(s => s.estimatedSavings || s.savings);
+    const totalSavings = withSavings.reduce((sum, s) => sum + (s.estimatedSavings || s.savings || 0), 0);
+    const totalFees = Math.round(totalSavings * 0.20);
+    const resolved = submissions.filter(s => ['Resolved', 'Won'].includes(s.status)).length;
+    const avg = withSavings.length ? Math.round(totalSavings / withSavings.length) : 0;
+
+    document.getElementById('revSavings').textContent = '$' + totalSavings.toLocaleString();
+    document.getElementById('revFees').textContent = '$' + totalFees.toLocaleString();
+    document.getElementById('revResolved').textContent = resolved;
+    document.getElementById('revAvg').textContent = '$' + avg.toLocaleString();
+
+    document.getElementById('revenueBody').innerHTML = withSavings.map(s => {
+        const sav = s.estimatedSavings || s.savings || 0;
+        return `<tr onclick="openDetail('${s.id}')">
+            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td>${esc(s.ownerName)}</td>
+            <td>${esc(s.propertyAddress).substring(0, 25)}</td>
+            <td style="color:var(--green);font-weight:700;">$${sav.toLocaleString()}</td>
+            <td style="color:var(--purple);font-weight:700;">$${Math.round(sav * 0.2).toLocaleString()}</td>
+            <td>${statusBadge(s.status)}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ===== BULK ACTIONS =====
+function updateBulk() {
+    selectedIds = new Set();
+    document.querySelectorAll('.row-check:checked').forEach(cb => selectedIds.add(cb.value));
+    const bar = document.getElementById('bulkBar');
+    if (selectedIds.size > 0) {
+        bar.classList.add('show');
+        document.getElementById('bulkCount').textContent = selectedIds.size;
+    } else {
+        bar.classList.remove('show');
+    }
+}
+
+function toggleSelectAll() {
+    const checked = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked);
+    updateBulk();
+}
+
+function clearBulk() {
+    document.getElementById('selectAll').checked = false;
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+    selectedIds.clear();
+    document.getElementById('bulkBar').classList.remove('show');
+}
+
+async function bulkAnalyzeAll() {
+    const newCases = submissions.filter(s => s.status === 'New');
+    if (!newCases.length) { alert('No new cases to analyze'); return; }
+    if (!confirm(`Run full analysis on ${newCases.length} new case(s)? This will fetch property data, find comps, and generate evidence packets.`)) return;
+    try {
+        const res = await fetch('/api/cases/bulk-analyze', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ ids: newCases.map(s => s.id) })
+        });
+        const data = await res.json();
+        const analyzed = data.results.filter(r => r.status === 'analyzed').length;
+        const errors = data.results.filter(r => r.status === 'error').length;
+        alert(`Done! ${analyzed} analyzed${errors ? `, ${errors} errors` : ''}`);
+        await loadAll();
+    } catch (e) { alert('Bulk analysis failed'); }
+}
+
+async function bulkAnalyze() {
+    if (!selectedIds.size) return;
+    if (!confirm(`Run analysis on ${selectedIds.size} case(s)?`)) return;
+    try {
+        const res = await fetch('/api/analyze-bulk', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+        });
+        const data = await res.json();
+        alert(`Analysis complete: ${data.results.filter(r => r.status === 'analyzed').length} analyzed, ${data.results.filter(r => r.status === 'skipped').length} skipped`);
+        clearBulk();
+        await loadAll();
+    } catch (e) { alert('Bulk analysis failed'); }
+}
+
+// ===== DETAIL PANEL =====
+function openDetail(id) {
+    const s = submissions.find(x => x.id === id);
+    if (!s) return;
+    currentId = id;
+
+    document.getElementById('detailName').textContent = s.ownerName;
+    document.getElementById('detailCaseId').textContent = s.caseId || '—';
+    document.getElementById('detailCaseBadge').className = `status-badge status-${(s.status||'New').replace(/\s/g,'-')}`;
+    document.getElementById('detailCaseBadge').textContent = s.status;
+    document.getElementById('detailAddress').textContent = s.propertyAddress;
+    document.getElementById('detailType').textContent = s.propertyType;
+    document.getElementById('detailValue').textContent = s.assessedValue || '—';
+    document.getElementById('detailEmail').innerHTML = `<a href="mailto:${esc(s.email)}">${esc(s.email)}</a>`;
+    document.getElementById('detailPhone').innerHTML = `<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>`;
+    document.getElementById('detailDate').textContent = new Date(s.createdAt).toLocaleString();
+    document.getElementById('detailStatus').value = s.status;
+    document.getElementById('detailSavings').value = s.savings || '';
+    document.getElementById('detailNote').value = '';
+
+    // Files
+    if (s.noticeFile) {
+        document.getElementById('detailFileRow').style.display = 'block';
+        document.getElementById('detailFile').href = s.noticeFile;
+    } else { document.getElementById('detailFileRow').style.display = 'none'; }
+
+    if (s.noticeOfValue) {
+        document.getElementById('detailNoticeRow').style.display = 'block';
+        document.getElementById('detailNotice').href = s.noticeOfValue;
+        document.getElementById('detailPin').textContent = s.pin ? `PIN: ${s.pin}` : '';
+    } else { document.getElementById('detailNoticeRow').style.display = 'none'; }
+
+    // Signature
+    if (s.signature) {
+        document.getElementById('detailSigSection').style.display = 'block';
+        document.getElementById('detailSigName').textContent = s.signature.fullName;
+        document.getElementById('detailSigDate').textContent = new Date(s.signature.signedAt).toLocaleString();
+    } else { document.getElementById('detailSigSection').style.display = 'none'; }
+
+    // Analysis
+    if (s.analysisReport || s.compResults) {
+        document.getElementById('detailAnalysisSection').style.display = 'block';
+        document.getElementById('detailAnalysisStatus').textContent = s.analysisStatus || (s.analysisReport ? 'Complete' : 'Not Started');
+        document.getElementById('detailMarketVal').textContent = s.analysisReport?.estimatedMarketValue ? '$' + s.analysisReport.estimatedMarketValue.toLocaleString() : '—';
+        document.getElementById('detailReduction').textContent = s.analysisReport?.estimatedReduction ? '$' + s.analysisReport.estimatedReduction.toLocaleString() : '—';
+        document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() + '/yr' : '—';
+    } else { document.getElementById('detailAnalysisSection').style.display = 'none'; }
+
+    // Comps
+    if (s.compResults && s.compResults.comps && s.compResults.comps.length) {
+        document.getElementById('detailCompsSection').style.display = 'block';
+        document.getElementById('detailComps').innerHTML = s.compResults.comps.map((c, i) =>
+            `<div style="background:${i%2?'#f8f9ff':'white'};padding:8px;border-radius:6px;margin-bottom:4px;">
+                <strong>Comp #${i+1}:</strong> ${esc(c.address)}<br>
+                <span style="color:var(--text-muted);font-size:0.8rem;">
+                    Assessed: $${(c.assessedValue||0).toLocaleString()} |
+                    Adjusted: <span style="color:${c.adjustedValue < (s.propertyData?.assessedValue || 999999) ? 'var(--green)' : 'var(--red)'}">$${(c.adjustedValue||0).toLocaleString()}</span> |
+                    Score: ${c.score}/100 |
+                    ${c.sqft ? c.sqft+' sqft' : ''} ${c.yearBuilt ? '| Built '+c.yearBuilt : ''}
+                </span>
+            </div>`
+        ).join('');
+    } else { document.getElementById('detailCompsSection').style.display = 'none'; }
+
+    // Notes
+    const notesHtml = (s.notes || []).slice().reverse().map(n =>
+        `<div class="note-item">${esc(n.text)}<div class="note-meta">${n.author} — ${new Date(n.createdAt).toLocaleString()}</div></div>`
+    ).join('') || '<div class="empty-msg">No notes yet.</div>';
+    document.getElementById('detailNotes').innerHTML = notesHtml;
+
+    document.getElementById('detailOverlay').style.display = 'block';
+    document.getElementById('detailPanel').style.display = 'block';
+}
+
+function closeDetail() {
+    document.getElementById('detailOverlay').style.display = 'none';
+    document.getElementById('detailPanel').style.display = 'none';
+    currentId = null;
+}
+
+async function saveDetail() {
+    if (!currentId) return;
+    const body = {
+        status: document.getElementById('detailStatus').value,
+        savings: parseFloat(document.getElementById('detailSavings').value) || null
+    };
+    const note = document.getElementById('detailNote').value.trim();
+    if (note) body.note = note;
+    try {
+        const res = await fetch(`/api/submissions/${currentId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
+        if (res.ok) { await loadAll(); openDetail(currentId); }
+    } catch (e) { console.error(e); }
+}
+
+async function runAnalysis() {
+    if (!currentId) return;
+    try {
+        const res = await fetch(`/api/analyze/${currentId}`, { method: 'POST', headers: authHeaders() });
+        const data = await res.json();
+        if (res.ok) { alert(`Analysis complete! Estimated savings: $${data.estimatedSavings.toLocaleString()}`); await loadAll(); openDetail(currentId); }
+        else alert(data.error || 'Analysis failed');
+    } catch (e) { alert('Analysis failed'); }
+}
+
+async function runAnalysisFor(id) {
+    try {
+        const res = await fetch(`/api/analyze/${id}`, { method: 'POST', headers: authHeaders() });
+        if (res.ok) { await loadAll(); } else alert('Analysis failed');
+    } catch (e) { alert('Analysis failed'); }
+}
+
+async function fileProtest() {
+    if (!currentId) return;
+    try {
+        await fetch(`/api/submissions/${currentId}/status`, {
+            method: 'PATCH', headers: authHeaders(),
+            body: JSON.stringify({ status: 'Protest Filed' })
+        });
+        await loadAll();
+        openDetail(currentId);
+    } catch (e) { alert('Failed'); }
+}
+
+async function fileProtestFor(id) {
+    try {
+        await fetch(`/api/submissions/${id}/status`, {
+            method: 'PATCH', headers: authHeaders(),
+            body: JSON.stringify({ status: 'Protest Filed' })
+        });
+        await loadAll();
+    } catch (e) { alert('Failed'); }
+}
+
+async function generateEvidence() {
+    if (!currentId) return;
+    try {
+        const res = await fetch(`/api/cases/${currentId}/generate-evidence`, { method: 'POST', headers: authHeaders() });
+        const data = await res.json();
+        if (res.ok) { alert('Evidence packet generated!'); await loadAll(); openDetail(currentId); }
+        else alert(data.error || 'Failed');
+    } catch (e) { alert('Failed to generate evidence'); }
+}
+
+async function downloadEvidence() {
+    if (!currentId) return;
+    window.open(`/api/cases/${currentId}/evidence-packet?token=${token}`, '_blank');
+}
+
+async function prepareFiling() {
+    if (!currentId) return;
+    try {
+        const res = await fetch(`/api/cases/${currentId}/prepare-filing`, { method: 'POST', headers: authHeaders() });
+        const data = await res.json();
+        if (res.ok) { alert('Filing package prepared!'); await loadAll(); openDetail(currentId); }
+        else alert(data.error || 'Failed');
+    } catch (e) { alert('Failed to prepare filing'); }
+}
+
+async function downloadFiling() {
+    if (!currentId) return;
+    window.open(`/api/cases/${currentId}/filing-package?token=${token}`, '_blank');
+}
+
+// ===== EXEMPTIONS TAB =====
+let exemptions = [];
+let currentExId = null;
+async function loadExemptions() {
+    try {
+        const res = await fetch('/api/db/exemptions', { headers: authHeaders() });
+        if (!res.ok) { exemptions = []; renderExemptions(); return; }
+        exemptions = await res.json();
+        renderExemptions();
+    } catch (e) { exemptions = []; renderExemptions(); }
+}
+
+function exStatusBadge(status) {
+    const labels = { received: '⬜ Received', docs_needed: '🟡 Docs Needed', filed: '🔵 Filed', confirmed: '🟢 Confirmed', denied: '🔴 Denied', pending: '⬜ Received' };
+    const s = status || 'received';
+    return `<span class="status-badge status-${s}">${labels[s] || s}</span>`;
+}
+
+function renderExemptions() {
+    const tbody = document.getElementById('exemptionsBody');
+    const empty = document.getElementById('exEmpty');
+    const filter = document.getElementById('exStatusFilter')?.value || '';
+    const filtered = filter ? exemptions.filter(e => e.status === filter) : exemptions;
+    
+    if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    const docsNeeded = exemptions.filter(e => e.status === 'docs_needed').length;
+    const filed = exemptions.filter(e => e.status === 'filed').length;
+    const approved = exemptions.filter(e => e.status === 'confirmed' || e.status === 'approved').length;
+    const totalSavings = exemptions.reduce((s, e) => s + (e.estimatedSavings || 0), 0);
+    document.getElementById('exKpiTotal').textContent = exemptions.length;
+    document.getElementById('exKpiDocsNeeded').textContent = docsNeeded;
+    document.getElementById('exKpiFiled').textContent = filed;
+    document.getElementById('exKpiApproved').textContent = approved;
+    document.getElementById('exKpiSavings').textContent = '$' + totalSavings.toLocaleString();
+
+    // Parse notes for display
+    function parseExNotes(n) {
+        if (!n) return '';
+        try { const p = typeof n === 'string' ? JSON.parse(n) : n; return p.adminNote || p.currentExemptions || ''; } catch { return String(n).substring(0,40); }
+    }
+
+    tbody.innerHTML = filtered.map(e => {
+        const exType = e.exemption_type || e.exemptionType || '—';
+        return `
+        <tr onclick="openExemptionDetail('${e.id}')">
+            <td>${esc(e.clientName || e.ownerName || '—')}</td>
+            <td>${esc(e.email || '—')}</td>
+            <td>${esc((e.propertyAddress || '').substring(0, 25))}</td>
+            <td class="hide-mobile">${esc(e.state || '—')}</td>
+            <td>${esc(exType)}</td>
+            <td>${exStatusBadge(e.status)}</td>
+            <td class="hide-mobile" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(parseExNotes(e.notes))}</td>
+            <td>
+                <div class="btn-row">
+                    <select class="btn btn-sm" style="font-size:.7rem;padding:4px;" onchange="event.stopPropagation();quickExStatus('${e.id}',this.value)" onclick="event.stopPropagation()">
+                        <option value="" disabled selected>Status ▾</option>
+                        <option value="received">Received</option>
+                        <option value="docs_needed">Docs Needed</option>
+                        <option value="filed">Filed</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="denied">Denied</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();generateExFormFor('${e.id}')" title="Generate Form">📄</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function openExemptionDetail(id) {
+    const e = exemptions.find(x => x.id === id);
+    if (!e) return;
+    currentExId = id;
+    document.getElementById('exDetailName').textContent = e.clientName || e.ownerName || '—';
+    document.getElementById('exDetailBadge').className = `status-badge status-${e.status || 'received'}`;
+    document.getElementById('exDetailBadge').textContent = e.status || 'received';
+    document.getElementById('exDetailAddress').textContent = e.propertyAddress || '—';
+    document.getElementById('exDetailType').textContent = e.exemption_type || e.exemptionType || '—';
+    document.getElementById('exDetailEmail').innerHTML = e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : '—';
+    document.getElementById('exDetailPhone').innerHTML = e.phone ? `<a href="tel:${esc(e.phone)}">${esc(e.phone)}</a>` : '—';
+    document.getElementById('exDetailState').textContent = e.state || '—';
+    document.getElementById('exDetailStatus').value = e.status || 'received';
+    document.getElementById('exDetailSavings').value = e.estimatedSavings || '';
+    // Parse notes
+    let notesText = '';
+    try { const n = typeof e.notes === 'string' ? JSON.parse(e.notes) : e.notes; notesText = JSON.stringify(n, null, 2); } catch { notesText = e.notes || ''; }
+    document.getElementById('exDetailNotesText').textContent = notesText;
+    
+    document.getElementById('exDetailOverlay').style.display = 'block';
+    document.getElementById('exDetailPanel').style.display = 'block';
+}
+
+function closeExDetail() {
+    document.getElementById('exDetailOverlay').style.display = 'none';
+    document.getElementById('exDetailPanel').style.display = 'none';
+    currentExId = null;
+}
+
+async function saveExDetail() {
+    if (!currentExId) return;
+    const status = document.getElementById('exDetailStatus').value;
+    const body = { status };
+    const savings = parseFloat(document.getElementById('exDetailSavings').value);
+    if (savings) body.estimatedSavings = savings;
+    const docsNote = document.getElementById('exDetailDocsNote').value.trim();
+    if (docsNote) body.docsNeededNote = docsNote;
+    const adminNote = document.getElementById('exDetailAdminNote').value.trim();
+    if (adminNote) {
+        // Merge admin note into existing notes
+        const e = exemptions.find(x => x.id === currentExId);
+        let existingNotes = {};
+        try { existingNotes = typeof e.notes === 'string' ? JSON.parse(e.notes) : (e.notes || {}); } catch {}
+        existingNotes.adminNote = adminNote;
+        existingNotes.adminNoteDate = new Date().toISOString();
+        body.notes = JSON.stringify(existingNotes);
+    }
+    try {
+        await fetch(`/api/db/exemptions/${currentExId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
+        await loadExemptions();
+        closeExDetail();
+    } catch (e) { alert('Failed to update exemption'); }
+}
+
+async function quickExStatus(id, status) {
+    if (!status) return;
+    try {
+        await fetch(`/api/db/exemptions/${id}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status }) });
+        await loadExemptions();
+    } catch (e) { alert('Failed to update'); }
+}
+
+async function generateExFormFor(id) {
+    window.open(`/api/exemptions/${id}/generate-form`, '_blank');
+}
+
+async function generateExForm() {
+    if (!currentExId) return;
+    window.open(`/api/exemptions/${currentExId}/generate-form`, '_blank');
+}
+
+async function downloadExForm() {
+    if (!currentExId) return;
+    window.open(`/api/exemptions/${currentExId}/generate-form`, '_blank');
+}
+
+// ===== REFERRALS TAB =====
+let referrals = [];
+async function loadReferrals() {
+    try {
+        const res = await fetch('/api/db/referrals', { headers: authHeaders() });
+        if (!res.ok) { referrals = []; renderReferrals(); return; }
+        referrals = await res.json();
+        renderReferrals();
+    } catch (e) { referrals = []; renderReferrals(); }
+}
+
+function renderReferrals() {
+    const tbody = document.getElementById('referralsBody');
+    const empty = document.getElementById('refEmpty');
+    if (!referrals.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    const converted = referrals.filter(r => r.status === 'converted').length;
+    const totalPaid = referrals.filter(r => r.rewardPaid).reduce((s, r) => s + (r.rewardAmount || 0), 0);
+    const pending = referrals.filter(r => !r.rewardPaid && r.rewardAmount).reduce((s, r) => s + (r.rewardAmount || 0), 0);
+    document.getElementById('refKpiTotal').textContent = referrals.length;
+    document.getElementById('refKpiConverted').textContent = converted;
+    document.getElementById('refKpiPaid').textContent = '$' + totalPaid.toLocaleString();
+    document.getElementById('refKpiPending').textContent = '$' + pending.toLocaleString();
+
+    tbody.innerHTML = referrals.map(r => `
+        <tr>
+            <td><strong>${esc(r.referralCode || '—')}</strong></td>
+            <td>${esc(r.referrerName || r.referrer || '—')}</td>
+            <td>${esc(r.referredEmail || '—')}</td>
+            <td class="hide-mobile">${esc(r.referredName || '—')}</td>
+            <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
+            <td class="hide-mobile">${r.rewardAmount ? '$' + r.rewardAmount.toLocaleString() : '—'}</td>
+            <td class="hide-mobile">${r.rewardPaid ? '✅ Yes' : '❌ No'}</td>
+            <td>${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'}</td>
+            <td>
+                ${!r.rewardPaid && r.rewardAmount ? `<button class="btn btn-green btn-sm" onclick="markRewardPaid('${r.id}')">Pay Reward</button>` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function markRewardPaid(id) {
+    if (!confirm('Mark this reward as paid?')) return;
+    try {
+        await fetch(`/api/db/referrals/${id}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ rewardPaid: true }) });
+        await loadReferrals();
+    } catch (e) { alert('Failed to update referral'); }
+}
+
+// ===== MONITORING TAB =====
+let monitoredProperties = [];
+async function loadPreRegistrations() {
+    try {
+        const res = await fetch('/api/pre-registrations', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('preregBody');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No pre-registrations yet</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => `<tr>
+            <td>${esc(r.name)}</td>
+            <td>${esc(r.email)}</td>
+            <td>${esc(r.property_address)}</td>
+            <td>${esc(r.county)}</td>
+            <td>${new Date(r.created_at).toLocaleDateString()}</td>
+        </tr>`).join('');
+    } catch(e) { console.error('Failed to load pre-registrations', e); }
+}
+
+async function loadMonitoring() {
+    try {
+        const res = await fetch('/api/db/clients?monitoring=true', { headers: authHeaders() });
+        if (!res.ok) { monitoredProperties = []; renderMonitoring(); return; }
+        monitoredProperties = await res.json();
+        renderMonitoring();
+    } catch (e) { monitoredProperties = []; renderMonitoring(); }
+}
+
+function renderMonitoring() {
+    const tbody = document.getElementById('monitoringBody');
+    const empty = document.getElementById('monEmpty');
+    if (!monitoredProperties.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    const increases = monitoredProperties.filter(m => m.status === 'value_increased').length;
+    const autoFiled = monitoredProperties.filter(m => m.status === 'auto_filed').length;
+    const savings = monitoredProperties.reduce((s, m) => s + (m.refileSavings || 0), 0);
+    document.getElementById('monKpiTotal').textContent = monitoredProperties.length;
+    document.getElementById('monKpiIncreases').textContent = increases;
+    document.getElementById('monKpiAutoFiled').textContent = autoFiled;
+    document.getElementById('monKpiSavings').textContent = '$' + savings.toLocaleString();
+
+    tbody.innerHTML = monitoredProperties.map(m => {
+        const change = m.previousValue && m.newValue ? (((m.newValue - m.previousValue) / m.previousValue) * 100).toFixed(1) : '—';
+        const badgeClass = m.status === 'value_increased' ? 'status-value_increased' : m.status === 'auto_filed' ? 'status-auto_filed' : m.status === 'resolved' ? 'status-resolved_mon' : 'status-monitoring';
+        return `<tr>
+            <td>${esc(m.clientName || m.ownerName || '—')}</td>
+            <td>${esc((m.propertyAddress || '').substring(0, 25))}</td>
+            <td class="hide-mobile">${m.lastTaxYear || '—'}</td>
+            <td class="hide-mobile">${m.previousValue ? '$' + m.previousValue.toLocaleString() : '—'}</td>
+            <td class="hide-mobile">${m.newValue ? '$' + m.newValue.toLocaleString() : '—'}</td>
+            <td>${change !== '—' ? change + '%' : '—'}</td>
+            <td class="hide-mobile">${m.autoFiled ? '✅' : '—'}</td>
+            <td><span class="status-badge ${badgeClass}">${m.status || 'monitoring'}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+async function runAnnualCheck() {
+    if (!confirm('Run annual property value check for all monitored properties?')) return;
+    try {
+        const res = await fetch('/api/monitoring/annual-check', { method: 'POST', headers: authHeaders() });
+        if (res.ok) { alert('Annual check complete!'); await loadMonitoring(); }
+        else alert('Annual check endpoint not available yet.');
+    } catch (e) { alert('Annual check endpoint not available yet.'); }
+}
+
+async function resendNotify() {
+    if (!currentId) return;
+    try {
+        await fetch('/api/notify', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ submissionId: currentId }) });
+        alert('Notification re-sent!');
+    } catch (e) { alert('Failed'); }
+}
+
+// ==================== RENTCAST ANALYSIS ====================
+async function runAnalysis() {
+    const addr = document.getElementById('analysisAddress').value.trim();
+    if (!addr) return alert('Enter an address');
+    const btn = document.getElementById('analysisBtn');
+    const loading = document.getElementById('analysisLoading');
+    const errDiv = document.getElementById('analysisError');
+    const results = document.getElementById('analysisResults');
+    btn.disabled = true; btn.textContent = 'Analyzing...';
+    loading.style.display = 'block'; errDiv.style.display = 'none'; results.style.display = 'none';
+    try {
+        const res = await fetch('/api/analysis/run', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ address: addr }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Analysis failed');
+        renderAnalysis(data);
+    } catch (e) {
+        errDiv.textContent = e.message; errDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false; btn.textContent = 'Run Analysis'; loading.style.display = 'none';
+    }
+}
+function renderAnalysis(d) {
+    const results = document.getElementById('analysisResults');
+    results.style.display = 'block';
+    const fmt = n => n != null ? '$' + Number(n).toLocaleString() : 'N/A';
+    const rc = d.rentcast || {}; const co = d.county || {}; const a = d.analysis || {};
+    const recColor = a.recommendation === 'strong' ? 'var(--green)' : a.recommendation === 'moderate' ? '#d69e2e' : 'var(--red)';
+    document.getElementById('analysisKpis').innerHTML = `
+        <div class="kpi-card"><div class="kpi-label">RentCast Market Value</div><div class="kpi-value" style="color:var(--blue);">${fmt(rc.marketValue)}</div><div style="font-size:0.75rem;color:var(--text-muted);">Range: ${fmt(rc.marketLow)} – ${fmt(rc.marketHigh)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">County Assessed Value</div><div class="kpi-value">${fmt(co.assessedValue)}</div><div style="font-size:0.75rem;color:var(--text-muted);">Land: ${fmt(co.landValue)} | Impr: ${fmt(co.improvementValue)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Over-Assessment</div><div class="kpi-value" style="color:var(--red);">${fmt(a.overAssessmentAmount)}</div><div style="font-size:0.75rem;color:var(--text-muted);">${a.overAssessmentPct != null ? a.overAssessmentPct + '% above market' : ''}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Protest Recommendation</div><div class="kpi-value" style="color:${recColor};text-transform:uppercase;">${a.recommendation || 'N/A'}</div><div style="font-size:0.75rem;color:var(--text-muted);">Est. tax savings: ${fmt(a.estimatedTaxSavings)}/yr</div></div>
+    `;
+    document.getElementById('analysisPropDetails').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+            <div><strong>Address</strong><br>${d.address}</div>
+            <div><strong>Type</strong><br>${rc.propertyType || co.propertyType || 'N/A'}</div>
+            <div><strong>Sqft</strong><br>${rc.squareFootage || co.gba || 'N/A'}</div>
+            <div><strong>Year Built</strong><br>${rc.yearBuilt || co.yearBuilt || 'N/A'}</div>
+            <div><strong>Beds/Bath</strong><br>${rc.bedrooms || '?'}/${rc.bathrooms || '?'}</div>
+            ${co.propId ? `<div><strong>Prop ID</strong><br>${co.propId}</div>` : ''}
+            ${co.ownerName ? `<div><strong>Owner</strong><br>${co.ownerName}</div>` : ''}
+        </div>
+    `;
+    const comps = rc.comparables || [];
+    document.getElementById('analysisCompsBody').innerHTML = comps.map(c => `<tr>
+        <td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft || '—'}</td><td>${c.yearBuilt || '—'}</td>
+        <td>${(c.bedrooms||'?')}/${(c.bathrooms||'?')}</td><td>${c.correlation != null ? (c.correlation*100).toFixed(0)+'%' : '—'}</td>
+        <td>${c.distance != null ? c.distance.toFixed(1)+' mi' : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No comparables returned</td></tr>';
+}
+// ─── FILINGS TAB ─────────────────────────────────────────────
+let filingsData = [];
+let filingsStats = {};
+
+async function loadFilings() {
+    try {
+        const [filingsRes, statsRes] = await Promise.all([
+            fetch(`${API}/api/filings`),
+            fetch(`${API}/api/filings/stats`)
+        ]);
+        filingsData = await filingsRes.json();
+        filingsStats = await statsRes.json();
+        renderFilings();
+    } catch (err) {
+        console.error('Filings load error:', err);
+    }
+}
+
+function renderFilings() {
+    const s = filingsStats;
+    const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '—';
+    const filedThisWeek = filingsData.filter(f => {
+        if (!f.filing_date) return false;
+        const d = new Date(f.filing_date);
+        const now = new Date();
+        return (now - d) < 7 * 86400000;
+    }).length;
+
+    document.getElementById('filingsKpis').innerHTML = `
+        <div class="kpi-card"><div class="kpi-label">Total Filings</div><div class="kpi-value">${s.totalFilings || 0}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Filed This Week</div><div class="kpi-value" style="color:var(--green)">${filedThisWeek}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Savings</div><div class="kpi-value" style="color:var(--blue)">${fmt(s.totalSavings)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">By Status</div><div class="kpi-value" style="font-size:0.7rem">${Object.entries(s.byStatus || {}).map(([k,v]) => `${k}: ${v}`).join('<br>')}</div></div>
+    `;
+
+    const county = document.getElementById('filingsCountyFilter')?.value || '';
+    const status = document.getElementById('filingsStatusFilter')?.value || '';
+    let filtered = filingsData;
+    if (county) filtered = filtered.filter(f => f.county === county);
+    if (status) filtered = filtered.filter(f => f.status === status);
+
+    document.getElementById('filingsBody').innerHTML = filtered.map(f => `<tr>
+        <td>${f.clients?.name || '—'}</td>
+        <td>${f.properties?.address || '—'}</td>
+        <td>${(f.county || '').toUpperCase()}</td>
+        <td><span class="badge badge-${f.status === 'filed' ? 'green' : f.status === 'settled' ? 'blue' : f.status?.includes('fail') ? 'red' : 'amber'}">${f.status || 'draft'}</span></td>
+        <td>${f.filing_date ? new Date(f.filing_date).toLocaleDateString() : '—'}</td>
+        <td>${f.hearing_date ? new Date(f.hearing_date).toLocaleDateString() : '—'}</td>
+        <td>${f.savings ? fmt(f.savings) : '—'}</td>
+        <td>
+            <button onclick="viewFiling('${f.id}')" style="padding:4px 8px;font-size:0.75rem;border:1px solid #ddd;border-radius:4px;cursor:pointer;background:white;">View</button>
+            <button onclick="autoFileFiling('${f.id}')" style="padding:4px 8px;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer;background:var(--gradient);color:white;">Auto-File</button>
+        </td>
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);">No filings found</td></tr>';
+}
+
+function filterFilings() { renderFilings(); }
+
+async function autoFileFiling(id) {
+    if (!confirm('Start browser automation to file this protest with the county portal?')) return;
+    try {
+        const res = await fetch(`${API}/api/filings/${id}/auto-file`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+        const data = await res.json();
+        alert(data.message || 'Automation started!');
+        setTimeout(loadFilings, 5000);
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
+async function bulkGeneratePackets() {
+    const pending = filingsData.filter(f => !f.evidence_packet_url && f.status === 'draft');
+    if (!pending.length) return alert('No pending packets to generate.');
+    if (!confirm(`Generate packets for ${pending.length} filings?`)) return;
+    for (const f of pending) {
+        try { await fetch(`${API}/api/filings/${f.id}/generate-packet`, { method: 'POST' }); } catch {}
+    }
+    alert('Done! Refreshing...');
+    loadFilings();
+}
+
+async function bulkAutoFile() {
+    const ready = filingsData.filter(f => f.status === 'form_signed' && f.portal_pin && f.portal_account_id);
+    if (!ready.length) return alert('No filings ready for auto-filing (need form_signed status + portal credentials).');
+    if (!confirm(`Auto-file ${ready.length} filings?`)) return;
+    for (const f of ready) {
+        try { await fetch(`${API}/api/filings/${f.id}/auto-file`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) }); } catch {}
+    }
+    alert(`Started automation for ${ready.length} filings!`);
+    setTimeout(loadFilings, 10000);
+}
+
+function exportFilingsCSV() {
+    const headers = ['Client', 'Property', 'County', 'State', 'Status', 'Filed Date', 'Hearing Date', 'Original Value', 'Final Value', 'Savings'];
+    const rows = filingsData.map(f => [
+        f.clients?.name || '', f.properties?.address || '', f.county || '', f.state || '',
+        f.status || '', f.filing_date || '', f.hearing_date || '',
+        f.original_value || '', f.final_value || '', f.savings || ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'filings.csv'; a.click();
+}
+
+async function viewFiling(id) {
+    try {
+        const [filingRes, logRes] = await Promise.all([
+            fetch(`${API}/api/filings/${id}`),
+            fetch(`${API}/api/filings/${id}/automation-log`)
+        ]);
+        const filing = await filingRes.json();
+        const logData = await logRes.json();
+
+        const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '—';
+        const statuses = ['draft','form_generated','form_signed','filed','hearing_scheduled','hearing_complete','settled','closed'];
+        const currentIdx = statuses.indexOf(filing.status) || 0;
+        const progressBar = statuses.map((s, i) => `<span style="padding:4px 8px;border-radius:12px;font-size:0.7rem;${i <= currentIdx ? 'background:var(--purple);color:white;' : 'background:#eee;color:#999;'}">${s.replace(/_/g,' ')}</span>`).join(' → ');
+
+        const logHtml = (logData.log || []).map(l => `<div style="font-size:0.75rem;padding:2px 0;color:${l.level === 'error' ? 'var(--red)' : l.level === 'warning' ? 'var(--amber)' : 'var(--text-muted)'}"><strong>${new Date(l.timestamp).toLocaleTimeString()}</strong> ${l.message}</div>`).join('');
+        const screenshotHtml = (logData.screenshots || []).map(s => `<img src="${API}${s.path}" style="width:120px;height:auto;border-radius:4px;cursor:pointer;border:1px solid #eee;" onclick="window.open('${API}${s.path}','_blank')" title="${s.filename}">`).join(' ');
+
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+        modal.innerHTML = `<div style="background:white;border-radius:12px;padding:2rem;max-width:900px;width:95%;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3 style="margin:0;">Filing Detail</h3>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="border:none;background:none;font-size:1.5rem;cursor:pointer;">✕</button>
+            </div>
+            <div style="margin-bottom:1rem;">${progressBar}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div class="panel" style="padding:1rem;">
+                    <h4 style="margin:0 0 0.5rem;">Property Info</h4>
+                    <p><strong>Client:</strong> ${filing.clients?.name || '—'}<br>
+                    <strong>Address:</strong> ${filing.properties?.address || '—'}<br>
+                    <strong>County:</strong> ${(filing.county||'').toUpperCase()} (${filing.state})<br>
+                    <strong>Account ID:</strong> ${filing.portal_account_id || '—'}</p>
+                </div>
+                <div class="panel" style="padding:1rem;">
+                    <h4 style="margin:0 0 0.5rem;">Values</h4>
+                    <p><strong>Original:</strong> ${fmt(filing.original_value)}<br>
+                    <strong>Final:</strong> ${fmt(filing.final_value)}<br>
+                    <strong>Savings:</strong> ${fmt(filing.savings)}<br>
+                    <strong>Settlement:</strong> ${filing.settlement_offer ? fmt(filing.settlement_offer) + (filing.settlement_accepted ? ' ✅' : ' ⏳') : '—'}</p>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div class="panel" style="padding:1rem;">
+                    <h4 style="margin:0 0 0.5rem;">Portal & Forms</h4>
+                    ${filing.portal_url ? `<a href="${filing.portal_url}" target="_blank" style="display:inline-block;margin-bottom:0.5rem;color:var(--purple);">Open County Portal ↗</a><br>` : ''}
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button onclick="fetch('${API}/api/filings/${id}/generate-form',{method:'POST'}).then(r=>r.json()).then(d=>alert(d.url?'Form generated: '+d.url:d.error))" style="padding:6px 12px;border:none;border-radius:6px;background:var(--gradient);color:white;cursor:pointer;font-size:0.8rem;">Generate Form 50-162</button>
+                        <button onclick="fetch('${API}/api/filings/${id}/generate-packet',{method:'POST'}).then(r=>r.json()).then(d=>alert(d.url?'Packet: '+d.url:d.error))" style="padding:6px 12px;border:none;border-radius:6px;background:var(--blue);color:white;cursor:pointer;font-size:0.8rem;">Generate Evidence Packet</button>
+                    </div>
+                    ${filing.form_50_162_url ? `<br><a href="${API}${filing.form_50_162_url}" target="_blank">📄 Form 50-162</a>` : ''}
+                    ${filing.evidence_packet_url ? `<br><a href="${API}${filing.evidence_packet_url}" target="_blank">📦 Evidence Packet</a>` : ''}
+                </div>
+                <div class="panel" style="padding:1rem;">
+                    <h4 style="margin:0 0 0.5rem;">Hearing</h4>
+                    <p><strong>Date:</strong> ${filing.hearing_date ? new Date(filing.hearing_date).toLocaleDateString() : '—'}<br>
+                    <strong>Type:</strong> ${filing.hearing_type || '—'}<br>
+                    <strong>Format:</strong> ${filing.hearing_format || '—'}</p>
+                </div>
+            </div>
+            <div class="panel" style="padding:1rem;margin-bottom:1rem;">
+                <h4 style="margin:0 0 0.5rem;">🤖 Automation</h4>
+                <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                    <button onclick="autoFileFiling('${id}')" style="padding:6px 12px;border:none;border-radius:6px;background:var(--gradient);color:white;cursor:pointer;font-size:0.8rem;">Auto-File with County</button>
+                    <button onclick="fetch('${API}/api/filings/${id}/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>r.json()).then(d=>alert(d.message||d.error))" style="padding:6px 12px;border:none;border-radius:6px;background:var(--blue);color:white;cursor:pointer;font-size:0.8rem;">Upload Evidence to Portal</button>
+                </div>
+                <div style="font-size:0.75rem;margin-bottom:0.5rem;"><strong>Confirmation:</strong> ${filing.filing_confirmation || '—'}</div>
+                <div style="margin-bottom:0.5rem;">${screenshotHtml || '<span style="color:var(--text-muted);font-size:0.8rem;">No screenshots yet</span>'}</div>
+                <div style="max-height:200px;overflow-y:auto;background:#f8f9fa;border-radius:6px;padding:0.5rem;">${logHtml || '<span style="color:var(--text-muted);font-size:0.8rem;">No automation log</span>'}</div>
+            </div>
+            ${filing.notes ? `<div class="panel" style="padding:1rem;"><h4 style="margin:0 0 0.5rem;">Notes</h4><p style="white-space:pre-wrap;">${filing.notes}</p></div>` : ''}
+        </div>`;
+        document.body.appendChild(modal);
+    } catch (err) { alert('Error loading filing: ' + err.message); }
+}
+
+// Load filings when tab is switched
+const origSwitchTab = window.switchTab || function(){};
+const _origSwitchTab = typeof switchTab === 'function' ? switchTab : null;
+</script>
+<script>
+// Patch switchTab to load filings
+const _baseSwitchTab = switchTab;
+window.switchTab = function(tab) {
+    _baseSwitchTab(tab);
+    if (tab === 'filings') loadFilings();
+};
+</script>
+</body>
+</html>

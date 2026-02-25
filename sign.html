@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Authorization — OverAssessed</title>
+    <meta name="description" content="Sign your property tax appeal authorization form with OverAssessed. Quick and secure e-signature process.">
+    <link rel="canonical" href="https://overassessed.ai/sign">
+    <meta property="og:title" content="Sign Authorization — OverAssessed">
+    <meta property="og:description" content="Sign your property tax appeal authorization form.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://overassessed.ai/sign">
+    <meta property="og:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <meta property="og:site_name" content="OverAssessed">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sign Authorization — OverAssessed">
+    <meta name="twitter:description" content="Sign your property tax appeal authorization form.">
+    <meta name="twitter:image" content="https://disciplined-alignment-production.up.railway.app/assets/logo/icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5ce7;
+            --blue: #0984e3;
+            --gradient: linear-gradient(135deg, #6c5ce7, #0984e3);
+            --text-dark: #2d3436;
+            --text-muted: #6b7280;
+            --bg-tint: #f8f9ff;
+            --white: #ffffff;
+            --green: #00b894;
+            --red: #e17055;
+            --gray-medium: #e2e8f0;
+            --radius: 8px;
+            --radius-lg: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-tint); color: var(--text-dark); min-height: 100vh; }
+
+        .header { background: var(--gradient); color: white; padding: 1.5rem 2rem; text-align: center; }
+        .header h1 { font-size: 1.5rem; font-weight: 800; }
+        .header p { opacity: 0.8; margin-top: 4px; }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        .card { background: white; border-radius: var(--radius-lg); box-shadow: 0 4px 6px rgba(0,0,0,0.07); padding: 2rem; margin-bottom: 1.5rem; }
+
+        .form-title { font-size: 1.3rem; font-weight: 800; color: var(--purple); margin-bottom: 0.5rem; text-align: center; }
+        .form-subtitle { color: var(--text-muted); text-align: center; margin-bottom: 2rem; font-size: 0.9rem; }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .info-item label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
+        .info-item .value { font-weight: 600; font-size: 0.95rem; }
+
+        .form-text { background: var(--bg-tint); border: 1px solid var(--gray-medium); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; font-size: 0.85rem; line-height: 1.8; color: var(--text-dark); max-height: 300px; overflow-y: auto; }
+        .form-text h4 { color: var(--purple); margin-bottom: 0.75rem; font-size: 1rem; }
+
+        .doc-section { margin-bottom: 2rem; }
+        .doc-section h3 { font-size: 1.1rem; font-weight: 700; color: var(--purple); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+
+        .auth-checkbox { display: flex; align-items: flex-start; gap: 12px; margin: 1.5rem 0; padding: 1rem; background: rgba(108,92,231,0.05); border: 2px solid var(--gray-medium); border-radius: var(--radius); cursor: pointer; transition: all 0.3s; }
+        .auth-checkbox:hover { border-color: var(--purple); }
+        .auth-checkbox.checked { border-color: var(--green); background: rgba(0,184,148,0.05); }
+        .auth-checkbox input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; accent-color: var(--purple); }
+        .auth-checkbox label { font-weight: 600; font-size: 0.95rem; cursor: pointer; line-height: 1.5; }
+
+        .sig-section { margin-top: 1.5rem; }
+        .sig-section label { display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .sig-input { width: 100%; padding: 1rem; border: 2px solid var(--gray-medium); border-radius: var(--radius); font-size: 1.5rem; font-family: 'Georgia', serif; font-style: italic; text-align: center; transition: all 0.3s; }
+        .sig-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+        .sig-date { text-align: center; color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem; }
+
+        .submit-btn { width: 100%; padding: 1rem; background: var(--gradient); color: white; border: none; border-radius: 50px; font-size: 1.1rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 1.5rem; transition: all 0.3s; }
+        .submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,0.4); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .success-screen { display: none; text-align: center; padding: 3rem 2rem; }
+        .success-screen .icon { font-size: 4rem; margin-bottom: 1rem; }
+        .success-screen h2 { color: var(--green); margin-bottom: 0.5rem; }
+        .success-screen p { color: var(--text-muted); margin-bottom: 1.5rem; }
+        .success-screen a { color: var(--purple); font-weight: 700; text-decoration: none; }
+
+        .already-signed { text-align: center; padding: 2rem; }
+        .already-signed .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+        .error-msg { color: var(--red); font-size: 0.9rem; margin-top: 0.5rem; display: none; text-align: center; }
+        .loading { text-align: center; padding: 4rem; color: var(--text-muted); }
+
+        .disclosure { font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 0.75rem; }
+        .disclosure strong { color: var(--text-dark); }
+
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .container { padding: 1rem; }
+            .card { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>OverAssessed</h1>
+    <p id="headerSubtitle">Agent Authorization</p>
+</div>
+
+<div class="container">
+    <div class="loading" id="loading">Loading case information...</div>
+
+    <div id="formContent" style="display: none;">
+        <div class="card">
+            <div class="form-title" id="formTitle">Appointment of Agent for Property Tax Matters</div>
+            <div class="form-subtitle" id="formSubtitle">Texas Comptroller Form 50-162</div>
+
+            <div class="info-grid">
+                <div class="info-item"><label>Property Owner</label><div class="value" id="ownerName">—</div></div>
+                <div class="info-item"><label>Property Address</label><div class="value" id="propAddress">—</div></div>
+                <div class="info-item"><label>Case ID</label><div class="value" id="caseId">—</div></div>
+                <div class="info-item"><label>Agent</label><div class="value">OverAssessed, LLC</div></div>
+                <div class="info-item" id="countyRow" style="display:none;"><label>County</label><div class="value" id="countyName">—</div></div>
+            </div>
+
+            <!-- TX Documents -->
+            <div id="txDocs">
+                <div class="form-text">
+                    <h4>Appointment of Agent</h4>
+                    <p>I, <strong id="formOwnerNameTx">___</strong>, owner of the property located at <strong id="formPropAddressTx">___</strong>, hereby appoint <strong>OverAssessed, LLC</strong> as my agent to represent me before the appraisal district and appraisal review board for all matters relating to the appraisal of the above-referenced property for property tax purposes.</p>
+
+                    <p style="margin-top: 1rem;">This appointment authorizes the agent to:</p>
+                    <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                        <li>Receive all notices and communications regarding the property from the appraisal district</li>
+                        <li>File protests and any required documents on my behalf</li>
+                        <li>Appear at informal hearings and formal Appraisal Review Board (ARB) hearings</li>
+                        <li>Negotiate settlements and enter into agreements regarding the appraised value</li>
+                        <li>Access property records maintained by the appraisal district</li>
+                    </ul>
+
+                    <p style="margin-top: 1rem;">This appointment is effective immediately and remains in effect for the current tax year unless revoked in writing by the property owner.</p>
+
+                    <p style="margin-top: 1rem; font-style: italic; color: var(--text-muted);">Per Texas Tax Code § 1.111, a property owner may authorize an agent to represent them in property tax matters. An electronic signature on this form is legally binding under the Texas Uniform Electronic Transactions Act (UETA) and the federal ESIGN Act.</p>
+                </div>
+            </div>
+
+            <!-- GA Documents -->
+            <div id="gaDocs" style="display: none;">
+                <!-- Document 1: Service Agreement -->
+                <div class="doc-section">
+                    <h3>📋 Service Agreement</h3>
+                    <div class="form-text" style="max-height: 400px;">
+                        <h4>Property Tax Appeal Service Agreement</h4>
+                        <p>This Service Agreement ("Agreement") is entered into between <strong id="gaOwnerName1">___</strong> ("Client") and <strong>OverAssessed, LLC</strong> ("Agent") for property tax appeal services related to the property located at <strong id="gaPropAddress1">___</strong> in <strong><span id="gaCounty1">___</span> County, Georgia</strong>.</p>
+
+                        <h4 style="margin-top: 1.5rem;">Scope of Services</h4>
+                        <p>Agent agrees to provide the following services on behalf of Client:</p>
+                        <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                            <li>Analysis of the property's current assessed value against comparable sales data</li>
+                            <li>Preparation and filing of Appeal Form PT-311A with the <span class="ga-county-ref">___</span> County Board of Tax Assessors</li>
+                            <li>Representation at informal hearings with the Board of Tax Assessors</li>
+                            <li>Representation at formal Board of Equalization hearings, if necessary</li>
+                            <li>All correspondence and communication with county tax officials</li>
+                        </ul>
+
+                        <h4 style="margin-top: 1.5rem;">Fee Structure</h4>
+                        <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                            <li><strong>Contingency Fee:</strong> 25% of actual Year 1 property tax savings achieved</li>
+                            <li><strong>No Upfront Costs:</strong> No admin fees, no hidden costs, no payment required before services are rendered</li>
+                            <li><strong>No Savings = No Fee:</strong> If OverAssessed does not achieve a reduction in your assessed value, you owe nothing</li>
+                            <li><strong>3-Year Value Freeze:</strong> A successful appeal at a Board of Equalization hearing freezes your assessed value for 3 years under O.C.G.A. § 48-5-299(c). Our fee applies only to Year 1 savings — you keep 100% of Years 2 and 3</li>
+                        </ul>
+
+                        <h4 style="margin-top: 1.5rem;">Important Disclosures</h4>
+
+                        <div class="disclosure"><strong>⚠️ Value Increase Risk:</strong> In Georgia, filing a property tax appeal may result in the Board of Equalization increasing your property's assessed value. OverAssessed reviews all relevant market data before filing to minimize this risk, and we will not file an appeal if our analysis indicates a likely value increase.</div>
+
+                        <div class="disclosure"><strong>❄️ 3-Year Freeze (O.C.G.A. § 48-5-299(c)):</strong> A successful appeal resolved at a Board of Equalization hearing freezes your assessed value for three years (current year + two additional years). Values settled informally with the assessor's office may not qualify for the three-year freeze.</div>
+
+                        <div class="disclosure"><strong>📊 85/15 Rule:</strong> Under Georgia's 85/15 rule, your first-year tax bill may reflect limited savings as the county retains a portion of the reduction. Full savings are typically realized in years 2 and 3 of the freeze period. Our fee is calculated only on actual Year 1 tax savings you receive, not the total reduction amount.</div>
+
+                        <div class="disclosure"><strong>💰 Fee Calculation:</strong> Our fee of 25% is applied only to the actual property tax savings you receive in the year of the appeal. If we do not achieve a reduction, you pay nothing. No upfront fees, no admin fees, no hidden costs.</div>
+
+                        <div class="disclosure"><strong>⚖️ Not Legal Advice:</strong> OverAssessed, LLC provides property tax consulting services and is not a law firm. Our services do not constitute legal advice. We act as your authorized agent for the property tax appeal process under Georgia law.</div>
+
+                        <div class="disclosure"><strong>📋 No Guarantee:</strong> Past results do not guarantee future outcomes. Each property tax appeal is evaluated on its individual merits. Success rates and savings amounts vary by property and county.</div>
+
+                        <div class="disclosure"><strong>✍️ Agent Authorization:</strong> By signing this agreement, you authorize OverAssessed, LLC to act as your agent for your property tax appeal. This includes filing PT-311A and representing you before the Board of Tax Assessors and Board of Equalization.</div>
+                    </div>
+                </div>
+
+                <!-- Document 2: Letter of Authorization -->
+                <div class="doc-section">
+                    <h3>✍️ Letter of Authorization</h3>
+                    <div class="form-text">
+                        <h4>Letter of Authorization for Property Tax Appeal</h4>
+                        <p>To: <strong><span class="ga-county-ref">___</span> County Board of Tax Assessors</strong></p>
+                        <p style="margin-top: 1rem;">I, <strong id="gaOwnerName2">___</strong>, owner of the property located at <strong id="gaPropAddress2">___</strong>, hereby authorize <strong>OverAssessed, LLC</strong> to act as my agent and representative for all matters related to the property tax appeal for tax year <strong id="gaTaxYear">2026</strong>.</p>
+
+                        <p style="margin-top: 1rem;">This authorization grants OverAssessed, LLC the following powers:</p>
+                        <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                            <li>File Appeal Form PT-311A and all related documentation with the <span class="ga-county-ref">___</span> County Board of Tax Assessors</li>
+                            <li>Receive all notices, correspondence, and communications regarding this appeal</li>
+                            <li>Attend and represent me at informal conferences with the Board of Tax Assessors</li>
+                            <li>Attend and represent me at formal Board of Equalization hearings</li>
+                            <li>Negotiate and agree to settlements regarding the assessed value of the property</li>
+                            <li>Access all property records and assessment information maintained by the county</li>
+                        </ul>
+
+                        <p style="margin-top: 1rem;">This authorization is effective immediately and remains in effect for the <span id="gaTaxYear2">2026</span> tax year unless revoked in writing by the property owner.</p>
+
+                        <p style="margin-top: 1rem; font-style: italic; color: var(--text-muted);">An electronic signature on this Letter of Authorization is legally binding under the Georgia Uniform Electronic Transactions Act (O.C.G.A. § 10-12-1 et seq.) and the federal ESIGN Act.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-checkbox" id="authCheckbox" onclick="toggleAuth()">
+                <input type="checkbox" id="authorizeCheck">
+                <label for="authorizeCheck" id="authLabel">I authorize OverAssessed, LLC to act as my agent for property tax matters related to the above-referenced property. I understand that this authorization allows them to file protests and represent me before the appraisal district.</label>
+            </div>
+
+            <div class="sig-section">
+                <label>Electronic Signature (Type Your Full Legal Name)</label>
+                <input type="text" class="sig-input" id="signatureName" placeholder="Your Full Legal Name" disabled>
+                <div class="sig-date">Date: <span id="signDate"></span></div>
+            </div>
+
+            <div class="error-msg" id="errorMsg"></div>
+
+            <button class="submit-btn" id="submitBtn" onclick="submitSignature()" disabled>Sign & Submit Authorization</button>
+        </div>
+    </div>
+
+    <div class="card already-signed" id="alreadySigned" style="display: none;">
+        <div class="icon">✅</div>
+        <h2 style="color: var(--green);">Form Already Signed</h2>
+        <p style="color: var(--text-muted);">This authorization form has already been signed and submitted.</p>
+        <a href="/portal" style="color: var(--purple); font-weight: 700; text-decoration: none;">← Back to Portal</a>
+    </div>
+
+    <div class="success-screen" id="successScreen">
+        <div class="icon">🎉</div>
+        <h2>Authorization Signed!</h2>
+        <p id="successMsg">Your authorization has been signed and recorded. We're now authorized to handle your property tax case on your behalf.</p>
+        <p>A confirmation email has been sent to your address.</p>
+        <a href="/portal">← Back to Client Portal</a>
+    </div>
+</div>
+
+<script>
+const caseIdFromUrl = window.location.pathname.split('/sign/')[1];
+let sigData = null;
+
+document.getElementById('signDate').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+async function loadSigningData() {
+    if (!caseIdFromUrl) {
+        document.getElementById('loading').innerHTML = `
+            <div style="max-width:400px;margin:0 auto;text-align:center;">
+                <div style="font-size:2.5rem;margin-bottom:1rem;">✍️</div>
+                <h2 style="margin-bottom:0.5rem;color:var(--purple);">Sign Your Authorization</h2>
+                <p style="color:var(--text-muted);margin-bottom:1.5rem;">Enter your Case ID to access your authorization form.</p>
+                <input type="text" id="manualCaseId" placeholder="OA-0001" style="width:100%;padding:0.9rem 1rem;border:2px solid var(--gray-medium);border-radius:8px;font-size:1.2rem;text-align:center;text-transform:uppercase;font-family:inherit;margin-bottom:1rem;">
+                <button onclick="goToCase()" style="width:100%;padding:0.9rem;background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;border:none;border-radius:50px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">Access Authorization Form →</button>
+                <p style="margin-top:1rem;font-size:0.85rem;color:var(--text-muted);">Your Case ID was sent to your email after signup.</p>
+            </div>`;
+        return;
+    }
+    try {
+        const res = await fetch(`/api/sign/${caseIdFromUrl}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        sigData = data;
+
+        if (data.signed) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('alreadySigned').style.display = 'block';
+            return;
+        }
+
+        const state = data.state || 'TX';
+
+        // Populate common fields
+        document.getElementById('ownerName').textContent = data.ownerName;
+        document.getElementById('propAddress').textContent = data.propertyAddress;
+        document.getElementById('caseId').textContent = data.caseId;
+
+        if (state === 'GA') {
+            // GA flow
+            document.getElementById('headerSubtitle').textContent = 'Service Agreement & Letter of Authorization';
+            document.getElementById('formTitle').textContent = 'Property Tax Appeal Authorization';
+            document.getElementById('formSubtitle').textContent = 'Service Agreement + Letter of Authorization — Georgia';
+            document.getElementById('txDocs').style.display = 'none';
+            document.getElementById('gaDocs').style.display = 'block';
+
+            // Fill GA fields
+            const county = data.county || '___';
+            const taxYear = new Date().getFullYear().toString();
+            document.getElementById('gaOwnerName1').textContent = data.ownerName;
+            document.getElementById('gaPropAddress1').textContent = data.propertyAddress;
+            document.getElementById('gaCounty1').textContent = county;
+            document.getElementById('gaOwnerName2').textContent = data.ownerName;
+            document.getElementById('gaPropAddress2').textContent = data.propertyAddress;
+            document.getElementById('gaTaxYear').textContent = taxYear;
+            document.getElementById('gaTaxYear2').textContent = taxYear;
+            document.querySelectorAll('.ga-county-ref').forEach(el => el.textContent = county);
+
+            // Show county
+            document.getElementById('countyRow').style.display = 'block';
+            document.getElementById('countyName').textContent = county + ' County, GA';
+
+            // Update auth label
+            document.getElementById('authLabel').textContent = 'I have read and agree to the Service Agreement above. I authorize OverAssessed, LLC to act as my agent for my property tax appeal, including filing PT-311A and representing me before the Board of Tax Assessors and Board of Equalization in ' + county + ' County.';
+
+            document.getElementById('successMsg').textContent = 'Your Service Agreement and Letter of Authorization have been signed and recorded. We\'re now authorized to file your property tax appeal on your behalf.';
+
+        } else {
+            // TX flow (default)
+            document.getElementById('formOwnerNameTx').textContent = data.ownerName;
+            document.getElementById('formPropAddressTx').textContent = data.propertyAddress;
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('formContent').style.display = 'block';
+    } catch (e) {
+        document.getElementById('loading').textContent = 'Case not found. Please check the link.';
+    }
+}
+
+function toggleAuth() {
+    const cb = document.getElementById('authorizeCheck');
+    cb.checked = !cb.checked;
+    document.getElementById('authCheckbox').classList.toggle('checked', cb.checked);
+    document.getElementById('signatureName').disabled = !cb.checked;
+    updateSubmitState();
+}
+
+document.getElementById('signatureName').addEventListener('input', updateSubmitState);
+
+function updateSubmitState() {
+    const authorized = document.getElementById('authorizeCheck').checked;
+    const name = document.getElementById('signatureName').value.trim();
+    document.getElementById('submitBtn').disabled = !(authorized && name.length >= 2);
+}
+
+async function submitSignature() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    const fullName = document.getElementById('signatureName').value.trim();
+
+    try {
+        const res = await fetch(`/api/sign/${caseIdFromUrl}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName, authorized: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById('formContent').style.display = 'none';
+        document.getElementById('successScreen').style.display = 'block';
+    } catch (e) {
+        const err = document.getElementById('errorMsg');
+        err.textContent = e.message || 'Failed to submit. Please try again.';
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign & Submit Authorization';
+    }
+}
+
+function goToCase() {
+    const id = document.getElementById('manualCaseId').value.trim().toUpperCase();
+    if (id) window.location.href = '/sign/' + id;
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.getElementById('manualCaseId')) goToCase();
+});
+
+loadSigningData();
+</script>
+</body>
+</html>

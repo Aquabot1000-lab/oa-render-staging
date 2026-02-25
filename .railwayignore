@@ -1,0 +1,11 @@
+server/node_modules
+server/package-lock.json
+.env
+server/.env
+data/
+business/
+node_modules/
+test-runs/
+reports/
+legal/
+marketing/
