@@ -33,6 +33,8 @@ const paymentsRouter = require('./routes/payments');
 const exemptionsRouter = require('./routes/exemptions');
 const referralsRouter = require('./routes/referrals');
 const filingsRouter = require('./routes/filings');
+const stripeRouter = require('./routes/stripe');
+const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
 // Twilio setup
 let twilioClient = null;
@@ -513,10 +515,23 @@ if (isSupabaseEnabled()) {
     app.use('/api/exemptions', exemptionsRouter);
     // Public referral endpoints
     app.use('/api/referrals', referralsRouter);
-    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals');
+    // Stripe payment routes (webhook is public, others are authenticated via admin check)
+    app.use('/api/stripe', stripeRouter);
+    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe');
 }
 
 // ==================== ROUTES ====================
+
+// ==================== OUTCOME MONITOR ROUTES ====================
+// POST /api/admin/check-outcomes — manually trigger outcome check for all pending appeals
+app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
+    try {
+        const result = await checkAllPendingOutcomes();
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ==================== RENTCAST ANALYSIS ROUTES ====================
 // POST /api/analysis/run — full RentCast + ArcGIS analysis for any address
@@ -649,6 +664,32 @@ app.post('/api/pre-register', async (req, res) => {
     }
 });
 
+app.post('/api/calculator-lead', async (req, res) => {
+    try {
+        const { name, email, phone, property_address, county, assessed_value, estimated_savings, property_type } = req.body;
+        if (!name || !email || !property_address || !county || !assessed_value) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        if (!isSupabaseEnabled()) {
+            return res.status(503).json({ error: 'Database not configured' });
+        }
+        const insertData = { 
+            name, email, property_address, county, 
+            assessed_value: parseInt(assessed_value),
+            estimated_savings: parseInt(estimated_savings || 0),
+            property_type: property_type || 'residential',
+            source: 'calculator'
+        };
+        if (phone) insertData.phone = phone;
+        const { data, error } = await supabaseAdmin.from('calculator_leads').insert(insertData).select().single();
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error('Calculator lead error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/pre-registrations/count', async (req, res) => {
     try {
         if (!isSupabaseEnabled()) return res.json({ count: 0 });
@@ -677,7 +718,8 @@ app.get('/api/pre-registrations', authenticateToken, async (req, res) => {
 app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
     try {
         const { propertyAddress, propertyType, ownerName, phone, email, assessedValue, source, utm_data, county, notificationPref, ref,
-                bedrooms, bathrooms, sqft, yearBuilt, renovations, renovationDesc, conditionIssues, conditionDesc, recentAppraisal, appraisedValue, appraisalDate } = req.body;
+                bedrooms, bathrooms, sqft, yearBuilt, renovations, renovationDesc, conditionIssues, conditionDesc, recentAppraisal, appraisedValue, appraisalDate,
+                stripeCustomerId, stripePaymentMethodId } = req.body;
         if (!propertyAddress || !propertyType || !ownerName || !phone || !email) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -753,6 +795,28 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 }
             } catch (refErr) {
                 console.log('[Intake] Referral lookup failed:', refErr.message);
+            }
+        }
+
+        // Save Stripe customer ID to client record if provided (card on file)
+        if (stripeCustomerId && isSupabaseEnabled()) {
+            try {
+                await supabaseAdmin
+                    .from('clients')
+                    .update({ stripe_customer_id: stripeCustomerId })
+                    .eq('email', email.toLowerCase());
+                console.log(`[Intake] Stripe customer ${stripeCustomerId} linked to ${email}`);
+                
+                // Set the payment method as default for the customer
+                if (stripePaymentMethodId && process.env.STRIPE_SECRET_KEY) {
+                    const stripeLib = require('stripe')(process.env.STRIPE_SECRET_KEY);
+                    await stripeLib.customers.update(stripeCustomerId, {
+                        invoice_settings: { default_payment_method: stripePaymentMethodId }
+                    });
+                    console.log(`[Intake] Default payment method set for ${email}`);
+                }
+            } catch (stripeErr) {
+                console.log('[Intake] Stripe customer link failed:', stripeErr.message);
             }
         }
 
@@ -1419,7 +1483,88 @@ app.get('/lp/georgia', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'georgia.html'));
 });
 
+// PPC Landing Pages
+app.get('/ppc/property-tax-protest', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-property-tax-protest.html'));
+});
+app.get('/ppc/bexar', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-bexar.html'));
+});
+app.get('/ppc/harris', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-harris.html'));
+});
+app.get('/ppc/dallas', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-dallas.html'));
+});
+app.get('/ppc/tarrant', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-tarrant.html'));
+});
+
+// Texas county landing pages (2026 SEO campaign)
+app.get('/lp/bexar-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'bexar-county.html'));
+});
+app.get('/lp/comal-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'comal-county.html'));
+});
+app.get('/lp/guadalupe-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'guadalupe-county.html'));
+});
+app.get('/lp/hays-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'hays-county.html'));
+});
+app.get('/lp/travis-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'travis-county.html'));
+});
+app.get('/lp/williamson-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'williamson-county.html'));
+});
+app.get('/lp/dallas-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'dallas-county.html'));
+});
+app.get('/lp/harris-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'harris-county.html'));
+});
+app.get('/lp/tarrant-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'tarrant-county.html'));
+});
+app.get('/lp/collin-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'collin-county.html'));
+});
+app.get('/lp/denton-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'denton-county.html'));
+});
+app.get('/lp/fort-bend-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'fort-bend-county.html'));
+});
+app.get('/lp/montgomery-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'montgomery-county.html'));
+});
+app.get('/lp/el-paso-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'el-paso-county.html'));
+});
+app.get('/lp/hidalgo-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'lp', 'hidalgo-county.html'));
+});
+
 // County-specific landing pages
+
+// PPC Landing Pages (Google Ads / paid traffic)
+app.get('/ppc/property-tax-protest', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-property-tax-protest.html'));
+});
+app.get('/ppc/bexar', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-bexar.html'));
+});
+app.get('/ppc/harris', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-harris.html'));
+});
+app.get('/ppc/dallas', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-dallas.html'));
+});
+app.get('/ppc/tarrant', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'ppc-tarrant.html'));
+});
 app.get('/bexar-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'bexar-county.html'));
 });
@@ -1449,6 +1594,18 @@ app.get('/san-antonio', (req, res) => {
 });
 
 app.get('/pre-register', (req, res) => {
+
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+
+app.get('/calculator', (req, res) => {
+    res.sendFile(path.join(__dirname, '../', 'calculator.html'));
+});
+    res.sendFile(path.join(__dirname, '../', 'terms.html'));
+});
     res.sendFile(path.join(__dirname, '..', 'pre-register.html'));
 });
 
@@ -1488,12 +1645,30 @@ async function startServer() {
         console.log(`📧 Email: ${process.env.SENDGRID_API_KEY ? 'Enabled' : 'Disabled'}`);
         console.log(`👤 Notify: ${process.env.NOTIFY_PHONE || 'N/A'} | ${process.env.NOTIFY_EMAIL || 'N/A'}`);
         console.log(`🔄 Drip sequence: checking every hour`);
+        console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? 'Enabled (auto-invoice)' : 'Disabled'}`);
+        console.log(`🔍 Outcome monitor: checking every 6 hours`);
     });
 
     // Run drip check every hour
     setInterval(runDripCheck, 60 * 60 * 1000);
     // Also run once 30 seconds after startup
     setTimeout(runDripCheck, 30000);
+
+    // Run outcome monitor every 6 hours (checks county sites for hearing results)
+    setInterval(async () => {
+        try {
+            const result = await checkAllPendingOutcomes();
+            if (result.updated > 0) {
+                console.log(`[OutcomeMonitor] Updated ${result.updated} appeals`);
+            }
+        } catch (e) {
+            console.error('[OutcomeMonitor] Scheduled check error:', e.message);
+        }
+    }, 6 * 60 * 60 * 1000);
+    // First check 2 minutes after startup
+    setTimeout(async () => {
+        try { await checkAllPendingOutcomes(); } catch (e) { console.error('[OutcomeMonitor]', e.message); }
+    }, 120000);
 }
 
 startServer();
