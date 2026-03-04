@@ -288,10 +288,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (typeof gtag !== 'undefined') {
                     gtag('event', 'conversion', {
-                        'send_to': 'AW-CONVERSION_ID/CONVERSION_LABEL',
+                        'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD',
                         'value': 1.0,
                         'currency': 'USD'
                     });
+                }
+                if (typeof fbq !== 'undefined') {
+                    fbq('track', 'Lead');
                 }
             } else {
                 throw new Error('Failed to submit form');
