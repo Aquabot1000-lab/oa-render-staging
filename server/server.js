@@ -1659,6 +1659,22 @@ app.get('/referrals', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'referrals.html'));
 });
 
+// Blog routes - serve static HTML files
+app.get('/blog', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'blog', 'index.html'));
+});
+app.get('/blog/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'blog', 'index.html'));
+});
+app.get('/blog/:slug', (req, res) => {
+    const filePath = path.join(__dirname, '..', 'blog', `${req.params.slug}`);
+    // Try with .html extension if not provided
+    const tryPath = filePath.endsWith('.html') ? filePath : `${filePath}.html`;
+    res.sendFile(tryPath, (err) => {
+        if (err) res.sendFile(path.join(__dirname, '..', 'index.html'));
+    });
+});
+
 // Catch-all: serve frontend
 app.get('{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
