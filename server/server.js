@@ -1670,9 +1670,14 @@ app.get('/blog/:slug', (req, res) => {
     const filePath = path.join(__dirname, '..', 'blog', `${req.params.slug}`);
     // Try with .html extension if not provided
     const tryPath = filePath.endsWith('.html') ? filePath : `${filePath}.html`;
-    res.sendFile(tryPath, (err) => {
-        if (err) res.sendFile(path.join(__dirname, '..', 'index.html'));
-    });
+    const fs = require('fs');
+    console.log(`[blog] Requested: ${req.params.slug}, tryPath: ${tryPath}, exists: ${fs.existsSync(tryPath)}`);
+    if (fs.existsSync(tryPath)) {
+        res.sendFile(tryPath);
+    } else {
+        console.log(`[blog] File not found: ${tryPath}`);
+        res.status(404).sendFile(path.join(__dirname, '..', 'index.html'));
+    }
 });
 
 // Catch-all: serve frontend
