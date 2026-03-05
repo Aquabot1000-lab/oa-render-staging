@@ -1667,17 +1667,27 @@ app.get('/blog/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'blog', 'index.html'));
 });
 app.get('/blog/:slug', (req, res) => {
-    const filePath = path.join(__dirname, '..', 'blog', `${req.params.slug}`);
-    // Try with .html extension if not provided
-    const tryPath = filePath.endsWith('.html') ? filePath : `${filePath}.html`;
     const fs = require('fs');
-    console.log(`[blog] Requested: ${req.params.slug}, tryPath: ${tryPath}, exists: ${fs.existsSync(tryPath)}`);
-    if (fs.existsSync(tryPath)) {
-        res.sendFile(tryPath);
-    } else {
-        console.log(`[blog] File not found: ${tryPath}`);
-        res.status(404).sendFile(path.join(__dirname, '..', 'index.html'));
+    const blogDir = path.join(__dirname, '..', 'blog');
+    const slug = req.params.slug;
+    const tryPaths = [
+        path.join(blogDir, slug),
+        path.join(blogDir, `${slug}.html`),
+        path.join(process.cwd(), 'blog', slug),
+        path.join(process.cwd(), 'blog', `${slug}.html`),
+    ];
+    console.log(`[blog] Requested: ${slug}, __dirname: ${__dirname}, cwd: ${process.cwd()}, blogDir exists: ${fs.existsSync(blogDir)}`);
+    if (fs.existsSync(blogDir)) {
+        console.log(`[blog] Blog dir contents: ${fs.readdirSync(blogDir).join(', ')}`);
     }
+    for (const tp of tryPaths) {
+        if (fs.existsSync(tp)) {
+            console.log(`[blog] Serving: ${tp}`);
+            return res.sendFile(tp);
+        }
+    }
+    console.log(`[blog] Not found. Tried: ${tryPaths.join(', ')}`);
+    res.status(404).sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Catch-all: serve frontend
