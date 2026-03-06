@@ -1631,6 +1631,10 @@ app.get('/pre-register', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'pre-register.html'));
 });
 
+app.get('/pre-season', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'pre-season.html'));
+});
+
 app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'privacy.html'));
 });
