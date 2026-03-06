@@ -1659,25 +1659,6 @@ app.get('/referrals', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'referrals.html'));
 });
 
-// Blog diagnostic endpoint
-app.get('/api/blog-debug', (req, res) => {
-    const fs = require('fs');
-    const blogDir1 = path.join(__dirname, '..', 'blog');
-    const blogDir2 = path.join(process.cwd(), 'blog');
-    const result = {
-        __dirname,
-        cwd: process.cwd(),
-        blogDir1,
-        blogDir1Exists: fs.existsSync(blogDir1),
-        blogDir2,
-        blogDir2Exists: fs.existsSync(blogDir2),
-        blogDir1Contents: fs.existsSync(blogDir1) ? fs.readdirSync(blogDir1) : [],
-        blogDir2Contents: fs.existsSync(blogDir2) ? fs.readdirSync(blogDir2) : [],
-        rootContents: fs.readdirSync(process.cwd()).filter(f => !f.startsWith('.') && f !== 'node_modules'),
-    };
-    res.json(result);
-});
-
 // Blog routes - serve static HTML files from cwd (Railway-safe)
 const blogBasePath = path.join(process.cwd(), 'blog');
 app.get('/blog', (req, res) => {
