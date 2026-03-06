@@ -1659,27 +1659,52 @@ app.get('/referrals', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'referrals.html'));
 });
 
-// Blog routes - serve static HTML files
+// Blog diagnostic endpoint
+app.get('/api/blog-debug', (req, res) => {
+    const fs = require('fs');
+    const blogDir1 = path.join(__dirname, '..', 'blog');
+    const blogDir2 = path.join(process.cwd(), 'blog');
+    const result = {
+        __dirname,
+        cwd: process.cwd(),
+        blogDir1,
+        blogDir1Exists: fs.existsSync(blogDir1),
+        blogDir2,
+        blogDir2Exists: fs.existsSync(blogDir2),
+        blogDir1Contents: fs.existsSync(blogDir1) ? fs.readdirSync(blogDir1) : [],
+        blogDir2Contents: fs.existsSync(blogDir2) ? fs.readdirSync(blogDir2) : [],
+        rootContents: fs.readdirSync(process.cwd()).filter(f => !f.startsWith('.') && f !== 'node_modules'),
+    };
+    res.json(result);
+});
+
+// Blog routes - serve static HTML files from cwd (Railway-safe)
+const blogBasePath = path.join(process.cwd(), 'blog');
 app.get('/blog', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'blog', 'index.html'));
+    const fs = require('fs');
+    const blogIndex = path.join(blogBasePath, 'index.html');
+    if (fs.existsSync(blogIndex)) {
+        return res.sendFile(blogIndex);
+    }
+    console.log(`[blog] index not found at ${blogIndex}`);
+    res.status(404).sendFile(path.join(process.cwd(), 'index.html'));
 });
 app.get('/blog/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'blog', 'index.html'));
+    const fs = require('fs');
+    const blogIndex = path.join(blogBasePath, 'index.html');
+    if (fs.existsSync(blogIndex)) {
+        return res.sendFile(blogIndex);
+    }
+    res.status(404).sendFile(path.join(process.cwd(), 'index.html'));
 });
 app.get('/blog/:slug', (req, res) => {
     const fs = require('fs');
-    const blogDir = path.join(__dirname, '..', 'blog');
     const slug = req.params.slug;
     const tryPaths = [
-        path.join(blogDir, slug),
-        path.join(blogDir, `${slug}.html`),
-        path.join(process.cwd(), 'blog', slug),
-        path.join(process.cwd(), 'blog', `${slug}.html`),
+        path.join(blogBasePath, slug),
+        path.join(blogBasePath, `${slug}.html`),
     ];
-    console.log(`[blog] Requested: ${slug}, __dirname: ${__dirname}, cwd: ${process.cwd()}, blogDir exists: ${fs.existsSync(blogDir)}`);
-    if (fs.existsSync(blogDir)) {
-        console.log(`[blog] Blog dir contents: ${fs.readdirSync(blogDir).join(', ')}`);
-    }
+    console.log(`[blog] Requested: ${slug}, blogBase: ${blogBasePath}, exists: ${fs.existsSync(blogBasePath)}`);
     for (const tp of tryPaths) {
         if (fs.existsSync(tp)) {
             console.log(`[blog] Serving: ${tp}`);
@@ -1687,7 +1712,7 @@ app.get('/blog/:slug', (req, res) => {
         }
     }
     console.log(`[blog] Not found. Tried: ${tryPaths.join(', ')}`);
-    res.status(404).sendFile(path.join(__dirname, '..', 'index.html'));
+    res.status(404).sendFile(path.join(process.cwd(), 'index.html'));
 });
 
 // Catch-all: serve frontend
