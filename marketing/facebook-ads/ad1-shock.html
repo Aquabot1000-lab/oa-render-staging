@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1080px; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
+.container { width: 1080px; height: 1080px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; position: relative; }
+.split { display: flex; width: 100%; gap: 40px; margin-bottom: 40px; }
+.card { flex: 1; border-radius: 20px; padding: 40px; text-align: center; }
+.card-before { background: rgba(231, 76, 60, 0.15); border: 3px solid #e74c3c; }
+.card-after { background: rgba(46, 204, 113, 0.15); border: 3px solid #2ecc71; }
+.label { font-size: 24px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 15px; }
+.label-before { color: #e74c3c; }
+.label-after { color: #2ecc71; }
+.amount { font-size: 72px; font-weight: 800; color: white; line-height: 1; }
+.amount-small { font-size: 20px; color: rgba(255,255,255,0.6); margin-top: 8px; }
+.arrow { font-size: 60px; color: #2ecc71; align-self: center; }
+.headline { font-size: 48px; font-weight: 800; color: white; text-align: center; line-height: 1.2; margin-bottom: 20px; }
+.highlight { color: #e74c3c; }
+.subtext { font-size: 24px; color: rgba(255,255,255,0.8); text-align: center; line-height: 1.5; }
+.checks { text-align: left; margin: 30px auto; max-width: 600px; }
+.check { font-size: 22px; color: rgba(255,255,255,0.9); margin: 8px 0; }
+.check span { color: #2ecc71; margin-right: 8px; }
+.logo { position: absolute; bottom: 40px; right: 50px; }
+.logo-text { font-size: 28px; font-weight: 800; color: white; }
+.logo-sub { font-size: 16px; color: rgba(255,255,255,0.6); text-align: right; }
+.deadline { background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 12px; padding: 15px 30px; margin-top: 20px; display: inline-block; }
+.deadline-text { font-size: 22px; font-weight: 700; color: white; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="headline">Your Property Taxes Are <span class="highlight">Too High</span></div>
+  <div class="split">
+    <div class="card card-before">
+      <div class="label label-before">Current Assessment</div>
+      <div class="amount">$8,450</div>
+      <div class="amount-small">Annual Property Tax</div>
+    </div>
+    <div class="card card-after">
+      <div class="label label-after">After We Protest</div>
+      <div class="amount">$5,250</div>
+      <div class="amount-small">Average Reduction</div>
+    </div>
+  </div>
+  <div class="checks">
+    <div class="check"><span>✅</span> No upfront cost — ever</div>
+    <div class="check"><span>✅</span> You only pay if we save you money</div>
+    <div class="check"><span>✅</span> Average savings: $1,200–$4,800/year</div>
+  </div>
+  <div class="deadline">
+    <div class="deadline-text">⏰ Protest Deadline: May 15, 2026</div>
+  </div>
+  <div class="logo">
+    <div class="logo-text">OverAssessed</div>
+    <div class="logo-sub">overassessed.ai</div>
+  </div>
+</div>
+</body>
+</html>

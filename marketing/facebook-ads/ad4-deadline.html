@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1080px; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
+.container { width: 1080px; height: 1080px; background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #4a1942 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; position: relative; }
+.urgency-bar { background: linear-gradient(90deg, #e74c3c, #f39c12); width: 100%; padding: 20px; text-align: center; border-radius: 12px; margin-bottom: 40px; }
+.urgency-text { font-size: 26px; font-weight: 800; color: white; letter-spacing: 2px; }
+.date { font-size: 120px; font-weight: 900; color: white; text-shadow: 0 0 40px rgba(231,76,60,0.5); line-height: 1; }
+.date-label { font-size: 36px; color: #e74c3c; font-weight: 700; margin-bottom: 10px; letter-spacing: 3px; }
+.date-year { font-size: 48px; color: rgba(255,255,255,0.7); font-weight: 600; }
+.warning { font-size: 28px; color: rgba(255,255,255,0.9); text-align: center; margin: 40px 0 30px; line-height: 1.5; max-width: 800px; }
+.stat-row { display: flex; gap: 40px; }
+.stat { text-align: center; }
+.stat-num { font-size: 48px; font-weight: 800; color: #2ecc71; }
+.stat-label { font-size: 18px; color: rgba(255,255,255,0.6); margin-top: 5px; }
+.cta { background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 16px; padding: 20px 50px; margin-top: 40px; }
+.cta-text { font-size: 28px; font-weight: 800; color: white; }
+.logo { position: absolute; bottom: 40px; right: 50px; }
+.logo-text { font-size: 28px; font-weight: 800; color: white; }
+.logo-sub { font-size: 16px; color: rgba(255,255,255,0.6); text-align: right; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="urgency-bar">
+    <div class="urgency-text">⚠️ TEXAS PROPERTY TAX PROTEST DEADLINE ⚠️</div>
+  </div>
+  <div class="date-label">DEADLINE</div>
+  <div class="date">MAY 15</div>
+  <div class="date-year">2026</div>
+  <div class="warning">After this date, you're locked in at whatever they assessed — <strong style="color: #e74c3c;">even if it's wrong.</strong></div>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-num">65%</div>
+      <div class="stat-label">Of protesters get<br>a reduction</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$4,200</div>
+      <div class="stat-label">Average annual<br>savings</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">20%</div>
+      <div class="stat-label">Our fee<br>(lowest in TX)</div>
+    </div>
+  </div>
+  <div class="cta">
+    <div class="cta-text">Get Your Free Analysis → overassessed.ai</div>
+  </div>
+  <div class="logo">
+    <div class="logo-text">OverAssessed</div>
+    <div class="logo-sub">Real Experts. Real Results.</div>
+  </div>
+</div>
+</body>
+</html>

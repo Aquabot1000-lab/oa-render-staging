@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OverAssessed — Ad Creatives v2 (Savings-First)</title>
+<script>
+// Logo data URI — defined once, injected everywhere
+const LOGO_URI = "data:image/svg+xml,%3Csvg viewBox='0 0 200 200' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%236c5ce7'/%3E%3Cstop offset='100%25' stop-color='%230984e3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='40' fill='url(%23bg)'/%3E%3Crect x='48' y='68' width='42' height='86' rx='3' fill='none' stroke='white' stroke-width='3' opacity='0.35'/%3E%3Crect x='57' y='80' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Crect x='72' y='80' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Crect x='57' y='98' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Crect x='72' y='98' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Crect x='57' y='116' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Crect x='72' y='116' width='9' height='9' rx='1.5' fill='white' opacity='0.25'/%3E%3Cpath d='M122 92L108 108V154H136V108L122 92Z' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' opacity='0.35'/%3E%3Crect x='116' y='130' width='12' height='24' rx='1' fill='none' stroke='white' stroke-width='2' opacity='0.25'/%3E%3Cpath d='M100 46V140' stroke='white' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M76 116L100 140L124 116' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E";
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.oa-logo-img').forEach(el => el.src = LOGO_URI);
+});
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:#f0f0f5;padding:20px 20px 60px;color:#333;max-width:750px;margin:0 auto}
+.oa-logo{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px}
+.oa-logo img{width:28px;height:28px;border-radius:6px}
+.oa-logo span{font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.oa-logo-light span{color:white;-webkit-text-fill-color:white}
+.fb-logo{display:flex;align-items:center;gap:8px;padding:14px 18px 0}
+.fb-logo img{width:24px;height:24px;border-radius:5px}
+.fb-logo span{font-weight:700;font-size:13px;color:#6c5ce7}
+.email-logo{text-align:center;margin-bottom:10px}
+.email-logo img{width:36px;height:36px;border-radius:8px}
+.nd-logo{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid #eee}
+.nd-logo img{width:20px;height:20px;border-radius:4px}
+.nd-logo span{font-size:12px;font-weight:600;color:#6c5ce7}
+.header{text-align:center;margin-bottom:30px;padding:30px;background:linear-gradient(135deg,#6c5ce7,#0984e3);border-radius:16px;color:white}
+.header h1{font-size:26px;font-weight:800}.header p{opacity:.8;margin-top:6px;font-size:14px}
+.comp-box{background:white;border-radius:16px;padding:24px;margin-bottom:30px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.comp-box h2{font-size:16px;font-weight:700;color:#e17055;margin-bottom:12px}
+.comp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.comp-card{border:1px solid #eee;border-radius:10px;padding:14px}
+.comp-card .name{font-weight:700;font-size:13px;margin-bottom:4px;color:#666}
+.comp-card .hl{font-size:14px;color:#333;font-style:italic}
+.comp-card .weakness{font-size:12px;color:#e17055;margin-top:6px}
+.vs-label{text-align:center;font-weight:800;color:#00b894;font-size:14px;margin:12px 0}
+.section{margin-bottom:40px}
+.section-title{font-size:20px;font-weight:700;color:#6c5ce7;margin-bottom:16px;padding-bottom:8px;border-bottom:3px solid #6c5ce7;display:flex;align-items:center;gap:8px}
+.ad-card{background:white;border-radius:16px;padding:24px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.ad-label{display:inline-block;background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:5px 14px;border-radius:50px;font-size:12px;font-weight:700;margin-bottom:14px;letter-spacing:.5px}
+.google-ad{border:1px solid #dadce0;border-radius:8px;padding:16px;margin-top:12px;background:#fff}
+.google-ad .ad-tag{color:#202124;font-size:11px;font-weight:700;background:#f1f3f4;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:8px}
+.google-ad .headline{color:#1a0dab;font-size:18px;line-height:1.3}
+.google-ad .url{color:#006621;font-size:13px;margin:4px 0}
+.google-ad .desc{color:#545454;font-size:13px;line-height:1.5}
+.google-ad .sitelinks{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.google-ad .sitelink{color:#1a0dab;font-size:13px}
+.fb-ad{border:1px solid #ddd;border-radius:12px;overflow:hidden;margin-top:12px;background:white}
+.fb-img{color:white;padding:44px 24px;text-align:center}
+.fb-img h2{font-size:32px;font-weight:800;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,.15)}
+.fb-img p{opacity:.9;font-size:15px}
+.fb-body{padding:16px 18px}
+.fb-body .primary{font-size:14px;line-height:1.7;color:#333;white-space:pre-line;margin-bottom:12px}
+.fb-cta-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:1px solid #eee;background:#f7f8fa}
+.fb-cta-bar .site{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px}
+.fb-cta-bar .hl{font-size:14px;font-weight:700;color:#333}
+.fb-cta-bar button{background:#6c5ce7;color:white;border:none;padding:9px 18px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer}
+.nd-ad{border:1px solid #ddd;border-radius:12px;padding:20px;margin-top:12px;background:white}
+.nd-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.nd-avatar{width:44px;height:44px;background:#00b894;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
+.nd-name{font-weight:700;font-size:14px}
+.nd-hood{font-size:12px;color:#999}
+.nd-text{font-size:14px;line-height:1.7;color:#333;white-space:pre-line}
+.email-ad{border:1px solid #ddd;border-radius:12px;overflow:hidden;margin-top:12px}
+.email-header{color:white;padding:28px;text-align:center}
+.email-header .subj{font-size:11px;opacity:.7;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.email-header h3{font-size:18px;font-weight:700}
+.email-body{padding:24px;background:white;font-size:14px;line-height:1.8;color:#444}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white!important;padding:14px 32px;border-radius:50px;font-weight:700;text-decoration:none;margin:16px 0;font-size:15px}
+.note{background:#fffde7;border:1px solid #f9ca24;border-radius:8px;padding:12px 16px;font-size:13px;color:#7c6f00;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>OverAssessed — Ad Creatives v2</h1>
+    <p>SAVINGS-FIRST approach · Beat every competitor</p>
+</div>
+
+<!-- COMPETITOR ANALYSIS -->
+<div class="comp-box">
+    <h2>🔍 What Competitors Are Running (and why ours are better)</h2>
+    <div class="comp-row">
+        <div class="comp-card">
+            <div class="name">OWNWELL</div>
+            <div class="hl">"Reduce Your Property Taxes"</div>
+            <div class="weakness">❌ Vague. No dollar amount. No fee mentioned. Sounds like everyone else.</div>
+        </div>
+        <div class="comp-card">
+            <div class="name">TEXAS TAX PROTEST</div>
+            <div class="hl">"Property Taxes Too High?"</div>
+            <div class="weakness">❌ Question headline = weak. Doesn't promise anything. No savings number.</div>
+        </div>
+    </div>
+    <div class="comp-row">
+        <div class="comp-card">
+            <div class="name">HOME TAX SHIELD</div>
+            <div class="hl">"Helping Texans Pay Fair Taxes"</div>
+            <div class="weakness">❌ Boring. "Helping" is passive. "Fair" doesn't excite anyone.</div>
+        </div>
+        <div class="comp-card">
+            <div class="name">NTPTS</div>
+            <div class="hl">"Only Pay if You Win"</div>
+            <div class="weakness">❌ Fee-focused, not savings-focused. Everybody says this now.</div>
+        </div>
+    </div>
+    <div class="vs-label">⬇️ OUR ADS LEAD WITH SAVINGS ⬇️</div>
+    <div class="note">💡 <strong>Our edge:</strong> Every ad opens with a specific dollar amount or savings promise. Competitors talk about process — we talk about money in your pocket.</div>
+</div>
+
+<!-- ==================== GOOGLE SEARCH ADS ==================== -->
+<div class="section">
+    <div class="section-title">📊 GOOGLE SEARCH ADS</div>
+
+    <div class="ad-card">
+        <span class="ad-label">GOOGLE AD 1 — TX SAVINGS HOOK</span>
+        <div class="google-ad">
+            <span class="ad-tag">Sponsored</span>
+            <div class="oa-logo" style="margin:8px 0 4px"><img class="oa-logo-img" src="" width="28" height="28" style="border-radius:6px"><span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent">OverAssessed</span></div>
+            <div class="headline">Save $1,500+/yr on Property Taxes — Keep 80% of Your Savings | Lowest Fee in TX</div>
+            <div class="url">overassessed.ai › property-tax-savings</div>
+            <div class="desc">Average Texas homeowner saves $1,500+ with OverAssessed. We charge just 20% — lowest in the state. Other companies take 25-35%. No upfront cost. Free analysis in 2 min.</div>
+            <div class="sitelinks">
+                <span class="sitelink">Free Savings Estimate</span> ·
+                <span class="sitelink">See How Much You'll Save</span> ·
+                <span class="sitelink">File Exemptions Free</span> ·
+                <span class="sitelink">Refer & Earn $50</span>
+            </div>
+        </div>
+        <div class="note">🆚 vs Ownwell's "Reduce Your Property Taxes" — we lead with $1,500 and 80%. Specific beats vague.</div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">GOOGLE AD 2 — SAN ANTONIO SAVINGS</span>
+        <div class="google-ad">
+            <span class="ad-tag">Sponsored</span>
+            <div class="oa-logo" style="margin:8px 0 4px"><img class="oa-logo-img" src="" width="28" height="28" style="border-radius:6px"><span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent">OverAssessed</span></div>
+            <div class="headline">San Antonio Homeowners Save $1,500+ on Property Taxes — Only 20% Fee</div>
+            <div class="url">overassessed.ai › san-antonio-savings</div>
+            <div class="desc">Bexar County property tax savings experts. We fight your assessment, handle all paperwork & hearings. You keep 80% of every dollar saved. Free analysis — deadline May 15.</div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">GOOGLE AD 3 — EXEMPTION SAVINGS</span>
+        <div class="google-ad">
+            <span class="ad-tag">Sponsored</span>
+            <div class="oa-logo" style="margin:8px 0 4px"><img class="oa-logo-img" src="" width="28" height="28" style="border-radius:6px"><span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent">OverAssessed</span></div>
+            <div class="headline">Save $1,973/yr — File Your Homestead Exemption Free | Texas Homeowners</div>
+            <div class="url">overassessed.ai › exemption-savings</div>
+            <div class="desc">Most Texas homeowners miss exemptions worth $1,973/yr. Homestead, over-65, veteran, disability — we file them all free. Takes 2 minutes. No hidden fees.</div>
+        </div>
+        <div class="note">🆚 Nobody else advertises exemption savings amounts. We own this space.</div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">GOOGLE AD 4 — GA 3-YEAR SAVINGS</span>
+        <div class="google-ad">
+            <span class="ad-tag">Sponsored</span>
+            <div class="oa-logo" style="margin:8px 0 4px"><img class="oa-logo-img" src="" width="28" height="28" style="border-radius:6px"><span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent">OverAssessed</span></div>
+            <div class="headline">Georgia: Save on Property Taxes for 3 Years — One Appeal, $1,500+ in Savings</div>
+            <div class="url">overassessed.ai › georgia-savings</div>
+            <div class="desc">One successful appeal freezes your value for 3 years. We charge 25% of Year 1 only — Years 2 & 3 are free. Keep $1,375 of every $1,500 saved. No upfront cost.</div>
+            <div class="sitelinks">
+                <span class="sitelink">3-Year Savings Calculator</span> ·
+                <span class="sitelink">How the Freeze Works</span> ·
+                <span class="sitelink">Free Analysis</span> ·
+                <span class="sitelink">File Exemptions Free</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">GOOGLE AD 5 — GA COUNTY SAVINGS</span>
+        <div class="google-ad">
+            <span class="ad-tag">Sponsored</span>
+            <div class="oa-logo" style="margin:8px 0 4px"><img class="oa-logo-img" src="" width="28" height="28" style="border-radius:6px"><span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#6c5ce7,#0984e3);-webkit-background-clip:text;-webkit-text-fill-color:transparent">OverAssessed</span></div>
+            <div class="headline">[Fulton/DeKalb] Property Tax Savings — Freeze Your Value for 3 Years</div>
+            <div class="url">overassessed.ai › georgia-savings</div>
+            <div class="desc">Average Georgia homeowner saves $1,200+/yr × 3 years = $3,600 total savings. We charge just $300 (25% of Year 1). Other services charge $900+. Free analysis.</div>
+        </div>
+        <div class="note">🆚 Spelling out the math ($3,600 vs $300 cost) is more powerful than any competitor ad.</div>
+    </div>
+</div>
+
+<!-- ==================== FACEBOOK / INSTAGRAM ADS ==================== -->
+<div class="section">
+    <div class="section-title">📱 FACEBOOK / INSTAGRAM ADS</div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 1 — TX SAVINGS SPLASH</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#00b894,#00cec9)">
+                <h2>$1,500+ Savings</h2>
+                <p>Average Texas homeowner — every year</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">That's real money back in your pocket. 💰
+
+Texas homeowners are saving $1,500+ per year on property taxes with OverAssessed.
+
+Here's the difference:
+💚 With us → You keep $800 of every $1,000 saved (20% fee)
+🔴 With them → You keep $650-$750 (25-35% fee)
+
+No upfront cost. No risk. We don't get paid unless you save.
+
+2 minutes to sign up. We handle the rest.</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">See How Much You'll Save</div></div>
+                <button>Free Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 2 — TX DEADLINE + SAVINGS</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#e17055,#d63031)">
+                <h2>$1,500 Savings Expires May 15</h2>
+                <p>Texas property tax protest deadline</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">⏰ The deadline to protest your Texas property taxes is May 15.
+
+After that? You're stuck overpaying for another year.
+
+What you're leaving on the table:
+→ Average savings: $1,500+/year
+→ Our fee: just 20% (lowest in Texas)
+→ Your cost if we don't save you: $0
+
+Takes 2 minutes. We handle all the paperwork, hearings, everything.
+
+Don't leave $1,500 on the table.</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">Claim Your Savings Before May 15</div></div>
+                <button>Get Started</button>
+            </div>
+        </div>
+        <div class="note">🆚 Competitors say "deadline approaching." We say "$1,500 expires." Savings-first framing.</div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 3 — EXEMPTION SAVINGS</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#6c5ce7,#0984e3)">
+                <h2>$1,973/yr in Savings</h2>
+                <p>Most homeowners never claim it</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">The average Texas homestead exemption saves $1,973 per year.
+
+And most homeowners who qualify... never file. 🤦
+
+We file ALL your exemptions for free:
+🏠 Homestead — saves ~$1,973/yr
+👴 Over-65 — freezes your school taxes
+🎖️ Veteran — up to 100% tax exemption
+♿ Disability — additional $10K off value
+
+It takes 2 minutes. We handle the rest. No cost to you — ever.</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">Claim Your $1,973 in Savings</div></div>
+                <button>Check Eligibility</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 4 — REFERRAL CASH</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#fdcb6e,#f39c12)">
+                <h2>$50 Cash Per Referral</h2>
+                <p>Your neighbors save. You get paid.</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">Your neighbors are overpaying property taxes. Help them save — and earn cash doing it. 🏡💵
+
+Refer 1 neighbor → $50 cash
+Refer 3 neighbors → $175 cash
+Refer 5+ neighbors → $75 EACH 🏆
+
+Real cash. Not account credit. Not a coupon. Cash in your hand.
+
+Your neighbor also gets a reduced rate on their first appeal.
+
+Other companies? They offer a $20 "account credit." We offer $50 real dollars.</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">Get Your $50 Referral Link</div></div>
+                <button>Start Earning</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 5 — GA 3-YEAR SAVINGS</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#0984e3,#6c5ce7)">
+                <h2>$1,500 in Savings</h2>
+                <p>From one appeal. Locked in for 3 years.</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">Georgia homeowners: ONE appeal can save you money for THREE years. ❄️
+
+Here's the math:
+Year 1: $500 savings ✅
+Year 2: $500 savings ✅ (free)
+Year 3: $500 savings ✅ (free)
+Total: $1,500
+
+Our fee: $125 (25% of Year 1 only)
+Your total savings: $1,375
+
+Other companies charge 25-35% every year.
+On $1,500 in savings, they'd take $375-$525.
+We take $125. Once.
+
+That's not a typo.</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">See Your 3-Year Savings</div></div>
+                <button>Free Analysis</button>
+            </div>
+        </div>
+        <div class="note">🆚 No competitor breaks down 3-year math like this. Makes the value undeniable.</div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">FB AD 6 — GA METRO ATLANTA SAVINGS</span>
+        <div class="fb-ad">
+            <div class="fb-img" style="background:linear-gradient(135deg,#6c5ce7,#0984e3)">
+                <h2>$3,600 in Property Tax Savings</h2>
+                <p>Metro Atlanta · 3-year value freeze</p>
+            </div>
+            <div class="fb-logo"><img class="oa-logo-img" src="" width="24" height="24"><span>OverAssessed</span></div>
+            <div class="fb-body">
+                <div class="primary">Atlanta, Decatur, Marietta, Lawrenceville — your property taxes went up again. 📈
+
+But here's what most people don't know:
+
+One successful appeal in Georgia freezes your assessed value for 3 YEARS.
+
+Average savings: $1,200/yr × 3 years = $3,600
+
+Our cost: 25% of Year 1 only = $300
+Your total savings: $3,300
+
+No upfront cost. We handle everything — filing, hearings, all of it.
+
+Fulton · DeKalb · Gwinnett · Cobb · Cherokee · Forsyth · Henry · Clayton</div>
+            </div>
+            <div class="fb-cta-bar">
+                <div><div class="site">OVERASSESSED</div><div class="hl">Claim Your $3,600 in Savings</div></div>
+                <button>Start Your Appeal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== NEXTDOOR ADS ==================== -->
+<div class="section">
+    <div class="section-title">🏘️ NEXTDOOR ADS</div>
+
+    <div class="ad-card">
+        <span class="ad-label">NEXTDOOR — TX NEIGHBORHOOD</span>
+        <div class="nd-ad">
+            <div class="nd-header">
+                <div class="nd-avatar">T</div>
+                <div><div class="nd-name">Your Neighbor</div><div class="nd-hood">Alamo Heights · 2h ago</div></div>
+            </div>
+            <div class="nd-text">Just saved $1,847 on our property taxes 🏠
+
+Used a company called OverAssessed — they handled everything. Paperwork, hearings, the whole thing. Took me 2 minutes to sign up.
+
+The best part? Their fee is only 20% of what they save you. I looked around and everyone else charges 25-35%. So on my $1,847 savings, I paid $369 instead of $460-$646 elsewhere.
+
+They also have a referral program — $50 cash for every neighbor you send their way. Not a credit, actual cash.
+
+If your property taxes went up this year, definitely worth a look before the May 15 deadline.
+
+overassessed.ai
+<div class="nd-logo"><img class="oa-logo-img" src="" width="20" height="20"><span>OverAssessed</span></div></div>
+        </div>
+        <div class="note">🆚 vs competitor Nextdoor posts: We use a specific dollar amount ($1,847 sounds real) and compare fees directly.</div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">NEXTDOOR — GA NEIGHBORHOOD</span>
+        <div class="nd-ad">
+            <div class="nd-header">
+                <div class="nd-avatar">N</div>
+                <div><div class="nd-name">Your Neighbor</div><div class="nd-hood">Buckhead · 3h ago</div></div>
+            </div>
+            <div class="nd-text">PSA for Georgia homeowners — I just learned something wild about property tax appeals 👀
+
+If your appeal is successful, your assessed value gets FROZEN for 3 years. That means 3 years of savings from one appeal.
+
+I used OverAssessed and here's how it broke down:
+- Year 1 savings: $487
+- Year 2 savings: $487 (free)
+- Year 3 savings: $487 (free)
+- Total: $1,461
+- Their fee: $122 (25% of Year 1 only)
+- Money I kept: $1,339
+
+Other companies charge every single year. These guys charge once.
+
+overassessed.ai/georgia
+<div class="nd-logo"><img class="oa-logo-img" src="" width="20" height="20"><span>OverAssessed</span></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== EMAIL DRIP ==================== -->
+<div class="section">
+    <div class="section-title">📧 EMAIL DRIP SEQUENCE</div>
+
+    <div class="ad-card">
+        <span class="ad-label">EMAIL 1 — WEEK 1: SAVINGS HOOK</span>
+        <div class="email-ad">
+            <div class="email-header" style="background:linear-gradient(135deg,#00b894,#00cec9)">
+                <div class="email-logo"><img class="oa-logo-img" src="" width="36" height="36" style="border-radius:8px"></div>
+                <div class="subj">Subject Line</div>
+                <h3>You're overpaying property taxes by ~$1,500/yr</h3>
+            </div>
+            <div class="email-body">
+                <p>Hi [Name],</p>
+                <br>
+                <p>The average Texas homeowner is overpaying <strong>$1,500 per year</strong> in property taxes.</p>
+                <br>
+                <p>That's $1,500 you could be spending on literally anything else.</p>
+                <br>
+                <p>OverAssessed gets that money back for you:</p>
+                <br>
+                <p>→ We analyze your property assessment<br>
+                → We file your protest and handle all hearings<br>
+                → You save money. Average: <strong>$1,500+/year</strong></p>
+                <br>
+                <p>Our fee? Just 20% of what we save you. That's the <strong>lowest fee in Texas</strong>.</p>
+                <p>If we don't save you money, you pay <strong>$0</strong>.</p>
+                <br>
+                <p style="text-align:center"><a href="#" class="cta-btn">SEE HOW MUCH I'LL SAVE →</a></p>
+                <br>
+                <p style="text-align:center;color:#999;font-size:13px">Takes 2 minutes. No credit card. No obligation.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">EMAIL 2 — WEEK 3: DEADLINE SAVINGS</span>
+        <div class="email-ad">
+            <div class="email-header" style="background:linear-gradient(135deg,#e17055,#d63031)">
+                <div class="email-logo"><img class="oa-logo-img" src="" width="36" height="36" style="border-radius:8px"></div>
+                <div class="subj">Subject Line</div>
+                <h3>$1,500 in savings expires May 15 ⏰</h3>
+            </div>
+            <div class="email-body">
+                <p>Hi [Name],</p>
+                <br>
+                <p>The Texas property tax protest deadline is <strong>May 15</strong>.</p>
+                <br>
+                <p>After that, you're locked into overpaying for another full year.</p>
+                <br>
+                <p>What you need: your property address + 2 minutes.<br>
+                What we need: nothing else. We handle everything.</p>
+                <br>
+                <p style="text-align:center;font-size:24px;font-weight:800;color:#e17055;">$1,500+ left on the table?</p>
+                <br>
+                <p style="text-align:center"><a href="#" class="cta-btn" style="background:linear-gradient(135deg,#e17055,#d63031)">CLAIM MY SAVINGS BEFORE MAY 15 →</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-card">
+        <span class="ad-label">EMAIL 3 — WEEK 5: REFERRAL SAVINGS</span>
+        <div class="email-ad">
+            <div class="email-header" style="background:linear-gradient(135deg,#fdcb6e,#f39c12)">
+                <div class="email-logo"><img class="oa-logo-img" src="" width="36" height="36" style="border-radius:8px"></div>
+                <div class="subj">Subject Line</div>
+                <h3>Earn $50 cash — your neighbors will thank you</h3>
+            </div>
+            <div class="email-body">
+                <p>Hi [Name],</p>
+                <br>
+                <p>Your neighbors are overpaying property taxes too.</p>
+                <br>
+                <p>Help them save — and <strong>earn $50 cash</strong> for every neighbor you refer.</p>
+                <br>
+                <p>💵 1 referral = $50 cash<br>
+                💵 3 referrals = $175 cash<br>
+                💵 5+ referrals = $75 each 🏆</p>
+                <br>
+                <p>Real cash. Not credit. Not a coupon.</p>
+                <br>
+                <p>(Other companies offer $20 in account credit. We offer $50 real dollars.)</p>
+                <br>
+                <p style="text-align:center"><a href="#" class="cta-btn" style="background:linear-gradient(135deg,#fdcb6e,#f39c12);color:#333">GET MY $50 REFERRAL LINK →</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align:center;padding:40px 20px;color:#999">
+    <p style="font-size:14px;font-weight:700">16 total ad creatives · Savings-First · v2</p>
+    <p style="font-size:12px;margin-top:4px">OverAssessed — Ready for Tyler's approval</p>
+</div>
+
+</body>
+</html>
