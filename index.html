@@ -67,7 +67,7 @@
                 <a href="/referrals">Refer & Earn</a>
                 <a href="#why-us">Why Us</a>
                 <a href="#compare">Compare</a>
-                <a href="#faq">FAQ</a>
+                <a href="/faq">FAQ</a>
                 <a href="#intake-form" class="nav-cta">Get Free Analysis</a>
             </nav>
             <button class="mobile-menu-toggle" aria-label="Toggle menu">
@@ -89,10 +89,10 @@
         <div class="container">
             <div class="hero-content">
                 <div class="hero-text">
-                    <div class="hero-badge-top">🏠 Expert Property Tax Appeals</div>
+                    <div class="hero-badge-top">🏠 Expert Property Tax Appeals — Texas &amp; Georgia</div>
                     <h1 class="hero-headline">Stop Overpaying<br>Property Taxes</h1>
                     <p class="hero-tagline">Real Experts. Real Results. Guaranteed.</p>
-                    <p class="hero-subline">Our team analyzes your assessment, builds your case, and files your protest — you save money. No upfront costs, ever.</p>
+                    <p class="hero-subline">OverAssessed is a property tax protest service based in San Antonio, Texas. We use AI-powered analysis to find comparable properties and build evidence packets that lower your property tax bill. We charge just 20% of your tax savings — the lowest fee in Texas. No upfront costs, ever. If we don't save you money, you pay nothing.</p>
                     <div class="trust-badges">
                         <span class="badge">
                             <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
@@ -803,35 +803,95 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "OverAssessed",
+      "legalName": "OverAssessed AI, LLC",
+      "url": "https://overassessed.ai",
+      "logo": "https://overassessed.ai/assets/logo/icon-512.png",
+      "description": "OverAssessed is a Texas-based property tax protest service that uses AI-powered analysis to help homeowners reduce their property tax bills. 20% contingency fee — the lowest in Texas. No savings, no fee.",
+      "email": "info@overassessed.ai",
+      "telephone": "+1-210-760-7236",
+      "foundingDate": "2025",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "6002 Camp Bullis, Suite 208",
+        "addressLocality": "San Antonio",
+        "addressRegion": "TX",
+        "postalCode": "78257",
+        "addressCountry": "US"
+      },
+      "sameAs": [],
+      "knowsAbout": ["property tax protests", "property tax appeals", "Texas property taxes", "Georgia property taxes", "property tax exemptions", "homestead exemption"]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "OverAssessed",
       "url": "https://overassessed.ai",
+      "image": "https://overassessed.ai/assets/logo/icon-512.png",
       "email": "info@overassessed.ai",
+      "telephone": "+1-210-760-7236",
+      "description": "Expert property tax protest service in San Antonio, TX. AI-powered analysis, 20% contingency fee (lowest in Texas), full hearing representation. Serving all Texas and Georgia counties.",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "6002 Camp Bullis, Suite 208",
         "addressLocality": "San Antonio",
         "addressRegion": "TX",
+        "postalCode": "78257",
         "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "29.5824",
+        "longitude": "-98.5979"
       },
       "areaServed": [
         { "@type": "State", "name": "Texas" },
         { "@type": "State", "name": "Georgia" }
       ],
-      "priceRange": "$$"
+      "priceRange": "$$",
+      "openingHours": "Mo-Fr 08:00-18:00",
+      "paymentAccepted": "Credit Card, ACH",
+      "currenciesAccepted": "USD"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "OverAssessed",
+      "url": "https://overassessed.ai",
+      "description": "Property tax protest experts for Texas and Georgia. AI-powered analysis, lowest fees, no upfront cost.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://overassessed.ai/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
     }
     </script>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      "name": "Property Tax Appeals",
+      "name": "Property Tax Protest Service",
       "provider": {
         "@type": "Organization",
         "name": "OverAssessed"
       },
       "serviceType": "Property Tax Appeal",
-      "areaServed": ["Texas", "Georgia"],
-      "description": "Expert property tax protest and appeal services. We analyze your assessment, build your case, and file your protest — you save money."
+      "areaServed": [
+        { "@type": "State", "name": "Texas" },
+        { "@type": "State", "name": "Georgia" }
+      ],
+      "description": "Complete property tax protest service: AI-powered property analysis, comparable sales evidence packets, protest filing, and hearing representation. 20% contingency fee — pay only if we save you money.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "No upfront cost. 20% of tax savings only if we win."
+      }
     }
     </script>
     <script type="application/ld+json">
@@ -844,47 +904,79 @@
           "name": "How does the property tax appeal process work?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish."
+            "text": "We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish — you don't need to attend any hearings."
           }
         },
         {
           "@type": "Question",
-          "name": "What does it cost?",
+          "name": "How much does OverAssessed charge for property tax protests?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "There are no upfront costs. We only charge 20% of the money we save you. If we don't reduce your property taxes, you pay nothing."
+            "text": "OverAssessed charges 20% of tax savings — the lowest rate among major Texas property tax protest companies. There are no upfront costs. If we don't reduce your property taxes, you pay nothing."
           }
         },
         {
           "@type": "Question",
-          "name": "How long does it take?",
+          "name": "How long does the property tax protest process take?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "The appeal process typically takes 2-4 months from filing to resolution. We'll keep you updated throughout the process and handle all deadlines."
+            "text": "The appeal process typically takes 2-4 months from filing to resolution. Informal settlements can happen within weeks. We keep you updated throughout the process and handle all deadlines."
           }
         },
         {
           "@type": "Question",
-          "name": "Do I need to attend a hearing?",
+          "name": "Do I need to attend the property tax hearing?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "In most cases, no. We handle the appeal process and can represent you if a hearing is required. You only need to provide initial property information."
+            "text": "No. OverAssessed handles everything including hearing representation. You don't need to take time off work or attend any meetings. We represent you from start to finish."
           }
         },
         {
           "@type": "Question",
-          "name": "What if my appeal doesn't succeed?",
+          "name": "What if my property tax appeal doesn't succeed?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "If we don't reduce your property taxes, you pay nothing. We only get paid when we successfully save you money."
+            "text": "You pay nothing. OverAssessed operates on a strict no-win, no-fee basis. If we don't reduce your property taxes, our service is completely free."
           }
         },
         {
           "@type": "Question",
-          "name": "Do you handle commercial properties?",
+          "name": "Can my property taxes go up if I protest?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, we handle all types of properties including residential, commercial, industrial, and investment properties throughout Texas."
+            "text": "No. Texas Tax Code Section 41.71 prohibits the appraisal review board from increasing your property value as a result of a protest. There is zero risk to protesting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What areas does OverAssessed serve?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "OverAssessed serves all 254 Texas counties (including Bexar, Harris, Dallas, Tarrant, Travis, Collin, and Denton counties) and all Georgia counties."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "When is the Texas property tax protest deadline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The deadline to file a property tax protest in Texas is May 15th, or 30 days after you receive your Notice of Appraised Value, whichever is later. Don't wait — sign up early so we can file immediately when notices arrive."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much can I save by protesting my property taxes?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The average Texas homeowner saves $500-$1,500 per year by protesting. Homes assessed at $400,000+ often save $1,000-$3,000+ annually. About 65-70% of protests in Texas result in a reduction."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does OverAssessed handle commercial property tax protests?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. OverAssessed handles all property types including single-family homes, townhomes, condos, multi-family, commercial, industrial, and vacant land throughout Texas and Georgia."
           }
         }
       ]

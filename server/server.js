@@ -1909,6 +1909,18 @@ app.get('/robots.txt', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'robots.txt'));
 });
 
+app.get('/llms.txt', (req, res) => {
+    res.type('text/plain').sendFile(path.join(__dirname, '..', 'llms.txt'));
+});
+
+app.get('/llms-full.txt', (req, res) => {
+    res.type('text/plain').sendFile(path.join(__dirname, '..', 'llms-full.txt'));
+});
+
+app.get('/faq', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'faq.html'));
+});
+
 app.get('/exemptions', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'exemptions.html'));
 });

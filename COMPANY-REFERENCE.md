@@ -10,7 +10,17 @@
 - **GA Foreign Qualification:** Filed Certificate of Authority ($225)
 - **GA Registered Agent:** Georgia Registered Agent LLC ($25/yr)
 - **Office:** 6002 Camp Bullis, Suite 208, San Antonio, TX 78257
-- **Phone:** 210-760-7236 (shared with Worthey Aquatics — need dedicated OA number)
+- **Phone:** 210-760-7236 (shared with Worthey Aquatics)
+- **Dedicated Phone:** Google Voice — number TBD (setup in progress)
+
+---
+
+## 📧 OA Google Account (for Google Voice / phone)
+- **Gmail:** overassessedai@gmail.com
+- **Password:** OA!Phone2026gv
+- **Recovery Email:** tyler@overassessed.ai
+- **Recovery Phone:** 210-559-8725
+- **Google Voice Number:** TBD — still needs to be claimed (search 210 at voice.google.com)
 
 ---
 
