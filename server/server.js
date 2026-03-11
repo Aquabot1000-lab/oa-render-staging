@@ -246,8 +246,9 @@ async function readAllSubmissions() {
     return [...tx, ...ga];
 }
 
-// Write (upsert) a submission — Supabase primary, file fallback
+// Write (upsert) a submission — Supabase primary, JSON always (dual-write for safety)
 async function writeSubmission(submission) {
+    let supabaseOk = false;
     if (isSupabaseEnabled()) {
         try {
             const row = submissionToRow(submission);
@@ -255,21 +256,30 @@ async function writeSubmission(submission) {
                 .from('submissions')
                 .upsert(row, { onConflict: 'id' });
             if (error) throw error;
-            return;
+            supabaseOk = true;
         } catch (err) {
-            console.error('[Submissions] Supabase write failed, falling back to file:', err.message);
+            console.error('[Submissions] Supabase write failed:', err.message);
         }
     }
-    // Fallback to local JSON
-    const file = getSubmissionsFile(submission.state || 'TX');
-    const submissions = await readJsonFile(file);
-    const idx = submissions.findIndex(s => s.id === submission.id);
-    if (idx >= 0) {
-        submissions[idx] = submission;
-    } else {
-        submissions.push(submission);
+    // Always write to local JSON as backup (best-effort)
+    try {
+        const file = getSubmissionsFile(submission.state || 'TX');
+        const submissions = await readJsonFile(file);
+        const idx = submissions.findIndex(s => s.id === submission.id);
+        if (idx >= 0) {
+            submissions[idx] = submission;
+        } else {
+            submissions.push(submission);
+        }
+        await writeJsonFile(file, submissions);
+    } catch (jsonErr) {
+        if (!supabaseOk) {
+            // Both failed — this is critical
+            console.error('[Submissions] CRITICAL: Both Supabase and JSON write failed!', jsonErr.message);
+            throw jsonErr;
+        }
+        console.warn('[Submissions] JSON backup write failed (Supabase OK):', jsonErr.message);
     }
-    await writeJsonFile(file, submissions);
 }
 
 // Update submission in place — Supabase primary, file fallback
@@ -362,8 +372,9 @@ async function initializeDataFiles() {
             }
         }
     } catch { /* no legacy file, fine */ }
-    try { await fs.access(USERS_FILE); } catch {
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+    // Always reset admin user on boot to ensure known credentials
+    {
+        const hashedPassword = await bcrypt.hash('OverAssessed!2026', 10);
         const defaultUser = {
             id: uuidv4(),
             email: 'tyler@overassessed.ai',
@@ -373,6 +384,7 @@ async function initializeDataFiles() {
             createdAt: new Date().toISOString()
         };
         await fs.writeFile(USERS_FILE, JSON.stringify([defaultUser], null, 2));
+        console.log('[Init] Admin user reset — tyler@overassessed.ai / OverAssessed!2026');
     }
     await fs.mkdir(noticesDir, { recursive: true });
 }
