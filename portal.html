@@ -223,9 +223,9 @@
             </div>
         </div>
 
-        <!-- Analysis Report -->
+        <!-- Analysis Report (savings summary only — detailed comps are internal) -->
         <div class="card" id="reportCard" style="display: none;">
-            <h3>📊 Protest Analysis Report</h3>
+            <h3>📊 Analysis Summary</h3>
             <div class="report-container" id="reportContent"></div>
         </div>
 
@@ -414,8 +414,9 @@ async function loadFilingStatus(caseInfo) {
         const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '—';
         let details = '';
         if (filing.hearing_date) details += `<p>🏛️ <strong>Hearing Date:</strong> ${new Date(filing.hearing_date).toLocaleDateString()}${filing.hearing_format ? ' (' + filing.hearing_format + ')' : ''}</p>`;
-        if (filing.form_50_162_url) details += `<p>📄 <a href="${filing.form_50_162_url}" target="_blank" style="color:var(--purple);">Download Form 50-162</a></p>`;
-        if (filing.evidence_packet_url) details += `<p>📦 <a href="${filing.evidence_packet_url}" target="_blank" style="color:var(--purple);">Download Evidence Packet</a></p>`;
+        // Form and evidence packet links are internal only — not exposed to clients
+        if (filing.form_50_162_url) details += `<p>📄 Authorization form signed ✓</p>`;
+        // Evidence packet kept internal — clients see status only
         if (filing.settlement_offer) details += `<p>💰 <strong>Settlement Offer:</strong> ${fmt(filing.settlement_offer)} ${filing.settlement_accepted === true ? '✅ Accepted' : filing.settlement_accepted === false ? '❌ Declined' : '⏳ Pending'}</p>`;
         if (filing.savings) details += `<p>🎉 <strong>Total Savings:</strong> ${fmt(filing.savings)}</p>`;
         if (filing.filing_confirmation) details += `<p>✅ <strong>Confirmation:</strong> ${filing.filing_confirmation}</p>`;

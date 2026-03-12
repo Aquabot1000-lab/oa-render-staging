@@ -829,6 +829,92 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ==================== CLIENT PORTAL AUTH ====================
+/**
+ * Sanitize a submission for the client portal.
+ * Strips comp details, evidence packets, raw property data, and methodology —
+ * clients only see the savings number and confidence, NOT the underlying data.
+ */
+function sanitizeForPortal(sub) {
+    const safe = { ...sub };
+
+    // Strip raw analysis data — clients don't get comp addresses, scores, or methodology
+    delete safe.compResults;
+    delete safe.propertyData;
+    delete safe.evidencePacketPath;
+
+    // Strip analysis report details but keep the savings summary
+    if (safe.analysisReport) {
+        safe.analysisReport = {
+            generatedAt: safe.analysisReport.generatedAt,
+            propertyAddress: safe.analysisReport.propertyAddress,
+            propertyType: safe.analysisReport.propertyType,
+            currentAssessedValue: safe.analysisReport.currentAssessedValue,
+            estimatedTaxSavings: safe.analysisReport.estimatedTaxSavings,
+            recommendation: safe.analysisReport.recommendation,
+            // Replace detailed report HTML with savings-only summary
+            reportHtml: buildClientSavingsHtml(sub)
+        };
+        // Explicitly remove comps and methodology from the sanitized report
+        delete safe.analysisReport.comparables;
+        delete safe.analysisReport.methodology;
+        delete safe.analysisReport.estimatedMarketValue;
+        delete safe.analysisReport.estimatedReduction;
+        delete safe.analysisReport.taxRate;
+    }
+
+    // Strip internal fields
+    delete safe.needsManualReview;
+    delete safe.reviewReason;
+    delete safe.pin;
+    delete safe.dripState;
+    delete safe.stripeCustomerId;
+
+    return safe;
+}
+
+/**
+ * Build a savings-only HTML summary for the client portal.
+ * Shows the bottom line without revealing comp data or methodology.
+ */
+function buildClientSavingsHtml(sub) {
+    const savings = sub.estimatedSavings || (sub.analysisReport && sub.analysisReport.estimatedTaxSavings) || 0;
+    const assessed = (sub.analysisReport && sub.analysisReport.currentAssessedValue) || 0;
+    const recommendation = (sub.analysisReport && sub.analysisReport.recommendation) || '';
+    const isRecommended = savings > 0;
+
+    return `
+<div style="font-family: Arial, sans-serif; max-width: 700px;">
+    <h2 style="color: #6c5ce7; border-bottom: 2px solid #6c5ce7; padding-bottom: 10px;">Property Tax Analysis Summary</h2>
+    <p><strong>Property:</strong> ${sub.propertyAddress}</p>
+    <p><strong>Case:</strong> ${sub.caseId}</p>
+
+    <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; border-radius: 12px; padding: 30px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 8px; opacity: 0.85; font-size: 0.9rem;">Estimated Annual Tax Savings</p>
+        <p style="margin: 0; font-size: 2.5rem; font-weight: 900;">$${savings.toLocaleString()}</p>
+        ${assessed ? `<p style="margin: 8px 0 0; opacity: 0.7; font-size: 0.85rem;">Based on current assessed value of $${assessed.toLocaleString()}</p>` : ''}
+    </div>
+
+    <div style="background: ${isRecommended ? '#c6f6d5' : '#fed7d7'}; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <strong>${isRecommended ? '✅ PROTEST RECOMMENDED' : '⚠️ LIMITED PROTEST POTENTIAL'}</strong>
+        ${isRecommended ? '<p style="margin: 8px 0 0; font-size: 0.9rem;">Our team has identified strong evidence to support a reduction in your assessed value. Sign the authorization form to proceed.</p>' : ''}
+    </div>
+
+    <div style="background: #f8f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="color: #2d3436; margin-top: 0;">What Happens Next</h3>
+        <ol style="color: #4a5568; line-height: 1.8;">
+            <li><strong>Sign authorization</strong> — lets us file on your behalf</li>
+            <li><strong>We build your case</strong> — comparable sales analysis, evidence packet, filing</li>
+            <li><strong>We attend your hearing</strong> — our experts represent you</li>
+            <li><strong>You save money</strong> — only pay if we reduce your taxes</li>
+        </ol>
+    </div>
+
+    <p style="color: #6b7280; font-size: 0.85rem; text-align: center;">
+        Detailed analysis data is used by our team to build the strongest case for your hearing.
+    </p>
+</div>`;
+}
+
 app.post('/api/portal/login', async (req, res) => {
     try {
         const { email, caseId } = req.body;
@@ -838,7 +924,7 @@ app.post('/api/portal/login', async (req, res) => {
         const sub = submissions.find(s => s.email.toLowerCase() === email.toLowerCase() && s.caseId === caseId.toUpperCase());
         if (!sub) return res.status(401).json({ error: 'No case found with that email and case ID' });
 
-        res.json({ success: true, submission: sub });
+        res.json({ success: true, submission: sanitizeForPortal(sub) });
     } catch (error) {
         console.error('Portal login error:', error);
         res.status(500).json({ error: 'Login failed' });
@@ -855,8 +941,8 @@ app.get('/api/portal/case', async (req, res) => {
         const sub = submissions.find(s => s.email.toLowerCase() === email.toLowerCase() && s.caseId === caseId.toUpperCase());
         if (!sub) return res.status(404).json({ error: 'Case not found' });
 
-        // Return sanitized data (no internal IDs exposed unnecessarily)
-        res.json(sub);
+        // Return sanitized data — no comp details, evidence, or methodology
+        res.json(sanitizeForPortal(sub));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch case' });
     }
