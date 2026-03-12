@@ -8,4 +8,7 @@ node_modules/
 test-runs/
 reports/
 legal/
-marketing/
+marketing/google-ads/
+marketing/facebook-ads/
+marketing/email-nurture/
+marketing/review-profiles/
