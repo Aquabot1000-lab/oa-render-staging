@@ -622,6 +622,79 @@
         </div>
     </section>
     <script>
+    // === MAIN INTAKE FORM HANDLER ===
+    document.getElementById('intakeForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const btnText = btn.querySelector('.btn-text');
+        const btnLoader = btn.querySelector('.btn-loader');
+        btn.disabled = true;
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoader) btnLoader.style.display = 'inline';
+
+        const payload = {
+            ownerName: document.getElementById('ownerName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            propertyAddress: document.getElementById('propertyAddress').value,
+            propertyType: document.getElementById('propertyType').value,
+            assessedValue: document.getElementById('assessedValue') ? document.getElementById('assessedValue').value : '',
+            bedrooms: document.getElementById('bedrooms') ? document.getElementById('bedrooms').value : '',
+            bathrooms: document.getElementById('bathrooms') ? document.getElementById('bathrooms').value : '',
+            sqft: document.getElementById('sqft') ? document.getElementById('sqft').value : '',
+            yearBuilt: document.getElementById('yearBuilt') ? document.getElementById('yearBuilt').value : '',
+            renovations: document.getElementById('renovations') ? document.getElementById('renovations').value : 'No',
+            renovationDesc: document.getElementById('renovationDesc') ? document.getElementById('renovationDesc').value : '',
+            conditionIssues: document.getElementById('conditionIssues') ? document.getElementById('conditionIssues').value : 'None',
+            conditionDesc: document.getElementById('conditionDesc') ? document.getElementById('conditionDesc').value : '',
+            recentAppraisal: document.getElementById('recentAppraisal') ? document.getElementById('recentAppraisal').value : 'No',
+            appraisedValue: document.getElementById('appraisedValue') ? document.getElementById('appraisedValue').value : '',
+            appraisalDate: document.getElementById('appraisalDate') ? document.getElementById('appraisalDate').value : '',
+            state: document.getElementById('stateSelect') ? document.getElementById('stateSelect').value : 'TX',
+            notificationPref: document.getElementById('notificationPref') ? document.getElementById('notificationPref').value : 'both',
+            source: 'website-intake'
+        };
+
+        // Capture UTM and gclid params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('gclid')) payload.gclid = params.get('gclid');
+        if (params.get('utm_source')) payload.utm_source = params.get('utm_source');
+        if (params.get('utm_medium')) payload.utm_medium = params.get('utm_medium');
+        if (params.get('utm_campaign')) payload.utm_campaign = params.get('utm_campaign');
+        if (params.get('ref')) payload.referral_code = params.get('ref');
+
+        try {
+            const res = await fetch('/api/intake', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                document.getElementById('intakeForm').style.display = 'none';
+                document.getElementById('formSuccess').style.display = 'block';
+                // Fire REAL conversion event
+                if (typeof gtag === 'function') {
+                    gtag('event', 'conversion', {
+                        'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'
+                    });
+                }
+                if (typeof fbq === 'function') fbq('track', 'Lead');
+            } else {
+                const data = await res.json().catch(() => ({}));
+                alert(data.error || 'Something went wrong. Please try again.');
+                btn.disabled = false;
+                if (btnText) btnText.style.display = 'inline';
+                if (btnLoader) btnLoader.style.display = 'none';
+            }
+        } catch (err) {
+            alert('Something went wrong. Please try again.');
+            btn.disabled = false;
+            if (btnText) btnText.style.display = 'inline';
+            if (btnLoader) btnLoader.style.display = 'none';
+        }
+    });
+    </script>
+    <script>
     document.getElementById('preRegForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('preRegBtn');
