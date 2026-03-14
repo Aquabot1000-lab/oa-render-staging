@@ -96,6 +96,7 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(uploadsDir));
 app.use('/evidence-packets', express.static(path.join(__dirname, 'evidence-packets')));
 app.use('/filing-packages', express.static(path.join(__dirname, 'filing-packages')));
@@ -2097,7 +2098,104 @@ app.use((err, req, res, next) => {
 // Start
 async function startServer() {
     await initializeDataFiles();
-    app.listen(PORT, () => {
+    
+// ===== TWILIO VOICE HANDLING =====
+// Inbound call handler: ring Tyler, then voicemail
+app.post('/twiml/voice', (req, res) => {
+    res.type('text/xml');
+    res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Dial timeout="25" callerId="+18882829165" action="/twiml/voicemail">
+        <Number>+12105598725</Number>
+    </Dial>
+</Response>\`);
+});
+
+// Voicemail handler (if Tyler doesn't answer)
+app.post('/twiml/voicemail', (req, res) => {
+    const dialStatus = req.body?.DialCallStatus || 'no-answer';
+    res.type('text/xml');
+    
+    if (dialStatus === 'completed') {
+        // Call was answered, just hang up
+        res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+<Response><Hangup/></Response>\`);
+    } else {
+        // Not answered — play greeting and record voicemail
+        res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Thank you for calling OverAssessed, Texas property tax experts. We're unable to answer right now. Please leave a message after the beep and we'll call you back within one business day.</Say>
+    <Record maxLength="120" transcribe="true" transcribeCallback="/twiml/transcription" playBeep="true" action="/twiml/recording-done" />
+    <Say voice="alice">We didn't receive a recording. Please try your call again. Goodbye.</Say>
+</Response>\`);
+    }
+});
+
+// After recording is done
+app.post('/twiml/recording-done', (req, res) => {
+    res.type('text/xml');
+    res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Thank you. We'll get back to you soon. Goodbye.</Say>
+    <Hangup/>
+</Response>\`);
+    
+    // Send immediate email with recording link (transcription comes later)
+    const recordingUrl = req.body?.RecordingUrl;
+    const callerNumber = req.body?.From || 'Unknown';
+    if (recordingUrl) {
+        sendVoicemailEmail(callerNumber, recordingUrl, null);
+    }
+});
+
+// Transcription callback (arrives async after recording)
+app.post('/twiml/transcription', (req, res) => {
+    const transcription = req.body?.TranscriptionText || '';
+    const recordingUrl = req.body?.RecordingUrl || '';
+    const callerNumber = req.body?.From || 'Unknown';
+    
+    if (transcription) {
+        sendVoicemailEmail(callerNumber, recordingUrl, transcription);
+    }
+    res.sendStatus(200);
+});
+
+// Email voicemail to Tyler
+async function sendVoicemailEmail(from, recordingUrl, transcription) {
+    const sgMail = require('@sendgrid/mail');
+    if (!process.env.SENDGRID_API_KEY) return;
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    
+    const subject = transcription 
+        ? \`📞 OA Voicemail from \${from} (transcribed)\`
+        : \`📞 OA Voicemail from \${from} (new recording)\`;
+    
+    const html = \`
+        <h2>New Voicemail — OverAssessed</h2>
+        <p><strong>From:</strong> \${from}</p>
+        <p><strong>Time:</strong> \${new Date().toLocaleString('en-US', {timeZone: 'America/Chicago'})}</p>
+        \${transcription ? \`<p><strong>Transcription:</strong> \${transcription}</p>\` : ''}
+        \${recordingUrl ? \`<p><strong>Listen:</strong> <a href="\${recordingUrl}">\${recordingUrl}</a></p>\` : ''}
+        <hr>
+        <p style="color:#888;">OverAssessed AI — (888) 282-9165</p>
+    \`;
+    
+    try {
+        await sgMail.send({
+            to: 'tyler@overassessed.ai',
+            from: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com',
+            subject,
+            html
+        });
+        console.log(\`📧 Voicemail email sent for call from \${from}\`);
+    } catch (err) {
+        console.error('Voicemail email error:', err.message);
+    }
+}
+// ===== END TWILIO VOICE =====
+
+
+app.listen(PORT, () => {
         console.log(`🚀 OverAssessed running on port ${PORT}`);
         console.log(`📱 SMS: ${twilioClient ? 'Enabled' : 'Disabled'}`);
         console.log(`📧 Email: ${process.env.SENDGRID_API_KEY ? 'Enabled' : 'Disabled'}`);
