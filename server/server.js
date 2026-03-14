@@ -2105,7 +2105,7 @@ app.post('/twiml/voice', (req, res) => {
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Dial timeout="25" callerId="+18882829165" action="/twiml/voicemail">
+    <Dial timeout="10" callerId="+18882829165" action="/twiml/voicemail">
         <Number>+12105598725</Number>
     </Dial>
 </Response>`);
