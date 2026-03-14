@@ -2103,12 +2103,12 @@ async function startServer() {
 // Inbound call handler: ring Tyler, then voicemail
 app.post('/twiml/voice', (req, res) => {
     res.type('text/xml');
-    res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial timeout="25" callerId="+18882829165" action="/twiml/voicemail">
         <Number>+12105598725</Number>
     </Dial>
-</Response>\`);
+</Response>`);
 });
 
 // Voicemail handler (if Tyler doesn't answer)
@@ -2118,27 +2118,27 @@ app.post('/twiml/voicemail', (req, res) => {
     
     if (dialStatus === 'completed') {
         // Call was answered, just hang up
-        res.send(\`<?xml version="1.0" encoding="UTF-8"?>
-<Response><Hangup/></Response>\`);
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response><Hangup/></Response>`);
     } else {
         // Not answered — play greeting and record voicemail
-        res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Thank you for calling OverAssessed, Texas property tax experts. We're unable to answer right now. Please leave a message after the beep and we'll call you back within one business day.</Say>
     <Record maxLength="120" transcribe="true" transcribeCallback="/twiml/transcription" playBeep="true" action="/twiml/recording-done" />
     <Say voice="alice">We didn't receive a recording. Please try your call again. Goodbye.</Say>
-</Response>\`);
+</Response>`);
     }
 });
 
 // After recording is done
 app.post('/twiml/recording-done', (req, res) => {
     res.type('text/xml');
-    res.send(\`<?xml version="1.0" encoding="UTF-8"?>
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Thank you. We'll get back to you soon. Goodbye.</Say>
     <Hangup/>
-</Response>\`);
+</Response>`);
     
     // Send immediate email with recording link (transcription comes later)
     const recordingUrl = req.body?.RecordingUrl;
@@ -2167,18 +2167,18 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     const subject = transcription 
-        ? \`📞 OA Voicemail from \${from} (transcribed)\`
-        : \`📞 OA Voicemail from \${from} (new recording)\`;
+        ? `📞 OA Voicemail from ${from} (transcribed)`
+        : `📞 OA Voicemail from ${from} (new recording)`;
     
-    const html = \`
+    const html = `
         <h2>New Voicemail — OverAssessed</h2>
-        <p><strong>From:</strong> \${from}</p>
-        <p><strong>Time:</strong> \${new Date().toLocaleString('en-US', {timeZone: 'America/Chicago'})}</p>
-        \${transcription ? \`<p><strong>Transcription:</strong> \${transcription}</p>\` : ''}
-        \${recordingUrl ? \`<p><strong>Listen:</strong> <a href="\${recordingUrl}">\${recordingUrl}</a></p>\` : ''}
+        <p><strong>From:</strong> ${from}</p>
+        <p><strong>Time:</strong> ${new Date().toLocaleString('en-US', {timeZone: 'America/Chicago'})}</p>
+        ${transcription ? `<p><strong>Transcription:</strong> ${transcription}</p>` : ''}
+        ${recordingUrl ? `<p><strong>Listen:</strong> <a href="${recordingUrl}">${recordingUrl}</a></p>` : ''}
         <hr>
         <p style="color:#888;">OverAssessed AI — (888) 282-9165</p>
-    \`;
+    `;
     
     try {
         await sgMail.send({
@@ -2187,7 +2187,7 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
             subject,
             html
         });
-        console.log(\`📧 Voicemail email sent for call from \${from}\`);
+        console.log(`📧 Voicemail email sent for call from ${from}`);
     } catch (err) {
         console.error('Voicemail email error:', err.message);
     }
