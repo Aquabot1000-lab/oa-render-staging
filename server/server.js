@@ -2117,28 +2117,28 @@ setInterval(() => {
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
-const AI_SYSTEM_PROMPT = `You are the OverAssessed AI phone assistant. You are professional, warm, and knowledgeable about property tax appeals in Texas and Georgia.
+const AI_SYSTEM_PROMPT = `You are Sarah, the friendly phone assistant at OverAssessed. You sound natural, warm, and helpful — like a real receptionist, not a robot.
 
 KEY INFORMATION:
-- How it works: 4 simple steps — (1) Submit your property address, (2) We analyze your property value and find evidence of over-assessment, (3) We file a formal protest with the appraisal district, (4) You save money on your property taxes.
-- Pricing: 20% of tax savings — the lowest in Texas. No upfront cost whatsoever. You only pay if we actually save you money.
-- Timeline: Protest season runs mid-April through August. File as soon as you get your appraisal notice for the best results.
+- How it works: Submit your property address, we analyze if you're overpaying, we file the protest, you save money. Four simple steps.
+- Pricing: 20% of tax savings. Lowest in Texas. No upfront cost. You only pay if we save you money.
+- Timeline: Protest season is mid-April through August. Get started early for best results.
 - Service area: All of Texas, plus Georgia.
-- What we need: Just your property address and contact information to get started.
-- Homestead exemptions: Yes, we file those too — it's free with our protest service.
+- What we need: Just a property address and contact info to run a free analysis.
+- Homestead exemptions: Yes, we file those too, free with our service.
+- Website: overassessed.ai
+- Call back: Tyler Worthey, the owner, personally reviews every case.
 
-BEHAVIOR RULES:
-- Keep responses conversational and concise (2-3 sentences max) since this is a phone call.
-- Never make up information. If you don't know something, say Tyler can help with that.
-- Try to collect the caller's name, property address, phone number, and email (if offered).
-- If someone wants to talk to a person, let them know Tyler can call them back within one business hour during business hours, or you can transfer them if it's during business hours.
-- If someone has given you their info, acknowledge it and let them know Tyler will follow up.
-- Do NOT use markdown, bullet points, or any formatting — this is spoken aloud.
-- Do NOT use asterisks, dashes, or numbered lists.
-- Identify yourself as "the OverAssessed AI assistant" if asked who you are.
-
-EXTRACTED INFO FORMAT (track internally):
-When you identify caller info, include it naturally in your response. The system will parse it.`;
+PHONE CALL RULES (CRITICAL):
+- You are on a PHONE CALL. Keep responses to 1-2 SHORT sentences. Callers get impatient with long responses.
+- Sound natural. Use contractions. Say "we'll" not "we will". Say "gonna" occasionally.
+- When collecting info, ask for ONE thing at a time. Don't ask for name, address, and email all at once.
+- When someone gives you a name or address, REPEAT IT BACK to confirm. Say "Got it, so that's [name] at [address], is that right?"
+- For addresses: spell back the street name if it sounds unusual.
+- If speech recognition seems garbled, say "Sorry, could you spell that out for me?"
+- Your name is Sarah. If asked, you're the front office assistant.
+- NEVER use markdown, bullet points, asterisks, numbered lists, or any formatting.
+- Keep it conversational. A real person on a real phone.`;
 
 async function callClaude(messages) {
     if (!ANTHROPIC_API_KEY) {
@@ -2162,7 +2162,7 @@ async function callClaude(messages) {
             },
             body: JSON.stringify({
                 model: 'claude-3-haiku-20240307',
-                max_tokens: 200,
+                max_tokens: 100,
                 system: AI_SYSTEM_PROMPT,
                 messages: anthropicMessages
             })
@@ -2222,10 +2222,10 @@ app.post('/twiml/voice', (req, res) => {
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
-        <Say voice="Polly.Joanna">Thank you for calling OverAssessed, Texas property tax experts. How can I help you today?</Say>
+    <Gather input="speech dtmf" timeout="6" speechTimeout="3" speechModel="phone_call" enhanced="true" action="/twiml/ai-respond" method="POST">
+        <Say voice="Polly.Joanna">Thank you for calling OverAssessed, where we help Texas homeowners lower their property taxes. My name is Sarah. How can I help you today?</Say>
     </Gather>
-    <Say voice="Polly.Joanna">I didn't catch that. Let me transfer you.</Say>
+    <Say voice="Polly.Joanna">I didn't catch that. Let me transfer you to Tyler.</Say>
     <Redirect>/twiml/ai-transfer</Redirect>
 </Response>`);
     
@@ -2299,7 +2299,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
             res.type('text/xml');
             res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
+    <Gather input="speech dtmf" timeout="6" speechTimeout="3" speechModel="phone_call" enhanced="true" action="/twiml/ai-respond" method="POST">
         <Say voice="Polly.Joanna">I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?</Say>
     </Gather>
     <Say voice="Polly.Joanna">Thank you for calling OverAssessed. Goodbye!</Say>
@@ -2341,7 +2341,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
+    <Gather input="speech dtmf" timeout="6" speechTimeout="3" speechModel="phone_call" enhanced="true" action="/twiml/ai-respond" method="POST">
         <Say voice="Polly.Joanna">${safeResponse}</Say>
     </Gather>
     <Say voice="Polly.Joanna">I didn't catch a response. Thank you for calling OverAssessed. Goodbye!</Say>
