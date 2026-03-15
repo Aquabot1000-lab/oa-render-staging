@@ -18,5 +18,8 @@
       "name": "Worthey Aquatics, LLC",
       "token": "EAALZAJVDHyYUBQ9IeDBzVqHuzY8SUiZCCk9bWewylXAsHYCS5y1bqALeBf8E7wA2qZAmzoJjsdq5DEmA6qruHZA83N6XHXmhSq61GVVb7HfMgob9ohnMACltFSoGYvP5ul1VZA2FCNOADuoi9pqjOXcVZCA8deBxVNPdM2tuNaCJnKu5tkfd8ohnYecjRymdweDYswLMFNZBh0QXAA8cyZADIgZCi"
     }
-  }
+  },
+  "ads_user_token": "EAALZAJVDHyYUBQZB9Q9onJM1dctdZCz7KXFDJOpOEsl7gjIDmB2esYTRJy5kslSqWOSzG8pEFMU59LONoiIJrXhfrnngUssOfPjg50DyZBCXhNa01hdEB76nXnyQgrhO5hDzV8tKE67zWbTQtehMzZCR9sAmxh9PcEZAgNjXXXa6Dd83qQ1nkj6diDmfdoEZChRrL1CPw7w4ZAuY",
+  "ads_token_created": "2026-03-15",
+  "ads_token_note": "Long-lived token with ads_management+ads_read, expires ~60 days (May 14 2026)"
 }
