@@ -1,0 +1,38 @@
+// Facebook OAuth callback — captures code and exchanges for tokens
+app.get('/oauth/facebook/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send('Missing code parameter');
+    
+    try {
+        const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+        const APP_ID = '801704245709189';
+        const APP_SECRET = '534ca030e21ed2a899238ccc496fd256';
+        const REDIRECT = 'https://overassessed.ai/oauth/facebook/callback';
+        
+        // Exchange code for short-lived token
+        const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT)}&client_secret=${APP_SECRET}&code=${code}`;
+        const tokenResp = await (await fetch(tokenUrl)).json();
+        
+        if (tokenResp.error) {
+            return res.status(400).json({ error: tokenResp.error });
+        }
+        
+        // Exchange for long-lived token
+        const llUrl = `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${tokenResp.access_token}`;
+        const llResp = await (await fetch(llUrl)).json();
+        
+        const longLivedToken = llResp.access_token || tokenResp.access_token;
+        
+        // Get page tokens
+        const pagesUrl = `https://graph.facebook.com/v21.0/me/accounts?access_token=${longLivedToken}`;
+        const pagesResp = await (await fetch(pagesUrl)).json();
+        
+        res.json({
+            success: true,
+            user_token: longLivedToken,
+            pages: pagesResp.data
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});

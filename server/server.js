@@ -2099,48 +2099,404 @@ app.use((err, req, res, next) => {
 async function startServer() {
     await initializeDataFiles();
     
-// ===== TWILIO VOICE HANDLING =====
-// Inbound call handler: ring Tyler, then voicemail
+// ===== AI-POWERED PHONE ANSWERING SERVICE =====
+// Conversation state: CallSid -> { messages: [], callerInfo: {}, startTime: Date }
+const aiCallState = new Map();
+
+// Clean up stale conversations every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [sid, state] of aiCallState) {
+        if (now - state.startTime > 30 * 60 * 1000) {
+            aiCallState.delete(sid);
+        }
+    }
+}, 5 * 60 * 1000);
+
+// Gemini Flash API helper
+const GEMINI_API_KEY = 'AIzaSyDN5E8l3kooSkJSgT_H8DGOA-HCaNkMB-Q';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+const AI_SYSTEM_PROMPT = `You are the OverAssessed AI phone assistant. You are professional, warm, and knowledgeable about property tax appeals in Texas and Georgia.
+
+KEY INFORMATION:
+- How it works: 4 simple steps — (1) Submit your property address, (2) We analyze your property value and find evidence of over-assessment, (3) We file a formal protest with the appraisal district, (4) You save money on your property taxes.
+- Pricing: 20% of tax savings — the lowest in Texas. No upfront cost whatsoever. You only pay if we actually save you money.
+- Timeline: Protest season runs mid-April through August. File as soon as you get your appraisal notice for the best results.
+- Service area: All of Texas, plus Georgia.
+- What we need: Just your property address and contact information to get started.
+- Homestead exemptions: Yes, we file those too — it's free with our protest service.
+
+BEHAVIOR RULES:
+- Keep responses conversational and concise (2-3 sentences max) since this is a phone call.
+- Never make up information. If you don't know something, say Tyler can help with that.
+- Try to collect the caller's name, property address, phone number, and email (if offered).
+- If someone wants to talk to a person, let them know Tyler can call them back within one business hour during business hours, or you can transfer them if it's during business hours.
+- If someone has given you their info, acknowledge it and let them know Tyler will follow up.
+- Do NOT use markdown, bullet points, or any formatting — this is spoken aloud.
+- Do NOT use asterisks, dashes, or numbered lists.
+- Identify yourself as "the OverAssessed AI assistant" if asked who you are.
+
+EXTRACTED INFO FORMAT (track internally):
+When you identify caller info, include it naturally in your response. The system will parse it.`;
+
+async function callGemini(messages) {
+    // Convert to Gemini format
+    const contents = [];
+    for (const msg of messages) {
+        contents.push({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        });
+    }
+    
+    try {
+        const resp = await fetch(GEMINI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+                contents,
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 200,
+                    topP: 0.9
+                }
+            })
+        });
+        
+        if (!resp.ok) {
+            const errText = await resp.text();
+            console.error('[AI Phone] Gemini error:', resp.status, errText);
+            return null;
+        }
+        
+        const data = await resp.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    } catch (err) {
+        console.error('[AI Phone] Gemini fetch error:', err.message);
+        return null;
+    }
+}
+
+// Check if currently business hours (M-F 8AM-6PM CT)
+function isBusinessHours() {
+    const now = new Date();
+    const ct = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const day = ct.getDay(); // 0=Sun, 6=Sat
+    const hour = ct.getHours();
+    return day >= 1 && day <= 5 && hour >= 8 && hour < 18;
+}
+
+// Extract caller info from conversation
+function extractCallerInfo(messages) {
+    const info = { name: null, address: null, phone: null, email: null };
+    const fullText = messages.map(m => m.content).join(' ');
+    
+    // Email
+    const emailMatch = fullText.match(/[\w.-]+@[\w.-]+\.\w{2,}/);
+    if (emailMatch) info.email = emailMatch[0];
+    
+    return info;
+}
+
+// 1. Inbound call — AI greeting + first gather
 app.post('/twiml/voice', (req, res) => {
+    const callSid = req.body?.CallSid || 'unknown';
+    const callerNumber = req.body?.From || 'Unknown';
+    
+    console.log(`📞 [AI Phone] Incoming call from ${callerNumber} (${callSid})`);
+    
+    // Initialize conversation state
+    aiCallState.set(callSid, {
+        messages: [],
+        callerInfo: { phone: callerNumber },
+        startTime: Date.now(),
+        callerNumber
+    });
+    
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Dial timeout="10" callerId="+18882829165" action="/twiml/voicemail">
-        <Number>+12105598725</Number>
-    </Dial>
+    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
+        <Say voice="Polly.Joanna">Thank you for calling OverAssessed, Texas property tax experts. How can I help you today?</Say>
+    </Gather>
+    <Say voice="Polly.Joanna">I didn't catch that. Let me transfer you.</Say>
+    <Redirect>/twiml/ai-transfer</Redirect>
 </Response>`);
-});
-
-// Voicemail handler (if Tyler doesn't answer)
-app.post('/twiml/voicemail', (req, res) => {
-    const dialStatus = req.body?.DialCallStatus || 'no-answer';
-    res.type('text/xml');
     
-    if (dialStatus === 'completed') {
-        // Call was answered, just hang up
-        res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response><Hangup/></Response>`);
-    } else {
-        // Not answered — play greeting and record voicemail
-        res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice">Thank you for calling OverAssessed, Texas property tax experts. We're unable to answer right now. Please leave a message after the beep and we'll call you back within one business day.</Say>
-    <Record maxLength="120" transcribe="true" transcribeCallback="/twiml/transcription" playBeep="true" action="/twiml/recording-done" />
-    <Say voice="alice">We didn't receive a recording. Please try your call again. Goodbye.</Say>
-</Response>`);
+    // Store the greeting as assistant message
+    const state = aiCallState.get(callSid);
+    if (state) {
+        state.messages.push({
+            role: 'assistant',
+            content: 'Thank you for calling OverAssessed, Texas property tax experts. How can I help you today?'
+        });
     }
 });
 
+// 2. AI respond — process speech, get AI response, gather again
+app.post('/twiml/ai-respond', async (req, res) => {
+    const callSid = req.body?.CallSid || 'unknown';
+    const speechResult = req.body?.SpeechResult || '';
+    const callerNumber = req.body?.From || 'Unknown';
+    
+    console.log(`🗣️ [AI Phone] Caller said (${callSid}): "${speechResult}"`);
+    
+    // Get or create conversation state
+    let state = aiCallState.get(callSid);
+    if (!state) {
+        state = {
+            messages: [],
+            callerInfo: { phone: callerNumber },
+            startTime: Date.now(),
+            callerNumber
+        };
+        aiCallState.set(callSid, state);
+    }
+    
+    // Check if caller wants to talk to someone
+    const wantsTransfer = /transfer|speak|talk|person|human|representative|agent|tyler|operator/i.test(speechResult);
+    const wantsEnd = /goodbye|bye|that's all|that's it|no thanks|nothing else|hang up/i.test(speechResult);
+    
+    // Add caller's speech to conversation
+    state.messages.push({ role: 'user', content: speechResult });
+    
+    if (wantsEnd) {
+        // Caller wants to end the call
+        res.type('text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Thank you for calling OverAssessed. Have a wonderful day! Goodbye.</Say>
+    <Hangup/>
+</Response>`);
+        // Send summary
+        sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
+        return;
+    }
+    
+    if (wantsTransfer) {
+        if (isBusinessHours()) {
+            res.type('text/xml');
+            res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Of course! Let me transfer you to Tyler right now. One moment please.</Say>
+    <Dial timeout="20" callerId="+18882829165" action="/twiml/ai-transfer-status">
+        <Number>+12105598725</Number>
+    </Dial>
+</Response>`);
+            return;
+        } else {
+            // Outside business hours — tell them Tyler will call back
+            state.messages.push({
+                role: 'assistant',
+                content: "I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?"
+            });
+            res.type('text/xml');
+            res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
+        <Say voice="Polly.Joanna">I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?</Say>
+    </Gather>
+    <Say voice="Polly.Joanna">Thank you for calling OverAssessed. Goodbye!</Say>
+    <Hangup/>
+</Response>`);
+            sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
+            return;
+        }
+    }
+    
+    // Get AI response
+    const aiResponse = await callGemini(state.messages);
+    
+    if (!aiResponse) {
+        // Fallback if AI fails
+        res.type('text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">I apologize, I'm having some technical difficulty. Let me transfer you to Tyler.</Say>
+    <Redirect>/twiml/ai-transfer</Redirect>
+</Response>`);
+        return;
+    }
+    
+    // Clean up response for TwiML (escape XML special chars)
+    const safeResponse = aiResponse
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\*/g, '')
+        .replace(/#{1,}/g, '')
+        .trim();
+    
+    state.messages.push({ role: 'assistant', content: aiResponse });
+    
+    console.log(`🤖 [AI Phone] AI says (${callSid}): "${aiResponse.substring(0, 100)}..."`);
+    
+    res.type('text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
+        <Say voice="Polly.Joanna">${safeResponse}</Say>
+    </Gather>
+    <Say voice="Polly.Joanna">I didn't catch a response. Thank you for calling OverAssessed. Goodbye!</Say>
+    <Hangup/>
+</Response>`);
+});
+
+// 3. Transfer to Tyler
+app.post('/twiml/ai-transfer', (req, res) => {
+    const callSid = req.body?.CallSid || 'unknown';
+    
+    if (isBusinessHours()) {
+        res.type('text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Let me transfer you to Tyler. One moment please.</Say>
+    <Dial timeout="20" callerId="+18882829165" action="/twiml/ai-transfer-status">
+        <Number>+12105598725</Number>
+    </Dial>
+</Response>`);
+    } else {
+        res.type('text/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">We're currently outside business hours. Our hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour when we reopen. Thank you for calling OverAssessed!</Say>
+    <Hangup/>
+</Response>`);
+        const state = aiCallState.get(callSid);
+        if (state) {
+            sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
+        }
+    }
+});
+
+// 4. Transfer status callback
+app.post('/twiml/ai-transfer-status', (req, res) => {
+    const dialStatus = req.body?.DialCallStatus || 'no-answer';
+    const callSid = req.body?.CallSid || 'unknown';
+    
+    res.type('text/xml');
+    if (dialStatus === 'completed') {
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response><Hangup/></Response>`);
+    } else {
+        // Tyler didn't answer — voicemail fallback
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Tyler is unavailable right now. Please leave a message after the beep and he'll call you back within one business hour.</Say>
+    <Record maxLength="120" transcribe="true" transcribeCallback="/twiml/transcription" playBeep="true" action="/twiml/recording-done" />
+    <Say voice="Polly.Joanna">We didn't receive a recording. Thank you for calling. Goodbye.</Say>
+</Response>`);
+    }
+    
+    const state = aiCallState.get(callSid);
+    if (state) {
+        sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
+    }
+});
+
+// 5. Call complete — send summary notifications
+app.post('/twiml/ai-complete', (req, res) => {
+    const callSid = req.body?.CallSid || 'unknown';
+    const state = aiCallState.get(callSid);
+    
+    if (state) {
+        sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
+    }
+    
+    res.sendStatus(200);
+});
+
+// Send call summary via SMS + Email
+async function sendCallSummary(callSid, state) {
+    if (!state || !state.messages.length) return;
+    
+    const callerNumber = state.callerNumber || 'Unknown';
+    const callerInfo = extractCallerInfo(state.messages);
+    const callTime = new Date(state.startTime).toLocaleString('en-US', { timeZone: 'America/Chicago' });
+    
+    // Build conversation transcript
+    const transcript = state.messages.map(m => {
+        const speaker = m.role === 'assistant' ? 'AI' : 'Caller';
+        return `${speaker}: ${m.content}`;
+    }).join('\n');
+    
+    // Parse caller info from conversation text
+    const fullText = state.messages.filter(m => m.role === 'user').map(m => m.content).join(' ');
+    
+    // SMS to Tyler — short summary
+    const smsLines = [`📞 AI Call Summary`, `From: ${callerNumber}`, `Time: ${callTime}`];
+    if (callerInfo.name) smsLines.push(`Name: ${callerInfo.name}`);
+    if (callerInfo.address) smsLines.push(`Property: ${callerInfo.address}`);
+    if (callerInfo.email) smsLines.push(`Email: ${callerInfo.email}`);
+    smsLines.push(`Turns: ${state.messages.filter(m => m.role === 'user').length}`);
+    // Include first caller message as context
+    const firstUserMsg = state.messages.find(m => m.role === 'user');
+    if (firstUserMsg) smsLines.push(`Topic: ${firstUserMsg.content.substring(0, 80)}`);
+    
+    if (twilioClient) {
+        try {
+            await twilioClient.messages.create({
+                body: smsLines.join('\n'),
+                from: '+18882829165',
+                to: '+12105598725'
+            });
+            console.log(`📱 [AI Phone] SMS summary sent to Tyler for ${callSid}`);
+        } catch (err) {
+            console.error('[AI Phone] SMS error:', err.message);
+        }
+    }
+    
+    // Email to Tyler — full transcript
+    if (process.env.SENDGRID_API_KEY) {
+        try {
+            const transcriptHtml = state.messages.map(m => {
+                const speaker = m.role === 'assistant' ? '🤖 AI' : '👤 Caller';
+                const color = m.role === 'assistant' ? '#2563eb' : '#16a34a';
+                return `<p><strong style="color:${color}">${speaker}:</strong> ${m.content}</p>`;
+            }).join('');
+            
+            await sgMail.send({
+                to: 'tyler@overassessed.ai',
+                from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
+                subject: `📞 AI Call from ${callerNumber} — ${callTime}`,
+                html: `
+                    <h2>AI Phone Call Summary</h2>
+                    <table style="border-collapse:collapse;margin-bottom:16px;">
+                        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Caller:</td><td>${callerNumber}</td></tr>
+                        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Time:</td><td>${callTime}</td></tr>
+                        ${callerInfo.name ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Name:</td><td>${callerInfo.name}</td></tr>` : ''}
+                        ${callerInfo.address ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Property:</td><td>${callerInfo.address}</td></tr>` : ''}
+                        ${callerInfo.email ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Email:</td><td>${callerInfo.email}</td></tr>` : ''}
+                    </table>
+                    <h3>Full Conversation</h3>
+                    ${transcriptHtml}
+                    <hr>
+                    <p style="color:#888;font-size:12px;">OverAssessed AI Phone — (888) 282-9165</p>
+                `
+            });
+            console.log(`📧 [AI Phone] Email summary sent for ${callSid}`);
+        } catch (err) {
+            console.error('[AI Phone] Email error:', err.message);
+        }
+    }
+    
+    // Clean up state
+    aiCallState.delete(callSid);
+}
+
+// ===== VOICEMAIL FALLBACK ROUTES (kept for transfer fallback) =====
 // After recording is done
 app.post('/twiml/recording-done', (req, res) => {
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Thank you. We'll get back to you soon. Goodbye.</Say>
+    <Say voice="Polly.Joanna">Thank you. Tyler will get back to you soon. Goodbye.</Say>
     <Hangup/>
 </Response>`);
     
-    // Send immediate email with recording link (transcription comes later)
     const recordingUrl = req.body?.RecordingUrl;
     const callerNumber = req.body?.From || 'Unknown';
     if (recordingUrl) {
@@ -2148,7 +2504,7 @@ app.post('/twiml/recording-done', (req, res) => {
     }
 });
 
-// Transcription callback (arrives async after recording)
+// Transcription callback
 app.post('/twiml/transcription', (req, res) => {
     const transcription = req.body?.TranscriptionText || '';
     const recordingUrl = req.body?.RecordingUrl || '';
@@ -2162,9 +2518,7 @@ app.post('/twiml/transcription', (req, res) => {
 
 // Email voicemail to Tyler
 async function sendVoicemailEmail(from, recordingUrl, transcription) {
-    const sgMail = require('@sendgrid/mail');
     if (!process.env.SENDGRID_API_KEY) return;
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     const subject = transcription 
         ? `📞 OA Voicemail from ${from} (transcribed)`
@@ -2183,7 +2537,7 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
     try {
         await sgMail.send({
             to: 'tyler@overassessed.ai',
-            from: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com',
+            from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
             subject,
             html
         });

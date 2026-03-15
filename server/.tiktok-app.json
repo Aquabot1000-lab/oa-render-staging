@@ -1,0 +1,25 @@
+{
+  "created": "2026-03-12T22:06:00-05:00",
+  "platform": "TikTok for Developers",
+  "app_name": "OverAssessed Social",
+  "app_id": "7616556737608288268",
+  "app_url": "https://developers.tiktok.com/app/7616556737608288268/pending",
+  "developer_account": "notifications@overassessed.ai",
+  "developer_password": "OverAssess!Dev2026",
+  "products": ["Login Kit", "Content Posting API"],
+  "scopes": ["user.info.basic", "video.publish", "video.upload"],
+  "direct_post": true,
+  "redirect_uri": "https://overassessed.ai/tiktok/callback",
+  "website_url": "https://overassessed.ai",
+  "status": "draft",
+  "notes": {
+    "review_needed": "App needs demo video + review to go live. Unaudited posts are private-only.",
+    "url_verification": "overassessed.ai URLs need domain verification for pull_by_url posting",
+    "next_steps": [
+      "Create demo video showing TikTok integration",
+      "Submit for TikTok review",
+      "Build OAuth callback endpoint at /tiktok/callback",
+      "Get Tyler to authorize the app with his @overassessedtax TikTok account"
+    ]
+  }
+}
