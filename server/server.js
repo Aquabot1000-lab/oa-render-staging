@@ -2223,9 +2223,9 @@ app.post('/twiml/voice', (req, res) => {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
-        <Say voice="Polly.Joanna">Thank you for calling OverAssessed, Texas property tax experts. How can I help you today?</Say>
+        <Say voice="Google.en-US-Studio-O">Thank you for calling OverAssessed, Texas property tax experts. How can I help you today?</Say>
     </Gather>
-    <Say voice="Polly.Joanna">I didn't catch that. Let me transfer you.</Say>
+    <Say voice="Google.en-US-Studio-O">I didn't catch that. Let me transfer you.</Say>
     <Redirect>/twiml/ai-transfer</Redirect>
 </Response>`);
     
@@ -2271,7 +2271,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
         res.type('text/xml');
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">Thank you for calling OverAssessed. Have a wonderful day! Goodbye.</Say>
+    <Say voice="Google.en-US-Studio-O">Thank you for calling OverAssessed. Have a wonderful day! Goodbye.</Say>
     <Hangup/>
 </Response>`);
         // Send summary
@@ -2284,7 +2284,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
             res.type('text/xml');
             res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">Of course! Let me transfer you to Tyler right now. One moment please.</Say>
+    <Say voice="Google.en-US-Studio-O">Of course! Let me transfer you to Tyler right now. One moment please.</Say>
     <Dial timeout="20" callerId="+18882829165" action="/twiml/ai-transfer-status">
         <Number>+12105598725</Number>
     </Dial>
@@ -2300,9 +2300,9 @@ app.post('/twiml/ai-respond', async (req, res) => {
             res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
-        <Say voice="Polly.Joanna">I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?</Say>
+        <Say voice="Google.en-US-Studio-O">I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?</Say>
     </Gather>
-    <Say voice="Polly.Joanna">Thank you for calling OverAssessed. Goodbye!</Say>
+    <Say voice="Google.en-US-Studio-O">Thank you for calling OverAssessed. Goodbye!</Say>
     <Hangup/>
 </Response>`);
             sendCallSummary(callSid, state).catch(err => console.error('[AI Phone] Summary error:', err.message));
@@ -2318,7 +2318,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
         res.type('text/xml');
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">I apologize, I'm having some technical difficulty. Let me transfer you to Tyler.</Say>
+    <Say voice="Google.en-US-Studio-O">I apologize, I'm having some technical difficulty. Let me transfer you to Tyler.</Say>
     <Redirect>/twiml/ai-transfer</Redirect>
 </Response>`);
         return;
@@ -2342,9 +2342,9 @@ app.post('/twiml/ai-respond', async (req, res) => {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather input="speech" timeout="4" speechTimeout="auto" action="/twiml/ai-respond" method="POST">
-        <Say voice="Polly.Joanna">${safeResponse}</Say>
+        <Say voice="Google.en-US-Studio-O">${safeResponse}</Say>
     </Gather>
-    <Say voice="Polly.Joanna">I didn't catch a response. Thank you for calling OverAssessed. Goodbye!</Say>
+    <Say voice="Google.en-US-Studio-O">I didn't catch a response. Thank you for calling OverAssessed. Goodbye!</Say>
     <Hangup/>
 </Response>`);
 });
@@ -2357,7 +2357,7 @@ app.post('/twiml/ai-transfer', (req, res) => {
         res.type('text/xml');
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">Let me transfer you to Tyler. One moment please.</Say>
+    <Say voice="Google.en-US-Studio-O">Let me transfer you to Tyler. One moment please.</Say>
     <Dial timeout="20" callerId="+18882829165" action="/twiml/ai-transfer-status">
         <Number>+12105598725</Number>
     </Dial>
@@ -2366,7 +2366,7 @@ app.post('/twiml/ai-transfer', (req, res) => {
         res.type('text/xml');
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">We're currently outside business hours. Our hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour when we reopen. Thank you for calling OverAssessed!</Say>
+    <Say voice="Google.en-US-Studio-O">We're currently outside business hours. Our hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour when we reopen. Thank you for calling OverAssessed!</Say>
     <Hangup/>
 </Response>`);
         const state = aiCallState.get(callSid);
@@ -2389,9 +2389,9 @@ app.post('/twiml/ai-transfer-status', (req, res) => {
         // Tyler didn't answer — voicemail fallback
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">Tyler is unavailable right now. Please leave a message after the beep and he'll call you back within one business hour.</Say>
+    <Say voice="Google.en-US-Studio-O">Tyler is unavailable right now. Please leave a message after the beep and he'll call you back within one business hour.</Say>
     <Record maxLength="120" transcribe="true" transcribeCallback="/twiml/transcription" playBeep="true" action="/twiml/recording-done" />
-    <Say voice="Polly.Joanna">We didn't receive a recording. Thank you for calling. Goodbye.</Say>
+    <Say voice="Google.en-US-Studio-O">We didn't receive a recording. Thank you for calling. Goodbye.</Say>
 </Response>`);
     }
     
@@ -2497,7 +2497,7 @@ app.post('/twiml/recording-done', (req, res) => {
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Joanna">Thank you. Tyler will get back to you soon. Goodbye.</Say>
+    <Say voice="Google.en-US-Studio-O">Thank you. Tyler will get back to you soon. Goodbye.</Say>
     <Hangup/>
 </Response>`);
     
