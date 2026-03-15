@@ -2114,8 +2114,8 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 // Gemini Flash API helper
-const GEMINI_API_KEY = 'AIzaSyDN5E8l3kooSkJSgT_H8DGOA-HCaNkMB-Q';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
 const AI_SYSTEM_PROMPT = `You are the OverAssessed AI phone assistant. You are professional, warm, and knowledgeable about property tax appeals in Texas and Georgia.
 
@@ -2140,44 +2140,48 @@ BEHAVIOR RULES:
 EXTRACTED INFO FORMAT (track internally):
 When you identify caller info, include it naturally in your response. The system will parse it.`;
 
-async function callGemini(messages) {
-    // Convert to Gemini format
-    const contents = [];
-    for (const msg of messages) {
-        contents.push({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-        });
+async function callClaude(messages) {
+    if (!ANTHROPIC_API_KEY) {
+        console.error('[AI Phone] No ANTHROPIC_API_KEY configured');
+        return null;
     }
     
+    // Convert to Anthropic format
+    const anthropicMessages = messages.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content
+    }));
+    
     try {
-        const resp = await fetch(GEMINI_URL, {
+        const resp = await fetch(ANTHROPIC_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
             body: JSON.stringify({
-                system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
-                contents,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 200,
-                    topP: 0.9
-                }
+                model: 'claude-haiku-4-20250514',
+                max_tokens: 200,
+                system: AI_SYSTEM_PROMPT,
+                messages: anthropicMessages
             })
         });
         
         if (!resp.ok) {
             const errText = await resp.text();
-            console.error('[AI Phone] Gemini error:', resp.status, errText);
+            console.error('[AI Phone] Claude error:', resp.status, errText);
             return null;
         }
         
         const data = await resp.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+        return data.content?.[0]?.text || null;
     } catch (err) {
-        console.error('[AI Phone] Gemini fetch error:', err.message);
+        console.error('[AI Phone] Claude fetch error:', err.message);
         return null;
     }
 }
+
 
 // Check if currently business hours (M-F 8AM-6PM CT)
 function isBusinessHours() {
@@ -2307,7 +2311,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
     }
     
     // Get AI response
-    const aiResponse = await callGemini(state.messages);
+    const aiResponse = await callClaude(state.messages);
     
     if (!aiResponse) {
         // Fallback if AI fails
