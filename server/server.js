@@ -2619,3 +2619,22 @@ app.listen(PORT, () => {
 }
 
 startServer();
+
+// ─── TikTok OAuth Routes ───────────────────────────────────────────────────
+app.get('/tiktok/auth', (req, res) => {
+    const clientKey = process.env.TIKTOK_CLIENT_KEY || '7616556737608288268';
+    const redirectUri = encodeURIComponent('https://overassessed.ai/tiktok/callback');
+    const scope = encodeURIComponent('user.info.basic,video.upload,video.publish');
+    const state = require('crypto').randomBytes(16).toString('hex');
+    const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}&state=${state}`;
+    res.redirect(authUrl);
+});
+
+app.get('/tiktok/callback', async (req, res) => {
+    const { code, state, error } = req.query;
+    if (error) return res.redirect('/tiktok/?error=' + error);
+    if (!code) return res.redirect('/tiktok/?error=no_code');
+    // Exchange code for token (in production)
+    // For now, redirect to content manager as connected
+    res.redirect('/tiktok/?connected=true');
+});

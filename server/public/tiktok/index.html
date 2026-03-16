@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverAssessed — TikTok Content Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #333; }
+        .header { background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 22px; }
+        .header .logo { display: flex; align-items: center; gap: 12px; }
+        .header .logo img { width: 40px; height: 40px; border-radius: 8px; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h2 { font-size: 18px; margin-bottom: 16px; color: #6c5ce7; }
+        .status-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .status-dot.connected { background: #00b894; }
+        .status-dot.disconnected { background: #d63031; }
+        .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .btn-primary { background: #6c5ce7; color: white; }
+        .btn-tiktok { background: #000; color: white; }
+        .btn-post { background: #00b894; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .post-queue { display: grid; gap: 16px; }
+        .post-item { display: flex; gap: 16px; padding: 16px; border: 1px solid #e9ecef; border-radius: 8px; align-items: center; }
+        .post-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+        .post-item .caption { flex: 1; font-size: 13px; color: #555; line-height: 1.4; }
+        .post-item .state-tag { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .tag-tx { background: #dfe6e9; color: #2d3436; }
+        .tag-ga { background: #ffeaa7; color: #636e72; }
+        .post-item .actions { display: flex; gap: 8px; }
+        .schedule-row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+        .schedule-row select, .schedule-row input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .connected-account { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f0f0f0; border-radius: 8px; }
+        .connected-account img { width: 48px; height: 48px; border-radius: 50%; }
+        .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .setting-item label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
+        .setting-item input, .setting-item select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="/assets/logo/icon-256.png" alt="OA">
+            <h1>OverAssessed — TikTok Content Manager</h1>
+        </div>
+        <span style="font-size: 13px; opacity: 0.8;">overassessed.ai/tiktok</span>
+    </div>
+
+    <div class="container">
+        <!-- Connection Status -->
+        <div class="card">
+            <h2>🔗 TikTok Account</h2>
+            <div id="not-connected">
+                <p style="margin-bottom: 16px; color: #666;">Connect your TikTok Business account to enable automated posting.</p>
+                <a href="/tiktok/auth" class="btn btn-tiktok">Connect TikTok Account</a>
+            </div>
+            <div id="connected" style="display:none;">
+                <div class="status-bar">
+                    <div class="status-dot connected"></div>
+                    <span style="font-weight:600; color:#00b894;">Connected</span>
+                </div>
+                <div class="connected-account">
+                    <img src="https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/placeholder~c5_100x100.jpeg" alt="avatar">
+                    <div>
+                        <strong>@overassessedtax</strong><br>
+                        <span style="font-size:13px; color:#666;">OverAssessed — Property Tax Experts</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Post Settings -->
+        <div class="card">
+            <h2>⚙️ Posting Schedule</h2>
+            <div class="settings">
+                <div class="setting-item">
+                    <label>Post Frequency</label>
+                    <select><option>2x per day (recommended)</option><option>1x per day</option><option>3x per day</option></select>
+                </div>
+                <div class="setting-item">
+                    <label>Best Times</label>
+                    <select><option>7-9 AM & 6-9 PM CT</option><option>Custom</option></select>
+                </div>
+                <div class="setting-item">
+                    <label>Content Rotation</label>
+                    <select><option>Alternate TX ↔ GA</option><option>TX only</option><option>GA only</option></select>
+                </div>
+                <div class="setting-item">
+                    <label>Visibility</label>
+                    <select><option>Public</option><option>Friends only</option><option>Private</option></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Queue -->
+        <div class="card">
+            <h2>📋 Content Queue (10 posts ready)</h2>
+            <div class="post-queue">
+                <div class="post-item">
+                    <img src="/tiktok/01-tx-shock.png" alt="Post 1">
+                    <div class="caption">Your county assessed your home WAY too high 💀 Most Texas homeowners are overpaying property taxes...</div>
+                    <span class="post-item state-tag tag-tx">TX</span>
+                    <div class="actions"><button class="btn btn-post" onclick="postNow(1)">Post Now</button></div>
+                </div>
+                <div class="post-item">
+                    <img src="/tiktok/02-ga-freeze.png" alt="Post 2">
+                    <div class="caption">Georgia's 299(c) rule is a CHEAT CODE for homeowners 🍑 One successful appeal = 3 years...</div>
+                    <span class="post-item state-tag tag-ga">GA</span>
+                    <div class="actions"><button class="btn btn-post" onclick="postNow(2)">Post Now</button></div>
+                </div>
+                <div class="post-item">
+                    <img src="/tiktok/03-tx-myths.png" alt="Post 3">
+                    <div class="caption">Stop believing the myths. Protesting your property taxes is free, fast, and it WORKS...</div>
+                    <span class="post-item state-tag tag-tx">TX</span>
+                    <div class="actions"><button class="btn btn-post" onclick="postNow(3)">Post Now</button></div>
+                </div>
+                <div class="post-item">
+                    <img src="/tiktok/04-ga-urgency.png" alt="Post 4">
+                    <div class="caption">Georgia homeowners — when you get your assessment notice, the clock starts. 45 days...</div>
+                    <span class="post-item state-tag tag-ga">GA</span>
+                    <div class="actions"><button class="btn btn-post" onclick="postNow(4)">Post Now</button></div>
+                </div>
+                <div class="post-item">
+                    <img src="/tiktok/05-tx-math.png" alt="Post 5">
+                    <div class="caption">$7,500 over 5 years. That's a vacation. A car payment. We make it stupid easy...</div>
+                    <span class="post-item state-tag tag-tx">TX</span>
+                    <div class="actions"><button class="btn btn-post" onclick="postNow(5)">Post Now</button></div>
+                </div>
+            </div>
+            <p style="margin-top: 16px; font-size: 13px; color: #999;">+ 5 more posts in queue (scroll down in full view)</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        OverAssessed AI, LLC — overassessed.ai — TikTok Content Posting API Integration
+    </div>
+
+    <script>
+        // Check URL params for auth callback
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('connected') === 'true') {
+            document.getElementById('not-connected').style.display = 'none';
+            document.getElementById('connected').style.display = 'block';
+        }
+
+        function postNow(id) {
+            const btn = event.target;
+            btn.textContent = 'Posting...';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.textContent = '✅ Posted!';
+                btn.style.background = '#636e72';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
