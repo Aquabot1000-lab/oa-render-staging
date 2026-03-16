@@ -110,6 +110,11 @@ app.use('/marketing/social-media/images', express.static(path.join(__dirname, '.
 }));
 app.use(express.static(path.join(__dirname, '..')));
 
+// TikTok domain verification (must be before any catch-all)
+app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
+    res.type('text/plain').send('tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
+});
+
 // File paths
 const DATA_DIR = path.join(__dirname, 'data');
 const TX_DIR = path.join(DATA_DIR, 'tx');
