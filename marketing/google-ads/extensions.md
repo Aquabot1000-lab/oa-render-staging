@@ -1,4 +1,4 @@
-# Google Ads Extensions - OverAssessed.ai
+# Google Ads Extensions - OverAssessed
 
 ## Sitelinks
 

@@ -162,7 +162,7 @@
 15. Start Free — 2 Minutes
 
 **Descriptions:**
-1. Harris County homeowners: protest your property taxes with OverAssessed.ai. $0 upfront, 20% if we win.
+1. Harris County homeowners: protest your property taxes with OverAssessed. $0 upfront, 20% if we win.
 2. HCAD overvalued your home? Our AI finds the errors and fights to lower your taxes. Free analysis now.
 3. Houston area homeowners save an average of $1,200+. See your potential savings in under 60 seconds.
 4. Don't overpay Harris County property taxes. We handle your HCAD protest from start to finish. Zero risk.
@@ -189,7 +189,7 @@
 15. Start Free — 2 Minutes
 
 **Descriptions:**
-1. Dallas County homeowners: protest your property taxes with OverAssessed.ai. $0 upfront, 20% if we win.
+1. Dallas County homeowners: protest your property taxes with OverAssessed. $0 upfront, 20% if we win.
 2. DCAD overvalued your home? Our AI finds the errors and fights to lower your taxes. Free analysis now.
 3. Dallas area homeowners save an average of $1,000+. See your potential savings in under 60 seconds.
 4. Don't overpay Dallas County property taxes. We handle your DCAD protest from start to finish. Zero risk.
@@ -216,7 +216,7 @@
 15. Start Free — 2 Minutes
 
 **Descriptions:**
-1. Tarrant County homeowners: protest your property taxes with OverAssessed.ai. $0 upfront, 20% if we win.
+1. Tarrant County homeowners: protest your property taxes with OverAssessed. $0 upfront, 20% if we win.
 2. TAD overvalued your home? Our AI finds the errors and fights to lower your taxes. Free analysis now.
 3. Fort Worth area homeowners save an average of $1,000+. See your potential savings in under 60 seconds.
 4. Don't overpay Tarrant County property taxes. We handle your TAD protest from start to finish. Zero risk.
@@ -243,7 +243,7 @@
 15. Start Free — 2 Minutes
 
 **Descriptions:**
-1. Bexar County homeowners: protest your property taxes with OverAssessed.ai. $0 upfront, 20% if we win.
+1. Bexar County homeowners: protest your property taxes with OverAssessed. $0 upfront, 20% if we win.
 2. BCAD overvalued your home? Our AI finds the errors and fights to lower your taxes. Free analysis now.
 3. San Antonio homeowners save an average of $1,100+. See your potential savings in under 60 seconds.
 4. Don't overpay Bexar County property taxes. We handle your BCAD protest from start to finish. Zero risk.
@@ -270,7 +270,7 @@
 15. Start Free — 2 Minutes
 
 **Descriptions:**
-1. Travis County homeowners: protest your property taxes with OverAssessed.ai. $0 upfront, 20% if we win.
+1. Travis County homeowners: protest your property taxes with OverAssessed. $0 upfront, 20% if we win.
 2. TCAD overvalued your home? Our AI finds the errors and fights to lower your taxes. Free analysis now.
 3. Austin area homeowners save an average of $1,300+. See your potential savings in under 60 seconds.
 4. Don't overpay Travis County property taxes. We handle your TCAD protest from start to finish. Zero risk.
@@ -297,10 +297,10 @@
 15. Secure Your Spot Now
 
 **Descriptions:**
-1. Pre-register for OverAssessed.ai and be first in line for 2026 property tax protest. Zero cost to join.
+1. Pre-register for OverAssessed and be first in line for 2026 property tax protest. Zero cost to join.
 2. Early access members get priority processing. Sign up now — no upfront cost, pay 20% only if we win.
 3. The smart way to protest Texas property taxes is launching. Pre-register free and lock in your spot.
-4. Don't wait until deadline day. Pre-register with OverAssessed.ai now and we'll start your analysis early.
+4. Don't wait until deadline day. Pre-register with OverAssessed now and we'll start your analysis early.
 
 ---
 

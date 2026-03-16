@@ -1,4 +1,4 @@
--- OverAssessed.ai Row Level Security Policies
+-- OverAssessed Row Level Security Policies
 -- Run AFTER schema.sql in Supabase SQL Editor
 
 -- ============================================

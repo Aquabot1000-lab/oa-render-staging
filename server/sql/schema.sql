@@ -1,4 +1,4 @@
--- OverAssessed.ai Database Schema
+-- OverAssessed Database Schema
 -- Run this in Supabase SQL Editor after project creation
 
 -- Enable UUID extension (usually already enabled)

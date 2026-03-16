@@ -1,4 +1,4 @@
-# OverAssessed.ai — Master Keyword List
+# OverAssessed — Master Keyword List
 
 **Total Keywords:** 130+
 **Organized by:** Intent level (High / Medium / Low)

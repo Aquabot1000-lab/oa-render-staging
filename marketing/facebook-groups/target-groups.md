@@ -1,4 +1,4 @@
-# Facebook Groups — Target List for OverAssessed.ai
+# Facebook Groups — Target List for OverAssessed
 
 > **Strategy:** Join groups, become a helpful member for 1–2 weeks before posting anything about OverAssessed. Answer questions, engage with posts, build credibility. Then share value-first content (tips, guides, PSAs) with soft mentions of the service.
 >

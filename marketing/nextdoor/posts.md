@@ -1,4 +1,4 @@
-# Nextdoor Posts — OverAssessed.ai (San Antonio)
+# Nextdoor Posts — OverAssessed (San Antonio)
 
 > **Tone:** Neighbor-to-neighbor, conversational, helpful — NOT salesy.
 > **Best posting times:** Tuesday–Thursday, 7–9 AM or 6–8 PM (highest Nextdoor engagement in SA)

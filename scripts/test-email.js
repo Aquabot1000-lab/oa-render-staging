@@ -23,8 +23,8 @@ const msg = {
   to: TEST_RECIPIENT,
   from: FROM_EMAIL,
   subject: 'OverAssessed Email Test',
-  text: 'If you receive this, SendGrid is working for OverAssessed.ai!',
-  html: '<p>If you receive this, <strong>SendGrid is working</strong> for OverAssessed.ai!</p>',
+  text: 'If you receive this, SendGrid is working for OverAssessed!',
+  html: '<p>If you receive this, <strong>SendGrid is working</strong> for OverAssessed!</p>',
 };
 
 console.log('📧 Sending test email...');

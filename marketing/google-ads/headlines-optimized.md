@@ -1,4 +1,4 @@
-# Google Ads Headlines - OverAssessed.ai
+# Google Ads Headlines - OverAssessed
 
 ## Headlines (30 Characters Max)
 

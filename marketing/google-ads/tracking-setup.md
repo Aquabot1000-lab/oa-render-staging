@@ -1,4 +1,4 @@
-# OverAssessed.ai — Tracking & Conversion Setup
+# OverAssessed — Tracking & Conversion Setup
 
 ---
 
@@ -53,7 +53,7 @@
 ### Step 1: Create GTM Account & Container
 
 1. Go to [tagmanager.google.com](https://tagmanager.google.com)
-2. Create account: `OverAssessed.ai`
+2. Create account: `OverAssessed`
 3. Create container: `overassessed.ai` (Web)
 4. Install GTM snippet on all pages:
 
