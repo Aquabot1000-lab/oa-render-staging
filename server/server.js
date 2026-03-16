@@ -115,6 +115,9 @@ app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
 app.get('/tiktokcxwnOBPxlyRnGiscjSfbKV1mMPTGSABj.txt', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=cxwnOBPxlyRnGiscjSfbKV1mMPTGSABj');
 });
+app.get('/tiktokLoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=LoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch');
+});
 
 app.use(express.static(path.join(__dirname, '..')));
 
