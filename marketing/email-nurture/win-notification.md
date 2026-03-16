@@ -1,4 +1,4 @@
-# Win Notification Email — OverAssessed.ai
+# Win Notification Email — OverAssessed
 
 > Celebration email sent when a client's protest results in a property value reduction.
 > Trigger: Protest outcome = reduction confirmed.
@@ -79,7 +79,7 @@
 <!-- Referral CTA -->
 <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); border-radius: 10px; padding: 28px; margin: 28px 0; text-align: center;">
   <p style="margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #ffffff;">Know someone overpaying?</p>
-  <p style="margin: 0 0 16px; color: rgba(255,255,255,0.9);">Share OverAssessed.ai and earn <strong>$50</strong> for every friend who signs up.</p>
+  <p style="margin: 0 0 16px; color: rgba(255,255,255,0.9);">Share OverAssessed and earn <strong>$50</strong> for every friend who signs up.</p>
   <a href="{{REFERRAL_LINK}}" style="display: inline-block; background: #ffffff; color: #6c5ce7 !important; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 700; font-size: 15px;">Share & Earn $50 →</a>
 </div>
 
@@ -92,11 +92,11 @@
   </p>
 </div>
 
-<p>Thank you for trusting OverAssessed.ai with your property taxes. We're here every year to make sure you pay only what's fair.</p>
+<p>Thank you for trusting OverAssessed with your property taxes. We're here every year to make sure you pay only what's fair.</p>
 
 <p><strong>Real Experts. Real Results. Guaranteed.</strong></p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -122,7 +122,7 @@ Invoice #{{INVOICE_NUMBER}} · View & pay: {{INVOICE_LINK}}
 ---
 
 KNOW SOMEONE OVERPAYING?
-Share OverAssessed.ai and earn $50 for every friend who signs up.
+Share OverAssessed and earn $50 for every friend who signs up.
 Your referral link: {{REFERRAL_LINK}}
 
 ---
@@ -133,9 +133,9 @@ Enable: https://overassessed.ai/dashboard/annual-monitoring
 
 ---
 
-Thank you for trusting OverAssessed.ai.
+Thank you for trusting OverAssessed.
 Real Experts. Real Results. Guaranteed.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

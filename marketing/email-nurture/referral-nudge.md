@@ -1,4 +1,4 @@
-# Referral Nudge Sequence — OverAssessed.ai
+# Referral Nudge Sequence — OverAssessed
 
 > 3-email sequence to drive referrals.
 > Goal: Turn clients into advocates. $50 referral bonus per successful signup.
@@ -11,7 +11,7 @@
 
 **Trigger:** 2 days after protest is filed
 **Subject:** Know someone overpaying on property taxes? Earn $50 🎁
-**Preview Text:** Share OverAssessed.ai with a friend — you both win.
+**Preview Text:** Share OverAssessed with a friend — you both win.
 
 ### HTML Body
 
@@ -49,7 +49,7 @@
 
 <p>Think about your neighbors, friends, and family who own property in Texas. They could be leaving thousands on the table every year.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -71,7 +71,7 @@ Your referral link: {{REFERRAL_LINK}}
 
 Think about neighbors, friends, and family who own property in Texas.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -100,7 +100,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <p style="margin: 8px 0 0;">In neighborhoods where one homeowner successfully protests, nearby homes are often overassessed by similar amounts. Your neighbors could be sitting on hundreds or thousands in savings — and not even know it.</p>
 </div>
 
-<p><strong>You'd be doing them a real favor</strong> by sharing OverAssessed.ai. And you earn $50 for each one who signs up.</p>
+<p><strong>You'd be doing them a real favor</strong> by sharing OverAssessed. And you earn $50 for each one who signs up.</p>
 
 <div style="margin: 24px 0;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="12">
@@ -125,7 +125,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <a href="{{REFERRAL_LINK}}" class="btn">Share Your Link ($50/referral) →</a>
 </p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -137,7 +137,7 @@ YOUR NEIGHBORS COULD SAVE TOO
 
 Appraisal districts use mass valuation — they often overvalue entire neighborhoods at once.
 
-You'd be doing them a real favor by sharing OverAssessed.ai. And you earn $50 for each signup.
+You'd be doing them a real favor by sharing OverAssessed. And you earn $50 for each signup.
 
 EASY WAYS TO SHARE:
 - Text a neighbor
@@ -146,7 +146,7 @@ EASY WAYS TO SHARE:
 
 Your referral link: {{REFERRAL_LINK}}
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -178,7 +178,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 <div style="background: #f0edff; border-radius: 10px; padding: 24px; margin: 20px 0;">
   <p style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #6c5ce7; text-align: center;">Here's a message you can copy & send:</p>
   <div style="background: #fff; border-radius: 8px; padding: 16px; font-style: italic; color: #555;">
-    "Hey! I just saved {{SAVINGS_AMOUNT}}/year on my property taxes using OverAssessed.ai. They handled everything — totally free unless they win. You should check it out: {{REFERRAL_LINK}}"
+    "Hey! I just saved {{SAVINGS_AMOUNT}}/year on my property taxes using OverAssessed. They handled everything — totally free unless they win. You should check it out: {{REFERRAL_LINK}}"
   </div>
 </div>
 
@@ -188,9 +188,9 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <a href="{{REFERRAL_LINK}}" class="btn">Share & Earn $50 →</a>
 </p>
 
-<p>Thank you for trusting OverAssessed.ai. We're proud to have saved you money.</p>
+<p>Thank you for trusting OverAssessed. We're proud to have saved you money.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -203,13 +203,13 @@ Your property tax protest was a success — real money back in your pocket every
 Now imagine if your friends and neighbors could save too. Most of them probably can.
 
 COPY & SEND THIS TO A FRIEND:
-"Hey! I just saved {{SAVINGS_AMOUNT}}/year on my property taxes using OverAssessed.ai. They handled everything — totally free unless they win. Check it out: {{REFERRAL_LINK}}"
+"Hey! I just saved {{SAVINGS_AMOUNT}}/year on my property taxes using OverAssessed. They handled everything — totally free unless they win. Check it out: {{REFERRAL_LINK}}"
 
 You earn $50 for every friend who signs up. No limit.
 
 Your referral link: {{REFERRAL_LINK}}
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

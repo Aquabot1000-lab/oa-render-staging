@@ -17,188 +17,366 @@
     <meta name="twitter:title" content="Property Tax Appeal Experts | OverAssessed — Texas &amp; Georgia">
     <meta name="twitter:description" content="Expert property tax appeals for Texas &amp; Georgia. No upfront costs, pay only if you save.">
     <meta name="twitter:image" content="https://overassessed.ai/assets/logo/icon-512.png">
-    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 80 80' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%236c5ce7'/%3E%3Cstop offset='100%25' style='stop-color:%230984e3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='0' width='80' height='80' rx='18' fill='url(%23logoGrad)'/%3E%3Crect x='20' y='28' width='18' height='37' rx='2' fill='none' stroke='white' stroke-width='1.5' opacity='0.3'/%3E%3Crect x='24' y='33' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='31' y='33' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='24' y='41' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='31' y='41' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Cpath d='M50 38L42 46v19h16V46L50 38z' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' opacity='0.3'/%3E%3Cpath d='M40 25v30M31 47l9 9 9-9' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
     <meta name="theme-color" content="#6c5ce7">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Stripe removed from intake to reduce friction — will invoice on win instead -->
-    <!-- <script src="https://js.stripe.com/v3/"></script> -->
 <!-- Meta Pixel -->
 <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1899009587375176');fbq('track','PageView');</script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1899009587375176&ev=PageView&noscript=1"/></noscript>
 <!-- Google Ads Global Site Tag -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17990551503"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","AW-17990551503");
-// REMOVED: page_view conversion was overcounting (fired on every ad click page load)
-// Real conversion tracking is in app.js — fires only on successful form submission</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","AW-17990551503");</script>
+<style>
+/* ===== APPLE-CLEAN DESIGN SYSTEM ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#6c5ce7;--secondary:#0984e3;--bg:#ffffff;--bg-alt:#f8f9fa;
+  --text:#1d1d1f;--text-secondary:#86868b;--success:#00b894;
+  --gradient:linear-gradient(135deg,#6c5ce7,#0984e3);
+  --font:-apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',system-ui,sans-serif;
+  --shadow-sm:0 2px 8px rgba(0,0,0,0.04);
+  --shadow:0 4px 20px rgba(0,0,0,0.06);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.08);
+  --shadow-purple:0 8px 30px rgba(108,92,231,0.2);
+  --radius:12px;--radius-lg:20px;--radius-xl:28px;
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--bg);overflow-x:hidden}
+.container{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ===== FADE-IN ANIMATIONS ===== */
+.fade-in{opacity:0;transform:translateY(40px);transition:opacity 0.8s cubic-bezier(0.25,0.1,0.25,1),transform 0.8s cubic-bezier(0.25,0.1,0.25,1)}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+.fade-in-delay-1{transition-delay:0.1s}.fade-in-delay-2{transition-delay:0.2s}.fade-in-delay-3{transition-delay:0.3s}.fade-in-delay-4{transition-delay:0.4s}
+
+/* ===== HEADER ===== */
+.header{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);transition:all 0.4s ease}
+.header.scrolled{box-shadow:0 1px 0 rgba(0,0,0,0.08)}
+.header .container{display:flex;justify-content:space-between;align-items:center;height:64px;transition:height 0.4s ease}
+.header.scrolled .container{height:52px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;transition:all 0.4s ease}
+.header.scrolled .logo-icon{width:30px;height:30px}
+.logo-text{font-size:1.35rem;font-weight:700;color:var(--text);letter-spacing:-0.02em}
+.nav{display:flex;gap:28px;align-items:center}
+.nav a{text-decoration:none;color:var(--text-secondary);font-size:0.875rem;font-weight:500;transition:color 0.3s;letter-spacing:-0.01em}
+.nav a:hover{color:var(--text)}
+.nav-cta{background:var(--primary)!important;color:#fff!important;padding:8px 20px;border-radius:980px;font-weight:600!important;transition:all 0.3s!important}
+.nav-cta:hover{background:#5b4bd5!important;transform:scale(1.02)}
+.mobile-menu-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.mobile-menu-toggle span{width:20px;height:1.5px;background:var(--text);border-radius:2px;transition:all 0.3s}
+
+/* ===== HERO ===== */
+.hero{padding:160px 0 120px;text-align:center;background:var(--bg);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 50% 0%,rgba(108,92,231,0.04) 0%,transparent 60%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--bg-alt);border:1px solid rgba(0,0,0,0.06);padding:8px 16px;border-radius:980px;font-size:0.8125rem;font-weight:500;color:var(--text-secondary);margin-bottom:24px}
+.hero-badge span{color:var(--primary);font-weight:600}
+.hero h1{font-size:clamp(2.75rem,6vw,4.5rem);font-weight:700;line-height:1.05;letter-spacing:-0.04em;margin-bottom:20px;color:var(--text)}
+.hero h1 em{font-style:normal;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(1.125rem,2vw,1.375rem);color:var(--text-secondary);max-width:620px;margin:0 auto 40px;line-height:1.5;font-weight:400;letter-spacing:-0.01em}
+.hero-cta-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:16px 36px;font-size:1.0625rem;font-weight:600;border-radius:980px;cursor:pointer;transition:all 0.3s;font-family:var(--font);letter-spacing:-0.01em;box-shadow:var(--shadow-purple)}
+.btn-primary:hover{background:#5b4bd5;transform:scale(1.02);box-shadow:0 12px 40px rgba(108,92,231,0.3)}
+.hero-note{font-size:0.8125rem;color:var(--text-secondary)}
+.hero-phone{display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:0.9375rem;text-decoration:none;margin-top:4px;transition:color 0.3s}
+.hero-phone:hover{color:var(--primary)}
+
+/* ===== STATS BAR ===== */
+.stats-bar{padding:80px 0;background:var(--bg-alt);border-top:1px solid rgba(0,0,0,0.04);border-bottom:1px solid rgba(0,0,0,0.04)}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:center}
+.stat-number{font-size:clamp(2.5rem,4vw,3.5rem);font-weight:700;letter-spacing:-0.04em;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.stat-label{font-size:0.9375rem;color:var(--text-secondary);margin-top:4px;font-weight:400}
+
+/* ===== SECTIONS ===== */
+.section{padding:100px 0}
+.section-alt{background:var(--bg-alt)}
+.section-header{text-align:center;margin-bottom:64px}
+.section-header h2{font-size:clamp(2rem,3.5vw,3rem);font-weight:700;letter-spacing:-0.03em;color:var(--text);margin-bottom:12px;line-height:1.1}
+.section-header p{font-size:1.0625rem;color:var(--text-secondary);max-width:500px;margin:0 auto;font-weight:400}
+
+/* ===== HOW IT WORKS ===== */
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+.step-card{text-align:center;padding:8px}
+.step-num{width:56px;height:56px;background:var(--bg-alt);border:2px solid rgba(108,92,231,0.15);color:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:700;margin:0 auto 20px;transition:all 0.3s}
+.step-card:hover .step-num{background:var(--primary);color:#fff;border-color:var(--primary)}
+.step-card h3{font-size:1.0625rem;font-weight:600;margin-bottom:8px;color:var(--text);letter-spacing:-0.01em}
+.step-card p{font-size:0.9375rem;color:var(--text-secondary);line-height:1.5}
+
+/* ===== SERVICES ===== */
+.services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.service-card{background:var(--bg);padding:40px 32px;border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.06);transition:all 0.4s;text-align:left}
+.service-card:hover{box-shadow:var(--shadow-lg);border-color:rgba(108,92,231,0.15);transform:translateY(-4px)}
+.service-icon{font-size:2.25rem;margin-bottom:16px}
+.service-card h3{font-size:1.125rem;font-weight:600;margin-bottom:8px;color:var(--text);letter-spacing:-0.01em}
+.service-card p{font-size:0.9375rem;color:var(--text-secondary);line-height:1.5}
+
+/* ===== WHY US ===== */
+.benefits-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:48px 64px}
+.benefit{text-align:left}
+.benefit-icon{width:48px;height:48px;background:linear-gradient(135deg,rgba(108,92,231,0.1),rgba(9,132,227,0.1));border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:16px}
+.benefit h3{font-size:1.125rem;font-weight:600;margin-bottom:6px;color:var(--text);letter-spacing:-0.01em}
+.benefit p{font-size:0.9375rem;color:var(--text-secondary);line-height:1.6}
+
+/* ===== COMPARE ===== */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:780px;margin:0 auto}
+.compare-card{background:var(--bg);border:1px solid rgba(0,0,0,0.06);border-radius:var(--radius-lg);padding:40px 32px;position:relative;transition:all 0.3s}
+.compare-card.featured{border:2px solid var(--primary);box-shadow:var(--shadow-lg)}
+.compare-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:6px 20px;border-radius:980px;font-size:0.75rem;font-weight:600;letter-spacing:0.02em}
+.compare-card h3{font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:16px;color:var(--text)}
+.compare-rate{font-size:3.5rem;font-weight:700;text-align:center;line-height:1;letter-spacing:-0.04em}
+.compare-card.featured .compare-rate{color:var(--primary)}
+.compare-rate.muted{color:var(--text-secondary)}
+.compare-label{text-align:center;font-size:0.875rem;color:var(--text-secondary);margin-bottom:24px}
+.compare-features{list-style:none;padding:0;margin-bottom:24px}
+.compare-features li{padding:6px 0;font-size:0.9375rem;color:var(--text)}
+.compare-example{text-align:center;background:var(--bg-alt);padding:12px 16px;border-radius:var(--radius);font-size:0.9375rem;font-weight:600;color:var(--text)}
+
+/* ===== MONITORING ===== */
+.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:900px;margin:0 auto}
+.monitor-card{text-align:center;padding:8px}
+.monitor-icon{font-size:2.5rem;margin-bottom:12px}
+.monitor-card h3{font-size:1.0625rem;font-weight:600;margin-bottom:6px;color:var(--text)}
+.monitor-card p{font-size:0.9375rem;color:var(--text-secondary);line-height:1.5}
+
+/* ===== TESTIMONIALS ===== */
+.testimonials-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.testimonial-card{background:var(--bg);border:1px solid rgba(0,0,0,0.06);border-radius:var(--radius-lg);padding:36px 28px;transition:all 0.3s}
+.testimonial-card:hover{box-shadow:var(--shadow);border-color:rgba(108,92,231,0.12)}
+.testimonial-stars{color:#f9ca24;font-size:1rem;margin-bottom:16px;letter-spacing:2px}
+.testimonial-quote{font-size:1rem;color:var(--text);line-height:1.6;margin-bottom:20px;font-style:italic}
+.testimonial-author strong{display:block;font-size:0.9375rem;color:var(--text);font-weight:600}
+.testimonial-author span{font-size:0.8125rem;color:var(--text-secondary)}
+
+/* ===== FAQ ===== */
+.faq-list{max-width:680px;margin:0 auto}
+.faq-item{border-bottom:1px solid rgba(0,0,0,0.06)}
+.faq-question{width:100%;background:none;border:none;padding:24px 0;text-align:left;font-size:1.0625rem;font-weight:600;color:var(--text);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:var(--font);letter-spacing:-0.01em;transition:color 0.3s}
+.faq-question:hover{color:var(--primary)}
+.faq-icon{font-size:1.25rem;color:var(--primary);transition:transform 0.3s;flex-shrink:0;margin-left:16px}
+.faq-answer{max-height:0;overflow:hidden;transition:all 0.4s ease}
+.faq-answer.active{max-height:200px;padding-bottom:24px}
+.faq-answer p{color:var(--text-secondary);line-height:1.7;font-size:0.9375rem}
+.faq-item.active .faq-icon{transform:rotate(45deg)}
+
+/* ===== FORM ===== */
+.form-section{background:var(--bg-alt);padding:100px 0}
+.form-wrap{max-width:560px;margin:0 auto;background:var(--bg);border-radius:var(--radius-xl);padding:48px 40px;box-shadow:var(--shadow-lg);border:1px solid rgba(0,0,0,0.04)}
+.form-title{text-align:center;font-size:1.75rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;color:var(--text)}
+.form-subtitle{text-align:center;font-size:0.9375rem;color:var(--text-secondary);margin-bottom:32px}
+.intake-form{display:flex;flex-direction:column;gap:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column}
+.form-group label{margin-bottom:4px;font-weight:500;color:var(--text);font-size:0.8125rem;letter-spacing:-0.01em}
+.form-group input,.form-group select{padding:12px 14px;border:1px solid rgba(0,0,0,0.12);border-radius:10px;font-size:0.9375rem;font-family:var(--font);transition:all 0.3s;background:var(--bg);color:var(--text);appearance:none;-webkit-appearance:none}
+.form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2386868b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.12)}
+.submit-btn{background:var(--primary);color:#fff;border:none;padding:16px;font-size:1.0625rem;font-weight:600;border-radius:14px;cursor:pointer;transition:all 0.3s;font-family:var(--font);letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.submit-btn:hover{background:#5b4bd5;transform:translateY(-1px);box-shadow:var(--shadow-purple)}
+.submit-btn:disabled{background:var(--text-secondary);cursor:not-allowed;transform:none;box-shadow:none}
+.form-disclaimer{font-size:0.75rem;color:var(--text-secondary);text-align:center;margin-top:8px;line-height:1.5}
+.form-success{text-align:center;padding:32px 16px}
+.success-icon{font-size:3rem;margin-bottom:12px}
+.form-success h3{color:var(--text);margin-bottom:8px;font-size:1.25rem}
+.form-success p{color:var(--text-secondary);font-size:0.9375rem}
+
+/* ===== PRE-REG CTA ===== */
+.prereg-section{background:var(--text);padding:80px 0;color:#fff;text-align:center}
+.prereg-section h2{font-size:clamp(1.75rem,3vw,2.5rem);font-weight:700;letter-spacing:-0.03em;margin-bottom:12px}
+.prereg-section p{font-size:1.0625rem;opacity:0.7;margin-bottom:32px;max-width:520px;margin-left:auto;margin-right:auto}
+.btn-white{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--text);border:none;padding:16px 36px;font-size:1.0625rem;font-weight:600;border-radius:980px;cursor:pointer;transition:all 0.3s;font-family:var(--font);text-decoration:none}
+.btn-white:hover{transform:scale(1.02);box-shadow:0 8px 30px rgba(255,255,255,0.15)}
+
+/* ===== EMAIL CAPTURE ===== */
+.email-capture{background:var(--primary);padding:80px 24px;text-align:center}
+.email-capture h2{color:#fff;font-size:clamp(1.5rem,3vw,2rem);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px}
+.email-capture>p{color:rgba(255,255,255,0.8);font-size:1rem;margin-bottom:28px}
+.capture-form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:620px;margin:0 auto}
+.capture-form input,.capture-form select{padding:14px 18px;border:none;border-radius:12px;font-size:0.9375rem;font-family:var(--font);outline:none;background:#fff}
+.capture-form input{width:220px}
+.capture-form select{min-width:180px}
+.capture-form button{padding:14px 28px;background:var(--success);color:#fff;border:none;border-radius:12px;font-size:0.9375rem;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.3s}
+.capture-form button:hover{background:#00a884}
+.capture-fine{color:rgba(255,255,255,0.5);font-size:0.75rem;margin-top:14px}
+
+/* ===== FOOTER ===== */
+.footer{background:var(--text);color:#fff;padding:60px 0 24px}
+.footer-top{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.footer-logo .logo-icon{width:30px;height:30px}
+.footer-logo .logo-text{color:#fff;font-size:1.25rem;font-weight:700}
+.footer-tagline{font-size:0.875rem;opacity:0.5;font-style:italic}
+.footer-company{font-size:0.8125rem;opacity:0.4;margin-top:4px}
+.footer-contact h4{color:var(--primary);font-size:0.875rem;font-weight:600;margin-bottom:12px;letter-spacing:0.02em;text-transform:uppercase}
+.footer-contact p{opacity:0.6;font-size:0.875rem;margin-bottom:4px}
+.footer-links{border-top:1px solid rgba(255,255,255,0.08);padding-top:24px;margin-bottom:24px}
+.footer-links h4{color:#fff;font-size:0.8125rem;font-weight:600;margin-bottom:12px}
+.footer-links-grid{display:flex;flex-wrap:wrap;gap:6px 20px;margin-bottom:16px}
+.footer-links-grid a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.8125rem;transition:color 0.3s}
+.footer-links-grid a:hover{color:rgba(255,255,255,0.8)}
+.footer-bottom{border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;text-align:center;font-size:0.75rem;opacity:0.4}
+
+/* ===== MOBILE NAV ===== */
+.nav.mobile-active{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:rgba(255,255,255,0.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:20px 24px;gap:16px;border-top:1px solid rgba(0,0,0,0.06);z-index:999}
+.nav.mobile-active .nav-cta{text-align:center;display:block}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:1024px){
+  .steps-grid{grid-template-columns:repeat(2,1fr)}
+  .testimonials-grid{grid-template-columns:1fr 1fr}
+  .benefits-grid{gap:32px 40px}
+}
+@media(max-width:768px){
+  .nav{display:none}
+  .mobile-menu-toggle{display:flex}
+  .hero{padding:120px 0 80px}
+  .section{padding:80px 0}
+  .stats-grid{grid-template-columns:1fr;gap:32px}
+  .steps-grid{grid-template-columns:1fr 1fr}
+  .services-grid{grid-template-columns:1fr}
+  .benefits-grid{grid-template-columns:1fr;gap:32px}
+  .compare-grid{grid-template-columns:1fr;max-width:380px}
+  .monitor-grid{grid-template-columns:1fr;gap:24px}
+  .testimonials-grid{grid-template-columns:1fr}
+  .form-wrap{margin:0 8px;padding:32px 24px}
+  .form-row{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr;text-align:center}
+}
+@media(max-width:480px){
+  .container{padding:0 16px}
+  .hero{padding:100px 0 64px}
+  .capture-form input,.capture-form select{width:100%}
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
+  .fade-in{opacity:1;transform:none}
+}
+</style>
 </head>
 <body>
     <!-- Header -->
-    <header class="header">
+    <header class="header" id="mainHeader">
         <div class="container">
-            <div class="logo">
+            <a href="/" class="logo">
                 <svg class="logo-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#6c5ce7"/>
-                            <stop offset="100%" style="stop-color:#0984e3"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="0" y="0" width="80" height="80" rx="18" fill="url(#logoGrad)"/>
+                    <defs><linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6c5ce7"/><stop offset="100%" style="stop-color:#0984e3"/></linearGradient></defs>
+                    <rect width="80" height="80" rx="18" fill="url(#logoGrad)"/>
                     <rect x="20" y="28" width="18" height="37" rx="2" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
-                    <rect x="24" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                    <rect x="31" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                    <rect x="24" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                    <rect x="31" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
+                    <rect x="24" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/><rect x="31" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
+                    <rect x="24" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/><rect x="31" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
                     <path d="M50 38L42 46v19h16V46L50 38z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
                     <path d="M40 25v30M31 47l9 9 9-9" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
                 <span class="logo-text">OverAssessed</span>
-            </div>
+            </a>
             <nav class="nav">
                 <a href="#how-it-works">How It Works</a>
                 <a href="#services">Services</a>
                 <a href="/blog/">Blog</a>
                 <a href="/exemptions">Exemptions</a>
-                <a href="/referrals">Refer & Earn</a>
-                <a href="#why-us">Why Us</a>
+                <a href="/referrals">Refer &amp; Earn</a>
                 <a href="#compare">Compare</a>
                 <a href="/faq">FAQ</a>
-                <a href="#intake-form" class="nav-cta">Get Free Analysis</a>
+                <a href="#intake-form" class="nav-cta">Free Analysis</a>
             </nav>
             <button class="mobile-menu-toggle" aria-label="Toggle menu">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </button>
         </div>
     </header>
 
-    <!-- Pre-Registration Banner -->
-    <div style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;text-align:center;padding:12px 20px;font-size:0.95rem;font-weight:600;">
-        📋 TX property tax notices coming mid-April — <a href="/pre-register" style="color:white;text-decoration:underline;font-weight:700;">Pre-register now for free →</a>
-    </div>
-
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section class="hero">
-        <div class="hero-bg-pattern"></div>
         <div class="container">
-            <div class="hero-content">
-                <div class="hero-text">
-                    <div class="hero-badge-top">🏠 Expert Property Tax Appeals — Texas &amp; Georgia</div>
-                    <h1 class="hero-headline">Stop Overpaying<br>Property Taxes</h1>
-                    <p class="hero-tagline">Real Experts. Real Results. Guaranteed.</p>
-                    <p class="hero-subline">OverAssessed is a property tax protest service based in San Antonio, Texas. We use AI-powered analysis to find comparable properties and build evidence packets that lower your property tax bill. We charge just 20% of your tax savings — the lowest fee in Texas. No upfront costs, ever. If we don't save you money, you pay nothing.</p>
-                    <div class="trust-badges">
-                        <span class="badge">
-                            <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
-                            No Upfront Cost
-                        </span>
-                        <span class="badge">
-                            <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
-                            Pay Only If You Save
-                        </span>
-                        <span class="badge">
-                            <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
-                            Expert Analysis
-                        </span>
-                    </div>
-                    <div class="hero-cta-group">
-                        <button class="hero-cta" onclick="scrollToIntake()">Get Your Free Analysis &#8594;</button>
-                        <a href="tel:+18882829165" class="hero-phone" style="display:inline-flex;align-items:center;gap:8px;color:#fff;font-size:1.1rem;margin-top:12px;text-decoration:none;opacity:0.9;">&#128222; (888) 282-9165 &#8212; Call for Free Consultation</a>�                        <a href="tel:+18882829165" class="hero-phone" style="display:inline-flex;align-items:center;gap:8px;color:#fff;font-size:1.1rem;margin-top:12px;text-decoration:none;opacity:0.9;">📞 (888) 282-9165 — Call for Free Consultation</a>�
-                        <span class="hero-cta-note">Takes less than 2 minutes</span>
-                    </div>
+            <div class="hero-badge fade-in">🏠 Texas &amp; Georgia Property Tax Appeals — <span>No Upfront Cost</span></div>
+            <h1 class="fade-in">Stop Overpaying<br><em>Property Taxes</em></h1>
+            <p class="hero-sub fade-in">OverAssessed fights to lower your property tax bill. You pay nothing unless we save you money — just 20% of your savings, the lowest fee in Texas.</p>
+            <div class="hero-cta-wrap fade-in">
+                <button class="btn-primary" onclick="scrollToIntake()">Get Your Free Analysis →</button>
+                <span class="hero-note">Takes less than 2 minutes · No commitment</span>
+                <a href="tel:+18882829165" class="hero-phone">📞 (888) 282-9165</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Bar -->
+    <section class="stats-bar">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="fade-in">
+                    <div class="stat-number" id="savingsCounter">$0</div>
+                    <div class="stat-label">Avg. annual savings per homeowner</div>
                 </div>
-                <div class="hero-visual">
-                    <div class="savings-card">
-                        <div class="savings-card-header">
-                            <span class="savings-pulse"></span>
-                            Average Annual Savings
-                        </div>
-                        <div class="savings-amount" id="savingsCounter">$0</div>
-                        <div class="savings-detail">per Texas homeowner</div>
-                        <div class="savings-divider"></div>
-                        <div class="bill-comparison">
-                            <div class="bill-line old">
-                                <span class="bill-label">Previous Tax Bill</span>
-                                <span class="bill-value strikethrough">$8,247</span>
-                            </div>
-                            <div class="bill-line new">
-                                <span class="bill-label">After OverAssessed</span>
-                                <span class="bill-value highlight">$5,400</span>
-                            </div>
-                        </div>
-                        <div class="savings-badge-bottom">✓ Real results from real protests</div>
-                    </div>
+                <div class="fade-in fade-in-delay-1">
+                    <div class="stat-number">20%</div>
+                    <div class="stat-label">Of savings — lowest fee in Texas</div>
+                </div>
+                <div class="fade-in fade-in-delay-2">
+                    <div class="stat-number">$0</div>
+                    <div class="stat-label">Upfront cost — pay only if you save</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section id="how-it-works" class="section animate-section">
+    <!-- How It Works -->
+    <section id="how-it-works" class="section">
         <div class="container">
-            <h2 class="section-title">How It Works</h2>
-            <p class="section-subtitle">Four simple steps to lower property taxes</p>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Enter Your Property Address</h3>
-                        <p>Provide your property details and we'll get started immediately</p>
-                    </div>
+            <div class="section-header fade-in">
+                <h2>How It Works</h2>
+                <p>Four simple steps to lower property taxes</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card fade-in">
+                    <div class="step-num">1</div>
+                    <h3>Enter Your Address</h3>
+                    <p>Provide your property details and we get started immediately</p>
                 </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>We Analyze Your Assessment</h3>
-                        <p>Our team compares your assessment against comparable properties in your area</p>
-                    </div>
+                <div class="step-card fade-in fade-in-delay-1">
+                    <div class="step-num">2</div>
+                    <h3>We Analyze</h3>
+                    <p>Our team compares your assessment against comparable properties in your area</p>
                 </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>We Build and File Your Protest</h3>
-                        <p>We handle all the paperwork and deadlines for your property tax appeal</p>
-                    </div>
+                <div class="step-card fade-in fade-in-delay-2">
+                    <div class="step-num">3</div>
+                    <h3>We File Your Protest</h3>
+                    <p>We handle all paperwork, deadlines, and hearing representation</p>
                 </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h3>You Save Money</h3>
-                        <p>Sit back while we fight to reduce your property taxes</p>
-                    </div>
+                <div class="step-card fade-in fade-in-delay-3">
+                    <div class="step-num">4</div>
+                    <h3>You Save Money</h3>
+                    <p>Sit back while we fight to reduce your property taxes</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Services Section -->
-    <section id="services" class="section section-alt animate-section">
+    <!-- Services -->
+    <section id="services" class="section section-alt">
         <div class="container">
-            <h2 class="section-title">Our Services</h2>
-            <p class="section-subtitle">Comprehensive property tax solutions for every owner</p>
+            <div class="section-header fade-in">
+                <h2>Our Services</h2>
+                <p>Comprehensive property tax solutions for every owner</p>
+            </div>
             <div class="services-grid">
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <div class="service-icon">🏠</div>
                     <h3>Residential Property Tax Appeals</h3>
                     <p>Homes, condos, townhouses, and residential properties of all types</p>
                 </div>
-                <div class="service-card">
+                <div class="service-card fade-in fade-in-delay-1">
                     <div class="service-icon">🏢</div>
                     <h3>Commercial Property Tax Appeals</h3>
                     <p>Offices, retail spaces, warehouses, and commercial real estate</p>
                 </div>
-                <div class="service-card">
+                <div class="service-card fade-in fade-in-delay-2">
                     <div class="service-icon">📋</div>
                     <h3>Homestead Exemption Filing</h3>
                     <p>Ensure you're getting all available exemptions and deductions</p>
                 </div>
-                <div class="service-card">
+                <div class="service-card fade-in fade-in-delay-3">
                     <div class="service-icon">📊</div>
                     <h3>Free Property Tax Analysis</h3>
                     <p>No-cost assessment to identify potential savings opportunities</p>
@@ -207,32 +385,30 @@
         </div>
     </section>
 
-    <!-- Why OverAssessed Section -->
-    <section id="why-us" class="section animate-section">
+    <!-- Why OverAssessed -->
+    <section id="why-us" class="section">
         <div class="container">
-            <h2 class="section-title">Why OverAssessed?</h2>
-            <p class="section-subtitle">Experience meets Texas tenacity</p>
+            <div class="section-header fade-in">
+                <h2>Why OverAssessed?</h2>
+                <p>Experience meets Texas tenacity</p>
+            </div>
             <div class="benefits-grid">
-                <div class="benefit">
-                    <div class="benefit-icon">
-                        <svg viewBox="0 0 24 24" fill="white">
-                            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-                        </svg>
-                    </div>
+                <div class="benefit fade-in">
+                    <div class="benefit-icon">📈</div>
                     <h3>Data-Driven Analysis</h3>
                     <p>Our team analyzes thousands of comparable properties, finding discrepancies others miss</p>
                 </div>
-                <div class="benefit">
+                <div class="benefit fade-in fade-in-delay-1">
                     <div class="benefit-icon">💰</div>
                     <h3>Pay Only If You Save</h3>
                     <p>We take only 20% of your savings. If we don't save you money, you pay nothing</p>
                 </div>
-                <div class="benefit">
-                    <div class="benefit-icon">📈</div>
+                <div class="benefit fade-in fade-in-delay-2">
+                    <div class="benefit-icon">🏆</div>
                     <h3>Proven Results</h3>
                     <p>Average Texas homeowner saves $1,500+ per year on their property taxes</p>
                 </div>
-                <div class="benefit">
+                <div class="benefit fade-in fade-in-delay-3">
                     <div class="benefit-icon">🏭</div>
                     <h3>All Property Types</h3>
                     <p>Works for homes, apartments, offices, retail, industrial, and all commercial properties</p>
@@ -241,13 +417,15 @@
         </div>
     </section>
 
-    <!-- Compare Section -->
-    <section id="compare" class="section section-alt animate-section">
+    <!-- Compare -->
+    <section id="compare" class="section section-alt">
         <div class="container">
-            <h2 class="section-title">Keep More of Your Savings</h2>
-            <p class="section-subtitle">The lowest fees in Texas — guaranteed</p>
+            <div class="section-header fade-in">
+                <h2>Keep More of Your Savings</h2>
+                <p>The lowest fees in Texas — guaranteed</p>
+            </div>
             <div class="compare-grid">
-                <div class="compare-card featured">
+                <div class="compare-card featured fade-in">
                     <div class="compare-badge">Best Value</div>
                     <h3>OverAssessed</h3>
                     <div class="compare-rate">20%</div>
@@ -260,11 +438,9 @@
                         <li>✅ Annual auto-monitoring</li>
                         <li>✅ $50 cash referral rewards</li>
                     </ul>
-                    <div class="compare-example">
-                        <strong>$1,000 savings → You keep $800</strong>
-                    </div>
+                    <div class="compare-example"><strong>$1,000 savings → You keep $800</strong></div>
                 </div>
-                <div class="compare-card">
+                <div class="compare-card fade-in fade-in-delay-1">
                     <h3>Other Services</h3>
                     <div class="compare-rate muted">25–35%</div>
                     <div class="compare-label">of savings (industry avg)</div>
@@ -276,75 +452,69 @@
                         <li>⚠️ Auto-monitoring (some)</li>
                         <li>❌ $20 account credit referrals</li>
                     </ul>
-                    <div class="compare-example">
-                        <strong>$1,000 savings → You keep $650–$750</strong>
-                    </div>
+                    <div class="compare-example"><strong>$1,000 savings → You keep $650–$750</strong></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Auto-Monitoring Section -->
-    <section class="section animate-section">
+    <!-- Auto-Monitoring -->
+    <section class="section">
         <div class="container">
-            <h2 class="section-title">We Watch Your Taxes Every Year</h2>
-            <p class="section-subtitle">Set it and forget it — we automatically re-file if your taxes go up</p>
-            <div class="monitoring-flow">
-                <div class="monitor-step">
+            <div class="section-header fade-in">
+                <h2>We Watch Your Taxes Every Year</h2>
+                <p>Set it and forget it — we automatically re-file if your taxes go up</p>
+            </div>
+            <div class="monitor-grid">
+                <div class="monitor-card fade-in">
                     <div class="monitor-icon">📊</div>
                     <h3>We Monitor</h3>
                     <p>Every year, we check your new assessment when it's published</p>
                 </div>
-                <div class="monitor-arrow">→</div>
-                <div class="monitor-step">
+                <div class="monitor-card fade-in fade-in-delay-1">
                     <div class="monitor-icon">⚠️</div>
                     <h3>We Alert You</h3>
                     <p>If your value went up, we notify you immediately with our analysis</p>
                 </div>
-                <div class="monitor-arrow">→</div>
-                <div class="monitor-step">
+                <div class="monitor-card fade-in fade-in-delay-2">
                     <div class="monitor-icon">📤</div>
                     <h3>We Re-File</h3>
                     <p>With your OK, we automatically file a new protest — no effort required</p>
                 </div>
             </div>
-            <div style="text-align: center; margin-top: 2rem;">
-                <button class="hero-cta" onclick="scrollToIntake()" style="background: var(--gradient); color: white; font-size: 1rem; padding: 0.9rem 2rem;">Get Started — It's Free →</button>
+            <div style="text-align:center;margin-top:48px" class="fade-in">
+                <button class="btn-primary" onclick="scrollToIntake()">Get Started — It's Free →</button>
             </div>
         </div>
     </section>
 
-    <!-- Testimonials Section -->
-    <section class="section section-alt animate-section">
+    <!-- Testimonials -->
+    <section class="section section-alt">
         <div class="container">
-            <h2 class="section-title">What Our Clients Say</h2>
-            <p class="section-subtitle">Real savings from real Texas property owners</p>
-            <div class="testimonials">
-                <div class="testimonial">
+            <div class="section-header fade-in">
+                <h2>What Our Clients Say</h2>
+                <p>Real savings from real Texas property owners</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card fade-in">
                     <div class="testimonial-stars">★★★★★</div>
-                    <div class="testimonial-content">
-                        <p>"OverAssessed saved me $2,100 on my property taxes this year. The process was completely hands-off for me."</p>
-                    </div>
+                    <p class="testimonial-quote">"OverAssessed saved me $2,100 on my property taxes this year. The process was completely hands-off for me."</p>
                     <div class="testimonial-author">
                         <strong>Sarah M.</strong>
                         <span>Homeowner, Alamo Heights</span>
                     </div>
                 </div>
-                <div class="testimonial">
+                <div class="testimonial-card fade-in fade-in-delay-1">
                     <div class="testimonial-stars">★★★★★</div>
-                    <div class="testimonial-content">
-                        <p>"As a commercial property owner, I was skeptical at first. They reduced my taxes by $8,500 annually."</p>
-                    </div>
+                    <p class="testimonial-quote">"As a commercial property owner, I was skeptical at first. They reduced my taxes by $8,500 annually."</p>
                     <div class="testimonial-author">
                         <strong>David R.</strong>
                         <span>Property Investor, Downtown SA</span>
                     </div>
                 </div>
-                <div class="testimonial">
+                <div class="testimonial-card fade-in fade-in-delay-2">
                     <div class="testimonial-stars">★★★★★</div>
-                    <div class="testimonial-content">
-                        <p>"Professional, transparent, and results-driven. I wish I'd found them sooner."</p>
-                    </div>
+                    <p class="testimonial-quote">"Professional, transparent, and results-driven. I wish I'd found them sooner."</p>
                     <div class="testimonial-author">
                         <strong>Maria G.</strong>
                         <span>Business Owner, Stone Oak</span>
@@ -354,80 +524,51 @@
         </div>
     </section>
 
-    <!-- FAQ Section -->
-    <section id="faq" class="section animate-section">
+    <!-- FAQ -->
+    <section id="faq" class="section">
         <div class="container">
-            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div class="section-header fade-in">
+                <h2>Frequently Asked Questions</h2>
+            </div>
             <div class="faq-list">
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How does the property tax appeal process work?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish.</p>
-                    </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>How does the property tax appeal process work?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish.</p></div>
                 </div>
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>What does it cost?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>There are no upfront costs. We only charge 20% of the money we save you. If we don't reduce your property taxes, you pay nothing.</p>
-                    </div>
+                <div class="faq-item fade-in fade-in-delay-1">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>What does it cost?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>There are no upfront costs. We only charge 20% of the money we save you. If we don't reduce your property taxes, you pay nothing.</p></div>
                 </div>
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How long does it take?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>The appeal process typically takes 2-4 months from filing to resolution. We'll keep you updated throughout the process and handle all deadlines.</p>
-                    </div>
+                <div class="faq-item fade-in fade-in-delay-2">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>How long does it take?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>The appeal process typically takes 2-4 months from filing to resolution. We'll keep you updated throughout the process and handle all deadlines.</p></div>
                 </div>
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Do I need to attend a hearing?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>In most cases, no. We handle the appeal process and can represent you if a hearing is required. You only need to provide initial property information.</p>
-                    </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>Do I need to attend a hearing?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>In most cases, no. We handle the appeal process and can represent you if a hearing is required. You only need to provide initial property information.</p></div>
                 </div>
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>What if my appeal doesn't succeed?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>If we don't reduce your property taxes, you pay nothing. We only get paid when we successfully save you money.</p>
-                    </div>
+                <div class="faq-item fade-in fade-in-delay-1">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>What if my appeal doesn't succeed?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>If we don't reduce your property taxes, you pay nothing. We only get paid when we successfully save you money.</p></div>
                 </div>
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Do you handle commercial properties?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes, we handle all types of properties including residential, commercial, industrial, and investment properties throughout Texas.</p>
-                    </div>
+                <div class="faq-item fade-in fade-in-delay-2">
+                    <button class="faq-question" onclick="toggleFaq(this)"><span>Do you handle commercial properties?</span><span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>Yes, we handle all types of properties including residential, commercial, industrial, and investment properties throughout Texas.</p></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Intake Form Section -->
-    <section id="intake-form" class="section section-primary">
+    <!-- Intake Form -->
+    <section id="intake-form" class="form-section">
         <div class="container">
-            <div class="form-container">
-                <h2 class="form-title">Get Your Free Property Tax Analysis</h2>
+            <div class="form-wrap fade-in">
+                <h2 class="form-title">Get Your Free Analysis</h2>
                 <p class="form-subtitle">Takes less than 2 minutes. No upfront cost.</p>
                 <form id="intakeForm" class="intake-form">
                     <div class="form-group">
                         <label for="propertyAddress">Property Address *</label>
-                        <input type="text" id="propertyAddress" name="propertyAddress" required 
-                               placeholder="123 Main Street, San Antonio, TX 78201">
+                        <input type="text" id="propertyAddress" name="propertyAddress" required placeholder="123 Main Street, San Antonio, TX 78201">
                     </div>
                     <div class="form-group">
                         <label for="propertyType">Property Type *</label>
@@ -444,26 +585,21 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="ownerName">Owner Name *</label>
-                            <input type="text" id="ownerName" name="ownerName" required 
-                                   placeholder="Your full name">
+                            <input type="text" id="ownerName" name="ownerName" required placeholder="Your full name">
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number *</label>
-                            <input type="tel" id="phone" name="phone" required 
-                                   placeholder="(210) 555-0123">
+                            <input type="tel" id="phone" name="phone" required placeholder="(210) 555-0123">
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="email">Email Address *</label>
-                        <input type="email" id="email" name="email" required 
-                               placeholder="your.email@example.com">
+                        <input type="email" id="email" name="email" required placeholder="your.email@example.com">
                     </div>
                     <div class="form-group">
                         <label for="assessedValue">Current Assessed Value (Optional)</label>
-                        <input type="text" id="assessedValue" name="assessedValue" 
-                               placeholder="$350,000">
+                        <input type="text" id="assessedValue" name="assessedValue" placeholder="$350,000">
                     </div>
-                    <!-- Property Details (Optional) -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="bedrooms">Bedrooms</label>
@@ -539,20 +675,19 @@
                         <div class="form-group">
                             <label for="notificationPref">How would you like updates?</label>
                             <select id="notificationPref" name="notificationPref">
-                                <option value="both">Text & Email</option>
+                                <option value="both">Text &amp; Email</option>
                                 <option value="sms">Text Only</option>
                                 <option value="email">Email Only</option>
                             </select>
                         </div>
                     </div>
-                    <!-- Payment Method removed to reduce friction — invoice on win instead -->
                     <div class="form-group" id="card-section" style="display:none;">
                         <div id="card-element"></div>
                         <div id="card-errors"></div>
                     </div>
                     <button type="submit" class="submit-btn" id="submitBtn">
                         <span class="btn-text">Get My Free Analysis</span>
-                        <span class="btn-loader" style="display: none;">⏳</span>
+                        <span class="btn-loader" style="display:none;">⏳</span>
                     </button>
                     <p class="form-disclaimer">
                         By submitting this form, you agree to be contacted by OverAssessed, LLC. 
@@ -560,7 +695,7 @@
                         We respect your privacy and will never share your information.
                     </p>
                 </form>
-                <div id="formSuccess" class="form-success" style="display: none;">
+                <div id="formSuccess" class="form-success" style="display:none;">
                     <div class="success-icon">✅</div>
                     <h3>Analysis Request Received!</h3>
                     <p>Thank you! We'll analyze your property and contact you within 24 hours with your free assessment.</p>
@@ -569,61 +704,102 @@
         </div>
     </section>
 
-    <!-- Pre-Registration Section -->
-    <section id="pre-register" class="section" style="background: linear-gradient(135deg, #6c5ce7 0%, #0984e3 100%); color: #fff;">
-        <div class="container">
-            <div style="max-width: 640px; margin: 0 auto; text-align: center;">
-                <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 50px; padding: 8px 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem;">⏰ Limited Time — Pre-Register Now</div>
-                <h2 style="font-size: 2.25rem; font-weight: 900; margin-bottom: 0.75rem; line-height: 1.2;">Texas Property Tax Notices Drop in April — Are You Ready?</h2>
-                <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 0.5rem;">Sign up now and we'll analyze your property for FREE the moment notices are released</p>
-                <p style="font-size: 0.95rem; opacity: 0.8; margin-bottom: 2rem;">⚡ Only 30 days to protest after notices drop — pre-register to skip the line</p>
-                <div style="background: #fff; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
-                    <form id="preRegForm" style="display: flex; flex-direction: column; gap: 1rem; text-align: left;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div>
-                                <label style="display: block; font-weight: 600; color: #2d3436; font-size: 0.85rem; margin-bottom: 4px;">Name *</label>
-                                <input type="text" id="preRegName" required placeholder="Your full name" style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;font-family:inherit;">
-                            </div>
-                            <div>
-                                <label style="display: block; font-weight: 600; color: #2d3436; font-size: 0.85rem; margin-bottom: 4px;">Email *</label>
-                                <input type="email" id="preRegEmail" required placeholder="you@example.com" style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;font-family:inherit;">
-                            </div>
-                        </div>
-                        <div>
-                            <label style="display: block; font-weight: 600; color: #2d3436; font-size: 0.85rem; margin-bottom: 4px;">Property Address *</label>
-                            <input type="text" id="preRegAddress" required placeholder="123 Main St, San Antonio, TX 78201" style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;font-family:inherit;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-weight: 600; color: #2d3436; font-size: 0.85rem; margin-bottom: 4px;">County *</label>
-                            <select id="preRegCounty" required style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;font-family:inherit;background:#fff;">
-                                <option value="">Select County</option>
-                                <option value="Bexar">Bexar (San Antonio)</option>
-                                <option value="Harris">Harris (Houston)</option>
-                                <option value="Travis">Travis (Austin)</option>
-                                <option value="Dallas">Dallas</option>
-                                <option value="Tarrant">Tarrant (Fort Worth)</option>
-                                <option value="Collin">Collin</option>
-                                <option value="Denton">Denton</option>
-                                <option value="Williamson">Williamson</option>
-                                <option value="Fort Bend">Fort Bend</option>
-                                <option value="Montgomery">Montgomery</option>
-                                <option value="Other">Other TX County</option>
-                            </select>
-                        </div>
-                        <button type="submit" id="preRegBtn" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:#fff;border:none;padding:14px;font-size:1.1rem;font-weight:700;border-radius:50px;cursor:pointer;box-shadow:0 4px 15px rgba(108,92,231,0.3);font-family:inherit;">Pre-Register — It's Free →</button>
-                        <p style="font-size:0.8rem;color:#6b7280;text-align:center;">We'll email you the moment notices are released. No spam, ever.</p>
-                    </form>
-                    <div id="preRegSuccess" style="display:none;text-align:center;padding:2rem;">
-                        <div style="font-size:3rem;">🎉</div>
-                        <h3 style="color:#2d3436;margin-bottom:0.5rem;">You're Pre-Registered!</h3>
-                        <p style="color:#6b7280;">We'll contact you the moment TX appraisal notices drop. You're ahead of the game.</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Pre-Registration CTA -->
+    <section class="prereg-section">
+        <div class="container fade-in">
+            <h2>TX Property Tax Notices Drop in April</h2>
+            <p>Pre-register now and we'll analyze your property for free the moment notices are released. Only 30 days to protest.</p>
+            <a href="/pre-register" class="btn-white">Pre-Register Free →</a>
         </div>
     </section>
+
+    <!-- Email Capture -->
+    <section id="email-signup" class="email-capture">
+        <div class="container">
+            <h2>📬 Get Notified When Tax Notices Drop</h2>
+            <p>Be first to know when your county sends assessment notices.</p>
+            <form id="email-capture-form" class="capture-form">
+                <input type="email" id="capture-email" placeholder="Your email" required>
+                <select id="capture-county">
+                    <option value="">Select County</option>
+                    <option value="bexar">Bexar (San Antonio)</option>
+                    <option value="harris">Harris (Houston)</option>
+                    <option value="travis">Travis (Austin)</option>
+                    <option value="dallas">Dallas</option>
+                    <option value="tarrant">Tarrant (Fort Worth)</option>
+                    <option value="collin">Collin</option>
+                    <option value="denton">Denton</option>
+                    <option value="williamson">Williamson</option>
+                    <option value="fort-bend">Fort Bend</option>
+                    <option value="montgomery">Montgomery</option>
+                    <option value="hays">Hays</option>
+                    <option value="comal">Comal</option>
+                    <option value="guadalupe">Guadalupe</option>
+                    <option value="hidalgo">Hidalgo</option>
+                    <option value="el-paso">El Paso</option>
+                    <option value="ga-other">Georgia</option>
+                    <option value="other">Other</option>
+                </select>
+                <button type="submit" id="capture-btn">Notify Me →</button>
+            </form>
+            <p id="capture-success" style="display:none;color:#2ecc71;font-size:15px;margin-top:14px;font-weight:600;">✅ You're on the list!</p>
+            <p class="capture-fine">No spam. Unsubscribe anytime.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-top">
+                <div>
+                    <div class="footer-logo">
+                        <svg class="logo-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="logoGradFooter" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6c5ce7"/><stop offset="100%" style="stop-color:#0984e3"/></linearGradient></defs>
+                            <rect width="80" height="80" rx="18" fill="url(#logoGradFooter)"/>
+                            <rect x="20" y="28" width="18" height="37" rx="2" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
+                            <rect x="24" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/><rect x="31" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
+                            <rect x="24" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/><rect x="31" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
+                            <path d="M50 38L42 46v19h16V46L50 38z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+                            <path d="M40 25v30M31 47l9 9 9-9" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                        <span class="logo-text">OverAssessed</span>
+                    </div>
+                    <p class="footer-tagline">Expert Tax Appeals · Built in Texas</p>
+                    <p class="footer-company">OverAssessed, LLC — San Antonio, Texas</p>
+                </div>
+                <div class="footer-contact">
+                    <h4>Contact</h4>
+                    <p>San Antonio, TX</p>
+                    <p>Email: info@overassessed.ai</p>
+                    <p>Phone: (888) 282-9165</p>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h4>Texas Counties We Serve</h4>
+                <div class="footer-links-grid">
+                    <a href="/lp/harris-county">Harris</a><a href="/lp/dallas-county">Dallas</a><a href="/lp/tarrant-county">Tarrant</a>
+                    <a href="/lp/bexar-county">Bexar</a><a href="/lp/travis-county">Travis</a><a href="/lp/collin-county">Collin</a>
+                    <a href="/lp/denton-county">Denton</a><a href="/lp/fort-bend-county">Fort Bend</a><a href="/lp/williamson-county">Williamson</a>
+                    <a href="/lp/montgomery-county">Montgomery</a><a href="/lp/el-paso-county">El Paso</a><a href="/lp/hidalgo-county">Hidalgo</a>
+                    <a href="/lp/guadalupe-county">Guadalupe</a><a href="/lp/comal-county">Comal</a><a href="/lp/hays-county">Hays</a>
+                </div>
+                <div class="footer-links-grid">
+                    <a href="/calculator">Tax Savings Calculator</a>
+                    <a href="/exemptions">Homestead Exemptions</a>
+                    <a href="/pre-register">Pre-Register for 2026</a>
+                    <a href="/privacy">Privacy Policy</a>
+                    <a href="/terms">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 OverAssessed, LLC. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Inline form handlers (keep all functionality) -->
     <script>
-    // === MAIN INTAKE FORM HANDLER ===
+    // ===== MAIN INTAKE FORM =====
     document.getElementById('intakeForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -656,7 +832,6 @@
             source: 'website-intake'
         };
 
-        // Capture UTM and gclid params
         const params = new URLSearchParams(window.location.search);
         if (params.get('gclid')) payload.gclid = params.get('gclid');
         if (params.get('utm_source')) payload.utm_source = params.get('utm_source');
@@ -673,12 +848,7 @@
             if (res.ok) {
                 document.getElementById('intakeForm').style.display = 'none';
                 document.getElementById('formSuccess').style.display = 'block';
-                // Fire REAL conversion event
-                if (typeof gtag === 'function') {
-                    gtag('event', 'conversion', {
-                        'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'
-                    });
-                }
+                if (typeof gtag === 'function') gtag('event', 'conversion', {'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'});
                 if (typeof fbq === 'function') fbq('track', 'Lead');
             } else {
                 const data = await res.json().catch(() => ({}));
@@ -694,72 +864,8 @@
             if (btnLoader) btnLoader.style.display = 'none';
         }
     });
-    </script>
-    <script>
-    document.getElementById('preRegForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('preRegBtn');
-        btn.disabled = true; btn.textContent = 'Submitting...';
-        try {
-            const r = await fetch('/api/pre-register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: document.getElementById('preRegName').value,
-                    email: document.getElementById('preRegEmail').value,
-                    property_address: document.getElementById('preRegAddress').value,
-                    county: document.getElementById('preRegCounty').value
-                })
-            });
-            if (r.ok) {
-                document.getElementById('preRegForm').style.display = 'none';
-                document.getElementById('preRegSuccess').style.display = 'block';
-            } else throw new Error('fail');
-        } catch(err) {
-            alert('Sorry, there was an error. Please try again.');
-            btn.disabled = false; btn.textContent = 'Pre-Register — It\'s Free →';
-        }
-    });
-    </script>
 
-    <!-- Email Capture Bar -->
-    <section id="email-signup" style="background: linear-gradient(135deg, #6c5ce7 0%, #0984e3 100%); padding: 50px 20px; text-align: center;">
-        <div style="max-width: 700px; margin: 0 auto;">
-            <h2 style="color: white; font-size: 28px; font-weight: 800; margin-bottom: 10px;">📬 Get Notified When Tax Notices Drop</h2>
-            <p style="color: rgba(255,255,255,0.85); font-size: 18px; margin-bottom: 25px;">Be first to know when your county sends assessment notices. We'll remind you to protest before the deadline.</p>
-            <form id="email-capture-form" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                <input type="email" id="capture-email" placeholder="Your email" required
-                    style="padding: 14px 20px; border: none; border-radius: 8px; font-size: 16px; width: 250px; outline: none;">
-                <select id="capture-county" style="padding: 14px 20px; border: none; border-radius: 8px; font-size: 16px; background: white; outline: none;">
-                    <option value="">Select County</option>
-                    <option value="bexar">Bexar County (San Antonio)</option>
-                    <option value="harris">Harris County (Houston)</option>
-                    <option value="travis">Travis County (Austin)</option>
-                    <option value="dallas">Dallas County</option>
-                    <option value="tarrant">Tarrant County (Fort Worth)</option>
-                    <option value="collin">Collin County</option>
-                    <option value="denton">Denton County</option>
-                    <option value="williamson">Williamson County</option>
-                    <option value="fort-bend">Fort Bend County</option>
-                    <option value="montgomery">Montgomery County</option>
-                    <option value="hays">Hays County</option>
-                    <option value="comal">Comal County</option>
-                    <option value="guadalupe">Guadalupe County</option>
-                    <option value="hidalgo">Hidalgo County</option>
-                    <option value="el-paso">El Paso County</option>
-                    <option value="ga-other">Georgia</option>
-                    <option value="other">Other</option>
-                </select>
-                <button type="submit" id="capture-btn"
-                    style="padding: 14px 30px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s;">
-                    Notify Me →
-                </button>
-            </form>
-            <p id="capture-success" style="display: none; color: #2ecc71; font-size: 16px; margin-top: 15px; font-weight: 600;">✅ You're on the list! We'll email you when notices drop in your county.</p>
-            <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 15px;">No spam. Unsubscribe anytime. We only email about tax deadlines.</p>
-        </div>
-    </section>
-    <script>
+    // ===== EMAIL CAPTURE =====
     document.getElementById('email-capture-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('capture-btn');
@@ -777,284 +883,36 @@
                 document.getElementById('capture-success').style.display = 'block';
             } else {
                 const data = await res.json();
-                alert(data.error || 'Something went wrong. Please try again.');
+                alert(data.error || 'Something went wrong.');
                 btn.disabled = false; btn.textContent = 'Notify Me →';
             }
         } catch(err) {
-            alert('Sorry, there was an error. Please try again.');
+            alert('Sorry, there was an error.');
             btn.disabled = false; btn.textContent = 'Notify Me →';
         }
     });
     </script>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-main">
-                    <div class="footer-logo">
-                        <svg class="logo-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="logoGradFooter" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#6c5ce7"/>
-                                    <stop offset="100%" style="stop-color:#0984e3"/>
-                                </linearGradient>
-                            </defs>
-                            <rect x="0" y="0" width="80" height="80" rx="18" fill="url(#logoGradFooter)"/>
-                            <rect x="20" y="28" width="18" height="37" rx="2" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
-                            <rect x="24" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                            <rect x="31" y="33" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                            <rect x="24" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                            <rect x="31" y="41" width="4" height="4" rx="0.5" fill="white" opacity="0.2"/>
-                            <path d="M50 38L42 46v19h16V46L50 38z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
-                            <path d="M40 25v30M31 47l9 9 9-9" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        </svg>
-                        <span class="logo-text">OverAssessed</span>
-                    </div>
-                    <p class="footer-tagline">Expert Tax Appeals • Built in Texas</p>
-                    <p class="footer-company">OverAssessed, LLC — San Antonio, Texas</p>
-                </div>
-                <div class="footer-contact">
-                    <h4>Contact</h4>
-                    <p>San Antonio, TX</p>
-                    <p>Email: info@overassessed.ai</p>
-                </div>
-            </div>
-            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; margin-top: 24px;">
-                <h4 style="color: #fff; font-size: 14px; margin-bottom: 12px; font-weight: 600;">Texas Counties We Serve</h4>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px;">
-                    <a href="/harris-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Harris County</a>
-                    <a href="/dallas-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Dallas County</a>
-                    <a href="/tarrant-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Tarrant County</a>
-                    <a href="/bexar-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Bexar County</a>
-                    <a href="/travis-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Travis County</a>
-                    <a href="/collin-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Collin County</a>
-                    <a href="/denton-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Denton County</a>
-                    <a href="/fort-bend-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Fort Bend County</a>
-                    <a href="/williamson-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Williamson County</a>
-                    <a href="/montgomery-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Montgomery County</a>
-                    <a href="/el-paso-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">El Paso County</a>
-                    <a href="/hidalgo-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Hidalgo County</a>
-                    <a href="/guadalupe-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Guadalupe County</a>
-                    <a href="/comal-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Comal County</a>
-                    <a href="/hays-county" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Hays County</a>
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px 16px;">
-                    <a href="/calculator" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Tax Savings Calculator</a>
-                    <a href="/exemptions" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Homestead Exemptions</a>
-                    <a href="/pre-register" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Pre-Register for 2026</a>
-                    <a href="/privacy" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Privacy Policy</a>
-                    <a href="/terms" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px;">Terms of Service</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2026 OverAssessed, LLC. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
     <script src="app.js"></script>
+
+    <!-- Schema.org Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "OverAssessed",
-      "url": "https://overassessed.ai",
-      "logo": "https://overassessed.ai/assets/logo/icon-512.png",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer service",
-        "email": "info@overassessed.ai"
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "San Antonio",
-        "addressRegion": "TX",
-        "addressCountry": "US"
-      }
-    }
+    {"@context":"https://schema.org","@type":"Organization","name":"OverAssessed","url":"https://overassessed.ai","logo":"https://overassessed.ai/assets/logo/icon-512.png","contactPoint":{"@type":"ContactPoint","contactType":"customer service","email":"info@overassessed.ai","telephone":"+1-888-282-9165"},"address":{"@type":"PostalAddress","streetAddress":"6002 Camp Bullis, Suite 208","addressLocality":"San Antonio","addressRegion":"TX","postalCode":"78257","addressCountry":"US"}}
     </script>
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "OverAssessed",
-      "legalName": "OverAssessed AI, LLC",
-      "url": "https://overassessed.ai",
-      "logo": "https://overassessed.ai/assets/logo/icon-512.png",
-      "description": "OverAssessed is a Texas-based property tax protest service that uses AI-powered analysis to help homeowners reduce their property tax bills. 20% contingency fee — the lowest in Texas. No savings, no fee.",
-      "email": "info@overassessed.ai",
-      "telephone": "+1-888-282-9165",
-      "foundingDate": "2025",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "6002 Camp Bullis, Suite 208",
-        "addressLocality": "San Antonio",
-        "addressRegion": "TX",
-        "postalCode": "78257",
-        "addressCountry": "US"
-      },
-      "sameAs": [],
-      "knowsAbout": ["property tax protests", "property tax appeals", "Texas property taxes", "Georgia property taxes", "property tax exemptions", "homestead exemption"]
-    }
+    {"@context":"https://schema.org","@type":"Organization","name":"OverAssessed","legalName":"OverAssessed, LLC","url":"https://overassessed.ai","logo":"https://overassessed.ai/assets/logo/icon-512.png","description":"OverAssessed is a Texas-based property tax protest service that uses data-driven analysis to help homeowners reduce their property tax bills. 20% contingency fee — the lowest in Texas. No savings, no fee.","email":"info@overassessed.ai","telephone":"+1-888-282-9165","foundingDate":"2025","address":{"@type":"PostalAddress","streetAddress":"6002 Camp Bullis, Suite 208","addressLocality":"San Antonio","addressRegion":"TX","postalCode":"78257","addressCountry":"US"},"sameAs":[],"knowsAbout":["property tax protests","property tax appeals","Texas property taxes","Georgia property taxes","property tax exemptions","homestead exemption"]}
     </script>
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": "OverAssessed",
-      "url": "https://overassessed.ai",
-      "image": "https://overassessed.ai/assets/logo/icon-512.png",
-      "email": "info@overassessed.ai",
-      "telephone": "+1-888-282-9165",
-      "description": "Expert property tax protest service in San Antonio, TX. AI-powered analysis, 20% contingency fee (lowest in Texas), full hearing representation. Serving all Texas and Georgia counties.",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "6002 Camp Bullis, Suite 208",
-        "addressLocality": "San Antonio",
-        "addressRegion": "TX",
-        "postalCode": "78257",
-        "addressCountry": "US"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": "29.5824",
-        "longitude": "-98.5979"
-      },
-      "areaServed": [
-        { "@type": "State", "name": "Texas" },
-        { "@type": "State", "name": "Georgia" }
-      ],
-      "priceRange": "$$",
-      "openingHours": "Mo-Fr 08:00-18:00",
-      "paymentAccepted": "Credit Card, ACH",
-      "currenciesAccepted": "USD"
-    }
+    {"@context":"https://schema.org","@type":"LocalBusiness","name":"OverAssessed","url":"https://overassessed.ai","image":"https://overassessed.ai/assets/logo/icon-512.png","email":"info@overassessed.ai","telephone":"+1-888-282-9165","description":"Expert property tax protest service in San Antonio, TX. Data-driven analysis, 20% contingency fee (lowest in Texas), full hearing representation. Serving all Texas and Georgia counties.","address":{"@type":"PostalAddress","streetAddress":"6002 Camp Bullis, Suite 208","addressLocality":"San Antonio","addressRegion":"TX","postalCode":"78257","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":"29.5824","longitude":"-98.5979"},"areaServed":[{"@type":"State","name":"Texas"},{"@type":"State","name":"Georgia"}],"priceRange":"$$","openingHours":"Mo-Fr 08:00-18:00","paymentAccepted":"Credit Card, ACH","currenciesAccepted":"USD"}
     </script>
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "OverAssessed",
-      "url": "https://overassessed.ai",
-      "description": "Property tax protest experts for Texas and Georgia. AI-powered analysis, lowest fees, no upfront cost.",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://overassessed.ai/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    }
+    {"@context":"https://schema.org","@type":"WebSite","name":"OverAssessed","url":"https://overassessed.ai","description":"Property tax protest experts for Texas and Georgia. Data-driven analysis, lowest fees, no upfront cost.","potentialAction":{"@type":"SearchAction","target":"https://overassessed.ai/?q={search_term_string}","query-input":"required name=search_term_string"}}
     </script>
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "name": "Property Tax Protest Service",
-      "provider": {
-        "@type": "Organization",
-        "name": "OverAssessed"
-      },
-      "serviceType": "Property Tax Appeal",
-      "areaServed": [
-        { "@type": "State", "name": "Texas" },
-        { "@type": "State", "name": "Georgia" }
-      ],
-      "description": "Complete property tax protest service: AI-powered property analysis, comparable sales evidence packets, protest filing, and hearing representation. 20% contingency fee — pay only if we save you money.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "No upfront cost. 20% of tax savings only if we win."
-      }
-    }
+    {"@context":"https://schema.org","@type":"Service","name":"Property Tax Protest Service","provider":{"@type":"Organization","name":"OverAssessed"},"serviceType":"Property Tax Appeal","areaServed":[{"@type":"State","name":"Texas"},{"@type":"State","name":"Georgia"}],"description":"Complete property tax protest service: data-driven property analysis, comparable sales evidence packets, protest filing, and hearing representation. 20% contingency fee — pay only if we save you money.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"No upfront cost. 20% of tax savings only if we win."}}
     </script>
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "How does the property tax appeal process work?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish — you don't need to attend any hearings."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How much does OverAssessed charge for property tax protests?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "OverAssessed charges 20% of tax savings — the lowest rate among major Texas property tax protest companies. There are no upfront costs. If we don't reduce your property taxes, you pay nothing."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How long does the property tax protest process take?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The appeal process typically takes 2-4 months from filing to resolution. Informal settlements can happen within weeks. We keep you updated throughout the process and handle all deadlines."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Do I need to attend the property tax hearing?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. OverAssessed handles everything including hearing representation. You don't need to take time off work or attend any meetings. We represent you from start to finish."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What if my property tax appeal doesn't succeed?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "You pay nothing. OverAssessed operates on a strict no-win, no-fee basis. If we don't reduce your property taxes, our service is completely free."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can my property taxes go up if I protest?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. Texas Tax Code Section 41.71 prohibits the appraisal review board from increasing your property value as a result of a protest. There is zero risk to protesting."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What areas does OverAssessed serve?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "OverAssessed serves all 254 Texas counties (including Bexar, Harris, Dallas, Tarrant, Travis, Collin, and Denton counties) and all Georgia counties."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "When is the Texas property tax protest deadline?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The deadline to file a property tax protest in Texas is May 15th, or 30 days after you receive your Notice of Appraised Value, whichever is later. Don't wait — sign up early so we can file immediately when notices arrive."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How much can I save by protesting my property taxes?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The average Texas homeowner saves $500-$1,500 per year by protesting. Homes assessed at $400,000+ often save $1,000-$3,000+ annually. About 65-70% of protests in Texas result in a reduction."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Does OverAssessed handle commercial property tax protests?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. OverAssessed handles all property types including single-family homes, townhomes, condos, multi-family, commercial, industrial, and vacant land throughout Texas and Georgia."
-          }
-        }
-      ]
-    }
+    {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does the property tax appeal process work?","acceptedAnswer":{"@type":"Answer","text":"We analyze your property assessment against comparable properties, identify discrepancies, prepare all necessary documentation, and file your protest with the appropriate appraisal district. We handle the entire process from start to finish — you don't need to attend any hearings."}},{"@type":"Question","name":"How much does OverAssessed charge for property tax protests?","acceptedAnswer":{"@type":"Answer","text":"OverAssessed charges 20% of tax savings — the lowest rate among major Texas property tax protest companies. There are no upfront costs. If we don't reduce your property taxes, you pay nothing."}},{"@type":"Question","name":"How long does the property tax protest process take?","acceptedAnswer":{"@type":"Answer","text":"The appeal process typically takes 2-4 months from filing to resolution. Informal settlements can happen within weeks. We keep you updated throughout the process and handle all deadlines."}},{"@type":"Question","name":"Do I need to attend the property tax hearing?","acceptedAnswer":{"@type":"Answer","text":"No. OverAssessed handles everything including hearing representation. You don't need to take time off work or attend any meetings. We represent you from start to finish."}},{"@type":"Question","name":"What if my property tax appeal doesn't succeed?","acceptedAnswer":{"@type":"Answer","text":"You pay nothing. OverAssessed operates on a strict no-win, no-fee basis. If we don't reduce your property taxes, our service is completely free."}},{"@type":"Question","name":"Can my property taxes go up if I protest?","acceptedAnswer":{"@type":"Answer","text":"No. Texas Tax Code Section 41.71 prohibits the appraisal review board from increasing your property value as a result of a protest. There is zero risk to protesting."}},{"@type":"Question","name":"What areas does OverAssessed serve?","acceptedAnswer":{"@type":"Answer","text":"OverAssessed serves all 254 Texas counties (including Bexar, Harris, Dallas, Tarrant, Travis, Collin, and Denton counties) and all Georgia counties."}},{"@type":"Question","name":"When is the Texas property tax protest deadline?","acceptedAnswer":{"@type":"Answer","text":"The deadline to file a property tax protest in Texas is May 15th, or 30 days after you receive your Notice of Appraised Value, whichever is later. Don't wait — sign up early so we can file immediately when notices arrive."}},{"@type":"Question","name":"How much can I save by protesting my property taxes?","acceptedAnswer":{"@type":"Answer","text":"The average Texas homeowner saves $500-$1,500 per year by protesting. Homes assessed at $400,000+ often save $1,000-$3,000+ annually. About 65-70% of protests in Texas result in a reduction."}},{"@type":"Question","name":"Does OverAssessed handle commercial property tax protests?","acceptedAnswer":{"@type":"Answer","text":"Yes. OverAssessed handles all property types including single-family homes, townhomes, condos, multi-family, commercial, industrial, and vacant land throughout Texas and Georgia."}}]}
     </script>
 </body>
 </html>

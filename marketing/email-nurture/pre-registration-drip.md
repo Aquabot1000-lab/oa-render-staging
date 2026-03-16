@@ -1,4 +1,4 @@
-# Pre-Registration Drip Sequence — OverAssessed.ai
+# Pre-Registration Drip Sequence — OverAssessed
 
 > 5-email nurture sequence for pre-registered leads.
 > Trigger: User submits email/address on landing page.
@@ -17,7 +17,7 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>OverAssessed.ai</title>
+<title>OverAssessed</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 <style>
   body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
@@ -51,14 +51,14 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
     <tr><td align="center">
       <div class="main">
         <div class="header">
-          <h1>OverAssessed.ai</h1>
+          <h1>OverAssessed</h1>
         </div>
         <div class="body-content">
           {{EMAIL_BODY}}
         </div>
         <div class="footer">
           <p><strong>Real Experts. Real Results. Guaranteed.</strong></p>
-          <p>OverAssessed.ai — Texas Property Tax Protest</p>
+          <p>OverAssessed — Texas Property Tax Protest</p>
           <p><a href="{{UNSUBSCRIBE_URL}}">Unsubscribe</a> · <a href="https://overassessed.ai/privacy">Privacy Policy</a></p>
         </div>
       </div>
@@ -80,7 +80,7 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
 ### HTML Body (`{{EMAIL_BODY}}`)
 
 ```html
-<h2>Welcome to OverAssessed.ai, {{FIRST_NAME}}! 🎉</h2>
+<h2>Welcome to OverAssessed, {{FIRST_NAME}}! 🎉</h2>
 
 <p>Smart move. You just took the first step toward paying only what you actually owe in property taxes.</p>
 
@@ -96,7 +96,7 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
   </ul>
 </div>
 
-<p><strong>How OverAssessed.ai works:</strong></p>
+<p><strong>How OverAssessed works:</strong></p>
 <ol>
   <li>We monitor your property's proposed value</li>
   <li>We build a custom evidence packet using AI + expert analysis</li>
@@ -114,13 +114,13 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
 
 <p>Questions? Just reply to this email.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
 
 ```
-Welcome to OverAssessed.ai, {{FIRST_NAME}}!
+Welcome to OverAssessed, {{FIRST_NAME}}!
 
 Smart move. You just took the first step toward paying only what you actually owe in property taxes.
 
@@ -144,7 +144,7 @@ View Your Dashboard: https://overassessed.ai/dashboard
 
 Questions? Just reply to this email.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -185,7 +185,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <p><strong>The fix?</strong> File a protest. Texas law gives every property owner the right to challenge their assessed value — and <strong>over 50% of protests result in a reduction.</strong></p>
 
-<p>That's where we come in. OverAssessed.ai uses AI-powered analysis combined with human expertise to build the strongest possible case for your property.</p>
+<p>That's where we come in. OverAssessed uses data-driven analysis combined with human expertise to build the strongest possible case for your property.</p>
 
 <p style="text-align: center;">
   <a href="https://overassessed.ai/how-it-works" class="btn">See How We Save You Money →</a>
@@ -193,7 +193,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <p>Stay tuned — notices are coming soon.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -218,7 +218,7 @@ THE FIX: File a protest. Over 50% of protests result in a reduction.
 
 See How We Save You Money: https://overassessed.ai/how-it-works
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -261,7 +261,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 <ul>
   <li>✅ Check that your property details are correct (sq ft, bedrooms, etc.)</li>
   <li>✅ Forward your notice to us (or snap a photo — we'll read it)</li>
-  <li>✅ Let OverAssessed.ai handle the rest</li>
+  <li>✅ Let OverAssessed handle the rest</li>
 </ul>
 
 <p>Since you're pre-registered, we're already monitoring your property. When your notice drops, we'll alert you and start building your case immediately.</p>
@@ -270,7 +270,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <a href="https://overassessed.ai/dashboard" class="btn">Check Your Property Status →</a>
 </p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -294,11 +294,11 @@ WHAT NOT TO DO:
 WHAT TO DO:
 - Check that your property details are correct
 - Forward your notice to us (or snap a photo)
-- Let OverAssessed.ai handle the rest
+- Let OverAssessed handle the rest
 
 Check Your Property Status: https://overassessed.ai/dashboard
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -316,10 +316,10 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```html
 <h2>What our clients are saying 💬</h2>
 
-<p>{{FIRST_NAME}}, don't just take our word for it. Here's what happened for homeowners who used OverAssessed.ai last year:</p>
+<p>{{FIRST_NAME}}, don't just take our word for it. Here's what happened for homeowners who used OverAssessed last year:</p>
 
 <div style="background: #f9f9f9; border-radius: 10px; padding: 20px; margin: 20px 0;">
-  <p style="font-style: italic; font-size: 17px; margin: 0 0 8px;">"I had no idea my home was overassessed by $38,000. OverAssessed.ai handled everything — I literally just signed up and got a check. Saved $4,200 on my tax bill."</p>
+  <p style="font-style: italic; font-size: 17px; margin: 0 0 8px;">"I had no idea my home was overassessed by $38,000. OverAssessed handled everything — I literally just signed up and got a check. Saved $4,200 on my tax bill."</p>
   <p style="margin: 0; font-weight: 700; color: #6c5ce7;">— Maria R., Bexar County</p>
 </div>
 
@@ -349,7 +349,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <a href="https://overassessed.ai/dashboard" class="btn">View Your Property →</a>
 </p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -373,7 +373,7 @@ Because you pre-registered, your property is already in our system. The moment n
 
 View Your Property: https://overassessed.ai/dashboard
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -410,7 +410,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
         <div style="width: 40px; height: 40px; background: #6c5ce7; border-radius: 50%; color: #fff; text-align: center; line-height: 40px; font-weight: 700;">2</div>
       </td>
       <td style="padding-bottom: 16px;">
-        <strong>Building your evidence packet</strong> — AI analysis + comparable sales + market data.
+        <strong>Building your evidence packet</strong> — expert analysis + comparable sales + market data.
       </td>
     </tr>
     <tr>
@@ -445,7 +445,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <p>The deadline is <strong>May 15</strong>. Don't leave money on the table.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -469,7 +469,7 @@ REMEMBER: You pay nothing upfront. 20% of savings. No reduction = no charge.
 
 Deadline: May 15. Don't leave money on the table.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

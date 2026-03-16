@@ -1,4 +1,4 @@
-# OverAssessed.ai — Google Ads: Responsive Search Ads
+# OverAssessed — Google Ads: Responsive Search Ads
 
 **Guidelines:**
 - Headlines: max 30 characters each, 15 per ad
@@ -20,7 +20,7 @@
 8. 20% of Savings — That's It
 9. Texas Property Tax Protest
 10. We Handle Everything
-11. OverAssessed.ai™
+11. OverAssessed™
 12. Fight Your Tax Assessment
 13. Average Savings of $1,000+
 14. Risk-Free Tax Protest
@@ -28,7 +28,7 @@
 
 **Descriptions:**
 1. No upfront cost. We only charge 20% of your savings — and only if we win. Start free today.
-2. OverAssessed.ai uses AI to protest your Texas property taxes. Zero risk. Real savings.
+2. OverAssessed uses expert analysis to protest your Texas property taxes. Zero risk. Real savings.
 3. Join thousands of Texas homeowners saving money. Free analysis — no obligation, no fees upfront.
 4. Stop overpaying property taxes. We protest for you. Pay nothing unless your taxes go down.
 
@@ -46,7 +46,7 @@
 7. No Win = No Fee
 8. Texas Tax Protest Experts
 9. Trusted by TX Homeowners
-10. OverAssessed.ai™
+10. OverAssessed™
 11. Stop Overpaying in Texas
 12. Protest Made Simple
 13. Get Your Free Analysis
@@ -54,10 +54,10 @@
 15. We Do the Work for You
 
 **Descriptions:**
-1. Our AI analyzes your property and files the protest. You pay nothing upfront — 20% only if we win.
+1. Our team analyzes your property and files the protest. You pay nothing upfront — 20% only if we win.
 2. Texas homeowners save an average of $1,000+. See what you could save with a free instant analysis.
 3. Property tax protest made easy. No paperwork, no hearings to attend. We handle it all for you.
-4. Why pay full price? OverAssessed.ai finds errors in your assessment and fights to lower your bill.
+4. Why pay full price? OverAssessed finds errors in your assessment and fights to lower your bill.
 
 ---
 
@@ -72,7 +72,7 @@
 6. $0 Upfront to Start
 7. Lower Your 2026 Taxes
 8. Time Is Running Out
-9. OverAssessed.ai™
+9. OverAssessed™
 10. Start in Under 2 Minutes
 11. No Risk. Real Savings.
 12. We Handle the Paperwork
@@ -82,7 +82,7 @@
 
 **Descriptions:**
 1. Texas property tax protest deadline is May 15. Start your free analysis now — don't leave money on table.
-2. File your protest before the deadline. OverAssessed.ai handles everything. No cost unless we save you.
+2. File your protest before the deadline. OverAssessed handles everything. No cost unless we save you.
 3. Every day you wait is money lost. Get your free property tax analysis and see your potential savings.
 4. Thousands of Texas homeowners are already saving. Start your protest today — it takes under 2 minutes.
 
@@ -96,7 +96,7 @@
 3. No Upfront Fees — Ever
 4. See Your Savings in 60 Sec
 5. AI-Powered Accuracy
-6. OverAssessed.ai™
+6. OverAssessed™
 7. TX Homeowners Love Us
 8. We Win or You Pay $0
 9. Real Results. Real Savings.
@@ -108,10 +108,10 @@
 15. Get Started Free Today
 
 **Descriptions:**
-1. Texas homeowners trust OverAssessed.ai to fight unfair property tax bills. $0 upfront, 20% if we win.
-2. Our AI technology analyzes comparable sales and finds assessment errors others miss. See your savings now.
+1. Texas homeowners trust OverAssessed to fight unfair property tax bills. $0 upfront, 20% if we win.
+2. Our technology analyzes comparable sales and finds assessment errors others miss. See your savings now.
 3. We've helped homeowners across Texas save thousands. No upfront fees. Pay only 20% of actual savings.
-4. Don't protest alone. OverAssessed.ai gives you expert-level analysis and representation at zero upfront cost.
+4. Don't protest alone. OverAssessed gives you expert-level analysis and representation at zero upfront cost.
 
 ---
 
@@ -123,7 +123,7 @@
 3. AI-Powered Tax Protest
 4. Switch & Save More
 5. Compare Before You Choose
-6. OverAssessed.ai™
+6. OverAssessed™
 7. Smarter Tax Protest
 8. No Upfront Cost Ever
 9. See Why Texans Switch
@@ -135,10 +135,10 @@
 15. Try OverAssessed Free
 
 **Descriptions:**
-1. Looking for an Ownwell alternative? OverAssessed.ai charges just 20% of savings — only if we win.
-2. Compare property tax protest services. OverAssessed.ai offers AI-powered analysis with zero upfront fees.
-3. Switching is easy. Get a free savings estimate from OverAssessed.ai and see why homeowners are moving.
-4. Not all protest services are equal. OverAssessed.ai uses AI for smarter protests. No cost unless we win.
+1. Looking for an Ownwell alternative? OverAssessed charges just 20% of savings — only if we win.
+2. Compare property tax protest services. OverAssessed offers data-driven analysis with zero upfront fees.
+3. Switching is easy. Get a free savings estimate from OverAssessed and see why homeowners are moving.
+4. Not all protest services are equal. OverAssessed uses expert analysis for smarter protests. No cost unless we win.
 
 ---
 
@@ -150,7 +150,7 @@
 3. Lower Harris Co. Taxes
 4. $0 Upfront in Harris Co.
 5. Protest Harris County Tax
-6. OverAssessed.ai™
+6. OverAssessed™
 7. HCAD Protest Experts
 8. Free Harris Co. Analysis
 9. Fight Your HCAD Value
@@ -177,7 +177,7 @@
 3. Lower Dallas Co. Taxes
 4. $0 Upfront in Dallas Co.
 5. Protest Dallas County Tax
-6. OverAssessed.ai™
+6. OverAssessed™
 7. DCAD Protest Experts
 8. Free Dallas Co. Analysis
 9. Fight Your DCAD Value
@@ -204,7 +204,7 @@
 3. Lower Tarrant Co. Taxes
 4. $0 Upfront — Tarrant Co.
 5. Protest Tarrant Co. Tax
-6. OverAssessed.ai™
+6. OverAssessed™
 7. TAD Protest Experts
 8. Free Tarrant Co. Analysis
 9. Fight Your TAD Value
@@ -231,7 +231,7 @@
 3. Lower Bexar Co. Taxes
 4. $0 Upfront — Bexar Co.
 5. Protest Bexar County Tax
-6. OverAssessed.ai™
+6. OverAssessed™
 7. BCAD Protest Experts
 8. Free Bexar Co. Analysis
 9. Fight Your BCAD Value
@@ -258,7 +258,7 @@
 3. Lower Travis Co. Taxes
 4. $0 Upfront — Travis Co.
 5. Protest Travis County Tax
-6. OverAssessed.ai™
+6. OverAssessed™
 7. TCAD Protest Experts
 8. Free Travis Co. Analysis
 9. Fight Your TCAD Value
@@ -284,7 +284,7 @@
 2. Be First to Save in 2026
 3. Early Access — $0 Cost
 4. Reserve Your Tax Protest
-5. OverAssessed.ai™
+5. OverAssessed™
 6. Join the Waitlist Free
 7. Get Priority Processing
 8. No Upfront Cost — Ever

@@ -1,4 +1,4 @@
-# Post-Signup Sequence — OverAssessed.ai
+# Post-Signup Sequence — OverAssessed
 
 > 4-email sequence after a client completes full signup.
 > Trigger: Client signs agreement and provides property details.
@@ -46,7 +46,7 @@
         <div style="width: 40px; height: 40px; background: #ddd; border-radius: 50%; color: #666; text-align: center; line-height: 40px; font-weight: 700;">3</div>
       </td>
       <td style="padding-bottom: 16px;">
-        <strong>We build your evidence packet</strong> — AI analysis + expert review
+        <strong>We build your evidence packet</strong> — data-driven analysis + expert review
       </td>
     </tr>
     <tr>
@@ -78,7 +78,7 @@
 
 <p><strong>Don't have any documents?</strong> That's perfectly fine. We'll still build a strong case using public records, comparable sales, and market data. Documents just make it even stronger.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -105,7 +105,7 @@ Upload Documents: https://overassessed.ai/dashboard/documents
 
 Don't have documents? That's fine — we'll build a strong case with public records and market data.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -173,7 +173,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
   <a href="https://overassessed.ai/dashboard" class="btn">Check Your Status →</a>
 </p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -200,7 +200,7 @@ We'll notify you when your evidence packet is ready.
 
 Check Your Status: https://overassessed.ai/dashboard
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -262,7 +262,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <p><strong>Next step:</strong> We'll file your protest and schedule the hearing. You'll get an update when it's done.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -291,7 +291,7 @@ View Your Evidence Packet: https://overassessed.ai/dashboard/evidence
 
 NEXT: We'll file your protest and schedule the hearing.
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
@@ -338,7 +338,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <p>We'll be in touch with updates. Thanks for trusting us with your property taxes.</p>
 
-<p>— The OverAssessed.ai Team</p>
+<p>— The OverAssessed Team</p>
 ```
 
 ### Plain Text Fallback
@@ -362,7 +362,7 @@ DO YOU NEED TO ATTEND? Nope. We handle everything.
 
 Track Your Protest: https://overassessed.ai/dashboard
 
-— The OverAssessed.ai Team
+— The OverAssessed Team
 Real Experts. Real Results. Guaranteed.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

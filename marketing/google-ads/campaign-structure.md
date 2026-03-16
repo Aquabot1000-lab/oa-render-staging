@@ -1,4 +1,4 @@
-# OverAssessed.ai — Google Ads Campaign Structure
+# OverAssessed — Google Ads Campaign Structure
 
 **Monthly Test Budget:** $1,000
 **Target Geography:** Texas (all campaigns)

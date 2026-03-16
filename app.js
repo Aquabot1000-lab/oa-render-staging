@@ -7,6 +7,26 @@ function scrollToIntake() {
     });
 }
 
+// Sticky header shrink on scroll
+function initStickyHeader() {
+    const header = document.getElementById('mainHeader');
+    if (!header) return;
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                if (window.scrollY > 20) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+}
+
 // FAQ toggle functionality
 function toggleFaq(button) {
     const faqItem = button.parentElement;
@@ -47,7 +67,7 @@ function animateCounter(element, target, duration) {
     requestAnimationFrame(update);
 }
 
-// Intersection Observer for scroll animations
+// Intersection Observer for scroll animations (supports both old and new design)
 function initScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -60,6 +80,12 @@ function initScrollAnimations() {
         rootMargin: '0px 0px -40px 0px'
     });
 
+    // New Apple-clean design: .fade-in elements
+    document.querySelectorAll('.fade-in').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Legacy support for old design classes
     document.querySelectorAll('.animate-section .step, .animate-section .service-card, .animate-section .benefit, .animate-section .testimonial, .animate-section .faq-item').forEach(el => {
         observer.observe(el);
     });
@@ -88,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Init animations
     initScrollAnimations();
     initSavingsCounter();
+    initStickyHeader();
     
     // Referral banner
     const refParam = new URLSearchParams(window.location.search).get('ref');

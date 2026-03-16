@@ -1,4 +1,4 @@
-# Email Drip Sequence — OverAssessed.ai
+# Email Drip Sequence — OverAssessed
 
 > **Trigger:** User signs up / submits property for analysis
 > **Sequence:** 5 emails over 14 days
@@ -23,13 +23,13 @@ Welcome to OverAssessed — you just took the smartest step toward lowering your
 
 **Here's what we found:**
 
-Your property at **{{property_address}}** is currently assessed at **{{assessed_value}}**. Based on our AI analysis of comparable sales, market data, and property characteristics, we estimate your home should be assessed closer to **{{estimated_value}}**.
+Your property at **{{property_address}}** is currently assessed at **{{assessed_value}}**. Based on our expert analysis of comparable sales, market data, and property characteristics, we estimate your home should be assessed closer to **{{estimated_value}}**.
 
 **That means you could be overpaying by {{estimated_savings}} per year.**
 
 Here's what happens next if you want to protest:
 
-1. **We build your case** — Our AI compiles comparable sales, photos, and market data into a professional evidence packet.
+1. **We build your case** — Our team compiles comparable sales, photos, and market data into a professional evidence packet.
 2. **We file your protest** — We handle all the paperwork and filing before the deadline.
 3. **We represent you** — We attend your hearing and negotiate on your behalf.
 4. **You save money** — And you only pay us if we actually reduce your assessed value.
@@ -41,7 +41,7 @@ The deadline to file is **May 15, {{year}}**. After that, you're locked in at yo
 Questions? Just reply to this email — I read every one.
 
 — Tyler
-Founder, OverAssessed AI
+Founder, OverAssessed
 
 *P.S. — The average OverAssessed client saves over $1,200 per year on their property taxes. What would you do with an extra $100/month?*
 
@@ -118,7 +118,7 @@ All of these reduce your home's actual market value, but none of them show up in
 
 The appraisal district might be comparing your 1,800 sq ft home built in 1995 to a renovated 2,200 sq ft home that sold down the street. Similar neighborhood, very different property.
 
-Our AI doesn't make that mistake. We match on **square footage, year built, lot size, condition, and actual sold prices** — not just zip code.
+Our team doesn't make that mistake. We match on **square footage, year built, lot size, condition, and actual sold prices** — not just zip code.
 
 ### Reason 3: They Benefit From Higher Assessments
 
@@ -223,7 +223,7 @@ If you decide to protest on your own, I respect that too — just make sure you 
 Either way, good luck.
 
 — Tyler
-Founder, OverAssessed AI
+Founder, OverAssessed
 
 *P.S. — If you miss the deadline this year, bookmark overassessed.ai for next year. We'll be here. But I'd rather save you money now than in 12 months.*
 
