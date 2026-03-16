@@ -314,7 +314,7 @@ async function sendFilingNotification(toEmail, stage, vars = {}) {
                 <div style="padding:2rem;background:white;border:1px solid #eee;border-radius:0 0 12px 12px;">
                     ${fill(template.body)}
                     <hr style="border:none;border-top:1px solid #eee;margin:2rem 0;">
-                    <p style="font-size:0.8rem;color:#999;text-align:center;">OverAssessed AI, LLC | 6002 Camp Bullis, Suite 208, San Antonio, TX 78257<br>
+                    <p style="font-size:0.8rem;color:#999;text-align:center;">OverAssessed, LLC | 6002 Camp Bullis, Suite 208, San Antonio, TX 78257<br>
                     <a href="mailto:info@overassessed.ai" style="color:#6c5ce7;">info@overassessed.ai</a></p>
                 </div>
             </div>`;

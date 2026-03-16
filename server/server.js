@@ -2478,7 +2478,7 @@ async function sendCallSummary(callSid, state) {
                     <h3>Full Conversation</h3>
                     ${transcriptHtml}
                     <hr>
-                    <p style="color:#888;font-size:12px;">OverAssessed AI Phone — (888) 282-9165</p>
+                    <p style="color:#888;font-size:12px;">OverAssessed Phone — (888) 282-9165</p>
                 `
             });
             console.log(`📧 [AI Phone] Email summary sent for ${callSid}`);
@@ -2535,7 +2535,7 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
         ${transcription ? `<p><strong>Transcription:</strong> ${transcription}</p>` : ''}
         ${recordingUrl ? `<p><strong>Listen:</strong> <a href="${recordingUrl}">${recordingUrl}</a></p>` : ''}
         <hr>
-        <p style="color:#888;">OverAssessed AI — (888) 282-9165</p>
+        <p style="color:#888;">OverAssessed — (888) 282-9165</p>
     `;
     
     try {

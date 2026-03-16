@@ -418,7 +418,7 @@ async function chargeSavedCard(clientId, appealId, amount, description) {
             payment_method: paymentMethodId,
             off_session: true,
             confirm: true,
-            description: description || 'Property Tax Appeal Fee — OverAssessed.ai',
+            description: description || 'Property Tax Appeal Fee — OverAssessed',
             metadata: {
                 client_id: clientId,
                 appeal_id: appealId || '',

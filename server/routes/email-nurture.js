@@ -45,7 +45,7 @@ function parseSequenceEmails(sequenceKey) {
   for (const block of emailBlocks) {
     // Extract subject from first line after split
     const subjectMatch = block.match(/Subject:\s*(.+)/i) || block.match(/\*\*Subject:\*\*\s*(.+)/i);
-    const subject = subjectMatch ? subjectMatch[1].replace(/[`*]/g, '').trim() : `OverAssessed.ai Update`;
+    const subject = subjectMatch ? subjectMatch[1].replace(/[`*]/g, '').trim() : `OverAssessed Update`;
     
     // Extract HTML content between ```html and ```
     const htmlMatch = block.match(/```html\n([\s\S]*?)```/);
@@ -153,11 +153,11 @@ router.post('/test', async (req, res) => {
     const msg = {
       to,
       from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
-      subject: 'OverAssessed.ai — Email Test ✅',
+      subject: 'OverAssessed — Email Test ✅',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px;">
           <h2 style="color: #6c5ce7;">Email System Working! ✅</h2>
-          <p>This is a test email from OverAssessed.ai.</p>
+          <p>This is a test email from OverAssessed.</p>
           <p>If you're seeing this, SendGrid is properly configured and ready to send nurture sequences.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #999; font-size: 12px;">Sent at: ${new Date().toISOString()}</p>
