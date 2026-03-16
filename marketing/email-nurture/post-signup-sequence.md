@@ -313,7 +313,7 @@ Unsubscribe: {{UNSUBSCRIBE_URL}}
 
 <div style="background: #f0edff; border-radius: 10px; padding: 24px; margin: 20px 0; text-align: center;">
   <p style="margin: 0 0 4px; font-size: 14px; color: #6c5ce7; text-transform: uppercase; font-weight: 700;">Protest Status</p>
-  <p style="margin: 0; font-size: 24px; font-weight: 800; color: #2d3436;">Filed & Pending Hearing</p>
+  <p style="margin: 0; font-size: 24px; font-weight: 800; color: #1d1d1f;">Filed & Pending Hearing</p>
   <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Filed on {{FILING_DATE}} · Case #{{CASE_NUMBER}}</p>
 </div>
 

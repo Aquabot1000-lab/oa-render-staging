@@ -26,17 +26,17 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
   body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; background-color: #f4f6f9; }
   .wrapper { width: 100%; table-layout: fixed; background-color: #f4f6f9; padding: 40px 0; }
   .main { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-  .header { background: linear-gradient(135deg, #6c5ce7, #0984e3); padding: 32px 40px; text-align: center; }
-  .header h1 { color: #ffffff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 22px; margin: 12px 0 0; font-weight: 700; }
-  .body-content { padding: 36px 40px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 1.65; color: #2d3436; }
-  .body-content h2 { color: #6c5ce7; font-size: 20px; margin: 0 0 16px; }
+  .header { background: linear-gradient(135deg, #6c5ce7, #0984e3); padding: 24px 40px; text-align: center; }
+  .header h1 { color: #ffffff; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif; font-size: 22px; margin: 0; font-weight: 700; }
+  .body-content { padding: 28px 40px 36px; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif; font-size: 16px; line-height: 1.65; color: #1d1d1f; }
+  .body-content h2 { color: #6c5ce7; font-size: 20px; margin: 0 0 12px; }
   .body-content p { margin: 0 0 16px; }
-  .btn { display: inline-block; background: linear-gradient(135deg, #6c5ce7, #0984e3); color: #ffffff !important; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-weight: 700; font-size: 16px; margin: 8px 0 16px; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #6c5ce7, #0984e3); color: #ffffff !important; text-decoration: none; padding: 14px 36px; border-radius: 980px; font-weight: 700; font-size: 16px; margin: 8px 0 16px; }
   .highlight-box { background: #f0edff; border-left: 4px solid #6c5ce7; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
   .stat-block { text-align: center; padding: 24px; background: linear-gradient(135deg, #6c5ce7, #0984e3); border-radius: 10px; margin: 20px 0; }
   .stat-block .number { font-size: 42px; font-weight: 800; color: #ffffff; line-height: 1.1; }
   .stat-block .label { font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 4px; }
-  .footer { padding: 24px 40px; text-align: center; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+  .footer { padding: 24px 40px; text-align: center; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif; font-size: 12px; color: #999; border-top: 1px solid #eee; }
   .footer a { color: #6c5ce7; text-decoration: none; }
   @media only screen and (max-width: 620px) {
     .main { margin: 0 12px !important; }

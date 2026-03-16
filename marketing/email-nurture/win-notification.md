@@ -30,7 +30,7 @@
 </div>
 
 <div style="background: #f9f9f9; border-radius: 10px; padding: 24px; margin: 20px 0;">
-  <p style="margin: 0 0 12px; font-weight: 700; font-size: 18px; color: #2d3436;">📋 Your Results Summary</p>
+  <p style="margin: 0 0 12px; font-weight: 700; font-size: 18px; color: #1d1d1f;">📋 Your Results Summary</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td style="padding: 10px 0; border-bottom: 1px solid #eee;">County's Original Value</td>
@@ -53,7 +53,7 @@
 
 <!-- Invoice Section -->
 <div style="background: #fff9e6; border-radius: 10px; padding: 24px; margin: 20px 0; border: 1px solid #f0e6cc;">
-  <p style="margin: 0 0 12px; font-weight: 700; font-size: 18px; color: #2d3436;">💳 Your Invoice</p>
+  <p style="margin: 0 0 12px; font-weight: 700; font-size: 18px; color: #1d1d1f;">💳 Your Invoice</p>
   <p style="margin: 0 0 12px;">As agreed, our fee is <strong>20% of your actual tax savings</strong>. You only pay because we won.</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
@@ -80,7 +80,7 @@
 <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); border-radius: 10px; padding: 28px; margin: 28px 0; text-align: center;">
   <p style="margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #ffffff;">Know someone overpaying?</p>
   <p style="margin: 0 0 16px; color: rgba(255,255,255,0.9);">Share OverAssessed and earn <strong>$50</strong> for every friend who signs up.</p>
-  <a href="{{REFERRAL_LINK}}" style="display: inline-block; background: #ffffff; color: #6c5ce7 !important; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 700; font-size: 15px;">Share & Earn $50 →</a>
+  <a href="{{REFERRAL_LINK}}" style="display: inline-block; background: #ffffff; color: #6c5ce7 !important; text-decoration: none; padding: 12px 32px; border-radius: 980px; font-weight: 700; font-size: 15px;">Share & Earn $50 →</a>
 </div>
 
 <!-- Annual Monitoring -->
