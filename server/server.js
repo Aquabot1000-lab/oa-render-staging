@@ -2117,6 +2117,11 @@ app.get('/blog/:slug', (req, res) => {
     res.status(404).sendFile(path.join(process.cwd(), 'index.html'));
 });
 
+// TikTok domain verification
+app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
+    res.type('text/plain').send('tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
+});
+
 // Catch-all: serve frontend
 app.get('{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
