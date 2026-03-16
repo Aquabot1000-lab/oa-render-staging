@@ -112,6 +112,9 @@ app.use('/marketing/social-media/images', express.static(path.join(__dirname, '.
 app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=KIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
 });
+app.get('/tiktokcxwnOBPxlyRnGiscjSfbKV1mMPTGSABj.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=cxwnOBPxlyRnGiscjSfbKV1mMPTGSABj');
+});
 
 app.use(express.static(path.join(__dirname, '..')));
 
