@@ -1995,6 +1995,39 @@ app.get('/texas', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'texas.html'));
 });
 
+// Washington state + county pages
+app.get('/washington', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
+});
+app.get('/king-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'king-county.html'));
+});
+app.get('/pierce-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pierce-county.html'));
+});
+app.get('/snohomish-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'snohomish-county.html'));
+});
+app.get('/clark-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'clark-county.html'));
+});
+// Also serve under /lp/ prefix
+app.get('/lp/washington', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
+});
+app.get('/lp/king-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'king-county.html'));
+});
+app.get('/lp/pierce-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pierce-county.html'));
+});
+app.get('/lp/snohomish-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'snohomish-county.html'));
+});
+app.get('/lp/clark-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'clark-county.html'));
+});
+
 app.get('/san-antonio', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'san-antonio.html'));
 });
