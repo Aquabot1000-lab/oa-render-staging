@@ -116,7 +116,11 @@ app.get('/tiktokcxwnOBPxlyRnGiscjSfbKV1mMPTGSABj.txt', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=cxwnOBPxlyRnGiscjSfbKV1mMPTGSABj');
 });
 app.get('/tiktokLoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch.txt', (req, res) => {
-    res.type('text/plain').send('tiktok-developers-site-verification=LoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch');
+    res.type('text/plain').send('tiktok-developers-site-verification=LoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch\n');
+});
+// Also serve without extension just in case
+app.get('/tiktokLoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=LoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch\n');
 });
 
 app.use(express.static(path.join(__dirname, '..')));
