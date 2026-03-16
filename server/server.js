@@ -110,7 +110,7 @@ app.use('/marketing/social-media/images', express.static(path.join(__dirname, '.
 }));
 // TikTok domain verification (MUST be before express.static)
 app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
-    res.type('text/plain').send('tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
+    res.type('text/plain').send('tiktok-developers-site-verification=KIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
 });
 
 app.use(express.static(path.join(__dirname, '..')));
