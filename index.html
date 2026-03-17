@@ -325,6 +325,151 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
         </div>
     </section>
 
+    <!-- Intake Form -->
+    <section id="intake-form" class="form-section">
+        <div class="container">
+            <div class="form-wrap fade-in">
+                <h2 class="form-title">Get Your Free Analysis</h2>
+                <p class="form-subtitle">Takes less than 2 minutes. No upfront cost.</p>
+                <form id="intakeForm" class="intake-form">
+                    <div class="form-group">
+                        <label for="propertyAddress">Property Address *</label>
+                        <input type="text" id="propertyAddress" name="propertyAddress" required placeholder="123 Main Street, San Antonio, TX 78201">
+                    </div>
+                    <div class="form-group">
+                        <label for="propertyType">Property Type *</label>
+                        <select id="propertyType" name="propertyType" required>
+                            <option value="">Select Property Type</option>
+                            <option value="Single Family Home">Single Family Home</option>
+                            <option value="Townhouse / Condo">Townhouse / Condo</option>
+                            <option value="Duplex / Triplex / Fourplex">Duplex / Triplex / Fourplex</option>
+                            <option value="Multi-Family (5+ units)">Multi-Family (5+ units)</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Vacant Land">Vacant Land</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ownerName">Owner Name *</label>
+                            <input type="text" id="ownerName" name="ownerName" required placeholder="Your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="(210) 555-0123">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required placeholder="your.email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="assessedValue">Current Assessed Value (Optional)</label>
+                        <input type="text" id="assessedValue" name="assessedValue" placeholder="$350,000">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bedrooms">Bedrooms</label>
+                            <input type="number" id="bedrooms" name="bedrooms" min="0" max="20" placeholder="3">
+                        </div>
+                        <div class="form-group">
+                            <label for="bathrooms">Bathrooms</label>
+                            <input type="number" id="bathrooms" name="bathrooms" min="0" max="20" step="0.5" placeholder="2">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sqft">Approx. Square Footage</label>
+                            <input type="number" id="sqft" name="sqft" min="0" placeholder="1800">
+                        </div>
+                        <div class="form-group">
+                            <label for="yearBuilt">Year Built</label>
+                            <input type="number" id="yearBuilt" name="yearBuilt" min="1800" max="2030" placeholder="2005">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="renovations">Recent Renovations?</label>
+                        <select id="renovations" name="renovations">
+                            <option value="No">No</option>
+                            <option value="Yes - Minor">Yes - Minor</option>
+                            <option value="Yes - Major">Yes - Major</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="renovationDescGroup" style="display:none;">
+                        <label for="renovationDesc">Renovation Description</label>
+                        <input type="text" id="renovationDesc" name="renovationDesc" placeholder="e.g. New kitchen, updated bathrooms">
+                    </div>
+                    <div class="form-group">
+                        <label for="conditionIssues">Known Condition Issues?</label>
+                        <select id="conditionIssues" name="conditionIssues">
+                            <option value="No">No</option>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Roof">Roof</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="conditionDescGroup" style="display:none;">
+                        <label for="conditionDesc">Describe the Issue</label>
+                        <input type="text" id="conditionDesc" name="conditionDesc" placeholder="Describe the condition issue">
+                    </div>
+                    <div class="form-group">
+                        <label for="recentAppraisal">Have you had a recent appraisal?</label>
+                        <select id="recentAppraisal" name="recentAppraisal">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                    <div id="appraisalDetailsGroup" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="appraisedValue">Appraised Value</label>
+                                <input type="text" id="appraisedValue" name="appraisedValue" placeholder="$325,000">
+                            </div>
+                            <div class="form-group">
+                                <label for="appraisalDate">Appraisal Date</label>
+                                <input type="date" id="appraisalDate" name="appraisalDate">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stateSelect">State</label>
+                            <select id="stateSelect" name="stateSelect">
+                                <option value="TX">Texas</option>
+                                <option value="GA">Georgia</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationPref">How would you like updates?</label>
+                            <select id="notificationPref" name="notificationPref">
+                                <option value="both">Text &amp; Email</option>
+                                <option value="sms">Text Only</option>
+                                <option value="email">Email Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="card-section" style="display:none;">
+                        <div id="card-element"></div>
+                        <div id="card-errors"></div>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <span class="btn-text">Get My Free Analysis</span>
+                        <span class="btn-loader" style="display:none;">⏳</span>
+                    </button>
+                    <p class="form-disclaimer">
+                        By submitting this form, you agree to be contacted by OverAssessed, LLC. 
+                        No upfront costs — you only pay if we successfully reduce your property taxes. 
+                        We respect your privacy and will never share your information.
+                    </p>
+                </form>
+                <div id="formSuccess" class="form-success" style="display:none;">
+                    <div class="success-icon">✅</div>
+                    <h3>Analysis Request Received!</h3>
+                    <p>Thank you! We'll analyze your property and contact you within 24 hours with your free assessment.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- How It Works -->
     <section id="how-it-works" class="section">
         <div class="container">
@@ -572,150 +717,6 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
     </section>
 
     <!-- Intake Form -->
-    <section id="intake-form" class="form-section">
-        <div class="container">
-            <div class="form-wrap fade-in">
-                <h2 class="form-title">Get Your Free Analysis</h2>
-                <p class="form-subtitle">Takes less than 2 minutes. No upfront cost.</p>
-                <form id="intakeForm" class="intake-form">
-                    <div class="form-group">
-                        <label for="propertyAddress">Property Address *</label>
-                        <input type="text" id="propertyAddress" name="propertyAddress" required placeholder="123 Main Street, San Antonio, TX 78201">
-                    </div>
-                    <div class="form-group">
-                        <label for="propertyType">Property Type *</label>
-                        <select id="propertyType" name="propertyType" required>
-                            <option value="">Select Property Type</option>
-                            <option value="Single Family Home">Single Family Home</option>
-                            <option value="Townhouse / Condo">Townhouse / Condo</option>
-                            <option value="Duplex / Triplex / Fourplex">Duplex / Triplex / Fourplex</option>
-                            <option value="Multi-Family (5+ units)">Multi-Family (5+ units)</option>
-                            <option value="Commercial">Commercial</option>
-                            <option value="Vacant Land">Vacant Land</option>
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="ownerName">Owner Name *</label>
-                            <input type="text" id="ownerName" name="ownerName" required placeholder="Your full name">
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Phone Number *</label>
-                            <input type="tel" id="phone" name="phone" required placeholder="(210) 555-0123">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email Address *</label>
-                        <input type="email" id="email" name="email" required placeholder="your.email@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="assessedValue">Current Assessed Value (Optional)</label>
-                        <input type="text" id="assessedValue" name="assessedValue" placeholder="$350,000">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bedrooms">Bedrooms</label>
-                            <input type="number" id="bedrooms" name="bedrooms" min="0" max="20" placeholder="3">
-                        </div>
-                        <div class="form-group">
-                            <label for="bathrooms">Bathrooms</label>
-                            <input type="number" id="bathrooms" name="bathrooms" min="0" max="20" step="0.5" placeholder="2">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="sqft">Approx. Square Footage</label>
-                            <input type="number" id="sqft" name="sqft" min="0" placeholder="1800">
-                        </div>
-                        <div class="form-group">
-                            <label for="yearBuilt">Year Built</label>
-                            <input type="number" id="yearBuilt" name="yearBuilt" min="1800" max="2030" placeholder="2005">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="renovations">Recent Renovations?</label>
-                        <select id="renovations" name="renovations">
-                            <option value="No">No</option>
-                            <option value="Yes - Minor">Yes - Minor</option>
-                            <option value="Yes - Major">Yes - Major</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="renovationDescGroup" style="display:none;">
-                        <label for="renovationDesc">Renovation Description</label>
-                        <input type="text" id="renovationDesc" name="renovationDesc" placeholder="e.g. New kitchen, updated bathrooms">
-                    </div>
-                    <div class="form-group">
-                        <label for="conditionIssues">Known Condition Issues?</label>
-                        <select id="conditionIssues" name="conditionIssues">
-                            <option value="No">No</option>
-                            <option value="Foundation">Foundation</option>
-                            <option value="Roof">Roof</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="conditionDescGroup" style="display:none;">
-                        <label for="conditionDesc">Describe the Issue</label>
-                        <input type="text" id="conditionDesc" name="conditionDesc" placeholder="Describe the condition issue">
-                    </div>
-                    <div class="form-group">
-                        <label for="recentAppraisal">Have you had a recent appraisal?</label>
-                        <select id="recentAppraisal" name="recentAppraisal">
-                            <option value="No">No</option>
-                            <option value="Yes">Yes</option>
-                        </select>
-                    </div>
-                    <div id="appraisalDetailsGroup" style="display:none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="appraisedValue">Appraised Value</label>
-                                <input type="text" id="appraisedValue" name="appraisedValue" placeholder="$325,000">
-                            </div>
-                            <div class="form-group">
-                                <label for="appraisalDate">Appraisal Date</label>
-                                <input type="date" id="appraisalDate" name="appraisalDate">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="stateSelect">State</label>
-                            <select id="stateSelect" name="stateSelect">
-                                <option value="TX">Texas</option>
-                                <option value="GA">Georgia</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="notificationPref">How would you like updates?</label>
-                            <select id="notificationPref" name="notificationPref">
-                                <option value="both">Text &amp; Email</option>
-                                <option value="sms">Text Only</option>
-                                <option value="email">Email Only</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group" id="card-section" style="display:none;">
-                        <div id="card-element"></div>
-                        <div id="card-errors"></div>
-                    </div>
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        <span class="btn-text">Get My Free Analysis</span>
-                        <span class="btn-loader" style="display:none;">⏳</span>
-                    </button>
-                    <p class="form-disclaimer">
-                        By submitting this form, you agree to be contacted by OverAssessed, LLC. 
-                        No upfront costs — you only pay if we successfully reduce your property taxes. 
-                        We respect your privacy and will never share your information.
-                    </p>
-                </form>
-                <div id="formSuccess" class="form-success" style="display:none;">
-                    <div class="success-icon">✅</div>
-                    <h3>Analysis Request Received!</h3>
-                    <p>Thank you! We'll analyze your property and contact you within 24 hours with your free assessment.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Pre-Registration CTA -->
     <section class="prereg-section">
         <div class="container fade-in">

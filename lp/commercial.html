@@ -335,6 +335,100 @@
     </div>
 </section>
 
+<!-- Intake Form -->
+<section class="form-section" id="commercial-form">
+    <div class="container">
+        <div class="form-wrap fade-in">
+            <h2 class="form-title">Get Your Free Commercial Analysis</h2>
+            <p class="form-subtitle">Takes under 3 minutes. No obligation, no upfront cost.</p>
+
+            <form class="intake-form" id="commercialForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cf-name">Full Name *</label>
+                        <input type="text" id="cf-name" name="name" required placeholder="Your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-company">Company Name</label>
+                        <input type="text" id="cf-company" name="companyName" placeholder="Your company or LLC">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cf-email">Email *</label>
+                        <input type="email" id="cf-email" name="email" required placeholder="you@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-phone">Phone *</label>
+                        <input type="tel" id="cf-phone" name="phone" required placeholder="(210) 555-0123">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cf-address">Property Address *</label>
+                    <input type="text" id="cf-address" name="propertyAddress" required placeholder="123 Commerce Blvd, San Antonio, TX 78205">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cf-type">Property Type *</label>
+                        <select id="cf-type" name="propertyType" required>
+                            <option value="">Select type...</option>
+                            <option value="Office">Office</option>
+                            <option value="Retail">Retail</option>
+                            <option value="Industrial / Warehouse">Industrial / Warehouse</option>
+                            <option value="Multifamily">Multifamily / Apartments</option>
+                            <option value="Vacant Land">Vacant Land</option>
+                            <option value="Mixed-Use">Mixed-Use</option>
+                            <option value="Other Commercial">Other Commercial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-value">Current Assessed Value</label>
+                        <input type="text" id="cf-value" name="assessedValue" placeholder="$1,500,000">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cf-count">Number of Properties</label>
+                        <select id="cf-count" name="propertyCount">
+                            <option value="1">1 property</option>
+                            <option value="2-5">2–5 properties</option>
+                            <option value="6-20">6–20 properties</option>
+                            <option value="21-50">21–50 properties</option>
+                            <option value="50+">50+ properties</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cf-source">How did you hear about us?</label>
+                        <select id="cf-source" name="heardAbout">
+                            <option value="">Select...</option>
+                            <option value="Google Search">Google Search</option>
+                            <option value="Google Ads">Google Ads</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Social Media">Social Media</option>
+                            <option value="Real Estate Agent">Real Estate Agent</option>
+                            <option value="Property Manager">Property Manager</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cf-notes">Additional Notes</label>
+                    <textarea id="cf-notes" name="notes" placeholder="Any details about your property or portfolio — income data, recent appraisals, specific concerns, etc."></textarea>
+                </div>
+                <button type="submit" class="submit-btn" id="commercialSubmitBtn">Get Your Free Commercial Analysis →</button>
+                <p class="form-disclaimer">By submitting, you agree to be contacted by OverAssessed, LLC regarding your property tax protest. We never share your information with third parties.</p>
+            </form>
+
+            <div class="form-success" id="commercialSuccess">
+                <div style="font-size:3rem;margin-bottom:12px">✅</div>
+                <h3>Your Commercial Analysis Request Is In!</h3>
+                <p>A member of our commercial team will reach out within 24 hours to discuss your property and potential savings.</p>
+                <p style="margin-top:16px"><strong>Need to talk sooner?</strong> Call <a href="tel:+18882829165" style="color:var(--primary);font-weight:600">(888) 282-9165</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Property Types -->
 <section class="section" id="property-types">
     <div class="container">
@@ -566,99 +660,6 @@
 </section>
 
 <!-- Commercial Intake Form -->
-<section class="form-section" id="commercial-form">
-    <div class="container">
-        <div class="form-wrap fade-in">
-            <h2 class="form-title">Get Your Free Commercial Analysis</h2>
-            <p class="form-subtitle">Takes under 3 minutes. No obligation, no upfront cost.</p>
-
-            <form class="intake-form" id="commercialForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cf-name">Full Name *</label>
-                        <input type="text" id="cf-name" name="name" required placeholder="Your full name">
-                    </div>
-                    <div class="form-group">
-                        <label for="cf-company">Company Name</label>
-                        <input type="text" id="cf-company" name="companyName" placeholder="Your company or LLC">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cf-email">Email *</label>
-                        <input type="email" id="cf-email" name="email" required placeholder="you@company.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="cf-phone">Phone *</label>
-                        <input type="tel" id="cf-phone" name="phone" required placeholder="(210) 555-0123">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="cf-address">Property Address *</label>
-                    <input type="text" id="cf-address" name="propertyAddress" required placeholder="123 Commerce Blvd, San Antonio, TX 78205">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cf-type">Property Type *</label>
-                        <select id="cf-type" name="propertyType" required>
-                            <option value="">Select type...</option>
-                            <option value="Office">Office</option>
-                            <option value="Retail">Retail</option>
-                            <option value="Industrial / Warehouse">Industrial / Warehouse</option>
-                            <option value="Multifamily">Multifamily / Apartments</option>
-                            <option value="Vacant Land">Vacant Land</option>
-                            <option value="Mixed-Use">Mixed-Use</option>
-                            <option value="Other Commercial">Other Commercial</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cf-value">Current Assessed Value</label>
-                        <input type="text" id="cf-value" name="assessedValue" placeholder="$1,500,000">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cf-count">Number of Properties</label>
-                        <select id="cf-count" name="propertyCount">
-                            <option value="1">1 property</option>
-                            <option value="2-5">2–5 properties</option>
-                            <option value="6-20">6–20 properties</option>
-                            <option value="21-50">21–50 properties</option>
-                            <option value="50+">50+ properties</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cf-source">How did you hear about us?</label>
-                        <select id="cf-source" name="heardAbout">
-                            <option value="">Select...</option>
-                            <option value="Google Search">Google Search</option>
-                            <option value="Google Ads">Google Ads</option>
-                            <option value="Referral">Referral</option>
-                            <option value="Social Media">Social Media</option>
-                            <option value="Real Estate Agent">Real Estate Agent</option>
-                            <option value="Property Manager">Property Manager</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="cf-notes">Additional Notes</label>
-                    <textarea id="cf-notes" name="notes" placeholder="Any details about your property or portfolio — income data, recent appraisals, specific concerns, etc."></textarea>
-                </div>
-                <button type="submit" class="submit-btn" id="commercialSubmitBtn">Get Your Free Commercial Analysis →</button>
-                <p class="form-disclaimer">By submitting, you agree to be contacted by OverAssessed, LLC regarding your property tax protest. We never share your information with third parties.</p>
-            </form>
-
-            <div class="form-success" id="commercialSuccess">
-                <div style="font-size:3rem;margin-bottom:12px">✅</div>
-                <h3>Your Commercial Analysis Request Is In!</h3>
-                <p>A member of our commercial team will reach out within 24 hours to discuss your property and potential savings.</p>
-                <p style="margin-top:16px"><strong>Need to talk sooner?</strong> Call <a href="tel:+18882829165" style="color:var(--primary);font-weight:600">(888) 282-9165</a></p>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Footer -->
 <footer class="footer">
     <div class="container">
