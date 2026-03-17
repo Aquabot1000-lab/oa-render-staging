@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="fL8XizXZxJifMkLVjEQxnSVLgQCcBSy4JUKBKnAg38g">
-    <meta name="description" content="File property tax exemptions — homestead, over-65, disability, veteran & more. OverAssessed handles the paperwork for Texas & Georgia homeowners.">
+    <meta name="description" content="File property tax exemptions — homestead, over-65, disability, veteran & more. OverAssessed handles the paperwork for Texas, Georgia & Washington homeowners.">
     <title>Property Tax Exemptions | OverAssessed</title>
     <link rel="canonical" href="https://overassessed.ai/exemptions">
     
@@ -420,71 +420,138 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
     <section class="section section-alt">
         <div class="container">
             <h2 class="section-title">Available Exemptions</h2>
-            <p class="section-sub">Texas &amp; Georgia — we file for all major exemption types</p>
+            <p class="section-sub">Texas, Georgia &amp; Washington — we file for all major exemption types</p>
 
-            <h3 style="text-align:center;color:var(--purple);margin-bottom:1.5rem;font-size:1.2rem">🤠 Texas Exemptions</h3>
-            <div class="exemptions-grid">
-                <div class="exemption-card">
-                    <div class="icon">🏠</div>
-                    <h3>Homestead Exemption</h3>
-                    <p>Primary residence exemption that removes a portion of your home's value from taxation. Available to all Texas homeowners.</p>
-                    <div class="savings">Saves ~$1,973/yr average</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">👴</div>
-                    <h3>Over-65 Exemption</h3>
-                    <p>Additional exemption for homeowners age 65+. Includes a tax ceiling that freezes your school district taxes.</p>
-                    <div class="savings">Additional $10K–$25K off value</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">♿</div>
-                    <h3>Disability Exemption</h3>
-                    <p>For homeowners who are disabled. Provides additional value reduction and a school tax ceiling similar to over-65.</p>
-                    <div class="savings">Additional $10K off value + tax freeze</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">🎖️</div>
-                    <h3>Veteran / Disabled Vet</h3>
-                    <p>Exemptions for veterans with service-connected disabilities. 100% disabled vets get full property tax exemption.</p>
-                    <div class="savings">Up to 100% tax exemption</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">🌾</div>
-                    <h3>AG / Timber (1-d-1)</h3>
-                    <p>Agricultural or timber use valuation. Land is taxed on productivity value rather than market value.</p>
-                    <div class="savings">Can reduce value 90%+</div>
+            <!-- State Tabs -->
+            <div class="state-tabs" style="display:flex;justify-content:center;gap:8px;margin-bottom:2.5rem">
+                <button class="state-tab active" data-state="TX" onclick="showStateExemptions('TX')">🤠 Texas</button>
+                <button class="state-tab" data-state="GA" onclick="showStateExemptions('GA')">🍑 Georgia</button>
+                <button class="state-tab" data-state="WA" onclick="showStateExemptions('WA')">🌲 Washington</button>
+            </div>
+            <style>
+                .state-tab{padding:10px 24px;border-radius:980px;border:2px solid rgba(108,92,231,0.2);background:var(--bg);color:var(--text);font-size:0.9375rem;font-weight:600;cursor:pointer;transition:all 0.3s;font-family:var(--font)}
+                .state-tab:hover{border-color:var(--primary);color:var(--primary)}
+                .state-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+                .state-exemptions{display:none}
+                .state-exemptions.active{display:block}
+            </style>
+
+            <!-- TX Exemptions -->
+            <div class="state-exemptions active" id="exemptions-TX">
+                <h3 style="text-align:center;color:var(--primary);margin-bottom:1.5rem;font-size:1.2rem">🤠 Texas Exemptions</h3>
+                <div class="exemptions-grid">
+                    <div class="exemption-card">
+                        <div class="icon">🏠</div>
+                        <h3>Homestead Exemption</h3>
+                        <p>Primary residence exemption that removes a portion of your home's value from taxation. Available to all Texas homeowners.</p>
+                        <div class="savings">Saves ~$1,973/yr average</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">👴</div>
+                        <h3>Over-65 Exemption</h3>
+                        <p>Additional exemption for homeowners age 65+. Includes a tax ceiling that freezes your school district taxes.</p>
+                        <div class="savings">Additional $10K–$25K off value</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">♿</div>
+                        <h3>Disability Exemption</h3>
+                        <p>For homeowners who are disabled. Provides additional value reduction and a school tax ceiling similar to over-65.</p>
+                        <div class="savings">Additional $10K off value + tax freeze</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">🎖️</div>
+                        <h3>Veteran / Disabled Vet</h3>
+                        <p>Exemptions for veterans with service-connected disabilities. 100% disabled vets get full property tax exemption.</p>
+                        <div class="savings">Up to 100% tax exemption</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">🌾</div>
+                        <h3>AG / Timber (1-d-1)</h3>
+                        <p>Agricultural or timber use valuation. Land is taxed on productivity value rather than market value.</p>
+                        <div class="savings">Can reduce value 90%+</div>
+                    </div>
                 </div>
             </div>
 
-            <h3 style="text-align:center;color:var(--purple);margin:2.5rem 0 1.5rem;font-size:1.2rem">🍑 Georgia Exemptions</h3>
-            <div class="exemptions-grid">
-                <div class="exemption-card">
-                    <div class="icon">🏠</div>
-                    <h3>Homestead (S1)</h3>
-                    <p>Standard homestead exemption for Georgia homeowners on their primary residence.</p>
-                    <div class="savings">$2,000 off assessed value</div>
+            <!-- GA Exemptions -->
+            <div class="state-exemptions" id="exemptions-GA">
+                <h3 style="text-align:center;color:var(--primary);margin-bottom:1.5rem;font-size:1.2rem">🍑 Georgia Exemptions</h3>
+                <div class="exemptions-grid">
+                    <div class="exemption-card">
+                        <div class="icon">🏠</div>
+                        <h3>Homestead (S1)</h3>
+                        <p>Standard homestead exemption for Georgia homeowners on their primary residence.</p>
+                        <div class="savings">$2,000 off assessed value</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">👴</div>
+                        <h3>Senior (L5 — Age 65+)</h3>
+                        <p>Enhanced exemption for seniors age 65+ with income below threshold. Significant school tax reduction.</p>
+                        <div class="savings">Up to $4,000 off for school taxes</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">♿</div>
+                        <h3>Disability</h3>
+                        <p>For totally and permanently disabled homeowners. Provides additional exemption on top of homestead.</p>
+                        <div class="savings">Additional value reduction</div>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">🎖️</div>
+                        <h3>Veteran</h3>
+                        <p>Exemptions for disabled veterans and surviving spouses. 100% disabled vets receive full exemption.</p>
+                        <div class="savings">Up to full tax exemption</div>
+                    </div>
                 </div>
-                <div class="exemption-card">
-                    <div class="icon">👴</div>
-                    <h3>Senior (L5 — Age 65+)</h3>
-                    <p>Enhanced exemption for seniors age 65+ with income below threshold. Significant school tax reduction.</p>
-                    <div class="savings">Up to $4,000 off for school taxes</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">♿</div>
-                    <h3>Disability</h3>
-                    <p>For totally and permanently disabled homeowners. Provides additional exemption on top of homestead.</p>
-                    <div class="savings">Additional value reduction</div>
-                </div>
-                <div class="exemption-card">
-                    <div class="icon">🎖️</div>
-                    <h3>Veteran</h3>
-                    <p>Exemptions for disabled veterans and surviving spouses. 100% disabled vets receive full exemption.</p>
-                    <div class="savings">Up to full tax exemption</div>
+            </div>
+
+            <!-- WA Exemptions -->
+            <div class="state-exemptions" id="exemptions-WA">
+                <h3 style="text-align:center;color:var(--primary);margin-bottom:1.5rem;font-size:1.2rem">🌲 Washington Exemptions</h3>
+                <div class="exemptions-grid">
+                    <div class="exemption-card">
+                        <div class="icon">👴</div>
+                        <h3>Senior/Disabled Property Tax Exemption</h3>
+                        <p>For homeowners age 61+, disabled persons, or veterans on their primary residence. Income-based using county median household income (MFI) tiers.</p>
+                        <div class="savings">No tax on first $60K or 60% of assessed value</div>
+                        <ul style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary);padding-left:18px;line-height:1.7">
+                            <li>Full exemption at lowest income tier</li>
+                            <li>Partial exemptions at higher income levels</li>
+                            <li>Filed with county assessor's office</li>
+                        </ul>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">🏦</div>
+                        <h3>Property Tax Deferral Program</h3>
+                        <p>Limited-income homeowners can defer property taxes until the home is sold. Interest accrues at a rate set by the state. Must be primary residence.</p>
+                        <div class="savings">Defer 100% of taxes until sale</div>
+                        <ul style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary);padding-left:18px;line-height:1.7">
+                            <li>No upfront tax payments required</li>
+                            <li>Interest accrues — repaid at sale</li>
+                            <li>Great for cash-flow-constrained homeowners</li>
+                        </ul>
+                    </div>
+                    <div class="exemption-card">
+                        <div class="icon">🔨</div>
+                        <h3>30% Home Improvement Exemption</h3>
+                        <p>Home improvements up to 30% of assessed value are exempt from additional taxes for 3 years. Great for recent renovators.</p>
+                        <div class="savings">3-year tax break on improvements</div>
+                        <ul style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary);padding-left:18px;line-height:1.7">
+                            <li>Must apply within 30 days of new assessment</li>
+                            <li>Covers renovations, additions, upgrades</li>
+                            <li>Exemption expires after 3 years</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <script>
+    function showStateExemptions(state) {
+        document.querySelectorAll('.state-tab').forEach(t => t.classList.toggle('active', t.dataset.state === state));
+        document.querySelectorAll('.state-exemptions').forEach(s => s.classList.toggle('active', s.id === 'exemptions-' + state));
+    }
+    </script>
 
     <section class="form-section" id="exemption-form">
         <div class="container">
@@ -498,7 +565,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                     </div>
                     <div class="frow">
                         <div class="fg"><label for="phone">Phone *</label><input type="tel" id="phone" required="" placeholder="(210) 555-0123"></div>
-                        <div class="fg"><label for="state">State *</label><select id="state" required=""><option value="">Select</option><option value="TX">Texas</option><option value="GA">Georgia</option></select></div>
+                        <div class="fg"><label for="state">State *</label><select id="state" required="" onchange="onStateChange()"><option value="">Select</option><option value="TX">Texas</option><option value="GA">Georgia</option><option value="WA">Washington</option></select></div>
                     </div>
                     <div class="fg"><label for="propertyAddress">Property Address *</label><input type="text" id="propertyAddress" required="" placeholder="123 Main St, San Antonio, TX 78201"></div>
                     <div class="frow">
@@ -513,22 +580,54 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                         </select></div>
                         <div class="fg"><label for="yearPurchased">Year Purchased</label><input type="number" id="yearPurchased" placeholder="2020" min="1900" max="2030"></div>
                     </div>
-                    <div class="fg"><label for="exemptionType">Exemption Type *</label><select id="exemptionType" required="">
+                    <div class="fg"><label for="exemptionType">Exemption Type *</label><select id="exemptionType" required="" onchange="onExemptionTypeChange()">
                         <option value="">Select exemption</option>
-                        <optgroup label="Texas">
+                        <optgroup label="Texas" class="exemption-optgroup" data-state="TX">
                             <option value="TX Homestead">TX — Homestead</option>
                             <option value="TX Over-65">TX — Over-65</option>
                             <option value="TX Disability">TX — Disability</option>
                             <option value="TX Veteran">TX — Veteran / Disabled Vet</option>
                             <option value="TX AG/Timber">TX — AG / Timber</option>
                         </optgroup>
-                        <optgroup label="Georgia">
+                        <optgroup label="Georgia" class="exemption-optgroup" data-state="GA">
                             <option value="GA Homestead S1">GA — Homestead (S1)</option>
                             <option value="GA Senior L5">GA — Senior (L5, 65+)</option>
                             <option value="GA Disability">GA — Disability</option>
                             <option value="GA Veteran">GA — Veteran</option>
                         </optgroup>
+                        <optgroup label="Washington" class="exemption-optgroup" data-state="WA">
+                            <option value="WA Senior/Disabled">WA — Senior/Disabled Exemption</option>
+                            <option value="WA Tax Deferral">WA — Property Tax Deferral</option>
+                            <option value="WA Home Improvement">WA — 30% Home Improvement Exemption</option>
+                        </optgroup>
                     </select></div>
+                    <!-- WA Senior/Disabled specific fields -->
+                    <div id="waFields" style="display:none">
+                        <div class="frow">
+                            <div class="fg">
+                                <label for="waAge61">Age 61 or older?</label>
+                                <select id="waAge61"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select>
+                            </div>
+                            <div class="fg">
+                                <label for="waDisability">Disability status</label>
+                                <select id="waDisability"><option value="">Select</option><option value="yes">Yes — Disabled</option><option value="no">No</option></select>
+                            </div>
+                        </div>
+                        <div class="frow">
+                            <div class="fg">
+                                <label for="waVeteran">Veteran status</label>
+                                <select id="waVeteran"><option value="">Select</option><option value="yes">Yes — Veteran</option><option value="no">No</option></select>
+                            </div>
+                            <div class="fg">
+                                <label for="waIncome">Household income range</label>
+                                <select id="waIncome"><option value="">Select</option><option value="under_30k">Under $30,000</option><option value="30k_40k">$30,000 – $40,000</option><option value="40k_50k">$40,000 – $50,000</option><option value="50k_65k">$50,000 – $65,000</option><option value="over_65k">Over $65,000</option></select>
+                            </div>
+                        </div>
+                        <div class="fg">
+                            <label for="waCounty">Washington County</label>
+                            <select id="waCounty"><option value="">Select county</option><option value="King">King</option><option value="Pierce">Pierce</option><option value="Snohomish">Snohomish</option><option value="Clark">Clark</option><option value="Other">Other</option></select>
+                        </div>
+                    </div>
                     <div class="fg"><label>Current Exemptions Already on File</label>
                         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
                             <label style="font-weight:400;font-size:.85rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" name="existingExemptions" value="None"> None</label>
@@ -557,7 +656,36 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
     </section>
 
     <script>
+    // Phone formatting
     document.getElementById('phone').addEventListener('input',function(e){let v=e.target.value.replace(/\D/g,'');if(v.length>=6)v=`(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6,10)}`;else if(v.length>=3)v=`(${v.slice(0,3)}) ${v.slice(3)}`;e.target.value=v});
+
+    // Filter exemption types by selected state
+    function onStateChange() {
+        const state = document.getElementById('state').value;
+        const select = document.getElementById('exemptionType');
+        const groups = select.querySelectorAll('.exemption-optgroup');
+        // Reset selection
+        select.value = '';
+        onExemptionTypeChange();
+        // Show/hide optgroups based on state
+        groups.forEach(g => {
+            if (!state || g.dataset.state === state) {
+                g.style.display = '';
+                g.disabled = false;
+            } else {
+                g.style.display = 'none';
+                g.disabled = true;
+            }
+        });
+    }
+
+    // Show/hide WA-specific fields based on exemption type
+    function onExemptionTypeChange() {
+        const exType = document.getElementById('exemptionType').value;
+        const waFields = document.getElementById('waFields');
+        waFields.style.display = (exType === 'WA Senior/Disabled') ? 'block' : 'none';
+    }
+
     document.getElementById('exemptionForm').addEventListener('submit',async function(e){
         e.preventDefault();
         const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Submitting...';
@@ -575,6 +703,15 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
         // Collect existing exemptions checkboxes
         const checked=Array.from(document.querySelectorAll('input[name="existingExemptions"]:checked')).map(c=>c.value);
         fd.append('existingExemptions',JSON.stringify(checked));
+        // WA-specific fields
+        const exType = document.getElementById('exemptionType').value;
+        if (exType === 'WA Senior/Disabled') {
+            fd.append('waAge61', document.getElementById('waAge61').value);
+            fd.append('waDisability', document.getElementById('waDisability').value);
+            fd.append('waVeteran', document.getElementById('waVeteran').value);
+            fd.append('waIncome', document.getElementById('waIncome').value);
+            fd.append('waCounty', document.getElementById('waCounty').value);
+        }
         // Attach files
         const files=document.getElementById('documents').files;
         for(let i=0;i<files.length;i++) fd.append('documents',files[i]);

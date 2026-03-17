@@ -259,7 +259,8 @@ router.post('/intake', uploadExemption.array('documents', 10), async (req, res) 
     try {
         const { ownerName, email, phone, propertyAddress, state, exemptionType, 
                 currentExemptions, crossSellProtest, propertyType, yearPurchased, 
-                existingExemptions } = req.body;
+                existingExemptions,
+                waAge61, waDisability, waVeteran, waIncome, waCounty } = req.body;
         
         if (!ownerName || !email || !propertyAddress || !exemptionType) {
             return res.status(400).json({ error: 'ownerName, email, propertyAddress, and exemptionType are required' });
@@ -303,18 +304,38 @@ router.post('/intake', uploadExemption.array('documents', 10), async (req, res) 
         if (currentExemptions) notesData.currentExemptions = currentExemptions;
         if (yearPurchased) notesData.yearPurchased = yearPurchased;
         if (existingExemptions) notesData.existingExemptions = existingExemptions;
+        // WA-specific fields
+        if (state === 'WA' && exemptionType === 'WA Senior/Disabled') {
+            notesData.wa_age_61_plus = waAge61 || null;
+            notesData.wa_disability_status = waDisability || null;
+            notesData.wa_veteran_status = waVeteran || null;
+            notesData.wa_income_range = waIncome || null;
+            notesData.wa_county = waCounty || null;
+        }
+        if (state === 'WA' && waCounty) {
+            notesData.wa_county = waCounty;
+        }
 
         // Create exemption record
+        const exemptionRow = {
+            client_id: clientId,
+            property_id: property.id,
+            exemption_type: exemptionType,
+            status: 'received',
+            state: state || 'TX',
+            county: (state === 'WA' && waCounty) ? waCounty : null,
+            notes: Object.keys(notesData).length ? JSON.stringify(notesData) : null
+        };
+        // WA-specific columns
+        if (state === 'WA' && exemptionType === 'WA Senior/Disabled') {
+            exemptionRow.wa_age_61_plus = waAge61 || null;
+            exemptionRow.wa_disability_status = waDisability || null;
+            exemptionRow.wa_veteran_status = waVeteran || null;
+            exemptionRow.wa_income_range = waIncome || null;
+        }
         const { data: exemption, error: exErr } = await supabaseAdmin
             .from('exemptions')
-            .insert({
-                client_id: clientId,
-                property_id: property.id,
-                exemption_type: exemptionType,
-                status: 'received',
-                state: state || 'TX',
-                notes: Object.keys(notesData).length ? JSON.stringify(notesData) : null
-            })
+            .insert(exemptionRow)
             .select('id')
             .single();
         if (exErr) throw exErr;
@@ -350,7 +371,8 @@ router.post('/intake', uploadExemption.array('documents', 10), async (req, res) 
                 await fs.writeFile(counterPath, JSON.stringify(counter));
                 const caseId = `OA-${String(counter.lastCaseNumber).padStart(4, '0')}`;
 
-                const submissionsPath = path.join(__dirname, '..', 'data', (state || 'TX').toLowerCase() === 'ga' ? 'ga' : 'tx', 'submissions.json');
+                const stateDir = { 'GA': 'ga', 'WA': 'wa', 'TX': 'tx' }[(state || 'TX').toUpperCase()] || 'tx';
+                const submissionsPath = path.join(__dirname, '..', 'data', stateDir, 'submissions.json');
                 let submissions = [];
                 try { submissions = JSON.parse(await fs.readFile(submissionsPath, 'utf8')); } catch {}
                 
@@ -380,7 +402,9 @@ router.post('/intake', uploadExemption.array('documents', 10), async (req, res) 
 
         // Send notification to Tyler (non-blocking)
         const fileCount = req.files ? req.files.length : 0;
-        const notifMsg = `🏠 New Exemption Intake!\nName: ${ownerName}\nEmail: ${email}\nProperty: ${propertyAddress}\nType: ${exemptionType}\nDocs: ${fileCount} file(s)${crossSellProtest === 'true' ? '\n📊 Cross-sell protest lead created!' : ''}`;
+        const waInfo = (state === 'WA' && exemptionType === 'WA Senior/Disabled') 
+            ? `\n🌲 WA Details: Age61+=${waAge61||'?'}, Disabled=${waDisability||'?'}, Vet=${waVeteran||'?'}, Income=${waIncome||'?'}, County=${waCounty||'?'}` : '';
+        const notifMsg = `🏠 New Exemption Intake!\nName: ${ownerName}\nEmail: ${email}\nProperty: ${propertyAddress}\nType: ${exemptionType}\nDocs: ${fileCount} file(s)${waInfo}${crossSellProtest === 'true' ? '\n📊 Cross-sell protest lead created!' : ''}`;
         try {
             sendNotificationSMS(notifMsg);
             sendNotificationEmail(`New Exemption Intake: ${ownerName}`,
