@@ -322,7 +322,7 @@ async function updateSubmissionInPlace(submissionId, updater) {
             // Fetch from Supabase
             let query = supabaseAdmin.from('submissions').select('*');
             const { data: rows, error: fetchErr } = await query
-                .or(`id.eq.${submissionId},case_id.eq.${(submissionId || '').toUpperCase()}`);
+                .or(buildIdFilter(submissionId));
             if (fetchErr) throw fetchErr;
             if (rows && rows.length > 0) {
                 const row = rows[0];
@@ -362,7 +362,7 @@ async function findSubmission(idOrCaseId) {
             const { data: rows, error } = await supabaseAdmin
                 .from('submissions')
                 .select('*')
-                .or(`id.eq.${idOrCaseId},case_id.eq.${(idOrCaseId || '').toUpperCase()}`);
+                .or(buildIdFilter(idOrCaseId));
             if (error) throw error;
             if (rows && rows.length > 0) return rowToSubmission(rows[0]);
             return null;
@@ -1529,7 +1529,7 @@ async function findSubmissionWithFile(idOrCaseId) {
             const { data: rows, error } = await supabaseAdmin
                 .from('submissions')
                 .select('*')
-                .or(`id.eq.${idOrCaseId},case_id.eq.${(idOrCaseId || '').toUpperCase()}`);
+                .or(buildIdFilter(idOrCaseId));
             if (error) throw error;
             if (rows && rows.length > 0) {
                 const sub = rowToSubmission(rows[0]);
@@ -2073,7 +2073,7 @@ app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
             const { data, error } = await supabaseAdmin
                 .from('submissions')
                 .update({ deleted_at: new Date().toISOString() })
-                .or(`id.eq.${req.params.id},case_id.eq.${(req.params.id || '').toUpperCase()}`)
+                .or(buildIdFilter(req.params.id))
                 .select();
             if (error) throw error;
             if (!data || !data.length) return res.status(404).json({ error: 'Not found' });
@@ -2093,7 +2093,7 @@ app.post('/api/submissions/:id/restore', authenticateToken, async (req, res) => 
             const { data, error } = await supabaseAdmin
                 .from('submissions')
                 .update({ deleted_at: null })
-                .or(`id.eq.${req.params.id},case_id.eq.${(req.params.id || '').toUpperCase()}`)
+                .or(buildIdFilter(req.params.id))
                 .select();
             if (error) throw error;
             if (!data || !data.length) return res.status(404).json({ error: 'Not found' });
