@@ -136,6 +136,13 @@ const LEGACY_SUBMISSIONS_FILE = path.join(__dirname, 'submissions.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const COUNTER_FILE = path.join(__dirname, 'counter.json');
 
+// Helper: build Supabase .or() filter that handles both UUID ids and case_id strings
+function buildIdFilter(value) {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    if (isUUID) return `id.eq.${value},case_id.eq.${value.toUpperCase()}`;
+    return `case_id.eq.${(value || '').toUpperCase()}`;
+}
+
 function getSubmissionsFile(state) {
     return state === 'GA' ? GA_SUBMISSIONS_FILE : TX_SUBMISSIONS_FILE;
 }
