@@ -1241,6 +1241,99 @@ app.get('/api/sign/:id', async (req, res) => {
     }
 });
 
+// ==================== COMMERCIAL INTAKE ====================
+app.post('/api/commercial-intake', async (req, res) => {
+    try {
+        const { name, companyName, email, phone, propertyAddress, propertyType, assessedValue, propertyCount, heardAbout, notes, utm_data } = req.body;
+
+        if (!name || !email || !phone || !propertyAddress || !propertyType) {
+            return res.status(400).json({ error: 'Missing required fields: name, email, phone, propertyAddress, propertyType' });
+        }
+
+        const leadId = uuidv4();
+        const state = detectState('commercial', null);
+        const caseId = await getNextCaseId();
+
+        // Save to submissions table with source='commercial'
+        const submission = {
+            id: leadId,
+            caseId,
+            propertyAddress,
+            propertyType,
+            ownerName: name,
+            phone,
+            email,
+            assessedValue: assessedValue || null,
+            state,
+            county: null,
+            notificationPref: 'both',
+            source: 'commercial',
+            status: 'New',
+            notes: notes ? [{ text: `Company: ${companyName || 'N/A'} | Properties: ${propertyCount || '1'} | Heard via: ${heardAbout || 'N/A'} | Notes: ${notes}`, date: new Date().toISOString(), author: 'system' }] : (companyName ? [{ text: `Company: ${companyName} | Properties: ${propertyCount || '1'} | Heard via: ${heardAbout || 'N/A'}`, date: new Date().toISOString(), author: 'system' }] : []),
+            utm_data: utm_data ? (typeof utm_data === 'string' ? JSON.parse(utm_data) : utm_data) : null,
+            savings: null,
+            estimatedSavings: null,
+            analysisReport: null,
+            signature: null,
+            pin: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        await writeSubmission(submission);
+
+        // Notify Tyler via SMS
+        const smsMsg = `🏢 NEW COMMERCIAL LEAD!\n${name}${companyName ? ' (' + companyName + ')' : ''}\n${propertyType} — ${propertyAddress}\nValue: ${assessedValue || 'Not provided'}\nProperties: ${propertyCount || '1'}\nPhone: ${phone}\nEmail: ${email}\nCase: ${caseId}`;
+        sendNotificationSMS(smsMsg);
+
+        // Notify Tyler via email
+        const emailHtml = `
+            <h2 style="color:#6c5ce7;">🏢 New Commercial Property Tax Lead</h2>
+            <table style="border-collapse:collapse;width:100%;max-width:600px;font-family:sans-serif;">
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Case ID</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${caseId}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Name</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${name}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Company</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${companyName || 'N/A'}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Email</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${email}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Phone</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${phone}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Property Address</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${propertyAddress}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Property Type</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${propertyType}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Assessed Value</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${assessedValue || 'Not provided'}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;"># Properties</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${propertyCount || '1'}</td></tr>
+                <tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Heard About Us</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${heardAbout || 'N/A'}</td></tr>
+                ${notes ? `<tr><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #eee;">Notes</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${notes}</td></tr>` : ''}
+            </table>
+        `;
+        sendNotificationEmail('🏢 New Commercial Lead: ' + name + ' (' + caseId + ')', emailHtml);
+
+        // Send welcome notification to client
+        const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
+        sendStageNotification(submission, 'submitted', {}, notifyFns);
+
+        // Send welcome email
+        const welcomeHtml = buildWelcomeEmail(submission);
+        sendClientEmail(email, `Welcome to OverAssessed — Case ${caseId}`, welcomeHtml);
+
+        // Auto-trigger analysis (async)
+        setTimeout(async () => {
+            try {
+                console.log(`[AutoAnalysis] Starting auto-analysis for commercial case ${caseId}`);
+                await runFullAnalysis(submission.id);
+                console.log(`[AutoAnalysis] Complete for commercial ${caseId}`);
+                sendNotificationSMS(`📊 Commercial auto-analysis complete!\nCase: ${caseId}\nProperty: ${propertyAddress}\nEvidence packet ready.`);
+            } catch (err) {
+                console.error(`[AutoAnalysis] Failed for commercial ${caseId}:`, err.message);
+            }
+        }, 2000);
+
+        console.log(`[Commercial] New lead: ${caseId} — ${name} (${propertyType}) at ${propertyAddress}`);
+        res.json({ success: true, caseId, message: 'Commercial intake received' });
+
+    } catch (err) {
+        console.error('[Commercial] Intake error:', err);
+        res.status(500).json({ error: 'Failed to process commercial intake' });
+    }
+});
+
 // POST submit signature
 app.post('/api/sign/:id', async (req, res) => {
     try {
@@ -2004,6 +2097,10 @@ app.get('/tarrant-county', (req, res) => {
 
 app.get('/georgia', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'georgia.html'));
+});
+
+app.get('/commercial', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'commercial.html'));
 });
 
 app.get('/texas', (req, res) => {
