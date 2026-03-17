@@ -108,7 +108,8 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 
 /* ===== SERVICES ===== */
 .services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-.service-card{background:var(--bg);padding:40px 32px;border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.06);transition:all 0.4s;text-align:left}
+a.service-card-link{text-decoration:none;color:inherit;display:block}
+.service-card{background:var(--bg);padding:40px 32px;border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.06);transition:all 0.4s;text-align:left;cursor:pointer;height:100%}
 .service-card:hover{box-shadow:var(--shadow-lg);border-color:rgba(108,92,231,0.15);transform:translateY(-4px)}
 .service-icon{font-size:2.25rem;margin-bottom:16px}
 .service-card h3{font-size:1.125rem;font-weight:600;margin-bottom:8px;color:var(--text);letter-spacing:-0.01em}
@@ -364,26 +365,34 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                 <p>Comprehensive property tax solutions for every owner</p>
             </div>
             <div class="services-grid">
-                <div class="service-card fade-in">
-                    <div class="service-icon">🏠</div>
-                    <h3>Residential Property Tax Appeals</h3>
-                    <p>Homes, condos, townhouses, and residential properties of all types</p>
-                </div>
-                <div class="service-card fade-in fade-in-delay-1">
-                    <div class="service-icon">🏢</div>
-                    <h3>Commercial Property Tax Appeals</h3>
-                    <p>Offices, retail spaces, warehouses, and commercial real estate</p>
-                </div>
-                <div class="service-card fade-in fade-in-delay-2">
-                    <div class="service-icon">📋</div>
-                    <h3>Homestead Exemption Filing</h3>
-                    <p>Ensure you're getting all available exemptions and deductions</p>
-                </div>
-                <div class="service-card fade-in fade-in-delay-3">
-                    <div class="service-icon">📊</div>
-                    <h3>Free Property Tax Analysis</h3>
-                    <p>No-cost assessment to identify potential savings opportunities</p>
-                </div>
+                <a href="/residential" class="service-card-link fade-in">
+                    <div class="service-card">
+                        <div class="service-icon">🏠</div>
+                        <h3>Residential Property Tax Appeals</h3>
+                        <p>Homes, condos, townhouses, and residential properties of all types</p>
+                    </div>
+                </a>
+                <a href="/commercial" class="service-card-link fade-in fade-in-delay-1">
+                    <div class="service-card">
+                        <div class="service-icon">🏢</div>
+                        <h3>Commercial Property Tax Appeals</h3>
+                        <p>Offices, retail spaces, warehouses, and commercial real estate</p>
+                    </div>
+                </a>
+                <a href="/exemptions" class="service-card-link fade-in fade-in-delay-2">
+                    <div class="service-card">
+                        <div class="service-icon">📋</div>
+                        <h3>Homestead Exemption Filing</h3>
+                        <p>Ensure you're getting all available exemptions and deductions</p>
+                    </div>
+                </a>
+                <a href="#intake-form" class="service-card-link fade-in fade-in-delay-3">
+                    <div class="service-card">
+                        <div class="service-icon">📊</div>
+                        <h3>Free Property Tax Analysis</h3>
+                        <p>No-cost assessment to identify potential savings opportunities</p>
+                    </div>
+                </a>
             </div>
         </div>
     </section>
