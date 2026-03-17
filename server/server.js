@@ -190,7 +190,10 @@ function submissionToRow(sub) {
         referral_id: sub.referralId,
         stripe_customer_id: sub.stripeCustomerId,
         created_at: sub.createdAt,
-        updated_at: sub.updatedAt
+        updated_at: sub.updatedAt,
+        deleted_at: sub.deletedAt || null,
+        follow_up_date: sub.followUpDate || null,
+        follow_up_note: sub.followUpNote || null
     };
 }
 
@@ -242,18 +245,26 @@ function rowToSubmission(row) {
         referralId: row.referral_id,
         stripeCustomerId: row.stripe_customer_id,
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
+        deletedAt: row.deleted_at || null,
+        followUpDate: row.follow_up_date || null,
+        followUpNote: row.follow_up_note || null
     };
 }
 
 // Read all submissions — Supabase primary, file fallback
-async function readAllSubmissions() {
+// By default filters out soft-deleted records; pass includeDeleted=true to get everything
+async function readAllSubmissions(includeDeleted = false) {
     if (isSupabaseEnabled()) {
         try {
-            const { data, error } = await supabaseAdmin
+            let query = supabaseAdmin
                 .from('submissions')
                 .select('*')
                 .order('created_at', { ascending: false });
+            if (!includeDeleted) {
+                query = query.is('deleted_at', null);
+            }
+            const { data, error } = await query;
             if (error) throw error;
             return (data || []).map(rowToSubmission);
         } catch (err) {
@@ -1969,6 +1980,46 @@ app.get('/api/submissions', authenticateToken, async (req, res) => {
     }
 });
 
+// These must be BEFORE :id routes so Express doesn't match "deleted"/"follow-ups-due" as an :id
+// GET /api/submissions/deleted — list soft-deleted records
+app.get('/api/submissions/deleted', authenticateToken, async (req, res) => {
+    try {
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .select('*')
+                .not('deleted_at', 'is', null)
+                .order('deleted_at', { ascending: false });
+            if (error) throw error;
+            return res.json((data || []).map(rowToSubmission));
+        }
+        res.json([]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch deleted submissions' });
+    }
+});
+
+// GET /api/submissions/follow-ups-due — leads with follow_up_date <= today
+app.get('/api/submissions/follow-ups-due', authenticateToken, async (req, res) => {
+    try {
+        if (isSupabaseEnabled()) {
+            const today = new Date().toISOString().split('T')[0];
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .select('*')
+                .is('deleted_at', null)
+                .not('follow_up_date', 'is', null)
+                .lte('follow_up_date', today)
+                .order('follow_up_date', { ascending: true });
+            if (error) throw error;
+            return res.json((data || []).map(rowToSubmission));
+        }
+        res.json([]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch follow-ups' });
+    }
+});
+
 app.get('/api/submissions/:id', authenticateToken, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);
@@ -2011,6 +2062,114 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
         res.json(sub);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update submission' });
+    }
+});
+
+// ==================== SOFT DELETE ENDPOINTS ====================
+// DELETE /api/submissions/:id — soft delete (set deleted_at)
+app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
+    try {
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .update({ deleted_at: new Date().toISOString() })
+                .or(`id.eq.${req.params.id},case_id.eq.${(req.params.id || '').toUpperCase()}`)
+                .select();
+            if (error) throw error;
+            if (!data || !data.length) return res.status(404).json({ error: 'Not found' });
+            return res.json({ success: true, message: 'Record archived' });
+        }
+        res.status(503).json({ error: 'Supabase required for soft delete' });
+    } catch (error) {
+        console.error('Soft delete error:', error);
+        res.status(500).json({ error: 'Failed to archive submission' });
+    }
+});
+
+// POST /api/submissions/:id/restore — restore soft-deleted record
+app.post('/api/submissions/:id/restore', authenticateToken, async (req, res) => {
+    try {
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .update({ deleted_at: null })
+                .or(`id.eq.${req.params.id},case_id.eq.${(req.params.id || '').toUpperCase()}`)
+                .select();
+            if (error) throw error;
+            if (!data || !data.length) return res.status(404).json({ error: 'Not found' });
+            return res.json({ success: true, message: 'Record restored' });
+        }
+        res.status(503).json({ error: 'Supabase required for restore' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to restore submission' });
+    }
+});
+
+// ==================== NOTES (CRM) ENDPOINTS ====================
+// GET /api/submissions/:id/notes — get all notes for a submission
+app.get('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
+    try {
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('notes')
+                .select('*')
+                .eq('submission_id', req.params.id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return res.json(data || []);
+        }
+        res.json([]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch notes' });
+    }
+});
+
+// POST /api/submissions/:id/notes — add a note to a submission
+app.post('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
+    try {
+        const { note_text } = req.body;
+        if (!note_text) return res.status(400).json({ error: 'note_text required' });
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('notes')
+                .insert({
+                    submission_id: req.params.id,
+                    note_text,
+                    created_by: req.user.email || 'admin'
+                })
+                .select()
+                .single();
+            if (error) throw error;
+            return res.json(data);
+        }
+        res.status(503).json({ error: 'Supabase required for notes' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to add note' });
+    }
+});
+
+// ==================== FOLLOW-UP ENDPOINTS ====================
+// PATCH /api/submissions/:id/follow-up — set follow-up date and note
+app.patch('/api/submissions/:id/follow-up', authenticateToken, async (req, res) => {
+    try {
+        const { follow_up_date, follow_up_note } = req.body;
+        if (isSupabaseEnabled()) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .update({
+                    follow_up_date: follow_up_date || null,
+                    follow_up_note: follow_up_note || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', req.params.id)
+                .select();
+            if (error) throw error;
+            if (!data || !data.length) return res.status(404).json({ error: 'Not found' });
+            return res.json(rowToSubmission(data[0]));
+        }
+        res.status(503).json({ error: 'Supabase required' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to set follow-up' });
     }
 });
 

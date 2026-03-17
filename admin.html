@@ -105,6 +105,7 @@
         .status-Appeal-Filed { background: #e9d8fd; color: #6b46c1; }
         .status-Won { background: #c6f6d5; color: #276749; }
         .status-Lost { background: #fed7d7; color: #9b2c2c; }
+        .status-Contacted { background: #e0f2fe; color: #0369a1; }
 
         /* New tab status badges */
         .status-pending { background: #ebf8ff; color: #2b6cb0; }
@@ -195,7 +196,7 @@
 <!-- DASHBOARD -->
 <div class="dashboard" id="dashboard">
     <div class="topbar">
-        <h1>OverAssessed Admin</h1>
+        <h1><img src="/assets/logo/icon-64.png" alt="OA" style="height:28px;width:28px;vertical-align:middle;margin-right:8px;border-radius:6px;">OverAssessed Admin</h1>
         <div class="topbar-right">
             <span class="user-name" id="userName"></span>
             <button onclick="doLogout()">Logout</button>
@@ -216,10 +217,22 @@
             <button class="tab" onclick="switchTab('analysis')">🔍 Analysis</button>
             <button class="tab" onclick="switchTab('prereg')">📋 Pre-Reg</button>
             <button class="tab" onclick="switchTab('filings')">📋 Filings</button>
+            <button class="tab" onclick="switchTab('archived')">🗑️ Archived</button>
         </div>
 
         <!-- OVERVIEW TAB -->
         <div class="tab-content active" id="tab-overview">
+            <!-- Follow-ups Due Banner -->
+            <div id="followUpsDueSection" style="display:none;margin-bottom:1.5rem;">
+                <div class="panel" style="border-left:4px solid #e17055;">
+                    <div class="panel-header" style="background:rgba(225,112,85,0.06);">
+                        <h2 style="color:#e17055;">⏰ Follow-ups Due Today</h2>
+                        <span id="followUpCount" style="font-size:0.85rem;color:var(--text-muted);"></span>
+                    </div>
+                    <div id="followUpsBody" style="padding:0.5rem 1rem;"></div>
+                </div>
+            </div>
+
             <div class="pipeline-row" id="pipelineRow"></div>
 
             <div class="kpi-row">
@@ -259,6 +272,7 @@
                         <select id="statusFilter" onchange="loadSubmissions()">
                             <option value="">All Statuses</option>
                             <option value="New">New</option>
+                            <option value="Contacted">Contacted</option>
                             <option value="Analysis Complete">Analysis Complete</option>
                             <option value="Form Signed">Form Signed</option>
                             <option value="Protest Filed">Protest Filed</option>
@@ -535,6 +549,7 @@
         <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Status</label>
         <select class="status-select" id="detailStatus">
             <option value="New">New</option>
+            <option value="Contacted">Contacted</option>
             <option value="Analysis Complete">Analysis Complete</option>
             <option value="Form Signed">Form Signed</option>
             <option value="Protest Filed">Protest Filed</option>
@@ -553,9 +568,42 @@
         </div>
     </div>
 
+    <!-- Status Timeline -->
+    <div class="detail-section" id="detailTimelineSection">
+        <h3>📊 Status Progress</h3>
+        <div id="detailTimeline" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:0.5rem;"></div>
+    </div>
+
+    <!-- Follow-up Reminder -->
     <div class="detail-section">
-        <h3>Notes</h3>
+        <h3>⏰ Follow-up Reminder</h3>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+            <input type="date" id="detailFollowUpDate" style="padding:0.4rem;border:2px solid var(--gray-medium);border-radius:6px;font-family:inherit;">
+            <input type="text" id="detailFollowUpNote" placeholder="Follow-up note..." style="flex:1;min-width:150px;padding:0.4rem;border:2px solid var(--gray-medium);border-radius:6px;font-family:inherit;">
+            <button class="btn btn-purple btn-sm" onclick="setFollowUp()">Set</button>
+            <button class="btn btn-outline btn-sm" onclick="clearFollowUp()">Clear</button>
+        </div>
+        <div id="detailFollowUpInfo" style="font-size:0.8rem;color:var(--text-muted);"></div>
+    </div>
+
+    <!-- CRM Activity Notes -->
+    <div class="detail-section">
+        <h3>📝 Activity Notes</h3>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+            <textarea id="detailCrmNote" placeholder="Add a CRM note..." style="flex:1;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.85rem;min-height:50px;resize:vertical;font-family:inherit;"></textarea>
+            <button class="btn btn-purple btn-sm" onclick="addCrmNote()" style="align-self:flex-end;">Add</button>
+        </div>
+        <div id="detailCrmNotes"></div>
+    </div>
+
+    <div class="detail-section">
+        <h3>Notes (Legacy)</h3>
         <div id="detailNotes"></div>
+    </div>
+
+    <!-- Archive button -->
+    <div class="detail-section" style="border-top:1px solid #fed7d7;">
+        <button class="btn btn-sm" style="background:#fed7d7;color:#9b2c2c;" onclick="archiveSubmission()">🗑️ Archive This Record</button>
     </div>
 </div>
 
@@ -598,6 +646,20 @@
                     <thead><tr><th>Client</th><th>Property</th><th>County</th><th>Status</th><th>Filed</th><th>Hearing</th><th>Savings</th><th>Actions</th></tr></thead>
                     <tbody id="filingsBody"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Select the Filings tab to load data</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ARCHIVED TAB -->
+        <div class="tab-content" id="tab-archived">
+            <div class="panel">
+                <div class="panel-header"><h2>🗑️ Archived (Soft-Deleted) Records</h2></div>
+                <table>
+                    <thead><tr>
+                        <th>Case</th><th>Date Archived</th><th>Name</th><th>Property</th><th class="hide-mobile">Status</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody id="archivedBody"></tbody>
+                </table>
+                <div class="empty-msg" id="archivedEmpty" style="display:none;">No archived records.</div>
             </div>
         </div>
 
@@ -655,7 +717,7 @@ function switchTab(name) {
 
 // ===== DATA LOADING =====
 async function loadAll() {
-    await Promise.all([loadSubmissions(), loadPipelineStats()]);
+    await Promise.all([loadSubmissions(), loadPipelineStats(), loadFollowUpsDue()]);
     renderOverview();
     renderSignatures();
     renderNotices();
@@ -664,6 +726,7 @@ async function loadAll() {
     loadReferrals();
     loadMonitoring();
     loadPreRegistrations();
+    loadArchived();
 }
 
 async function loadPipelineStats() {
@@ -1538,12 +1601,127 @@ const origSwitchTab = window.switchTab || function(){};
 const _origSwitchTab = typeof switchTab === 'function' ? switchTab : null;
 </script>
 <script>
-// Patch switchTab to load filings
+// Patch switchTab to load filings + archived
 const _baseSwitchTab = switchTab;
 window.switchTab = function(tab) {
     _baseSwitchTab(tab);
     if (tab === 'filings') loadFilings();
+    if (tab === 'archived') loadArchived();
 };
+
+// ==================== FOLLOW-UPS DUE ====================
+async function loadFollowUpsDue() {
+    try {
+        const res = await fetch('/api/submissions/follow-ups-due', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const section = document.getElementById('followUpsDueSection');
+        const body = document.getElementById('followUpsBody');
+        const count = document.getElementById('followUpCount');
+        if (!data.length) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        count.textContent = data.length + ' follow-up' + (data.length > 1 ? 's' : '') + ' due';
+        body.innerHTML = data.map(s => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #eee;">
+                <div><strong>${s.case_id || s.caseId}</strong> — ${s.owner_name || s.name || '?'} · ${s.follow_up_note || s.followUpNote || ''}</div>
+                <div style="font-size:0.8rem;color:#e17055;">${s.follow_up_date || s.followUpDate}</div>
+            </div>
+        `).join('');
+    } catch(e) { console.error('Follow-ups error:', e); }
+}
+
+// ==================== ARCHIVED / SOFT DELETE ====================
+async function loadArchived() {
+    try {
+        const res = await fetch('/api/submissions/deleted', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const container = document.getElementById('tab-archived');
+        if (!container) return;
+        if (!data.length) {
+            container.innerHTML = '<div class="panel" style="padding:2rem;text-align:center;color:var(--text-muted);">No archived records</div>';
+            return;
+        }
+        container.innerHTML = '<div class="panel"><table><thead><tr><th>Case</th><th>Name</th><th>Address</th><th>Deleted</th><th>Action</th></tr></thead><tbody>' +
+            data.map(s => `<tr>
+                <td>${s.case_id || s.caseId || '?'}</td>
+                <td>${s.owner_name || s.name || '?'}</td>
+                <td>${s.property_address || s.address || '?'}</td>
+                <td>${(s.deleted_at || s.deletedAt || '').substring(0,10)}</td>
+                <td><button class="btn btn-purple" style="font-size:0.75rem;padding:4px 10px;" onclick="restoreSubmission('${s.id}')">♻️ Restore</button></td>
+            </tr>`).join('') +
+            '</tbody></table></div>';
+    } catch(e) { console.error('Archived error:', e); }
+}
+
+async function softDeleteSubmission(id, caseName) {
+    if (!confirm('Archive ' + caseName + '? You can restore it later from the Archived tab.')) return;
+    try {
+        const res = await fetch('/api/submissions/' + id, { method: 'DELETE', headers: authHeaders() });
+        if (res.ok) { alert('Archived. You can restore from the Archived tab.'); loadAll(); }
+        else alert('Error archiving');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function restoreSubmission(id) {
+    try {
+        const res = await fetch('/api/submissions/' + id + '/restore', { method: 'POST', headers: authHeaders() });
+        if (res.ok) { alert('Restored!'); loadArchived(); loadAll(); }
+        else alert('Error restoring');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ==================== NOTES ====================
+async function loadNotes(submissionId) {
+    try {
+        const res = await fetch('/api/submissions/' + submissionId + '/notes', { headers: authHeaders() });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch(e) { return []; }
+}
+
+async function addNote(submissionId) {
+    const input = document.getElementById('noteInput');
+    if (!input || !input.value.trim()) return;
+    try {
+        await fetch('/api/submissions/' + submissionId + '/notes', {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note_text: input.value.trim(), created_by: document.getElementById('userName')?.textContent || 'Admin' })
+        });
+        input.value = '';
+        // Refresh notes display
+        const notes = await loadNotes(submissionId);
+        const container = document.getElementById('notesContainer');
+        if (container) renderNotes(container, notes);
+    } catch(e) { alert('Error adding note: ' + e.message); }
+}
+
+function renderNotes(container, notes) {
+    if (!notes.length) { container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No notes yet</p>'; return; }
+    container.innerHTML = notes.map(n => `
+        <div style="border-left:3px solid var(--purple);padding:0.5rem 0.75rem;margin-bottom:0.5rem;background:#fafafa;border-radius:0 6px 6px 0;">
+            <div style="font-size:0.85rem;">${n.note_text}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">${n.created_by || 'Admin'} · ${new Date(n.created_at).toLocaleDateString()} ${new Date(n.created_at).toLocaleTimeString()}</div>
+        </div>
+    `).join('');
+}
+
+// ==================== FOLLOW-UP ====================
+async function saveFollowUp(submissionId) {
+    const dateEl = document.getElementById('detailFollowUpDate');
+    const noteEl = document.getElementById('detailFollowUpNote');
+    if (!dateEl) return;
+    try {
+        await fetch('/api/submissions/' + submissionId + '/follow-up', {
+            method: 'PATCH',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ follow_up_date: dateEl.value || null, follow_up_note: noteEl?.value || '' })
+        });
+        alert('Follow-up saved!');
+        loadFollowUpsDue();
+    } catch(e) { alert('Error: ' + e.message); }
+}
 </script>
 </body>
 </html>
