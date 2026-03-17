@@ -1,10 +1,10 @@
-# Review Platform Profiles — OverAssessed AI, LLC
+# Review Platform Profiles — OverAssessed LLC
 
 ## Business Information
 
 | Field | Value |
 |-------|-------|
-| **Legal Name** | OverAssessed AI, LLC |
+| **Legal Name** | OverAssessed LLC |
 | **DBA** | OverAssessed |
 | **Address** | 6002 Camp Bullis, Suite 208, San Antonio, TX 78257 |
 | **Phone** | (210) 760-7236 |
@@ -62,9 +62,9 @@ Currently serving homeowners in Texas and Georgia. Visit overassessed.ai to get 
 
 1. **Go to:** https://biz.yelp.com
 2. **Click:** "Claim your Business" or "Add your Business"
-3. **Search** for "OverAssessed AI" — if already listed, claim it. If not, add new.
+3. **Search** for "OverAssessed" — if already listed, claim it. If not, add new.
 4. **Enter business information:**
-   - Business name: OverAssessed AI
+   - Business name: OverAssessed
    - Address: 6002 Camp Bullis, Suite 208, San Antonio, TX 78257
    - Phone: (210) 760-7236
    - Website: https://overassessed.ai
@@ -95,7 +95,7 @@ Currently serving homeowners in Texas and Georgia. Visit overassessed.ai to get 
 1. **Go to:** https://www.bbb.org/get-accredited
 2. **Click:** "Apply for Accreditation"
 3. **Enter business information:**
-   - Business name: OverAssessed AI, LLC
+   - Business name: OverAssessed LLC
    - Address: 6002 Camp Bullis, Suite 208, San Antonio, TX 78257
    - Phone: (210) 760-7236
    - Website: https://overassessed.ai
@@ -136,7 +136,7 @@ Currently serving homeowners in Texas and Georgia. Visit overassessed.ai to get 
 2. **Click:** "Create a free account"
 3. **Sign up** with tyler@overassessed.ai
 4. **Add business:**
-   - Business name: OverAssessed AI
+   - Business name: OverAssessed
    - Website: overassessed.ai (Trustpilot verifies domain ownership)
    - Address: 6002 Camp Bullis, Suite 208, San Antonio, TX 78257
    - Phone: (210) 760-7236

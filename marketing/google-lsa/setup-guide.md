@@ -1,4 +1,4 @@
-# Google Local Service Ads (LSA) — Setup Guide for OverAssessed AI
+# Google Local Service Ads (LSA) — Setup Guide for OverAssessed
 
 ## Overview
 
@@ -22,7 +22,7 @@ Google LSA puts you at the **very top** of search results with a "Google Guarant
 ## Step 2: Gather Required Documents
 
 ### Business Documents
-- [ ] **Business license** — Texas state registration (OverAssessed AI, LLC)
+- [ ] **Business license** — Texas state registration (OverAssessed LLC)
 - [ ] **EIN verification** — IRS letter or document showing EIN
 - [ ] **Proof of insurance** — General liability insurance certificate (if applicable)
 - [ ] **Secretary of State filing** — Texas SOS LLC formation docs
@@ -42,7 +42,7 @@ Google LSA puts you at the **very top** of search results with a "Google Guarant
 ## Step 3: Set Up Your Google Business Profile (Prerequisite)
 
 If not already done:
-- [ ] Claim/verify Google Business Profile for OverAssessed AI, LLC
+- [ ] Claim/verify Google Business Profile for OverAssessed LLC
 - [ ] **Address:** 6002 Camp Bullis, Suite 208, San Antonio, TX 78257
 - [ ] **Phone:** 210-760-7236
 - [ ] **Website:** overassessed.ai

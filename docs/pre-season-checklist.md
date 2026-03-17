@@ -323,4 +323,4 @@ Expected ROI: If you sign 100 clients at $1,200 avg revenue/client = $120k reven
 
 **Last Updated:** March 4, 2026
 **Owner:** Tyler
-**Contributors:** Claude (OverAssessed AI Assistant)
+**Contributors:** Claude (OverAssessed Assistant)

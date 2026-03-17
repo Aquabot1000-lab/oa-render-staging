@@ -1,10 +1,10 @@
-# OverAssessed AI, LLC — Master Reference Guide
+# OverAssessed LLC — Master Reference Guide
 **Last Updated:** 2026-03-06
 
 ---
 
 ## 🏢 Company Info
-- **Legal Name:** OverAssessed AI, LLC
+- **Legal Name:** OverAssessed LLC
 - **EIN:** (on file — check Apple Notes "OverAssessed.ai — Master Credentials")
 - **Registered:** Texas (LegalZoom, filed 2026-02-20)
 - **GA Foreign Qualification:** Filed Certificate of Authority ($225)
