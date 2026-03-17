@@ -1063,6 +1063,66 @@ app.get('/api/pre-registrations', authenticateToken, async (req, res) => {
     }
 });
 
+// ==================== DUPLICATE CHECK (lightweight) ====================
+app.get('/api/intake/check-duplicate', async (req, res) => {
+    try {
+        if (!isSupabaseEnabled()) return res.json({ duplicate: false });
+        const { email, address } = req.query;
+        if (!email && !address) return res.json({ duplicate: false });
+
+        const normalizeAddress = (addr) => (addr || '').trim().toLowerCase().replace(/\s+/g, ' ')
+            .replace(/\b(street|st\.?)\b/gi, 'st').replace(/\b(avenue|ave\.?)\b/gi, 'ave')
+            .replace(/\b(drive|dr\.?)\b/gi, 'dr').replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
+            .replace(/\b(road|rd\.?)\b/gi, 'rd').replace(/\b(lane|ln\.?)\b/gi, 'ln')
+            .replace(/\b(court|ct\.?)\b/gi, 'ct').replace(/\b(circle|cir\.?)\b/gi, 'cir')
+            .replace(/[.,]/g, '');
+
+        let matches = [];
+        if (email) {
+            const { data } = await supabaseAdmin
+                .from('submissions')
+                .select('case_id, property_address, email')
+                .ilike('email', email.trim().toLowerCase());
+            if (data) matches = data;
+        }
+
+        if (matches.length > 0 && address) {
+            const normAddr = normalizeAddress(address);
+            const addrMatch = matches.find(m => {
+                const existing = normalizeAddress(m.property_address);
+                return existing === normAddr || existing.includes(normAddr) || normAddr.includes(existing);
+            });
+            if (addrMatch) {
+                return res.json({ duplicate: true, caseId: addrMatch.case_id, message: "It looks like you've already submitted this property. Check your email for updates!" });
+            }
+        } else if (matches.length > 0) {
+            return res.json({ duplicate: true, caseId: matches[0].case_id, message: "We already have a submission with this email. Check your email for updates!" });
+        }
+
+        // Check address alone if no email match
+        if (address && matches.length === 0) {
+            const normAddr = normalizeAddress(address);
+            if (normAddr.length > 10) {
+                const { data } = await supabaseAdmin.from('submissions').select('case_id, property_address, email');
+                if (data) {
+                    const addrMatch = data.find(m => {
+                        const existing = normalizeAddress(m.property_address);
+                        return existing === normAddr || existing.includes(normAddr) || normAddr.includes(existing);
+                    });
+                    if (addrMatch) {
+                        return res.json({ duplicate: true, caseId: addrMatch.case_id, message: "It looks like this property has already been submitted. Check your email for updates!" });
+                    }
+                }
+            }
+        }
+
+        return res.json({ duplicate: false });
+    } catch (err) {
+        console.error('[DupCheck] Error:', err.message);
+        return res.json({ duplicate: false });
+    }
+});
+
 // ==================== INTAKE (enhanced) ====================
 app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
     try {
@@ -1071,6 +1131,57 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 stripeCustomerId, stripePaymentMethodId } = req.body;
         if (!propertyAddress || !propertyType || !ownerName || !phone || !email) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // === Duplicate detection ===
+        if (isSupabaseEnabled()) {
+            try {
+                const normalizedEmail = email.trim().toLowerCase();
+                const normalizedAddress = propertyAddress.trim().toLowerCase().replace(/\s+/g, ' ')
+                    .replace(/\b(street|st\.?)\b/gi, 'st')
+                    .replace(/\b(avenue|ave\.?)\b/gi, 'ave')
+                    .replace(/\b(drive|dr\.?)\b/gi, 'dr')
+                    .replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
+                    .replace(/\b(road|rd\.?)\b/gi, 'rd')
+                    .replace(/\b(lane|ln\.?)\b/gi, 'ln')
+                    .replace(/\b(court|ct\.?)\b/gi, 'ct')
+                    .replace(/\b(circle|cir\.?)\b/gi, 'cir')
+                    .replace(/[.,]/g, '');
+
+                // Check by email
+                const { data: emailMatches } = await supabaseAdmin
+                    .from('submissions')
+                    .select('case_id, property_address, email')
+                    .ilike('email', normalizedEmail);
+
+                if (emailMatches && emailMatches.length > 0) {
+                    // Check if any existing submission has a similar address
+                    const addressMatch = emailMatches.find(m => {
+                        const existingAddr = (m.property_address || '').trim().toLowerCase().replace(/\s+/g, ' ')
+                            .replace(/\b(street|st\.?)\b/gi, 'st')
+                            .replace(/\b(avenue|ave\.?)\b/gi, 'ave')
+                            .replace(/\b(drive|dr\.?)\b/gi, 'dr')
+                            .replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
+                            .replace(/\b(road|rd\.?)\b/gi, 'rd')
+                            .replace(/\b(lane|ln\.?)\b/gi, 'ln')
+                            .replace(/\b(court|ct\.?)\b/gi, 'ct')
+                            .replace(/\b(circle|cir\.?)\b/gi, 'cir')
+                            .replace(/[.,]/g, '');
+                        return existingAddr === normalizedAddress || existingAddr.includes(normalizedAddress) || normalizedAddress.includes(existingAddr);
+                    });
+
+                    if (addressMatch) {
+                        console.log(`[Intake] Duplicate detected — email: ${normalizedEmail}, existing case: ${addressMatch.case_id}`);
+                        return res.json({
+                            duplicate: true,
+                            caseId: addressMatch.case_id,
+                            message: "We already have your property on file! Check your email for updates, or reply to our previous email."
+                        });
+                    }
+                }
+            } catch (dupErr) {
+                console.error('[Intake] Duplicate check failed (proceeding):', dupErr.message);
+            }
         }
 
         const caseId = await getNextCaseId();

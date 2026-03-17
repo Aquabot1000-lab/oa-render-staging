@@ -178,6 +178,14 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
 .submit-btn{background:var(--primary);color:#fff;border:none;padding:16px;font-size:1.0625rem;font-weight:600;border-radius:14px;cursor:pointer;transition:all 0.3s;font-family:var(--font);letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;margin-top:8px}
 .submit-btn:hover{background:#5b4bd5;transform:translateY(-1px);box-shadow:var(--shadow-purple)}
 .submit-btn:disabled{background:var(--text-secondary);cursor:not-allowed;transform:none;box-shadow:none}
+.field-feedback{font-size:0.75rem;margin-top:2px;min-height:18px;transition:all 0.3s}
+.field-valid{color:#22c55e}.field-warning{color:#f59e0b}.field-error{color:#ef4444}
+.field-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.875rem;pointer-events:none}
+.form-group{position:relative}
+.form-group input.input-valid{border-color:#22c55e}.form-group input.input-warning{border-color:#f59e0b}.form-group input.input-error{border-color:#ef4444}
+.duplicate-banner{background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:0.875rem;color:#92400e;display:none;text-align:center;line-height:1.5}
+.submit-btn .spinner{display:none;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .form-disclaimer{font-size:0.75rem;color:var(--text-secondary);text-align:center;margin-top:8px;line-height:1.5}
 .form-success{text-align:center;padding:32px 16px}
 .success-icon{font-size:3rem;margin-bottom:12px}
@@ -331,6 +339,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
             <div class="form-wrap fade-in">
                 <h2 class="form-title">Get Your Free Analysis</h2>
                 <p class="form-subtitle">Takes less than 2 minutes. No upfront cost.</p>
+                <div id="duplicateBanner" class="duplicate-banner"></div>
                 <form id="intakeForm" class="intake-form">
                     <div class="form-group">
                         <label for="propertyAddress">Property Address *</label>
@@ -453,8 +462,8 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                         <div id="card-errors"></div>
                     </div>
                     <button type="submit" class="submit-btn" id="submitBtn">
-                        <span class="btn-text">Get My Free Analysis</span>
-                        <span class="btn-loader" style="display:none;">⏳</span>
+                        <div class="spinner" id="submitSpinner"></div>
+                        <span class="btn-text" id="btnText">Get My Free Analysis</span>
                     </button>
                     <p class="form-disclaimer">
                         By submitting this form, you agree to be contacted by OverAssessed, LLC. 
@@ -819,15 +828,158 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
 
     <!-- Inline form handlers (keep all functionality) -->
     <script>
+    // ===== FORM VALIDATION & AUTO-CORRECTION HELPERS =====
+    const V = {
+        toTitleCase(s) { return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase()); },
+        normalizeAddress(addr) {
+            let a = addr.trim().replace(/\s+/g, ' ');
+            // Title case the street part
+            const parts = a.split(',').map(p => p.trim());
+            if (parts.length > 0) {
+                parts[0] = V.toTitleCase(parts[0])
+                    .replace(/\b(St|Street)\b/gi, 'St').replace(/\b(Ave|Avenue)\b/gi, 'Ave')
+                    .replace(/\b(Dr|Drive)\b/gi, 'Dr').replace(/\b(Blvd|Boulevard)\b/gi, 'Blvd')
+                    .replace(/\b(Rd|Road)\b/gi, 'Rd').replace(/\b(Ln|Lane)\b/gi, 'Ln')
+                    .replace(/\b(Ct|Court)\b/gi, 'Ct').replace(/\b(Cir|Circle)\b/gi, 'Cir');
+            }
+            // Uppercase state abbreviation if present
+            if (parts.length >= 2) {
+                parts[parts.length - 1] = parts[parts.length - 1].replace(/\b([a-z]{2})\s+(\d{5})/i, (m, st, zip) => st.toUpperCase() + ' ' + zip);
+                parts[parts.length - 1] = parts[parts.length - 1].replace(/\b(tx|ga|wa|fl|ca|ny|il|oh|pa|az|nv|co|nc|sc|tn|al|ms|la|ar|ok|ks|mo|in|mi|wi|mn|ia|nd|sd|ne|mt|wy|id|ut|nm|or|hi|ak|ct|ri|ma|nh|vt|me|nj|de|md|dc|va|wv|ky)\b/gi, s => s.toUpperCase());
+            }
+            return parts.join(', ').replace(/\s+/g, ' ').trim();
+        },
+        normalizeEmail(email) {
+            let e = email.trim().toLowerCase();
+            e = e.replace(/gmial\.com/g, 'gmail.com').replace(/gmai\.com/g, 'gmail.com')
+                 .replace(/gamil\.com/g, 'gmail.com').replace(/gnail\.com/g, 'gmail.com')
+                 .replace(/yaho\.com/g, 'yahoo.com').replace(/yahooo\.com/g, 'yahoo.com')
+                 .replace(/hotmial\.com/g, 'hotmail.com').replace(/hotmal\.com/g, 'hotmail.com')
+                 .replace(/aol\.con/g, 'aol.com').replace(/\.comm$/g, '.com').replace(/\.coom$/g, '.com');
+            return e;
+        },
+        checkEmailSuspicious(email) {
+            const domain = email.split('@')[1] || '';
+            const knownDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','aol.com','icloud.com','att.net','sbcglobal.net','msn.com','live.com','me.com','comcast.net','mail.com','protonmail.com'];
+            if (!domain.includes('.')) return 'Email appears invalid';
+            if (domain.length < 4) return 'Email domain looks suspicious';
+            return null;
+        },
+        normalizePhone(phone) {
+            const digits = phone.replace(/\D/g, '');
+            const d = digits.startsWith('1') && digits.length === 11 ? digits.slice(1) : digits;
+            if (d.length === 10) return { formatted: '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6), valid: true };
+            return { formatted: phone, valid: false };
+        },
+        normalizeName(name) {
+            return V.toTitleCase(name.trim().replace(/[^a-zA-Z\s'-]/g, '').replace(/\s+/g, ' '));
+        },
+        setFeedback(inputId, type, msg) {
+            const input = document.getElementById(inputId);
+            let fb = input.parentElement.querySelector('.field-feedback');
+            if (!fb) { fb = document.createElement('div'); fb.className = 'field-feedback'; input.parentElement.appendChild(fb); }
+            fb.className = 'field-feedback ' + (type === 'valid' ? 'field-valid' : type === 'warning' ? 'field-warning' : 'field-error');
+            fb.textContent = msg || '';
+            input.className = input.className.replace(/input-(valid|warning|error)/g, '').trim() + (type ? ' input-' + type : '');
+        },
+        clearFeedback(inputId) {
+            const input = document.getElementById(inputId);
+            let fb = input.parentElement.querySelector('.field-feedback');
+            if (fb) fb.textContent = '';
+            input.className = input.className.replace(/input-(valid|warning|error)/g, '').trim();
+        }
+    };
+
+    // Debounce helper
+    function debounce(fn, ms) { let t; return function(...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; }
+
+    // === Duplicate check (frontend) ===
+    let dupFound = false;
+    const checkDuplicate = debounce(async () => {
+        const email = document.getElementById('email').value.trim();
+        const address = document.getElementById('propertyAddress').value.trim();
+        if (!email && !address) return;
+        try {
+            const params = new URLSearchParams();
+            if (email) params.set('email', email);
+            if (address) params.set('address', address);
+            const res = await fetch('/api/intake/check-duplicate?' + params.toString());
+            const data = await res.json();
+            const banner = document.getElementById('duplicateBanner');
+            if (data.duplicate) {
+                dupFound = true;
+                banner.textContent = data.message || "It looks like you've already submitted this property. Check your email for updates!";
+                banner.style.display = 'block';
+            } else {
+                dupFound = false;
+                banner.style.display = 'none';
+            }
+        } catch(e) { /* silently fail */ }
+    }, 600);
+
+    // === Real-time validation ===
+    document.getElementById('ownerName').addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.value = V.normalizeName(this.value);
+            V.setFeedback('ownerName', 'valid', '✓');
+        } else { V.setFeedback('ownerName', 'error', 'Name is required'); }
+    });
+
+    document.getElementById('email').addEventListener('blur', function() {
+        let val = V.normalizeEmail(this.value);
+        this.value = val;
+        if (!val) { V.setFeedback('email', 'error', 'Email is required'); return; }
+        if (!val.includes('@') || !val.includes('.')) { V.setFeedback('email', 'error', 'Please enter a valid email'); return; }
+        const warning = V.checkEmailSuspicious(val);
+        if (warning) { V.setFeedback('email', 'warning', '⚠ ' + warning + ' — double-check?'); }
+        else { V.setFeedback('email', 'valid', '✓'); }
+        checkDuplicate();
+    });
+
+    document.getElementById('phone').addEventListener('blur', function() {
+        if (!this.value.trim()) { V.setFeedback('phone', 'error', 'Phone is required'); return; }
+        const result = V.normalizePhone(this.value);
+        this.value = result.formatted;
+        if (result.valid) { V.setFeedback('phone', 'valid', '✓'); }
+        else { V.setFeedback('phone', 'error', 'Please enter a valid 10-digit US phone number'); }
+    });
+
+    document.getElementById('propertyAddress').addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.value = V.normalizeAddress(this.value);
+            // Check for apartment/unit in address
+            if (/\b(apt|unit|suite|ste|#)\b/i.test(this.value)) {
+                V.setFeedback('propertyAddress', 'warning', '⚠ Apartment/unit detected — make sure this is the property address only');
+            } else {
+                V.setFeedback('propertyAddress', 'valid', '✓');
+            }
+            checkDuplicate();
+        } else { V.setFeedback('propertyAddress', 'error', 'Address is required'); }
+    });
+
     // ===== MAIN INTAKE FORM =====
+    let submitting = false;
     document.getElementById('intakeForm').addEventListener('submit', async function(e) {
         e.preventDefault();
+        if (submitting) return; // Prevent double-click
+        submitting = true;
+
         const btn = document.getElementById('submitBtn');
-        const btnText = btn.querySelector('.btn-text');
-        const btnLoader = btn.querySelector('.btn-loader');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('submitSpinner');
         btn.disabled = true;
-        if (btnText) btnText.style.display = 'none';
-        if (btnLoader) btnLoader.style.display = 'inline';
+        if (btnText) btnText.textContent = 'Submitting...';
+        if (spinner) spinner.style.display = 'inline-block';
+
+        // Final phone validation
+        const phoneResult = V.normalizePhone(document.getElementById('phone').value);
+        if (!phoneResult.valid) {
+            V.setFeedback('phone', 'error', 'Please enter a valid 10-digit US phone number');
+            btn.disabled = false; submitting = false;
+            if (btnText) btnText.textContent = 'Get My Free Analysis';
+            if (spinner) spinner.style.display = 'none';
+            return;
+        }
 
         const payload = {
             ownerName: document.getElementById('ownerName').value,
@@ -865,23 +1017,31 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.duplicate) {
+                // Server detected duplicate — show friendly message
+                document.getElementById('duplicateBanner').textContent = data.message;
+                document.getElementById('duplicateBanner').style.display = 'block';
+                btn.disabled = false; submitting = false;
+                if (btnText) btnText.textContent = 'Get My Free Analysis';
+                if (spinner) spinner.style.display = 'none';
+            } else if (res.ok) {
                 document.getElementById('intakeForm').style.display = 'none';
                 document.getElementById('formSuccess').style.display = 'block';
+                document.getElementById('duplicateBanner').style.display = 'none';
                 if (typeof gtag === 'function') gtag('event', 'conversion', {'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'});
                 if (typeof fbq === 'function') fbq('track', 'Lead');
             } else {
-                const data = await res.json().catch(() => ({}));
                 alert(data.error || 'Something went wrong. Please try again.');
-                btn.disabled = false;
-                if (btnText) btnText.style.display = 'inline';
-                if (btnLoader) btnLoader.style.display = 'none';
+                btn.disabled = false; submitting = false;
+                if (btnText) btnText.textContent = 'Get My Free Analysis';
+                if (spinner) spinner.style.display = 'none';
             }
         } catch (err) {
             alert('Something went wrong. Please try again.');
-            btn.disabled = false;
-            if (btnText) btnText.style.display = 'inline';
-            if (btnLoader) btnLoader.style.display = 'none';
+            btn.disabled = false; submitting = false;
+            if (btnText) btnText.textContent = 'Get My Free Analysis';
+            if (spinner) spinner.style.display = 'none';
         }
     });
 
