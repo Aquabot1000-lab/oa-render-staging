@@ -923,35 +923,42 @@ function buildClientSavingsHtml(sub) {
     const isRecommended = savings > 0;
 
     return `
-<div style="font-family: Arial, sans-serif; max-width: 700px;">
-    <h2 style="color: #6c5ce7; border-bottom: 2px solid #6c5ce7; padding-bottom: 10px;">Property Tax Analysis Summary</h2>
-    <p><strong>Property:</strong> ${sub.propertyAddress}</p>
-    <p><strong>Case:</strong> ${sub.caseId}</p>
-
-    <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; border-radius: 12px; padding: 30px; margin: 20px 0; text-align: center;">
-        <p style="margin: 0 0 8px; opacity: 0.85; font-size: 0.9rem;">Estimated Annual Tax Savings</p>
-        <p style="margin: 0; font-size: 2.5rem; font-weight: 900;">$${savings.toLocaleString()}</p>
-        ${assessed ? `<p style="margin: 8px 0 0; opacity: 0.7; font-size: 0.85rem;">Based on current assessed value of $${assessed.toLocaleString()}</p>` : ''}
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; color: #1a1a2e;">
+    <div style="background: #6c5ce7; padding: 14px 20px; border-radius: 8px 8px 0 0;">
+        <span style="color: white; font-weight: 700; font-size: 15px;">OVERASSESSED</span>
+        <span style="color: rgba(255,255,255,0.7); font-size: 11px; margin-left: 6px;">Property Tax Analysis</span>
     </div>
+    <div style="border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 20px;">
+        <table style="width: 100%; margin-bottom: 12px; font-size: 13px;"><tr>
+            <td><strong>${sub.propertyAddress}</strong></td>
+            <td style="text-align: right; color: #7c7c96; font-size: 12px;">Case ${sub.caseId}</td>
+        </tr></table>
 
-    <div style="background: ${isRecommended ? '#c6f6d5' : '#fed7d7'}; border-radius: 8px; padding: 15px; margin: 20px 0;">
-        <strong>${isRecommended ? '✅ PROTEST RECOMMENDED' : '⚠️ LIMITED PROTEST POTENTIAL'}</strong>
-        ${isRecommended ? '<p style="margin: 8px 0 0; font-size: 0.9rem;">Our team has identified strong evidence to support a reduction in your assessed value. Sign the authorization form to proceed.</p>' : ''}
+        <div style="background: #00b894; color: white; border-radius: 8px; padding: 18px 20px; text-align: center; margin-bottom: 14px;">
+            <div style="opacity: 0.85; font-size: 11px; margin-bottom: 4px;">ESTIMATED ANNUAL TAX SAVINGS</div>
+            <div style="font-size: 32px; font-weight: 900; letter-spacing: -1px;">$${savings.toLocaleString()}</div>
+            ${assessed ? `<div style="opacity: 0.7; font-size: 11px; margin-top: 4px;">Current assessed value: $${assessed.toLocaleString()}</div>` : ''}
+        </div>
+
+        <div style="background: ${isRecommended ? '#e6faf4' : '#ffeaea'}; border-left: 4px solid ${isRecommended ? '#00b894' : '#e17055'}; padding: 10px 14px; border-radius: 4px; margin-bottom: 14px;">
+            <strong style="color: ${isRecommended ? '#00b894' : '#e17055'};">${isRecommended ? '✓ PROTEST RECOMMENDED' : '✗ LIMITED PROTEST POTENTIAL'}</strong>
+            ${isRecommended ? '<p style="margin: 6px 0 0; font-size: 12px; color: #4a4a68;">Strong evidence supports a reduction. Sign the authorization form to proceed.</p>' : ''}
+        </div>
+
+        <div style="background: #f7f7fc; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px;">
+            <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">What Happens Next</div>
+            <ol style="color: #4a4a68; line-height: 1.7; font-size: 12px; margin: 0; padding-left: 18px;">
+                <li><strong>Sign authorization</strong> — lets us file on your behalf</li>
+                <li><strong>We build your case</strong> — comparable sales, evidence packet, filing</li>
+                <li><strong>We attend your hearing</strong> — our experts represent you</li>
+                <li><strong>You save money</strong> — only pay if we reduce your taxes</li>
+            </ol>
+        </div>
+
+        <p style="color: #7c7c96; font-size: 10px; text-align: center; margin: 6px 0 0;">
+            Prepared by OverAssessed LLC | overassessed.ai | Confidential
+        </p>
     </div>
-
-    <div style="background: #f8f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <h3 style="color: #2d3436; margin-top: 0;">What Happens Next</h3>
-        <ol style="color: #4a5568; line-height: 1.8;">
-            <li><strong>Sign authorization</strong> — lets us file on your behalf</li>
-            <li><strong>We build your case</strong> — comparable sales analysis, evidence packet, filing</li>
-            <li><strong>We attend your hearing</strong> — our experts represent you</li>
-            <li><strong>You save money</strong> — only pay if we reduce your taxes</li>
-        </ol>
-    </div>
-
-    <p style="color: #6b7280; font-size: 0.85rem; text-align: center;">
-        Detailed analysis data is used by our team to build the strongest case for your hearing.
-    </p>
 </div>`;
 }
 
@@ -1652,47 +1659,90 @@ async function runFullAnalysis(caseId) {
 
 function buildAnalysisHtml(sub, propertyData, compResults) {
     const assessedNum = propertyData.assessedValue || 0;
+    const isRecommended = (compResults.estimatedSavings || 0) > 0;
+    const strategyLabel = compResults.primaryStrategy === 'equal_and_uniform' ? 'Equal & Uniform (§42.26)' : 'Market Value Approach';
+
     return `
-<div style="font-family: Arial, sans-serif; max-width: 700px;">
-    <h2 style="color: #6c5ce7; border-bottom: 2px solid #6c5ce7; padding-bottom: 10px;">Property Tax Protest Analysis</h2>
-    <p><strong>Property:</strong> ${sub.propertyAddress}</p>
-    <p><strong>Owner:</strong> ${sub.ownerName}</p>
-    <p><strong>Case:</strong> ${sub.caseId}</p>
-    <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-    
-    <div style="background: #f8f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <h3 style="color: #2d3436; margin-top: 0;">Summary</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #6b7280;">Current Assessed Value:</td><td style="font-weight: 700;">$${assessedNum.toLocaleString()}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280;">Recommended Value:</td><td style="font-weight: 700; color: #0984e3;">$${compResults.recommendedValue.toLocaleString()}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280;">Potential Reduction:</td><td style="font-weight: 700; color: #00b894;">$${compResults.reduction.toLocaleString()}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280;">Estimated Tax Savings:</td><td style="font-weight: 700; color: #00b894; font-size: 1.2em;">$${compResults.estimatedSavings.toLocaleString()}/year</td></tr>
-        </table>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; color: #1a1a2e;">
+    <div style="background: #6c5ce7; padding: 14px 20px; border-radius: 8px 8px 0 0;">
+        <span style="color: white; font-weight: 700; font-size: 15px;">OVERASSESSED</span>
+        <span style="color: rgba(255,255,255,0.7); font-size: 11px; margin-left: 6px;">Evidence Packet</span>
     </div>
-    
-    <h3 style="color: #2d3436;">Comparable Properties</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-        <thead><tr style="background: #6c5ce7; color: white;">
-            <th style="padding: 10px; text-align: left;">Address</th>
-            <th style="padding: 10px; text-align: right;">Assessed</th>
-            <th style="padding: 10px; text-align: right;">Adjusted</th>
-            <th style="padding: 10px; text-align: center;">Score</th>
-        </tr></thead>
-        <tbody>
-            ${compResults.comps.map((c, i) => `<tr style="background: ${i % 2 ? '#f8f9ff' : 'white'}">
-                <td style="padding: 10px;">${c.address}</td>
-                <td style="padding: 10px; text-align: right;">$${(c.assessedValue || 0).toLocaleString()}</td>
-                <td style="padding: 10px; text-align: right; color: ${c.adjustedValue < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
-                <td style="padding: 10px; text-align: center;">${c.score}/100</td>
-            </tr>`).join('')}
-        </tbody>
-    </table>
-    
-    <h3 style="color: #2d3436;">Methodology</h3>
-    <p style="color: #4a5568;">${compResults.methodology}</p>
-    
-    <div style="background: ${compResults.estimatedSavings > 0 ? '#c6f6d5' : '#fed7d7'}; border-radius: 8px; padding: 15px; margin: 20px 0;">
-        <strong>${compResults.estimatedSavings > 0 ? 'PROTEST RECOMMENDED' : 'LIMITED PROTEST POTENTIAL'}</strong>
+    <div style="border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 20px;">
+
+        <!-- Property Info -->
+        <table style="width: 100%; font-size: 12px; margin-bottom: 12px; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 2px 0; color: #7c7c96; width: 50%;">Owner: <strong style="color: #1a1a2e;">${sub.ownerName}</strong></td>
+                <td style="padding: 2px 0; color: #7c7c96; text-align: right;">Case: <strong style="color: #1a1a2e;">${sub.caseId}</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 2px 0; color: #7c7c96;">Address: <strong style="color: #1a1a2e;">${sub.propertyAddress}</strong></td>
+                <td style="padding: 2px 0; color: #7c7c96; text-align: right;">${new Date().toLocaleDateString()}</td>
+            </tr>
+        </table>
+
+        <!-- Value Summary -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+            <tr>
+                <td style="background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;">
+                    <div style="font-size: 9px; color: #7c7c96; text-transform: uppercase;">Current Assessed</div>
+                    <div style="font-size: 16px; font-weight: 800; margin-top: 2px;">$${assessedNum.toLocaleString()}</div>
+                </td>
+                <td style="background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;">
+                    <div style="font-size: 9px; color: #7c7c96; text-transform: uppercase;">Recommended</div>
+                    <div style="font-size: 16px; font-weight: 800; color: #0984e3; margin-top: 2px;">$${(compResults.recommendedValue || 0).toLocaleString()}</div>
+                </td>
+                <td style="background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;">
+                    <div style="font-size: 9px; color: #7c7c96; text-transform: uppercase;">Reduction</div>
+                    <div style="font-size: 16px; font-weight: 800; color: #00b894; margin-top: 2px;">$${(compResults.reduction || 0).toLocaleString()}</div>
+                </td>
+                <td style="background: #00b894; padding: 8px 10px; border: 1px solid #00b894; width: 25%; text-align: center; color: white;">
+                    <div style="font-size: 9px; opacity: 0.85; text-transform: uppercase;">Tax Savings</div>
+                    <div style="font-size: 18px; font-weight: 900; margin-top: 2px;">$${(compResults.estimatedSavings || 0).toLocaleString()}</div>
+                    <div style="font-size: 8px; opacity: 0.7;">/year</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Comparables Table -->
+        <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">Comparable Properties</div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
+            <thead><tr style="background: #6c5ce7; color: white;">
+                <th style="padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600;">Address</th>
+                <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Assessed</th>
+                <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Adjusted</th>
+                <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Sq Ft</th>
+                <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Yr Built</th>
+                <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">$/SqFt</th>
+                <th style="padding: 5px 6px; text-align: center; font-size: 10px; font-weight: 600;">Score</th>
+            </tr></thead>
+            <tbody>
+                ${(compResults.comps || []).map((c, i) => `<tr style="background: ${i % 2 ? '#f7f7fc' : 'white'};">
+                    <td style="padding: 4px 6px; font-size: 10px;">${c.address}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">$${(c.assessedValue || 0).toLocaleString()}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: ${(c.adjustedValue || 0) < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.sqft ? c.sqft.toLocaleString() : '—'}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.yearBuilt || '—'}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.pricePerSqft ? '$' + c.pricePerSqft : '—'}</td>
+                    <td style="padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;">${c.score}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+
+        <!-- Methodology -->
+        <div style="font-weight: 700; font-size: 12px; margin-bottom: 3px;">Methodology</div>
+        <p style="color: #4a4a68; font-size: 11px; line-height: 1.5; margin: 0 0 12px;">${compResults.methodology}</p>
+
+        <!-- Recommendation Badge -->
+        <div style="background: ${isRecommended ? '#e6faf4' : '#ffeaea'}; border-left: 4px solid ${isRecommended ? '#00b894' : '#e17055'}; padding: 8px 14px; border-radius: 4px; margin-bottom: 10px;">
+            <strong style="color: ${isRecommended ? '#00b894' : '#e17055'};">${isRecommended ? '✓ PROTEST RECOMMENDED' : '✗ NOT RECOMMENDED'}</strong>
+            <span style="color: #7c7c96; font-size: 10px; float: right; margin-top: 2px;">Strategy: ${strategyLabel}</span>
+        </div>
+
+        <p style="color: #7c7c96; font-size: 9px; text-align: center; margin: 6px 0 0;">
+            Prepared by OverAssessed LLC | overassessed.ai | Confidential
+        </p>
     </div>
 </div>`;
 }
