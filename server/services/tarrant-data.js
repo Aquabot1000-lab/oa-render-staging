@@ -100,7 +100,7 @@ async function loadData() {
             const https = require('https');
             const zlib = require('zlib');
             const SB_URL = process.env.SUPABASE_URL || 'https://ylxreuqvofgbpsatfsvr.supabase.co';
-            const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+            const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
             
             if (SB_KEY) {
                 const downloadPath = path.join(__dirname, '..', 'data', 'tarrant');
