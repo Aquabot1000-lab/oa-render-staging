@@ -180,10 +180,26 @@ function lookupAccount(accountNum) {
  */
 function extractNeighborhood(legalDesc) {
     if (!legalDesc) return null;
-    // Common patterns: "WESTCLIFF ADD BLK 5 LOT 12" → "WESTCLIFF ADD"
+    // Common patterns: 
+    // "TANGLEWOOD ADDITION-FORT WORTH Block 1 Lot 5" → "TANGLEWOOD ADDITION"
+    // "WESTCLIFF ADD BLK 5 LOT 12" → "WESTCLIFF ADD"
     // "MIRA VISTA ADD BLK 1 LOT 3" → "MIRA VISTA ADD"
-    const match = legalDesc.match(/^([A-Z][A-Z\s]+?)\s+(?:BLK|BLOCK|LOT|SEC|UNIT|PH|PHASE|TR|TRACT|ADDN?)/i);
-    return match ? match[1].trim() : null;
+    // "OVERTON PARK SOUTH Block 2 Lot 15" → "OVERTON PARK SOUTH"
+    
+    // Try pattern with hyphen-city first (e.g., "TANGLEWOOD ADDITION-FORT WORTH")
+    // INCLUDE the city to distinguish same-named subdivisions in different cities
+    let match = legalDesc.match(/^([A-Z][A-Z\s]+?(?:ADDITION|ADD|ADDN)?[\s-]+(?:FORT WORTH|ARLINGTON|MANSFIELD|HURST|BEDFORD|EULESS|KELLER|SOUTHLAKE|COLLEYVILLE|GRAPEVINE|NORTH RICHLAND|RICHLAND|HALTOM|WATAUGA|SAGINAW|LAKE WORTH|BENBROOK|CROWLEY|BURLESON|KENNEDALE|FOREST HILL|EVERMAN|SANSOM PARK|RIVER OAKS|WESTWORTH|WHITE SETTLEMENT))/i);
+    if (match) return match[1].trim();
+    
+    // Try standard pattern
+    match = legalDesc.match(/^([A-Z][A-Z\s]+?)\s+(?:BLK|BLOCK|LOT|SEC|UNIT|PH|PHASE|TR|TRACT|ADDN?)/i);
+    if (match) return match[1].trim();
+    
+    // Try everything before "Block" or "Lot"
+    match = legalDesc.match(/^(.+?)(?:\s+Block\s|\s+Lot\s|\s+BLK\s)/i);
+    if (match) return match[1].replace(/[-,]\s*[A-Z][a-z]+.*$/, '').trim();
+    
+    return null;
 }
 
 /**
