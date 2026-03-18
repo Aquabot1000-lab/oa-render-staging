@@ -94,7 +94,40 @@ async function loadData() {
     }
 
     if (!dataPath) {
-        loadError = 'TAD data file not found. Checked: ' + DATA_PATHS.join(', ');
+        // Try downloading from Supabase storage
+        console.log('[TarrantData] Local data not found. Attempting download from Supabase...');
+        try {
+            const https = require('https');
+            const zlib = require('zlib');
+            const SB_URL = process.env.SUPABASE_URL || 'https://ylxreuqvofgbpsatfsvr.supabase.co';
+            const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
+            
+            if (SB_KEY) {
+                const downloadPath = path.join(__dirname, '..', 'data', 'tarrant');
+                await fs.promises.mkdir(downloadPath, { recursive: true });
+                dataPath = path.join(downloadPath, 'parcels-compact.jsonl');
+                
+                const url = `${SB_URL}/storage/v1/object/cad-data/tarrant/parcels-compact.jsonl.gz`;
+                await new Promise((resolve, reject) => {
+                    const file = fs.createWriteStream(dataPath);
+                    https.get(url, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }, (response) => {
+                        if (response.statusCode !== 200) {
+                            reject(new Error(`Download failed: ${response.statusCode}`));
+                            return;
+                        }
+                        response.pipe(zlib.createGunzip()).pipe(file);
+                        file.on('finish', () => { file.close(); resolve(); });
+                    }).on('error', reject);
+                });
+                console.log(`[TarrantData] ✅ Downloaded TAD data from Supabase to ${dataPath}`);
+            }
+        } catch (dlErr) {
+            console.warn(`[TarrantData] Download failed: ${dlErr.message}`);
+        }
+    }
+
+    if (!dataPath || !(await fs.promises.access(dataPath, fs.constants.R_OK).then(() => true).catch(() => false))) {
+        loadError = 'TAD data file not found and download failed.';
         console.warn(`[TarrantData] ⚠️ ${loadError}`);
         console.warn('[TarrantData] Real comps will not be available. Falling back to synthetic.');
         loading = false;
