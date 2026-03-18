@@ -189,70 +189,111 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
             doc.moveTo(tableX, doc.y).lineTo(tableX + CW, doc.y).strokeColor('#e0e0e8').lineWidth(0.5).stroke();
             doc.y += 8;
 
-            // ===== EQUAL & UNIFORM SECTION (if applicable) =====
-            if (compResults.euAnalysis && compResults.euAnalysis.recommendation !== 'INSUFFICIENT_DATA' && compResults.euAnalysis.euTargetValue) {
-                const eu = compResults.euAnalysis;
+            // ===== EQUAL & UNIFORM SECTION (PSF-based, if applicable) =====
+            const euPSF = compResults.equalUniformAnalysis;
+            const euLegacy = compResults.euAnalysis;
+            const hasEU = (euPSF && euPSF.recommendedValue) || (euLegacy && euLegacy.recommendation !== 'INSUFFICIENT_DATA' && (euLegacy.result || {}).euTargetValue);
+
+            if (hasEU) {
                 const isPrimary = compResults.primaryStrategy === 'equal_and_uniform';
 
                 doc.fontSize(9).fillColor(TEXT_DARK).font('Helvetica-Bold')
                     .text(`EQUAL & UNIFORM ANALYSIS (§42.26)${isPrimary ? '  ★ PRIMARY STRATEGY' : ''}`, LM, doc.y);
                 doc.y += 4;
 
-                // Compact 3-column metrics
                 const euY = doc.y;
                 const euBoxW = CW / 3;
                 const euH = 28;
 
-                doc.rect(LM, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
-                doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('MEDIAN ASSESSMENT RATIO', LM + 6, euY + 3);
-                doc.fontSize(12).fillColor(PURPLE).font('Helvetica-Bold').text(`${eu.medianRatio}`, LM + 6, euY + 12);
+                if (euPSF && euPSF.recommendedValue) {
+                    // PSF-based E&U metrics
+                    doc.rect(LM, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('SUBJECT $/SQFT', LM + 6, euY + 3);
+                    doc.fontSize(12).fillColor('#e17055').font('Helvetica-Bold').text(`$${euPSF.subjectPSF || '—'}`, LM + 6, euY + 12);
 
-                doc.rect(LM + euBoxW, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
-                doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('E&U TARGET VALUE', LM + euBoxW + 6, euY + 3);
-                doc.fontSize(12).fillColor('#0984e3').font('Helvetica-Bold').text(`$${eu.euTargetValue.toLocaleString()}`, LM + euBoxW + 6, euY + 12);
+                    doc.rect(LM + euBoxW, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('MEDIAN COMP $/SQFT', LM + euBoxW + 6, euY + 3);
+                    doc.fontSize(12).fillColor(GREEN).font('Helvetica-Bold').text(`$${euPSF.medianPSF || '—'}`, LM + euBoxW + 6, euY + 12);
 
-                const euReduction = Math.max(0, (eu.subjectAssessedValue || 0) - eu.euTargetValue);
-                doc.rect(LM + euBoxW * 2, euY, euBoxW, euH).fill(PURPLE_LIGHT);
-                doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('E&U REDUCTION', LM + euBoxW * 2 + 6, euY + 3);
-                doc.fontSize(12).fillColor(GREEN).font('Helvetica-Bold').text(`$${euReduction.toLocaleString()}`, LM + euBoxW * 2 + 6, euY + 12);
+                    doc.rect(LM + euBoxW * 2, euY, euBoxW, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('E&U RECOMMENDED', LM + euBoxW * 2 + 6, euY + 3);
+                    doc.fontSize(12).fillColor('#0984e3').font('Helvetica-Bold').text(`$${(euPSF.recommendedValue || 0).toLocaleString()}`, LM + euBoxW * 2 + 6, euY + 12);
 
-                doc.y = euY + euH + 6;
+                    doc.y = euY + euH + 4;
 
-                // E&U comp ratios table (compact, max 6 rows)
-                const euComps = (eu.compAnalysis || []).slice(0, 6);
-                if (euComps.length > 0) {
-                    const euTX = LM;
-                    const euColW = [175, 95, 95, 55, 50];
-                    const euThY = doc.y;
-                    doc.rect(euTX, euThY, CW, 12).fill(PURPLE);
-                    doc.fontSize(5.5).fillColor(WHITE).font('Helvetica-Bold');
-                    let euCX = euTX + 4;
-                    ['Address', 'Assessed', 'Sale Price', 'Ratio', 'Status'].forEach((h, i) => {
-                        doc.text(h, euCX, euThY + 3, { width: euColW[i] - 6, align: i === 0 ? 'left' : 'right' });
-                        euCX += euColW[i];
-                    });
-                    doc.y = euThY + 13;
+                    // Equity argument callout
+                    if (euPSF.psfDifference) {
+                        const calloutY = doc.y;
+                        doc.rect(LM, calloutY, CW, 16).fill('#fff3e0');
+                        doc.rect(LM, calloutY, 3, 16).fill('#ff9800');
+                        doc.fontSize(6).fillColor(TEXT_DARK).font('Helvetica-Bold')
+                            .text(`Equity: Subject assessed $${euPSF.psfDifference}/sqft above median of ${euPSF.compsUsed || 0} comps` +
+                                  (euPSF.psfOverassessedPct ? ` (${(euPSF.psfOverassessedPct * 100).toFixed(1)}% above)` : '') +
+                                  '. Reduction: $' + (euPSF.reduction || 0).toLocaleString() +
+                                  '. Savings: $' + (euPSF.estimatedSavings || 0).toLocaleString() + '/yr.',
+                                  LM + 8, calloutY + 4.5, { width: CW - 14 });
+                        doc.y = calloutY + 18;
+                    }
 
-                    euComps.forEach((comp, i) => {
-                        const rY = doc.y;
-                        if (i % 2 === 0) doc.rect(euTX, rY, CW, 11).fill(ROW_ALT);
-                        doc.fontSize(5.5).fillColor(TEXT_DARK).font('Helvetica');
-                        euCX = euTX + 4;
-                        const addr = (comp.address || '').substring(0, 35);
-                        doc.text(addr, euCX, rY + 2.5, { width: euColW[0] - 6 });
-                        euCX += euColW[0];
-                        doc.text(`$${(comp.assessed_value || 0).toLocaleString()}`, euCX, rY + 2.5, { width: euColW[1] - 6, align: 'right' });
-                        euCX += euColW[1];
-                        doc.text(`$${(comp.sale_price || 0).toLocaleString()}`, euCX, rY + 2.5, { width: euColW[2] - 6, align: 'right' });
-                        euCX += euColW[2];
-                        doc.fillColor(comp.excluded ? '#e17055' : TEXT_DARK).font('Helvetica-Bold');
-                        doc.text(comp.ratio !== null ? `${comp.ratio}` : 'N/A', euCX, rY + 2.5, { width: euColW[3] - 6, align: 'right' });
-                        euCX += euColW[3];
-                        doc.fillColor(comp.excluded ? '#e17055' : GREEN).fontSize(5);
-                        doc.text(comp.excluded ? 'Excluded' : 'Included', euCX, rY + 2.5, { width: euColW[4] - 6, align: 'right' });
-                        doc.y = rY + 11;
-                    });
-                    doc.y += 4;
+                    // PSF comp table (compact, up to 10 rows)
+                    const euComps = (euPSF.comps || []).slice(0, 10);
+                    if (euComps.length > 0) {
+                        const euTX = LM;
+                        const euColW = [140, 48, 52, 68, 56, 56, 56];
+                        const euThY = doc.y;
+                        doc.rect(euTX, euThY, CW, 12).fill(PURPLE);
+                        doc.fontSize(5).fillColor(WHITE).font('Helvetica-Bold');
+                        let euCX = euTX + 3;
+                        ['Address', 'Sq Ft', '$/SqFt', 'Adj Value', 'Size Adj', 'Age Adj', 'Land Adj'].forEach((h, i) => {
+                            doc.text(h, euCX, euThY + 3, { width: euColW[i] - 4, align: i === 0 ? 'left' : 'right' });
+                            euCX += euColW[i];
+                        });
+                        doc.y = euThY + 13;
+
+                        euComps.forEach((comp, i) => {
+                            const rY = doc.y;
+                            if (rY > 730) return; // Don't overflow page
+                            if (i % 2 === 0) doc.rect(euTX, rY, CW, 10).fill(ROW_ALT);
+                            doc.fontSize(5).fillColor(TEXT_DARK).font('Helvetica');
+                            euCX = euTX + 3;
+                            doc.text((comp.address || '').substring(0, 28), euCX, rY + 2.5, { width: euColW[0] - 4 });
+                            euCX += euColW[0];
+                            doc.text(comp.sqft ? comp.sqft.toLocaleString() : '—', euCX, rY + 2.5, { width: euColW[1] - 4, align: 'right' });
+                            euCX += euColW[1];
+                            doc.text(`$${comp.compPSF || '—'}`, euCX, rY + 2.5, { width: euColW[2] - 4, align: 'right' });
+                            euCX += euColW[2];
+                            const adjColor = (comp.adjustedValue || 0) < (propertyData.assessedValue || 0) ? GREEN : '#e17055';
+                            doc.fillColor(adjColor).font('Helvetica-Bold');
+                            doc.text(`$${(comp.adjustedValue || 0).toLocaleString()}`, euCX, rY + 2.5, { width: euColW[3] - 4, align: 'right' });
+                            euCX += euColW[3];
+                            doc.fillColor(TEXT_DARK).font('Helvetica');
+                            const adj = comp.adjustments || {};
+                            doc.text(adj.size !== undefined ? (adj.size >= 0 ? '+' : '') + '$' + Math.abs(adj.size).toLocaleString() : '—', euCX, rY + 2.5, { width: euColW[4] - 4, align: 'right' });
+                            euCX += euColW[4];
+                            doc.text(adj.age !== undefined ? (adj.age >= 0 ? '+' : '') + '$' + Math.abs(adj.age).toLocaleString() : '—', euCX, rY + 2.5, { width: euColW[5] - 4, align: 'right' });
+                            euCX += euColW[5];
+                            doc.text(adj.land !== undefined ? (adj.land >= 0 ? '+' : '') + '$' + Math.abs(adj.land).toLocaleString() : '—', euCX, rY + 2.5, { width: euColW[6] - 4, align: 'right' });
+                            doc.y = rY + 10;
+                        });
+                        doc.y += 4;
+                    }
+                } else if (euLegacy && (euLegacy.result || {}).euTargetValue) {
+                    // Fallback: legacy ratio-based display
+                    const eu = euLegacy;
+                    doc.rect(LM, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('MEDIAN RATIO', LM + 6, euY + 3);
+                    doc.fontSize(12).fillColor(PURPLE).font('Helvetica-Bold').text(`${(eu.ratios || eu).median || eu.medianRatio || '—'}`, LM + 6, euY + 12);
+
+                    doc.rect(LM + euBoxW, euY, euBoxW - 2, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('E&U TARGET', LM + euBoxW + 6, euY + 3);
+                    doc.fontSize(12).fillColor('#0984e3').font('Helvetica-Bold').text(`$${(eu.result.euTargetValue || 0).toLocaleString()}`, LM + euBoxW + 6, euY + 12);
+
+                    const euReduction = Math.max(0, (eu.result.potentialReduction || 0));
+                    doc.rect(LM + euBoxW * 2, euY, euBoxW, euH).fill(PURPLE_LIGHT);
+                    doc.fontSize(5.5).fillColor(TEXT_MUTED).font('Helvetica').text('E&U REDUCTION', LM + euBoxW * 2 + 6, euY + 3);
+                    doc.fontSize(12).fillColor(GREEN).font('Helvetica-Bold').text(`$${euReduction.toLocaleString()}`, LM + euBoxW * 2 + 6, euY + 12);
+
+                    doc.y = euY + euH + 6;
                 }
             }
 

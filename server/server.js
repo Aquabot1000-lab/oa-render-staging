@@ -1621,10 +1621,44 @@ async function runFullAnalysis(caseId) {
         propertyAddress: sub.propertyAddress,
         propertyType: propertyData.propertyType || sub.propertyType,
         currentAssessedValue: assessedNum,
+        // Primary recommendation (best of both strategies)
         estimatedMarketValue: compResults.recommendedValue,
         estimatedReduction: compResults.reduction,
         estimatedTaxSavings: compResults.estimatedSavings,
         taxRate: compResults.taxRate,
+        primaryStrategy: compResults.primaryStrategy || 'market_value',
+        // Market Value analysis
+        marketValueAnalysis: compResults.marketValueAnalysis ? {
+            recommendedValue: compResults.marketValueAnalysis.recommendedValue,
+            reduction: compResults.marketValueAnalysis.reduction,
+            estimatedSavings: compResults.marketValueAnalysis.estimatedSavings,
+            comps: (compResults.marketValueAnalysis.comps || []).map(c => ({
+                address: c.address, value: c.assessedValue, adjustedValue: c.adjustedValue,
+                sqft: c.sqft, yearBuilt: c.yearBuilt, score: c.score, pricePerSqft: c.pricePerSqft
+            })),
+            methodology: compResults.marketValueAnalysis.methodology
+        } : null,
+        // Equal & Uniform analysis (PSF-based)
+        equalUniformAnalysis: compResults.equalUniformAnalysis ? {
+            recommendedValue: compResults.equalUniformAnalysis.recommendedValue,
+            reduction: compResults.equalUniformAnalysis.reduction,
+            estimatedSavings: compResults.equalUniformAnalysis.estimatedSavings,
+            medianPSF: compResults.equalUniformAnalysis.medianPSF,
+            subjectPSF: compResults.equalUniformAnalysis.subjectPSF,
+            psfDifference: compResults.equalUniformAnalysis.psfDifference,
+            psfOverassessedPct: compResults.equalUniformAnalysis.psfOverassessedPct,
+            compsUsed: compResults.equalUniformAnalysis.compsUsed,
+            compsEvaluated: compResults.equalUniformAnalysis.compsEvaluated,
+            comps: (compResults.equalUniformAnalysis.comps || []).slice(0, 20).map(c => ({
+                address: c.address, sqft: c.sqft, yearBuilt: c.yearBuilt,
+                assessedValue: c.assessedValue, improvementValue: c.improvementValue,
+                compPSF: c.compPSF, adjustedValue: c.adjustedValue,
+                adjustments: c.adjustments
+            })),
+            recommendation: compResults.equalUniformAnalysis.recommendation,
+            methodology: compResults.equalUniformAnalysis.methodology
+        } : null,
+        // Legacy fields (backward compat)
         comparables: compResults.comps.map(c => ({
             address: c.address,
             value: c.assessedValue,
@@ -1655,6 +1689,74 @@ async function runFullAnalysis(caseId) {
 
     console.log(`[Analysis] Complete for ${sub.caseId}. Savings: $${compResults.estimatedSavings}`);
     return { report, propertyData, compResults, evidencePath };
+}
+
+function buildEUHtmlSection(compResults, assessedNum) {
+    const eu = compResults.equalUniformAnalysis;
+    if (!eu || !eu.recommendedValue) return '';
+
+    const isPrimary = compResults.primaryStrategy === 'equal_and_uniform';
+    const euComps = (eu.comps || []).slice(0, 15); // Show up to 15 in HTML
+
+    return `
+        <div style="margin-bottom: 12px;">
+            <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px; color: ${isPrimary ? '#6c5ce7' : '#1a1a2e'};">
+                Equal & Uniform Analysis (§42.26) ${isPrimary ? '★ PRIMARY' : ''}
+            </div>
+            
+            <!-- E&U Metrics -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+                <tr>
+                    <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
+                        <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">Subject $/SqFt</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #e17055; margin-top: 2px;">$${eu.subjectPSF || '—'}</div>
+                    </td>
+                    <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
+                        <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">Median Comp $/SqFt</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #00b894; margin-top: 2px;">$${eu.medianPSF || '—'}</div>
+                    </td>
+                    <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
+                        <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">E&U Recommended</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #0984e3; margin-top: 2px;">$${(eu.recommendedValue || 0).toLocaleString()}</div>
+                    </td>
+                </tr>
+            </table>
+
+            ${eu.psfDifference ? `
+            <div style="background: #fff3e0; border-left: 3px solid #ff9800; padding: 6px 12px; margin-bottom: 8px; font-size: 10px;">
+                <strong>Equity Argument:</strong> Subject is assessed $${eu.psfDifference}/sqft higher than the median of ${eu.compsUsed || 0} comparable properties
+                ${eu.psfOverassessedPct ? ` (${(eu.psfOverassessedPct * 100).toFixed(1)}% above median)` : ''}.
+                This constitutes unequal appraisal under TX Tax Code §42.26.
+            </div>
+            ` : ''}
+
+            <!-- E&U Comps Table -->
+            ${euComps.length > 0 ? `
+            <div style="font-size: 10px; color: #7c7c96; margin-bottom: 3px;">${eu.compsUsed || euComps.length} comps selected from ${eu.compsEvaluated || 0} evaluated</div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;">
+                <thead><tr style="background: #6c5ce7; color: white;">
+                    <th style="padding: 4px 5px; text-align: left; font-size: 9px;">Address</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">Sq Ft</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">$/SqFt</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">Adj Value</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">Size Adj</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">Age Adj</th>
+                    <th style="padding: 4px 5px; text-align: right; font-size: 9px;">Land Adj</th>
+                </tr></thead>
+                <tbody>
+                    ${euComps.map((c, i) => `<tr style="background: ${i % 2 ? '#f7f7fc' : 'white'};">
+                        <td style="padding: 3px 5px; font-size: 9px;">${(c.address || '').substring(0, 30)}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">${c.sqft ? c.sqft.toLocaleString() : '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">$${c.compPSF || '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: ${(c.adjustedValue || 0) < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.size || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.size >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.size || 0).toLocaleString() : '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.age || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.age >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.age || 0).toLocaleString() : '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.land || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.land >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.land || 0).toLocaleString() : '—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+            ` : ''}
+        </div>`;
 }
 
 function buildAnalysisHtml(sub, propertyData, compResults) {
@@ -1730,9 +1832,33 @@ function buildAnalysisHtml(sub, propertyData, compResults) {
             </tbody>
         </table>
 
+        <!-- Equal & Uniform Section -->
+        ${buildEUHtmlSection(compResults, assessedNum)}
+
         <!-- Methodology -->
         <div style="font-weight: 700; font-size: 12px; margin-bottom: 3px;">Methodology</div>
         <p style="color: #4a4a68; font-size: 11px; line-height: 1.5; margin: 0 0 12px;">${compResults.methodology}</p>
+
+        <!-- Dual Strategy Summary -->
+        ${compResults.equalUniformAnalysis && compResults.marketValueAnalysis ? `
+        <div style="background: #f0eeff; border: 1px solid #d5d0f5; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px;">
+            <div style="font-weight: 700; font-size: 11px; color: #6c5ce7; margin-bottom: 6px;">DUAL STRATEGY COMPARISON</div>
+            <table style="width: 100%; font-size: 10px; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 3px 0; color: #4a4a68;">Market Value Approach:</td>
+                    <td style="padding: 3px 0; text-align: right; font-weight: 600;">$${(compResults.marketValueAnalysis.recommendedValue || 0).toLocaleString()} <span style="color: #00b894;">(−$${(compResults.marketValueAnalysis.reduction || 0).toLocaleString()})</span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0; color: #4a4a68;">Equal & Uniform (§42.26):</td>
+                    <td style="padding: 3px 0; text-align: right; font-weight: 600;">$${(compResults.equalUniformAnalysis.recommendedValue || 0).toLocaleString()} <span style="color: #00b894;">(−$${(compResults.equalUniformAnalysis.reduction || 0).toLocaleString()})</span></td>
+                </tr>
+                <tr style="border-top: 1px solid #d5d0f5;">
+                    <td style="padding: 5px 0 2px; color: #6c5ce7; font-weight: 700;">★ Primary Strategy:</td>
+                    <td style="padding: 5px 0 2px; text-align: right; font-weight: 700; color: #6c5ce7;">${strategyLabel}</td>
+                </tr>
+            </table>
+        </div>
+        ` : ''}
 
         <!-- Recommendation Badge -->
         <div style="background: ${isRecommended ? '#e6faf4' : '#ffeaea'}; border-left: 4px solid ${isRecommended ? '#00b894' : '#e17055'}; padding: 8px 14px; border-radius: 4px; margin-bottom: 10px;">

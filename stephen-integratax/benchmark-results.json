@@ -1,0 +1,232 @@
+[
+  {
+    "caseId": "BM-0121",
+    "address": "1515 THOMAS PLACE, Fort Worth, TX",
+    "assessed": 1048580,
+    "recommended": 960747,
+    "reduction": 87833,
+    "savings": 1976,
+    "pct": 8.376375669953653,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0120",
+    "address": "3125 OVERTON PARK EAST, Fort Worth, TX",
+    "assessed": 909091,
+    "recommended": 846141,
+    "reduction": 62950,
+    "savings": 1416,
+    "pct": 6.92449930755007,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0111",
+    "address": "1241 VALLEY VISTA DR, Fort Worth, TX",
+    "assessed": 459503,
+    "recommended": 412140,
+    "reduction": 47363,
+    "savings": 1066,
+    "pct": 10.307440865456808,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0108",
+    "address": "1313 E. INWOOD DR., Fort Worth, TX",
+    "assessed": 215000,
+    "recommended": 187527,
+    "reduction": 27473,
+    "savings": 618,
+    "pct": 12.77813953488372,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0100",
+    "address": "1505 JANANN AVE., Fort Worth, TX",
+    "assessed": 160000,
+    "recommended": 138358,
+    "reduction": 21642,
+    "savings": 487,
+    "pct": 13.526250000000001,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0105",
+    "address": "1615 KENT DR., Fort Worth, TX",
+    "assessed": 155000,
+    "recommended": 134837,
+    "reduction": 20163,
+    "savings": 454,
+    "pct": 13.008387096774193,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0114",
+    "address": "1938 OVERBROOK DR., Fort Worth, TX",
+    "assessed": 235823,
+    "recommended": 215782,
+    "reduction": 20041,
+    "savings": 451,
+    "pct": 8.498322894713407,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0101",
+    "address": "1203 JANANN AVE., Fort Worth, TX",
+    "assessed": 150000,
+    "recommended": 131461,
+    "reduction": 18539,
+    "savings": 417,
+    "pct": 12.359333333333334,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0110",
+    "address": "3725 SELMA ST, Fort Worth, TX",
+    "assessed": 216514,
+    "recommended": 198100,
+    "reduction": 18414,
+    "savings": 414,
+    "pct": 8.504761816787829,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0117",
+    "address": "2513 MIRIAM LANE, Fort Worth, TX",
+    "assessed": 183617,
+    "recommended": 165245,
+    "reduction": 18372,
+    "savings": 413,
+    "pct": 10.005609502388122,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0103",
+    "address": "1203 REBECCA LN., Fort Worth, TX",
+    "assessed": 175000,
+    "recommended": 156816,
+    "reduction": 18184,
+    "savings": 409,
+    "pct": 10.390857142857143,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0107",
+    "address": "1611 KELLY TERR., Fort Worth, TX",
+    "assessed": 197000,
+    "recommended": 179145,
+    "reduction": 17855,
+    "savings": 402,
+    "pct": 9.063451776649746,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0113",
+    "address": "2017 NEWBURY DR., Fort Worth, TX",
+    "assessed": 229000,
+    "recommended": 212991,
+    "reduction": 16009,
+    "savings": 360,
+    "pct": 6.9908296943231445,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0102",
+    "address": "1510 JANANN AVE., Fort Worth, TX",
+    "assessed": 178000,
+    "recommended": 162081,
+    "reduction": 15919,
+    "savings": 358,
+    "pct": 8.943258426966292,
+    "comps": 5
+  },
+  {
+    "caseId": "OA-0005",
+    "address": "2208 SEVILLE CT., Fort Worth, TX",
+    "assessed": 166000,
+    "recommended": 151279,
+    "reduction": 14721,
+    "savings": 331,
+    "pct": 8.868072289156627,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0109",
+    "address": "4600 VIRGINIA LANE, Fort Worth, TX",
+    "assessed": 183784,
+    "recommended": 169929,
+    "reduction": 13855,
+    "savings": 312,
+    "pct": 7.538741130892787,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0104",
+    "address": "1816 REEVER ST., Fort Worth, TX",
+    "assessed": 151207,
+    "recommended": 137451,
+    "reduction": 13756,
+    "savings": 310,
+    "pct": 9.0974624190679,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0115",
+    "address": "5233 MALLORY DR., Fort Worth, TX",
+    "assessed": 200000,
+    "recommended": 186740,
+    "reduction": 13260,
+    "savings": 298,
+    "pct": 6.63,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0118",
+    "address": "2509 PLAZA ST., Fort Worth, TX",
+    "assessed": 177484,
+    "recommended": 165640,
+    "reduction": 11844,
+    "savings": 266,
+    "pct": 6.67327759121949,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0106",
+    "address": "1619 KENT DR., Fort Worth, TX",
+    "assessed": 200000,
+    "recommended": 189012,
+    "reduction": 10988,
+    "savings": 247,
+    "pct": 5.494000000000001,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0116",
+    "address": "5224 JERRI LN, Fort Worth, TX",
+    "assessed": 150000,
+    "recommended": 140110,
+    "reduction": 9890,
+    "savings": 223,
+    "pct": 6.593333333333333,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0112",
+    "address": "2720 BEVERLY HILLS DR., Fort Worth, TX",
+    "assessed": 169871,
+    "recommended": 160632,
+    "reduction": 9239,
+    "savings": 208,
+    "pct": 5.438832996803457,
+    "comps": 5
+  },
+  {
+    "caseId": "BM-0119",
+    "address": "2905 FITZHUGH AVENUE, Fort Worth, TX",
+    "assessed": 93000,
+    "recommended": 90587,
+    "reduction": 2413,
+    "savings": 54,
+    "pct": 2.5946236559139786,
+    "comps": 5
+  }
+]

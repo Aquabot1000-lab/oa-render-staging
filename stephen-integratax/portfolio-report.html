@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @page { margin: 36px; size: letter; }
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: #2d3436; font-size: 10px; }
+  .header { background: #6c5ce7; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+  .header .subtitle { font-size: 10px; opacity: 0.9; }
+  .info-bar { background: #f0edff; padding: 10px 24px; display: flex; justify-content: space-between; font-size: 10px; border-bottom: 1px solid #ddd; }
+  .summary { display: flex; justify-content: space-around; padding: 16px 24px; background: white; }
+  .summary-box { text-align: center; padding: 12px 20px; }
+  .summary-box .label { font-size: 8px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+  .summary-box .value { font-size: 20px; font-weight: bold; margin-top: 4px; }
+  .summary-box .value.green { color: #00b894; }
+  .summary-box .value.purple { color: #6c5ce7; }
+  .savings-highlight { background: #00b894; color: white; text-align: center; padding: 10px; }
+  .savings-highlight .big { font-size: 24px; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 9px; }
+  th { background: #6c5ce7; color: white; padding: 6px 8px; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  th.right { text-align: right; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+  td.right { text-align: right; }
+  tr:nth-child(even) { background: #f8f9ff; }
+  tr.total { background: #2d3436; color: white; font-weight: bold; }
+  tr.total td { padding: 8px; border: none; }
+  .footer { text-align: center; padding: 10px; font-size: 8px; color: #999; border-top: 1px solid #eee; margin-top: 10px; }
+  .comparison { background: #f0edff; padding: 12px 24px; margin: 10px 24px; border-radius: 6px; border-left: 4px solid #6c5ce7; }
+  .comparison h3 { margin: 0 0 6px 0; font-size: 11px; color: #6c5ce7; }
+  .comparison p { margin: 2px 0; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>OVERASSESSED LLC</h1>
+    <div class="subtitle">Property Tax Protest Analysis — Portfolio Report</div>
+  </div>
+  <div style="text-align: right;">
+    <div style="font-size: 10px;">Prepared for: IntegraTax, Inc.</div>
+    <div style="font-size: 9px; opacity: 0.8;">March 18, 2026</div>
+  </div>
+</div>
+
+<div class="info-bar">
+  <span><strong>County:</strong> Tarrant County, TX</span>
+  <span><strong>Properties:</strong> 23</span>
+  <span><strong>Tax Year:</strong> 2025</span>
+  <span><strong>Prepared by:</strong> OverAssessed LLC</span>
+</div>
+
+<div class="summary">
+  <div class="summary-box">
+    <div class="label">Total Assessed Value</div>
+    <div class="value">$6,003,474</div>
+  </div>
+  <div class="summary-box">
+    <div class="label">Recommended Value</div>
+    <div class="value purple">$5,492,751</div>
+  </div>
+  <div class="summary-box">
+    <div class="label">Total Reduction</div>
+    <div class="value green">$510,723</div>
+  </div>
+  <div class="summary-box">
+    <div class="label">Annual Tax Savings</div>
+    <div class="value green">$11,490/yr</div>
+  </div>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Address</th>
+<th>Owner</th>
+<th class="right">Assessed</th>
+<th class="right">Recommended</th>
+<th class="right">Reduction</th>
+<th class="right">Savings/yr</th>
+<th class="right">Comps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1515 THOMAS PLACE, Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0121</td>
+<td class="right">$1,048,580</td>
+<td class="right">$960,747</td>
+<td class="right" style="color:#00b894;">8.4%</td>
+<td class="right" style="font-weight:bold;">$1,976</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>2</td>
+<td>3125 OVERTON PARK EAST, Fort Worth,</td>
+<td style="font-size:8px;">BM-0120</td>
+<td class="right">$909,091</td>
+<td class="right">$846,141</td>
+<td class="right" style="color:#00b894;">6.9%</td>
+<td class="right" style="font-weight:bold;">$1,416</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1241 VALLEY VISTA DR, Fort Worth, T</td>
+<td style="font-size:8px;">BM-0111</td>
+<td class="right">$459,503</td>
+<td class="right">$412,140</td>
+<td class="right" style="color:#00b894;">10.3%</td>
+<td class="right" style="font-weight:bold;">$1,066</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>1313 E. INWOOD DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0108</td>
+<td class="right">$215,000</td>
+<td class="right">$187,527</td>
+<td class="right" style="color:#00b894;">12.8%</td>
+<td class="right" style="font-weight:bold;">$618</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>5</td>
+<td>1505 JANANN AVE., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0100</td>
+<td class="right">$160,000</td>
+<td class="right">$138,358</td>
+<td class="right" style="color:#00b894;">13.5%</td>
+<td class="right" style="font-weight:bold;">$487</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1615 KENT DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0105</td>
+<td class="right">$155,000</td>
+<td class="right">$134,837</td>
+<td class="right" style="color:#00b894;">13.0%</td>
+<td class="right" style="font-weight:bold;">$454</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1938 OVERBROOK DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0114</td>
+<td class="right">$235,823</td>
+<td class="right">$215,782</td>
+<td class="right" style="color:#00b894;">8.5%</td>
+<td class="right" style="font-weight:bold;">$451</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1203 JANANN AVE., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0101</td>
+<td class="right">$150,000</td>
+<td class="right">$131,461</td>
+<td class="right" style="color:#00b894;">12.4%</td>
+<td class="right" style="font-weight:bold;">$417</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>9</td>
+<td>3725 SELMA ST, Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0110</td>
+<td class="right">$216,514</td>
+<td class="right">$198,100</td>
+<td class="right" style="color:#00b894;">8.5%</td>
+<td class="right" style="font-weight:bold;">$414</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>10</td>
+<td>2513 MIRIAM LANE, Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0117</td>
+<td class="right">$183,617</td>
+<td class="right">$165,245</td>
+<td class="right" style="color:#00b894;">10.0%</td>
+<td class="right" style="font-weight:bold;">$413</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>11</td>
+<td>1203 REBECCA LN., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0103</td>
+<td class="right">$175,000</td>
+<td class="right">$156,816</td>
+<td class="right" style="color:#00b894;">10.4%</td>
+<td class="right" style="font-weight:bold;">$409</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1611 KELLY TERR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0107</td>
+<td class="right">$197,000</td>
+<td class="right">$179,145</td>
+<td class="right" style="color:#00b894;">9.1%</td>
+<td class="right" style="font-weight:bold;">$402</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>13</td>
+<td>2017 NEWBURY DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0113</td>
+<td class="right">$229,000</td>
+<td class="right">$212,991</td>
+<td class="right" style="color:#00b894;">7.0%</td>
+<td class="right" style="font-weight:bold;">$360</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>14</td>
+<td>1510 JANANN AVE., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0102</td>
+<td class="right">$178,000</td>
+<td class="right">$162,081</td>
+<td class="right" style="color:#00b894;">8.9%</td>
+<td class="right" style="font-weight:bold;">$358</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>15</td>
+<td>2208 SEVILLE CT., Fort Worth, TX</td>
+<td style="font-size:8px;">OA-0005</td>
+<td class="right">$166,000</td>
+<td class="right">$151,279</td>
+<td class="right" style="color:#00b894;">8.9%</td>
+<td class="right" style="font-weight:bold;">$331</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>16</td>
+<td>4600 VIRGINIA LANE, Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0109</td>
+<td class="right">$183,784</td>
+<td class="right">$169,929</td>
+<td class="right" style="color:#00b894;">7.5%</td>
+<td class="right" style="font-weight:bold;">$312</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>17</td>
+<td>1816 REEVER ST., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0104</td>
+<td class="right">$151,207</td>
+<td class="right">$137,451</td>
+<td class="right" style="color:#00b894;">9.1%</td>
+<td class="right" style="font-weight:bold;">$310</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>18</td>
+<td>5233 MALLORY DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0115</td>
+<td class="right">$200,000</td>
+<td class="right">$186,740</td>
+<td class="right" style="color:#00b894;">6.6%</td>
+<td class="right" style="font-weight:bold;">$298</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>19</td>
+<td>2509 PLAZA ST., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0118</td>
+<td class="right">$177,484</td>
+<td class="right">$165,640</td>
+<td class="right" style="color:#00b894;">6.7%</td>
+<td class="right" style="font-weight:bold;">$266</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>20</td>
+<td>1619 KENT DR., Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0106</td>
+<td class="right">$200,000</td>
+<td class="right">$189,012</td>
+<td class="right" style="color:#00b894;">5.5%</td>
+<td class="right" style="font-weight:bold;">$247</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>21</td>
+<td>5224 JERRI LN, Fort Worth, TX</td>
+<td style="font-size:8px;">BM-0116</td>
+<td class="right">$150,000</td>
+<td class="right">$140,110</td>
+<td class="right" style="color:#00b894;">6.6%</td>
+<td class="right" style="font-weight:bold;">$223</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>22</td>
+<td>2720 BEVERLY HILLS DR., Fort Worth,</td>
+<td style="font-size:8px;">BM-0112</td>
+<td class="right">$169,871</td>
+<td class="right">$160,632</td>
+<td class="right" style="color:#00b894;">5.4%</td>
+<td class="right" style="font-weight:bold;">$208</td>
+<td class="right">5</td>
+</tr>
+<tr>
+<td>23</td>
+<td>2905 FITZHUGH AVENUE, Fort Worth, T</td>
+<td style="font-size:8px;">BM-0119</td>
+<td class="right">$93,000</td>
+<td class="right">$90,587</td>
+<td class="right" style="color:#00b894;">2.6%</td>
+<td class="right" style="font-weight:bold;">$54</td>
+<td class="right">5</td>
+</tr>
+<tr class="total">
+<td colspan="3">PORTFOLIO TOTALS</td>
+<td class="right">$6,003,474</td>
+<td class="right">$5,492,751</td>
+<td class="right">8.5%</td>
+<td class="right">$11,490</td>
+<td class="right">—</td>
+</tr>
+</tbody>
+</table>
+
+<div class="comparison">
+  <h3>🎯 Benchmark: 3125 Overton Park East</h3>
+  <p><strong>Quick Appeal (TaxNet):</strong> $844,838 recommended</p>
+  <p><strong>OverAssessed analysis:</strong> $846,141 recommended</p>
+  <p><strong>Variance:</strong> $1,303 (0.15%) — Our engine matches professional-grade tools</p>
+</div>
+
+<div class="footer">
+  Prepared by OverAssessed LLC | overassessed.ai | tyler@overassessed.ai | (888) 282-9165 | Confidential
+</div>
+
+</body>
+</html>

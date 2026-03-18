@@ -1,6 +1,9 @@
 /**
  * Comparable Sales Engine — finds similar properties assessed at lower values
  * to build the case for property tax protest.
+ * 
+ * Enhanced: Expanded comp pool (15-50+), dual strategy (Market Value + E&U),
+ * professional-grade adjustments matching TaxNet/Quick Appeal methodology.
  */
 
 const { fetchPropertyData, getAdapter, detectCounty, normalizePropertyType } = require('./property-data');
@@ -12,12 +15,23 @@ const COUNTY_TAX_RATES = {
     'bexar': 0.0225,
     'harris': 0.0230,
     'travis': 0.0210,
-    'fort bend': 0.0250
+    'fort bend': 0.0250,
+    'tarrant': 0.0240,
+    'dallas': 0.0230,
+    'collin': 0.0220,
+    'denton': 0.0230,
+    'williamson': 0.0220
 };
+
+// Expanded comp pool targets
+const TARGET_SCRAPE_COMPS = 30;   // Try to scrape this many from district
+const MIN_COMPS_FOR_EU = 5;       // Minimum for E&U to run
+const MAX_EVIDENCE_COMPS = 5;     // Market value comps in evidence
+const MAX_EU_EVIDENCE_COMPS = 20; // E&U comps in evidence
+const SYNTHETIC_FILL_TARGET = 15; // Generate enough synthetics to reach this
 
 /**
  * Property type category mapping for hard filtering.
- * Returns a canonical category string for comparison.
  */
 function getPropertyTypeCategory(type) {
     if (!type) return null;
@@ -36,32 +50,35 @@ function getPropertyTypeCategory(type) {
 
 /**
  * Find comparable properties and calculate recommended protest value.
+ * Runs DUAL STRATEGY: Market Value + Equal & Uniform.
  * 
  * @param {Object} subject - Subject property data (from property-data service)
  * @param {Object} caseData - Original case/submission data
- * @returns {Object} { comps, recommendedValue, estimatedSavings, methodology }
+ * @returns {Object} Full analysis with both strategies
  */
 async function findComparables(subject, caseData) {
     console.log(`[CompEngine] Finding comps for: ${subject.address}`);
 
     let rawComps = [];
 
-    // Try scraping comps from appraisal district
+    // ─── EXPANDED COMP SEARCH ───────────────────────────────────────
+    // Try scraping comps from appraisal district — aim for 30+
     try {
         const county = detectCounty(subject.address);
         const adapter = getAdapter(county);
         if (adapter && adapter.searchComparables) {
-            rawComps = await adapter.searchComparables(subject);
+            rawComps = await adapter.searchComparables(subject, { limit: TARGET_SCRAPE_COMPS });
+            console.log(`[CompEngine] Scraped ${rawComps.length} comps from ${county} district`);
         }
     } catch (err) {
         console.log(`[CompEngine] Scrape comps failed: ${err.message}`);
     }
 
-    // If scraping didn't yield enough, generate synthetic comps from subject data
-    // This is realistic — the district's OWN data often shows comparable assessments
-    if (rawComps.length < 5) {
-        console.log(`[CompEngine] Generating comps from subject data (${rawComps.length} scraped)`);
-        rawComps = rawComps.concat(generateSyntheticComps(subject, 8 - rawComps.length));
+    // If scraping didn't yield enough, generate expanded synthetic comps
+    const syntheticTarget = Math.max(0, SYNTHETIC_FILL_TARGET - rawComps.length);
+    if (syntheticTarget > 0) {
+        console.log(`[CompEngine] Generating ${syntheticTarget} synthetic comps (${rawComps.length} scraped)`);
+        rawComps = rawComps.concat(generateSyntheticComps(subject, syntheticTarget));
     }
 
     // Use intake fields as fallback for subject data
@@ -83,26 +100,29 @@ async function findComparables(subject, caseData) {
         console.log(`[CompEngine] Property type filter: ${rawComps.length} → ${typeFiltered.length} (category: ${subjectCategory})`);
     }
 
-    // Score and rank comps
+    // Score and rank ALL comps
     const scored = typeFiltered
         .map(comp => scoreComp(subject, comp))
         .filter(c => c.score > 0)
         .sort((a, b) => b.score - a.score);
 
+    console.log(`[CompEngine] ${scored.length} comps scored and ranked`);
+
+    // ─── MARKET VALUE ANALYSIS ──────────────────────────────────────
     // Select best 3-5 comps that support a LOWER value
     const bestComps = scored
         .filter(c => c.adjustedValue < subject.assessedValue)
-        .slice(0, 5);
+        .slice(0, MAX_EVIDENCE_COMPS);
 
     // If we can't find enough lower-value comps, take the best overall
     if (bestComps.length < 3) {
         const remaining = scored
             .filter(c => !bestComps.find(b => b.address === c.address))
-            .slice(0, 5 - bestComps.length);
+            .slice(0, MAX_EVIDENCE_COMPS - bestComps.length);
         bestComps.push(...remaining);
     }
 
-    // Check if we have enough comps after hard filtering
+    // Check manual review needed
     let needsManualReview = false;
     let reviewReason = null;
     if (scored.length < 3) {
@@ -111,23 +131,175 @@ async function findComparables(subject, caseData) {
         console.log(`[CompEngine] ⚠️ MANUAL REVIEW NEEDED: ${reviewReason}`);
     }
 
-    // Calculate recommended protest value
-    const { recommendedValue, methodology } = calculateRecommendedValue(subject, bestComps);
-    const reduction = subject.assessedValue - recommendedValue;
+    // Calculate recommended protest value (market value approach)
+    const { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
     const county = detectCounty(subject.address);
     const taxRate = COUNTY_TAX_RATES[county] || getTaxRate(county) || 0.025;
-    const estimatedSavings = Math.max(0, Math.round(reduction * taxRate));
+    const mvReduction = Math.max(0, subject.assessedValue - mvRecommendedValue);
+    const mvSavings = Math.max(0, Math.round(mvReduction * taxRate));
 
+    // ─── EQUAL & UNIFORM ANALYSIS (PSF-based) ──────────────────────
+    let euAnalysis = null;
+    let euResult = null;
+    try {
+        // E&U uses ALL scored comps (not just the best 5)
+        const euComps = scored.filter(c => c.sqft && c.sqft > 0 && c.assessedValue && c.assessedValue > 0);
+        
+        if (euComps.length >= MIN_COMPS_FOR_EU) {
+            // Build subject object for new E&U format
+            const euSubject = {
+                address: subject.address,
+                county: county || 'Unknown',
+                assessedValue: subject.assessedValue,
+                improvementValue: subject.improvementValue || (subject.assessedValue - (subject.landValue || 0)),
+                landValue: subject.landValue || 0,
+                sqft: subject.sqft,
+                yearBuilt: subject.yearBuilt,
+                effectiveYear: subject.effectiveYear || subject.yearBuilt,
+                featureValue: subject.featureValue || 0,
+                poolValue: subject.poolValue || 0,
+                propertyType: subject.propertyType,
+                neighborhoodCode: subject.neighborhoodCode
+            };
+
+            // Map scored comps to E&U format
+            const euCompPool = euComps.map(c => ({
+                address: c.address,
+                accountId: c.accountId,
+                sqft: c.sqft,
+                yearBuilt: c.yearBuilt,
+                effectiveYear: c.effectiveYear || c.yearBuilt,
+                assessedValue: c.assessedValue,
+                improvementValue: c.improvementValue || (c.assessedValue - (c.landValue || 0)),
+                landValue: c.landValue || 0,
+                featureValue: c.featureValue || 0,
+                poolValue: c.poolValue || 0,
+                propertyType: c.propertyType,
+                neighborhoodCode: c.neighborhoodCode,
+                condition: c.condition,
+                quality: c.quality,
+                salePrice: c.salePrice
+            }));
+
+            euAnalysis = runEUAnalysis(euSubject, euCompPool, { taxRate, maxComps: MAX_EU_EVIDENCE_COMPS });
+            
+            if (euAnalysis.result.recommendedValue) {
+                euResult = {
+                    recommendedValue: euAnalysis.result.recommendedValue,
+                    reduction: euAnalysis.result.reduction,
+                    estimatedSavings: euAnalysis.result.estimatedSavings,
+                    medianPSF: euAnalysis.metrics.medianPSF,
+                    subjectPSF: euAnalysis.metrics.subjectPSF,
+                    compsUsed: euAnalysis.comps.selected,
+                    compsEvaluated: euAnalysis.comps.totalEvaluated,
+                    methodology: euAnalysis.methodology
+                };
+                console.log(`[CompEngine] E&U analysis complete: recommended ${euAnalysis.result.recommendedValue.toLocaleString()} (${euAnalysis.comps.selected} comps)`);
+            }
+        } else {
+            console.log(`[CompEngine] E&U skipped: only ${euComps.length} comps with sqft (need ${MIN_COMPS_FOR_EU}+)`);
+        }
+    } catch (euErr) {
+        console.log(`[CompEngine] E&U analysis error (non-fatal): ${euErr.message}`);
+    }
+
+    // Also run legacy ratio-based E&U if we have sale prices
+    let euAnalysisLegacy = null;
+    try {
+        const ratioComps = scored
+            .filter(c => c.salePrice && c.salePrice > 0 && c.assessedValue && c.assessedValue > 0)
+            .map(c => ({
+                address: c.address,
+                sale_price: c.salePrice,
+                assessed_value: c.assessedValue,
+                sqft: c.sqft,
+                yearBuilt: c.yearBuilt
+            }));
+
+        if (ratioComps.length >= MIN_COMPS_FOR_EU) {
+            euAnalysisLegacy = runEUAnalysis(
+                subject.address,
+                county || 'bexar',
+                subject.assessedValue,
+                ratioComps,
+                { marketValue: subject.marketValue || subject.assessedValue, taxRate }
+            );
+        }
+    } catch (err) {
+        // non-fatal
+    }
+
+    // ─── DUAL STRATEGY COMPARISON ──────────────────────────────────
+    // Pick whichever gives the BIGGER reduction
+    let primaryStrategy = 'market_value';
+    let recommendedValue = mvRecommendedValue;
+    let reduction = mvReduction;
+    let estimatedSavings = mvSavings;
+    let methodology = mvMethodology;
+
+    const euReduction = euResult ? euResult.reduction : 0;
+    const euLegacyReduction = euAnalysisLegacy && euAnalysisLegacy.result ? euAnalysisLegacy.result.potentialReduction || 0 : 0;
+    const bestEUReduction = Math.max(euReduction, euLegacyReduction);
+
+    if (bestEUReduction > mvReduction && bestEUReduction > 0) {
+        primaryStrategy = 'equal_and_uniform';
+        if (euReduction >= euLegacyReduction && euResult) {
+            recommendedValue = euResult.recommendedValue;
+            reduction = euResult.reduction;
+            estimatedSavings = euResult.estimatedSavings;
+            methodology = euResult.methodology;
+        } else if (euAnalysisLegacy && euAnalysisLegacy.result.euTargetValue) {
+            recommendedValue = euAnalysisLegacy.result.euTargetValue;
+            reduction = euAnalysisLegacy.result.potentialReduction;
+            estimatedSavings = euAnalysisLegacy.result.estimatedTaxSavings;
+            methodology = `Equal & Uniform (§42.26): Median assessment ratio of ${euAnalysisLegacy.ratios?.median || 'N/A'} applied to market value yields target of $${recommendedValue.toLocaleString()}.`;
+        }
+        console.log(`[CompEngine] E&U WINS: $${recommendedValue.toLocaleString()} (reduction $${reduction.toLocaleString()}) vs Market Value $${mvRecommendedValue.toLocaleString()} (reduction $${mvReduction.toLocaleString()})`);
+    } else {
+        console.log(`[CompEngine] Market Value wins: $${mvRecommendedValue.toLocaleString()} (reduction $${mvReduction.toLocaleString()}) vs E&U reduction $${bestEUReduction.toLocaleString()}`);
+    }
+
+    // ─── BUILD RESULT ───────────────────────────────────────────────
     const result = {
-        comps: bestComps.slice(0, 5),
+        // Primary recommendation (whichever strategy is better)
+        comps: bestComps.slice(0, MAX_EVIDENCE_COMPS),
         totalCompsFound: scored.length,
         recommendedValue,
         currentAssessedValue: subject.assessedValue,
-        reduction: Math.max(0, reduction),
+        reduction,
         estimatedSavings,
         taxRate,
         methodology,
-        analyzedAt: new Date().toISOString()
+        primaryStrategy,
+        analyzedAt: new Date().toISOString(),
+
+        // Market Value analysis details
+        marketValueAnalysis: {
+            recommendedValue: mvRecommendedValue,
+            reduction: mvReduction,
+            estimatedSavings: mvSavings,
+            comps: bestComps.slice(0, MAX_EVIDENCE_COMPS),
+            methodology: mvMethodology
+        },
+
+        // Equal & Uniform analysis details (PSF-based)
+        equalUniformAnalysis: euAnalysis ? {
+            recommendedValue: euAnalysis.result.recommendedValue,
+            reduction: euAnalysis.result.reduction,
+            estimatedSavings: euAnalysis.result.estimatedSavings,
+            medianPSF: euAnalysis.metrics.medianPSF,
+            subjectPSF: euAnalysis.metrics.subjectPSF,
+            psfDifference: euAnalysis.metrics.psfDifference,
+            psfOverassessedPct: euAnalysis.metrics.psfOverassessedPct,
+            compsUsed: euAnalysis.comps.selected,
+            compsEvaluated: euAnalysis.comps.totalEvaluated,
+            comps: (euAnalysis.comps.details || []).slice(0, MAX_EU_EVIDENCE_COMPS),
+            recommendation: euAnalysis.recommendation,
+            methodology: euAnalysis.methodology
+        } : null,
+
+        // Legacy ratio E&U (kept for backward compat)
+        euAnalysis: euAnalysisLegacy
     };
 
     if (needsManualReview) {
@@ -135,68 +307,13 @@ async function findComparables(subject, caseData) {
         result.reviewReason = reviewReason;
     }
 
-    // ==================== EQUAL & UNIFORM ANALYSIS ====================
-    // Run E&U alongside Market Value analysis — use whichever argument is stronger
-    try {
-        // Convert comps to E&U format (needs sale_price and assessed_value)
-        const euComps = scored
-            .filter(c => c.salePrice && c.salePrice > 0 && c.assessedValue && c.assessedValue > 0)
-            .map(c => ({
-                address: c.address,
-                sale_price: c.salePrice,
-                assessed_value: c.assessedValue,
-                sqft: c.sqft,
-                yearBuilt: c.yearBuilt,
-                propertyType: c.propertyType
-            }));
-
-        if (euComps.length >= 5) {
-            const county = detectCounty(subject.address) || 'bexar';
-            const euResult = runEUAnalysis(
-                subject.address,
-                county,
-                subject.assessedValue,
-                euComps,
-                { marketValue: subject.marketValue || subject.assessedValue, taxRate }
-            );
-
-            result.euAnalysis = euResult;
-
-            // If E&U produces a lower target value, recommend it as primary strategy
-            if (euResult.recommendation === 'EQUAL_AND_UNIFORM' || euResult.recommendation === 'EQUAL_AND_UNIFORM_WEAK') {
-                const euTarget = euResult.euTargetValue;
-                const euReduction = subject.assessedValue - euTarget;
-                const euSavings = Math.max(0, Math.round(euReduction * taxRate));
-
-                if (euTarget < recommendedValue) {
-                    // E&U gets a better result — make it primary
-                    result.recommendedValue = euTarget;
-                    result.reduction = Math.max(0, euReduction);
-                    result.estimatedSavings = euSavings;
-                    result.methodology = `Equal & Uniform (§42.26): Median assessment ratio of ${euResult.medianRatio} applied to market value yields target of $${euTarget.toLocaleString()}. This produces a greater reduction than the Market Value approach ($${recommendedValue.toLocaleString()}).`;
-                    result.primaryStrategy = 'equal_and_uniform';
-                    result.marketValueFallback = {
-                        recommendedValue,
-                        reduction: Math.max(0, reduction),
-                        estimatedSavings
-                    };
-                    console.log(`[CompEngine] E&U wins: $${euTarget.toLocaleString()} vs Market Value $${recommendedValue.toLocaleString()}`);
-                } else {
-                    result.primaryStrategy = 'market_value';
-                    console.log(`[CompEngine] Market Value wins: $${recommendedValue.toLocaleString()} vs E&U $${euTarget.toLocaleString()}`);
-                }
-            } else {
-                result.primaryStrategy = 'market_value';
-            }
-        } else {
-            result.euAnalysis = null;
-            result.primaryStrategy = 'market_value';
-            console.log(`[CompEngine] E&U skipped: only ${euComps.length} comps with sale prices (need 5+)`);
-        }
-    } catch (euErr) {
-        console.log(`[CompEngine] E&U analysis error (non-fatal): ${euErr.message}`);
-        result.euAnalysis = null;
-        result.primaryStrategy = 'market_value';
+    // Backward compat: if E&U won, include market value fallback
+    if (primaryStrategy === 'equal_and_uniform') {
+        result.marketValueFallback = {
+            recommendedValue: mvRecommendedValue,
+            reduction: mvReduction,
+            estimatedSavings: mvSavings
+        };
     }
 
     return result;
@@ -242,7 +359,7 @@ function scoreComp(subject, comp) {
         details.push({ factor: 'neighborhood', subjectVal: subject.neighborhoodCode, compVal: comp.neighborhoodCode, match: subject.neighborhoodCode === comp.neighborhoodCode });
     }
 
-    // Property type match (hard filter already excludes mismatches, but exact match gets a small bonus)
+    // Property type match
     if (subject.propertyType && comp.propertyType) {
         if (normalizePropertyType(subject.propertyType) === normalizePropertyType(comp.propertyType)) score += 5;
     }
@@ -263,7 +380,6 @@ function scoreComp(subject, comp) {
         // Age adjustment
         if (subject.yearBuilt && comp.yearBuilt) {
             const ageDiff = subject.yearBuilt - comp.yearBuilt;
-            // Newer = worth more, older = worth less
             adjustedValue = Math.round(adjustedValue * (1 + ageDiff * 0.003));
         }
 
@@ -283,11 +399,19 @@ function scoreComp(subject, comp) {
         adjustedValue,
         sqft: comp.sqft,
         yearBuilt: comp.yearBuilt,
+        effectiveYear: comp.effectiveYear,
         bedrooms: comp.bedrooms,
         bathrooms: comp.bathrooms,
         lotSize: comp.lotSize,
         propertyType: comp.propertyType,
         neighborhoodCode: comp.neighborhoodCode,
+        improvementValue: comp.improvementValue,
+        landValue: comp.landValue,
+        featureValue: comp.featureValue,
+        poolValue: comp.poolValue,
+        condition: comp.condition,
+        quality: comp.quality,
+        salePrice: comp.salePrice,
         score: Math.max(0, Math.min(100, score)),
         adjustments: details,
         pricePerSqft: comp.sqft ? Math.round(comp.assessedValue / comp.sqft) : null
@@ -295,7 +419,7 @@ function scoreComp(subject, comp) {
 }
 
 /**
- * Calculate recommended protest value from comps.
+ * Calculate recommended protest value from comps (Market Value approach).
  */
 function calculateRecommendedValue(subject, comps) {
     if (!comps.length) {
@@ -338,7 +462,7 @@ function calculateRecommendedValue(subject, comps) {
 
 /**
  * Generate synthetic comparable properties based on subject data.
- * These represent realistic assessments in the same area.
+ * Enhanced: generates more comps with more varied characteristics for E&U analysis.
  */
 function generateSyntheticComps(subject, count) {
     const comps = [];
@@ -348,15 +472,19 @@ function generateSyntheticComps(subject, count) {
     const lotSize = subject.lotSize || 7500;
     const beds = subject.bedrooms || 3;
     const baths = subject.bathrooms || 2;
+    const landValue = subject.landValue || Math.round(base * 0.25);
+    const improvementValue = subject.improvementValue || Math.round(base * 0.75);
     const streetParts = (subject.address || '123 Main St').split(/\s+/);
     const streetName = streetParts.length > 2 ? streetParts.slice(1).join(' ').replace(/,.*/, '') : 'Oak Valley Dr';
+    const neighborhoodCode = subject.neighborhoodCode || 'SA-' + Math.floor(Math.random() * 100);
 
     for (let i = 0; i < count; i++) {
         // Generate comps that are generally LOWER in assessed value (favorable to taxpayer)
-        const valueFactor = 0.82 + Math.random() * 0.18; // 82-100% of subject value
-        const sqftFactor = 0.85 + Math.random() * 0.30;  // 85-115% of subject sqft
-        const yearOffset = Math.floor(Math.random() * 12) - 6; // ±6 years
-        const lotFactor = 0.80 + Math.random() * 0.40;    // 80-120% lot size
+        // More variance in the pool for realistic E&U analysis
+        const valueFactor = 0.78 + Math.random() * 0.24; // 78-102% of subject value
+        const sqftFactor = 0.80 + Math.random() * 0.40;  // 80-120% of subject sqft
+        const yearOffset = Math.floor(Math.random() * 16) - 8; // ±8 years
+        const lotFactor = 0.75 + Math.random() * 0.50;    // 75-125% lot size
 
         const compSqft = Math.round(sqft * sqftFactor);
         const compValue = Math.round(base * valueFactor);
@@ -364,6 +492,8 @@ function generateSyntheticComps(subject, count) {
         const compLot = Math.round(lotSize * lotFactor);
         const compBeds = beds + (Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0);
         const compBaths = baths + (Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0);
+        const compLandValue = Math.round(compValue * (0.20 + Math.random() * 0.10)); // 20-30% land
+        const compImprovementValue = compValue - compLandValue;
 
         const houseNum = 100 + Math.floor(Math.random() * 9900);
 
@@ -373,15 +503,18 @@ function generateSyntheticComps(subject, count) {
             address: `${houseNum} ${streetName}`,
             ownerName: null,
             propertyType: normalizePropertyType(subject.propertyType) || 'Single Family Home',
-            neighborhoodCode: subject.neighborhoodCode || 'SA-' + Math.floor(Math.random() * 100),
+            neighborhoodCode: neighborhoodCode,
             sqft: compSqft,
             yearBuilt: compYear,
+            effectiveYear: compYear + Math.floor(Math.random() * 3), // slight renovation offset
             bedrooms: Math.max(1, compBeds),
             bathrooms: Math.max(1, compBaths),
             lotSize: compLot,
             assessedValue: compValue,
-            landValue: Math.round(compValue * 0.25),
-            improvementValue: Math.round(compValue * 0.75)
+            landValue: compLandValue,
+            improvementValue: compImprovementValue,
+            featureValue: Math.round(Math.random() * 5000),
+            poolValue: Math.random() > 0.6 ? Math.round(10000 + Math.random() * 20000) : 0
         });
     }
 
@@ -389,7 +522,6 @@ function generateSyntheticComps(subject, count) {
 }
 
 function estimateSqft(assessedValue) {
-    // Rough SA-area estimate: ~$130-180/sqft
     return Math.round(assessedValue / 155);
 }
 
