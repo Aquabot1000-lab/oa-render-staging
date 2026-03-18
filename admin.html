@@ -853,7 +853,7 @@ function renderSubmissionsTable() {
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
             <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
-            <td class="hide-mobile">${s.assessedValue || '—'}</td>
+            <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '—'}</td>
             <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
             <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '—')}</td>
             <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
@@ -987,7 +987,7 @@ function openDetail(id) {
     document.getElementById('detailCaseBadge').textContent = s.status;
     document.getElementById('detailAddress').textContent = s.propertyAddress;
     document.getElementById('detailType').textContent = s.propertyType;
-    document.getElementById('detailValue').textContent = s.assessedValue || '—';
+    document.getElementById('detailValue').textContent = s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '—';
     document.getElementById('detailEmail').innerHTML = `<a href="mailto:${esc(s.email)}">${esc(s.email)}</a>`;
     document.getElementById('detailPhone').innerHTML = `<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>`;
     document.getElementById('detailDate').textContent = new Date(s.createdAt).toLocaleString();
