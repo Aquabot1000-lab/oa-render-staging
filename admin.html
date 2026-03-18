@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>OverAssessed — Admin Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -671,7 +674,22 @@ let pipelineStats = {};
 let currentId = null;
 let selectedIds = new Set();
 
-if (token) showDashboard();
+// Check if stored JWT is expired before using it
+function isTokenExpired(tok) {
+    if (!tok) return true;
+    try {
+        const payload = JSON.parse(atob(tok.split('.')[1]));
+        return (payload.exp * 1000) < Date.now();
+    } catch (e) { return true; }
+}
+
+if (token && !isTokenExpired(token)) {
+    showDashboard();
+} else if (token) {
+    // Token expired — clean up and show login
+    localStorage.removeItem('oa_token');
+    token = null;
+}
 
 // ===== AUTH =====
 async function doLogin() {
@@ -717,7 +735,19 @@ function switchTab(name) {
 
 // ===== DATA LOADING =====
 async function loadAll() {
-    await Promise.all([loadSubmissions(), loadPipelineStats(), loadFollowUpsDue()]);
+    // Show loading state
+    const recentBody = document.getElementById('recentBody');
+    if (recentBody) recentBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#86868b;">Loading cases...</td></tr>';
+    
+    try {
+        await Promise.all([loadSubmissions(), loadPipelineStats(), loadFollowUpsDue()]);
+    } catch (e) {
+        console.error('loadAll error:', e);
+    }
+    
+    // Filter out soft-deleted from main list
+    submissions = submissions.filter(s => s.status !== 'Deleted' && !s.deletedAt && !s.deleted_at);
+    
     renderOverview();
     renderSignatures();
     renderNotices();
@@ -733,8 +763,9 @@ async function loadPipelineStats() {
     try {
         const res = await fetch('/api/pipeline-stats', { headers: authHeaders() });
         if (res.status === 401 || res.status === 403) { doLogout(); return; }
+        if (!res.ok) { console.error('Pipeline stats error:', res.status); return; }
         pipelineStats = await res.json();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('loadPipelineStats error:', e); }
 }
 
 async function loadSubmissions() {
@@ -743,9 +774,21 @@ async function loadSubmissions() {
         const stateParam = stateFilter ? `?state=${stateFilter}` : '';
         const res = await fetch('/api/submissions' + stateParam, { headers: authHeaders() });
         if (res.status === 401 || res.status === 403) { doLogout(); return; }
-        submissions = await res.json();
+        if (!res.ok) { console.error('Submissions API error:', res.status); return; }
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            submissions = data;
+        } else {
+            console.error('Submissions API returned non-array:', data);
+            submissions = [];
+        }
         renderSubmissionsTable();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error('loadSubmissions error:', e);
+        // Show error in UI
+        const recentBody = document.getElementById('recentBody');
+        if (recentBody) recentBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#e17055;">Failed to load cases. <a href="#" onclick="loadAll();return false;">Retry</a></td></tr>';
+    }
 }
 
 // ===== RENDERING =====
