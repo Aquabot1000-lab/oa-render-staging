@@ -20,6 +20,9 @@ const { generateEvidencePacket, EVIDENCE_DIR } = require('./services/evidence-ge
 const { prepareFilingPackage, FILING_DIR } = require('./services/auto-file');
 const { detectState, sendStageNotification } = require('./services/notifications');
 
+// Tarrant County real property data
+const tarrantData = require('./services/tarrant-data');
+
 const app = express();
 const PORT = process.env.PORT || 3002;
 
@@ -844,6 +847,26 @@ app.get('/api/analysis/comps', authenticateToken, async (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy', service: 'OverAssessed', timestamp: new Date().toISOString() });
+});
+
+// TAD data stats (admin)
+app.get('/api/tad-stats', authenticateToken, (req, res) => {
+    res.json(tarrantData.getStats());
+});
+
+// TAD property lookup by account number (admin)
+app.get('/api/tad-lookup/:account', authenticateToken, (req, res) => {
+    const record = tarrantData.lookupAccount(req.params.account);
+    if (!record) return res.status(404).json({ error: 'Account not found' });
+    res.json(record);
+});
+
+// TAD address search (admin)
+app.get('/api/tad-search', authenticateToken, (req, res) => {
+    const { address, limit } = req.query;
+    if (!address) return res.status(400).json({ error: 'address query param required' });
+    const results = tarrantData.searchByAddress(address, parseInt(limit) || 10);
+    res.json({ results, count: results.length });
 });
 
 // Auth
@@ -1811,6 +1834,7 @@ function buildAnalysisHtml(sub, propertyData, compResults) {
         <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">Comparable Properties</div>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
             <thead><tr style="background: #6c5ce7; color: white;">
+                ${(compResults.comps || []).some(c => c.accountId && !c.accountId.startsWith('R')) ? '<th style="padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600;">Account #</th>' : ''}
                 <th style="padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600;">Address</th>
                 <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Assessed</th>
                 <th style="padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;">Adjusted</th>
@@ -1821,6 +1845,7 @@ function buildAnalysisHtml(sub, propertyData, compResults) {
             </tr></thead>
             <tbody>
                 ${(compResults.comps || []).map((c, i) => `<tr style="background: ${i % 2 ? '#f7f7fc' : 'white'};">
+                    ${(compResults.comps || []).some(c => c.accountId && !c.accountId.startsWith('R')) ? `<td style="padding: 4px 6px; font-size: 10px; font-weight: 700; color: #6c5ce7;">${c.accountId || '—'}</td>` : ''}
                     <td style="padding: 4px 6px; font-size: 10px;">${c.address}</td>
                     <td style="padding: 4px 6px; text-align: right; font-size: 10px;">$${(c.assessedValue || 0).toLocaleString()}</td>
                     <td style="padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: ${(c.adjustedValue || 0) < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
@@ -2701,6 +2726,18 @@ app.use((err, req, res, next) => {
 // Start
 async function startServer() {
     await initializeDataFiles();
+
+    // Load Tarrant County real property data (async, non-blocking)
+    tarrantData.loadData().then(loaded => {
+        if (loaded) {
+            const stats = tarrantData.getStats();
+            console.log(`🏠 Tarrant CAD: ${stats.totalRecords.toLocaleString()} parcels loaded (${stats.memoryMB}MB)`);
+        } else {
+            console.log('⚠️  Tarrant CAD data not available — using synthetic comps for Tarrant County');
+        }
+    }).catch(err => {
+        console.error('❌ Tarrant CAD load error:', err.message);
+    });
     
 // ===== AI-POWERED PHONE ANSWERING SERVICE =====
 // Conversation state: CallSid -> { messages: [], callerInfo: {}, startTime: Date }

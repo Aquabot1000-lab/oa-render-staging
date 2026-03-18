@@ -124,9 +124,14 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
             doc.y += 4;
 
             const tableX = LM;
-            const colWidths = [170, 72, 72, 52, 48, 56, 36];
-            // Headers: Address, Assessed, Adjusted, Sq Ft, Yr Built, $/SqFt, Score
-            const headers = ['Address', 'Assessed', 'Adjusted', 'Sq Ft', 'Yr Built', '$/SqFt', 'Score'];
+            // Check if comps have real account IDs (Tarrant CAD data)
+            const hasRealAccounts = comps.some(c => c.accountId && !c.accountId.startsWith('R'));
+            const colWidths = hasRealAccounts 
+                ? [52, 138, 68, 68, 50, 46, 50, 34]  // With Account #
+                : [170, 72, 72, 52, 48, 56, 36];       // Without Account #
+            const headers = hasRealAccounts
+                ? ['Account #', 'Address', 'Assessed', 'Adjusted', 'Sq Ft', 'Yr Built', '$/SqFt', 'Score']
+                : ['Address', 'Assessed', 'Adjusted', 'Sq Ft', 'Yr Built', '$/SqFt', 'Score'];
 
             const thY = doc.y;
             doc.rect(tableX, thY, CW, 14).fill(PURPLE);
@@ -150,37 +155,53 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
                 doc.fontSize(6.5).font('Helvetica').fillColor(TEXT_DARK);
                 colX = tableX + 4;
 
+                if (hasRealAccounts) {
+                    // Account # (TAD account number — verifiable in TaxNet)
+                    doc.font('Helvetica-Bold').fillColor(PURPLE);
+                    doc.text(comp.accountId || '—', colX, rowY + 3, { width: colWidths[0] - 8 });
+                    colX += colWidths[0];
+                    doc.font('Helvetica').fillColor(TEXT_DARK);
+                }
+
                 // Address (truncated)
-                const addr = (comp.address || '').length > 38 ? (comp.address || '').substring(0, 36) + '…' : (comp.address || '');
-                doc.text(addr, colX, rowY + 3, { width: colWidths[0] - 8 });
-                colX += colWidths[0];
+                const addrColIdx = hasRealAccounts ? 1 : 0;
+                const maxAddrLen = hasRealAccounts ? 28 : 38;
+                const addr = (comp.address || '').length > maxAddrLen ? (comp.address || '').substring(0, maxAddrLen - 2) + '…' : (comp.address || '');
+                doc.text(addr, colX, rowY + 3, { width: colWidths[addrColIdx] - 8 });
+                colX += colWidths[addrColIdx];
 
                 // Assessed
-                doc.text(`$${(comp.assessedValue || 0).toLocaleString()}`, colX, rowY + 3, { width: colWidths[1] - 8, align: 'right' });
-                colX += colWidths[1];
+                const assessedColIdx = hasRealAccounts ? 2 : 1;
+                doc.text(`$${(comp.assessedValue || 0).toLocaleString()}`, colX, rowY + 3, { width: colWidths[assessedColIdx] - 8, align: 'right' });
+                colX += colWidths[assessedColIdx];
 
                 // Adjusted (color-coded)
+                const adjustedColIdx = hasRealAccounts ? 3 : 2;
                 const adjColor = (comp.adjustedValue || 0) < assessedVal ? GREEN : '#e17055';
                 doc.fillColor(adjColor).font('Helvetica-Bold');
-                doc.text(`$${(comp.adjustedValue || 0).toLocaleString()}`, colX, rowY + 3, { width: colWidths[2] - 8, align: 'right' });
-                colX += colWidths[2];
+                doc.text(`$${(comp.adjustedValue || 0).toLocaleString()}`, colX, rowY + 3, { width: colWidths[adjustedColIdx] - 8, align: 'right' });
+                colX += colWidths[adjustedColIdx];
 
                 doc.fillColor(TEXT_DARK).font('Helvetica');
                 // Sq Ft
-                doc.text(comp.sqft ? comp.sqft.toLocaleString() : '—', colX, rowY + 3, { width: colWidths[3] - 8, align: 'right' });
-                colX += colWidths[3];
+                const sqftColIdx = hasRealAccounts ? 4 : 3;
+                doc.text(comp.sqft ? comp.sqft.toLocaleString() : '—', colX, rowY + 3, { width: colWidths[sqftColIdx] - 8, align: 'right' });
+                colX += colWidths[sqftColIdx];
 
                 // Year Built
-                doc.text(comp.yearBuilt || '—', colX, rowY + 3, { width: colWidths[4] - 8, align: 'right' });
-                colX += colWidths[4];
+                const yrColIdx = hasRealAccounts ? 5 : 4;
+                doc.text(comp.yearBuilt || '—', colX, rowY + 3, { width: colWidths[yrColIdx] - 8, align: 'right' });
+                colX += colWidths[yrColIdx];
 
                 // $/SqFt
-                doc.text(comp.pricePerSqft ? `$${comp.pricePerSqft}` : '—', colX, rowY + 3, { width: colWidths[5] - 8, align: 'right' });
-                colX += colWidths[5];
+                const psfColIdx = hasRealAccounts ? 6 : 5;
+                doc.text(comp.pricePerSqft ? `$${comp.pricePerSqft}` : '—', colX, rowY + 3, { width: colWidths[psfColIdx] - 8, align: 'right' });
+                colX += colWidths[psfColIdx];
 
                 // Score
+                const scoreColIdx = hasRealAccounts ? 7 : 6;
                 doc.font('Helvetica-Bold').fillColor(PURPLE);
-                doc.text(`${comp.score}`, colX, rowY + 3, { width: colWidths[6] - 8, align: 'right' });
+                doc.text(`${comp.score}`, colX, rowY + 3, { width: colWidths[scoreColIdx] - 8, align: 'right' });
 
                 doc.y = rowY + rowH;
             });

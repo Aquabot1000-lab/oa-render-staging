@@ -9,6 +9,7 @@
 const { fetchPropertyData, getAdapter, detectCounty, normalizePropertyType } = require('./property-data');
 const { runEUAnalysis } = require('./eu-analysis');
 const { getTaxRate } = require('./rentcast');
+const tarrantData = require('./tarrant-data');
 
 // County-specific tax rates (also available via rentcast.getTaxRate)
 const COUNTY_TAX_RATES = {
@@ -60,25 +61,150 @@ async function findComparables(subject, caseData) {
     console.log(`[CompEngine] Finding comps for: ${subject.address}`);
 
     let rawComps = [];
+    // Detect county — prefer explicit county from case data, fall back to address-based detection
+    const county = (caseData && caseData.county) 
+        ? caseData.county.toLowerCase().replace(/\s*county\s*/i, '').trim()
+        : detectCounty(subject.address);
 
-    // ─── EXPANDED COMP SEARCH ───────────────────────────────────────
-    // Try scraping comps from appraisal district — aim for 30+
-    try {
-        const county = detectCounty(subject.address);
-        const adapter = getAdapter(county);
-        if (adapter && adapter.searchComparables) {
-            rawComps = await adapter.searchComparables(subject, { limit: TARGET_SCRAPE_COMPS });
-            console.log(`[CompEngine] Scraped ${rawComps.length} comps from ${county} district`);
+    // ─── REAL TAD DATA (Tarrant County) ─────────────────────────────
+    // Check for real appraisal district data FIRST — this is the gold standard
+    let usedRealData = false;
+    if (county && county.toLowerCase() === 'tarrant' && tarrantData.isLoaded()) {
+        try {
+            console.log(`[CompEngine] 🔍 Using REAL Tarrant CAD data for comps`);
+
+            // Try to find the subject property in TAD data
+            let subjectTAD = null;
+            if (subject.address) {
+                const addrResults = tarrantData.searchByAddress(subject.address, 3);
+                if (addrResults.length > 0) {
+                    subjectTAD = addrResults[0];
+                    console.log(`[CompEngine] Found subject in TAD: Account ${subjectTAD.accountNumber}, ${subjectTAD.address}`);
+                    // Enrich subject with TAD data
+                    if (!subject.sqft && subjectTAD.sqft) subject.sqft = subjectTAD.sqft;
+                    if (!subject.yearBuilt && subjectTAD.yearBuilt) subject.yearBuilt = subjectTAD.yearBuilt;
+                    if (!subject.assessedValue && subjectTAD.totalValue) subject.assessedValue = subjectTAD.totalValue;
+                    if (!subject.landValue && subjectTAD.landValue) subject.landValue = subjectTAD.landValue;
+                    if (!subject.improvementValue && subjectTAD.improvementValue) subject.improvementValue = subjectTAD.improvementValue;
+                    if (!subject.bedrooms && subjectTAD.bedrooms) subject.bedrooms = subjectTAD.bedrooms;
+                    if (!subject.bathrooms && subjectTAD.bathrooms) subject.bathrooms = subjectTAD.bathrooms;
+                }
+            }
+
+            // Determine property class for search
+            const propertyClass = (subjectTAD && subjectTAD.propertyClass) || 
+                                  mapPropertyTypeToTADClass(subject.propertyType) || 'A1';
+
+            // Find real comps from TAD data
+            const tadComps = tarrantData.findComps({
+                address: subject.address,
+                propertyClass,
+                sqft: subject.sqft,
+                yearBuilt: subject.yearBuilt,
+                legalDescription: subjectTAD ? subjectTAD.legalDescription : null,
+                zipCode: subjectTAD ? subjectTAD.zipCode : null,
+                maxResults: 30,
+                sqftRange: 0.30,
+                yearRange: 15
+            });
+
+            if (tadComps.length >= 5) {
+                // Convert TAD records to comp-engine format
+                rawComps = tadComps.map(tc => ({
+                    source: 'tarrant-cad',
+                    accountId: tc.accountNumber,
+                    address: tc.address,
+                    ownerName: null, // Don't include owner names in comps
+                    propertyType: tc.propertyClassDesc || 'Single Family Home',
+                    neighborhoodCode: tarrantData.extractNeighborhood(tc.legalDescription),
+                    sqft: tc.sqft,
+                    yearBuilt: tc.yearBuilt,
+                    bedrooms: tc.bedrooms,
+                    bathrooms: tc.bathrooms,
+                    lotSize: null,
+                    assessedValue: tc.totalValue,
+                    landValue: tc.landValue,
+                    improvementValue: tc.improvementValue,
+                    featureValue: 0,
+                    poolValue: tc.hasPool ? 15000 : 0, // Estimated pool value
+                    garageCap: tc.garageCap,
+                    legalDescription: tc.legalDescription,
+                    zipCode: tc.zipCode
+                }));
+
+                usedRealData = true;
+                console.log(`[CompEngine] ✅ Using ${rawComps.length} REAL Tarrant CAD comps (property class: ${propertyClass})`);
+
+                // Also get E&U comps (wider search)
+                const euTadComps = tarrantData.findEUComps({
+                    address: subject.address,
+                    propertyClass,
+                    sqft: subject.sqft,
+                    yearBuilt: subject.yearBuilt,
+                    legalDescription: subjectTAD ? subjectTAD.legalDescription : null,
+                    zipCode: subjectTAD ? subjectTAD.zipCode : null,
+                    maxResults: 50
+                });
+
+                // Add any E&U comps not already in rawComps
+                const existingAccounts = new Set(rawComps.map(c => c.accountId));
+                for (const tc of euTadComps) {
+                    if (!existingAccounts.has(tc.accountNumber)) {
+                        rawComps.push({
+                            source: 'tarrant-cad',
+                            accountId: tc.accountNumber,
+                            address: tc.address,
+                            ownerName: null,
+                            propertyType: tc.propertyClassDesc || 'Single Family Home',
+                            neighborhoodCode: tarrantData.extractNeighborhood(tc.legalDescription),
+                            sqft: tc.sqft,
+                            yearBuilt: tc.yearBuilt,
+                            bedrooms: tc.bedrooms,
+                            bathrooms: tc.bathrooms,
+                            lotSize: null,
+                            assessedValue: tc.totalValue,
+                            landValue: tc.landValue,
+                            improvementValue: tc.improvementValue,
+                            featureValue: 0,
+                            poolValue: tc.hasPool ? 15000 : 0,
+                            garageCap: tc.garageCap,
+                            legalDescription: tc.legalDescription,
+                            zipCode: tc.zipCode
+                        });
+                        existingAccounts.add(tc.accountNumber);
+                    }
+                }
+                console.log(`[CompEngine] Total real comps (incl E&U): ${rawComps.length}`);
+            } else {
+                console.log(`[CompEngine] Only ${tadComps.length} TAD comps found, supplementing with other sources`);
+            }
+        } catch (err) {
+            console.error(`[CompEngine] TAD data search failed: ${err.message}`);
         }
-    } catch (err) {
-        console.log(`[CompEngine] Scrape comps failed: ${err.message}`);
     }
 
-    // If scraping didn't yield enough, generate expanded synthetic comps
-    const syntheticTarget = Math.max(0, SYNTHETIC_FILL_TARGET - rawComps.length);
-    if (syntheticTarget > 0) {
-        console.log(`[CompEngine] Generating ${syntheticTarget} synthetic comps (${rawComps.length} scraped)`);
-        rawComps = rawComps.concat(generateSyntheticComps(subject, syntheticTarget));
+    // ─── EXPANDED COMP SEARCH ───────────────────────────────────────
+    // Try scraping comps from appraisal district if no real data or need more
+    if (!usedRealData) {
+        try {
+            const adapter = getAdapter(county);
+            if (adapter && adapter.searchComparables) {
+                rawComps = await adapter.searchComparables(subject, { limit: TARGET_SCRAPE_COMPS });
+                console.log(`[CompEngine] Scraped ${rawComps.length} comps from ${county} district`);
+            }
+        } catch (err) {
+            console.log(`[CompEngine] Scrape comps failed: ${err.message}`);
+        }
+    }
+
+    // If scraping/real data didn't yield enough, generate expanded synthetic comps
+    // But NEVER add synthetics when we have real TAD data
+    if (!usedRealData) {
+        const syntheticTarget = Math.max(0, SYNTHETIC_FILL_TARGET - rawComps.length);
+        if (syntheticTarget > 0) {
+            console.log(`[CompEngine] Generating ${syntheticTarget} synthetic comps (${rawComps.length} scraped)`);
+            rawComps = rawComps.concat(generateSyntheticComps(subject, syntheticTarget));
+        }
     }
 
     // Use intake fields as fallback for subject data
@@ -133,7 +259,6 @@ async function findComparables(subject, caseData) {
 
     // Calculate recommended protest value (market value approach)
     const { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
-    const county = detectCounty(subject.address);
     const taxRate = COUNTY_TAX_RATES[county] || getTaxRate(county) || 0.025;
     const mvReduction = Math.max(0, subject.assessedValue - mvRecommendedValue);
     const mvSavings = Math.max(0, Math.round(mvReduction * taxRate));
@@ -523,6 +648,22 @@ function generateSyntheticComps(subject, count) {
 
 function estimateSqft(assessedValue) {
     return Math.round(assessedValue / 155);
+}
+
+/**
+ * Map normalized property type to TAD property class code.
+ */
+function mapPropertyTypeToTADClass(propertyType) {
+    if (!propertyType) return 'A1';
+    const normalized = (normalizePropertyType(propertyType) || '').toLowerCase();
+    if (normalized.includes('single family') || normalized.includes('sfr')) return 'A1';
+    if (normalized.includes('townhouse') || normalized.includes('condo')) return 'A1';
+    if (normalized.includes('duplex') || normalized.includes('triplex') || normalized.includes('fourplex')) return 'A2';
+    if (normalized.includes('multi-family') || normalized.includes('multi family')) return 'B1';
+    if (normalized.includes('mobile')) return 'M1';
+    if (normalized.includes('commercial')) return 'F1';
+    if (normalized.includes('vacant') || normalized.includes('land')) return 'C1';
+    return 'A1'; // Default to SFR
 }
 
 module.exports = {
