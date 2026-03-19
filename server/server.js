@@ -3261,3 +3261,8 @@ app.get('/tiktok/callback', async (req, res) => {
     // For now, redirect to content manager as connected
     res.redirect('/tiktok/?connected=true');
 });
+
+// Version check
+app.get('/api/version', (req, res) => {
+    res.json({ version: '2.5.0-tad', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
+});
