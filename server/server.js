@@ -483,7 +483,7 @@ async function sendSMS(to, message) {
     try {
         await twilioClient.messages.create({
             body: message,
-            from: process.env.TWILIO_PHONE_NUMBER,
+            from: process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER,
             to
         });
         console.log('SMS sent to', to);
@@ -3103,7 +3103,7 @@ async function sendCallSummary(callSid, state) {
         try {
             await twilioClient.messages.create({
                 body: smsLines.join('\n'),
-                from: '+18882829165',
+                from: process.env.TWILIO_SMS_NUMBER || '+18309537253',
                 to: '+12105598725'
             });
             console.log(`📱 [AI Phone] SMS summary sent to Tyler for ${callSid}`);

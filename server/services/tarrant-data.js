@@ -13,12 +13,16 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const zlib = require('zlib');
 
 // Data file paths — check env first, then default locations
+// Each entry can be a .jsonl or .jsonl.gz file
 const DATA_PATHS = [
     process.env.TAD_DATA_PATH,
-    path.join(__dirname, '..', '..', 'data', 'tarrant', 'parcels-compact.jsonl'),
     path.join(__dirname, '..', 'data', 'tarrant', 'parcels-compact.jsonl'),
+    path.join(__dirname, '..', 'data', 'tarrant', 'parcels-compact.jsonl.gz'),
+    path.join(__dirname, '..', '..', 'data', 'tarrant', 'parcels-compact.jsonl'),
+    path.join(__dirname, '..', '..', 'data', 'tarrant', 'parcels-compact.jsonl.gz'),
     '/Users/aquabot/Documents/OverAssessed/data/tarrant/parcels-compact.jsonl'
 ].filter(Boolean);
 
@@ -141,7 +145,13 @@ async function loadData() {
     propertyClassIndex = new Map();
 
     return new Promise((resolve) => {
-        const stream = fs.createReadStream(dataPath, { encoding: 'utf-8' });
+        let stream = fs.createReadStream(dataPath);
+        // If the file is gzipped, pipe through gunzip
+        if (dataPath.endsWith('.gz')) {
+            console.log('[TarrantData] Decompressing .gz file on the fly...');
+            stream = stream.pipe(zlib.createGunzip());
+        }
+        stream.setEncoding('utf-8');
         const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
         let count = 0;
 
@@ -299,6 +309,10 @@ function findComps(options) {
         // Must have a reasonable total value (skip demolished/damaged/vacant parcels)
         if (!rec.tv || rec.tv < 20000) continue;
 
+        // Bug 4 fix: Filter out vacant land / no-improvement properties when searching residential
+        // If subject has sqft (i.e., has improvements), exclude comps with $0 or missing improvement value
+        if (sqft && sqft > 0 && (!rec.iv || rec.iv <= 0)) continue;
+
         // Skip properties with suspiciously low $/sqft (likely capped, frozen, or data errors)
         // Typical Tarrant County range is $80-250/sf; anything below $50/sf is almost certainly
         // a capped homestead, partial assessment, or data anomaly
@@ -350,13 +364,16 @@ function findComps(options) {
 
     console.log(`[TarrantData] Found ${matches.length.toLocaleString()} matching properties`);
 
-    // Sort: same neighborhood first, then by total value (lowest first for cherry-picking)
+    // Sort: by similarity score (best match first), then same neighborhood, then closest value to subject
     matches.sort((a, b) => {
-        // Prioritize same neighborhood
+        // Primary: highest similarity score first
+        if (b.score !== a.score) return b.score - a.score;
+        // Secondary: same neighborhood
         if (a.sameNeighborhood && !b.sameNeighborhood) return -1;
         if (!a.sameNeighborhood && b.sameNeighborhood) return 1;
-        // Then by value (lowest first — favorable to taxpayer)
-        return a.rec.tv - b.rec.tv;
+        // Tertiary: closest total value to subject (not lowest!)
+        const subjectValue = sqft ? sqft * 150 : 200000; // rough estimate if no direct subject value
+        return Math.abs(a.rec.tv - subjectValue) - Math.abs(b.rec.tv - subjectValue);
     });
 
     // Return expanded records

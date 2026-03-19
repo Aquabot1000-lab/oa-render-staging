@@ -215,6 +215,33 @@ async function findComparables(subject, caseData) {
         if (!subject.yearBuilt && caseData.yearBuilt) subject.yearBuilt = parseInt(caseData.yearBuilt);
     }
 
+    // Bug 5 fix: Deduplicate comps by accountId or normalized address before scoring
+    const seenKeys = new Set();
+    rawComps = rawComps.filter(c => {
+        // Primary dedup key: accountId (parcel ID)
+        const key = c.accountId 
+            ? `acct:${c.accountId}` 
+            : `addr:${(c.address || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
+        if (seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+    });
+
+    // Bug 1 fix: Filter out $0 value and low-value comps
+    rawComps = rawComps.filter(c => {
+        if (!c.assessedValue || c.assessedValue < 20000) return false;
+        return true;
+    });
+
+    // Bug 4 fix: Filter out vacant land when subject has improvements
+    if (subject.sqft && subject.sqft > 0 && subject.improvementValue && subject.improvementValue > 0) {
+        rawComps = rawComps.filter(c => {
+            // Exclude comps with $0 or missing improvement value (vacant land)
+            if (!c.improvementValue || c.improvementValue <= 0) return false;
+            return true;
+        });
+    }
+
     // HARD FILTER: exclude comps with mismatched property type
     const subjectCategory = getPropertyTypeCategory(subject.propertyType);
     let typeFiltered = rawComps.filter(c => c.address !== subject.address);
@@ -235,12 +262,19 @@ async function findComparables(subject, caseData) {
     console.log(`[CompEngine] ${scored.length} comps scored and ranked`);
 
     // ─── MARKET VALUE ANALYSIS ──────────────────────────────────────
-    // Select best 3-5 comps that support a LOWER value
+    // Bug 2 fix: Select best comps by SCORE (similarity) first, not lowest value
+    // Among high-score comps, prefer ones that support a lower value
     const bestComps = scored
         .filter(c => c.adjustedValue < subject.assessedValue)
+        .sort((a, b) => {
+            // Primary: highest quality/similarity score
+            if (b.score !== a.score) return b.score - a.score;
+            // Secondary: closest to subject value (not lowest!)
+            return Math.abs(a.adjustedValue - subject.assessedValue) - Math.abs(b.adjustedValue - subject.assessedValue);
+        })
         .slice(0, MAX_EVIDENCE_COMPS);
 
-    // If we can't find enough lower-value comps, take the best overall
+    // If we can't find enough lower-value comps, take the best overall by score
     if (bestComps.length < 3) {
         const remaining = scored
             .filter(c => !bestComps.find(b => b.address === c.address))
@@ -258,8 +292,13 @@ async function findComparables(subject, caseData) {
     }
 
     // Calculate recommended protest value (market value approach)
-    const { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
+    let { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
     const taxRate = COUNTY_TAX_RATES[county] || getTaxRate(county) || 0.025;
+
+    // Issue 1 fix: If MV recommended > assessed, property is fairly valued — cap at assessed (0% reduction)
+    if (mvRecommendedValue > subject.assessedValue) {
+        mvRecommendedValue = subject.assessedValue;
+    }
     const mvReduction = Math.max(0, subject.assessedValue - mvRecommendedValue);
     const mvSavings = Math.max(0, Math.round(mvReduction * taxRate));
 
@@ -384,6 +423,13 @@ async function findComparables(subject, caseData) {
         console.log(`[CompEngine] Market Value wins: $${mvRecommendedValue.toLocaleString()} (reduction $${mvReduction.toLocaleString()}) vs E&U reduction $${bestEUReduction.toLocaleString()}`);
     }
 
+    // Issue 1 fix: Final safety — recommended value must never exceed assessed
+    if (recommendedValue > subject.assessedValue) {
+        recommendedValue = subject.assessedValue;
+        reduction = 0;
+        estimatedSavings = 0;
+    }
+
     // ─── BUILD RESULT ───────────────────────────────────────────────
     const result = {
         // Primary recommendation (whichever strategy is better)
@@ -420,6 +466,9 @@ async function findComparables(subject, caseData) {
             compsEvaluated: euAnalysis.comps.totalEvaluated,
             comps: (euAnalysis.comps.details || []).slice(0, MAX_EU_EVIDENCE_COMPS),
             recommendation: euAnalysis.recommendation,
+            reductionCapped: euAnalysis.reductionCapped || false,
+            euUncappedValue: euAnalysis.euUncappedValue || null,
+            euUncappedPct: euAnalysis.euUncappedPct || null,
             methodology: euAnalysis.methodology
         } : null,
 
@@ -496,26 +545,96 @@ function scoreComp(subject, comp) {
         else if (bedDiff === 1) score -= 3;
     }
 
-    // Calculate adjusted value (price per sqft adjustment)
+    // Calculate adjusted value with itemized adjustment breakdowns
     let adjustedValue = comp.assessedValue || 0;
+    const adjustmentBreakdown = [];
+    const baseValue = comp.assessedValue || 0;
+
     if (subject.sqft && comp.sqft && comp.assessedValue) {
         const compPricePerSqft = comp.assessedValue / comp.sqft;
-        adjustedValue = Math.round(compPricePerSqft * subject.sqft);
+        const sizeAdjustedValue = Math.round(compPricePerSqft * subject.sqft);
+        const sqftDollar = sizeAdjustedValue - comp.assessedValue;
+        const sqftPct = comp.assessedValue > 0 ? (sqftDollar / comp.assessedValue) * 100 : 0;
+        adjustedValue = sizeAdjustedValue;
+
+        if (Math.abs(sqftDollar) > 0) {
+            adjustmentBreakdown.push({
+                factor: 'Sq Ft',
+                pct: sqftPct,
+                dollar: sqftDollar,
+                subjectVal: subject.sqft,
+                compVal: comp.sqft,
+                unit: 'sqft'
+            });
+        }
 
         // Age adjustment
         if (subject.yearBuilt && comp.yearBuilt) {
             const ageDiff = subject.yearBuilt - comp.yearBuilt;
+            const preAgeValue = adjustedValue;
             adjustedValue = Math.round(adjustedValue * (1 + ageDiff * 0.003));
+            const ageDollar = adjustedValue - preAgeValue;
+            const agePct = preAgeValue > 0 ? (ageDollar / baseValue) * 100 : 0;
+
+            if (Math.abs(ageDollar) > 0) {
+                adjustmentBreakdown.push({
+                    factor: 'Year Built',
+                    pct: agePct,
+                    dollar: ageDollar,
+                    subjectVal: subject.yearBuilt,
+                    compVal: comp.yearBuilt,
+                    unit: ''
+                });
+            }
         }
 
         // Lot size adjustment
         if (subject.lotSize && comp.lotSize && comp.lotSize > 0) {
             const lotRatio = subject.lotSize / comp.lotSize;
             if (lotRatio !== 1) {
+                const preLotValue = adjustedValue;
                 adjustedValue = Math.round(adjustedValue * (1 + (lotRatio - 1) * 0.1));
+                const lotDollar = adjustedValue - preLotValue;
+                const lotPct = baseValue > 0 ? (lotDollar / baseValue) * 100 : 0;
+
+                // Format lot sizes — use acres if either is >= 10000 sqft for consistency
+                const useAcres = subject.lotSize >= 10000 || comp.lotSize >= 10000;
+                const subjectLotDisplay = useAcres
+                    ? `${(subject.lotSize / 43560).toFixed(2)}ac`
+                    : `${subject.lotSize.toLocaleString()} sqft`;
+                const compLotDisplay = useAcres
+                    ? `${(comp.lotSize / 43560).toFixed(2)}ac`
+                    : `${comp.lotSize.toLocaleString()} sqft`;
+
+                adjustmentBreakdown.push({
+                    factor: 'Lot Size',
+                    pct: lotPct,
+                    dollar: lotDollar,
+                    subjectVal: subjectLotDisplay,
+                    compVal: compLotDisplay,
+                    unit: ''
+                });
             }
         }
+
+        // Neighborhood adjustment (flag if different)
+        if (subject.neighborhoodCode && comp.neighborhoodCode &&
+            subject.neighborhoodCode !== comp.neighborhoodCode) {
+            adjustmentBreakdown.push({
+                factor: 'Location',
+                pct: 0,
+                dollar: 0,
+                subjectVal: subject.neighborhoodCode,
+                compVal: comp.neighborhoodCode,
+                unit: '',
+                note: 'Different neighborhood — no dollar adj applied'
+            });
+        }
     }
+
+    // Net adjustment summary
+    const netDollar = adjustedValue - baseValue;
+    const netPct = baseValue > 0 ? (netDollar / baseValue) * 100 : 0;
 
     return {
         address: comp.address,
@@ -539,6 +658,9 @@ function scoreComp(subject, comp) {
         salePrice: comp.salePrice,
         score: Math.max(0, Math.min(100, score)),
         adjustments: details,
+        adjustmentBreakdown,
+        baseValue,
+        netAdjustment: { pct: netPct, dollar: netDollar },
         pricePerSqft: comp.sqft ? Math.round(comp.assessedValue / comp.sqft) : null
     };
 }

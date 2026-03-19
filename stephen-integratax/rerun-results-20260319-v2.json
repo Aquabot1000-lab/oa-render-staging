@@ -1,0 +1,3860 @@
+[
+  {
+    "caseId": "BM-0121",
+    "address": "1515 THOMAS PLACE, Fort Worth, TX",
+    "assessed": 1048580,
+    "tadValue": null,
+    "recommended": 786435,
+    "reduction": 262145,
+    "savings": 6291,
+    "pct": 25,
+    "primaryStrategy": "market_value",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $20,014, median: $20,000, weighted: $20,014). Recommended protest value: $786,435.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 786435,
+    "mvReduction": 262145,
+    "mvSavings": 6291,
+    "euRecommended": null,
+    "euReduction": null,
+    "euSavings": null,
+    "euMedianPSF": null,
+    "euSubjectPSF": null,
+    "euCompsUsed": null,
+    "topComps": [
+      {
+        "address": "7613 LAKE VISTA WAY",
+        "accountId": "42119497",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4700 RENDON RD",
+        "accountId": "03838129",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1959,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "7709 LAKE VISTA WAY",
+        "accountId": "42119535",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "04091221",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "1985 FLORENCE RD",
+        "accountId": "42719826",
+        "assessed": 20069,
+        "adjusted": 20069,
+        "sqft": 0,
+        "yearBuilt": 2022,
+        "score": 100,
+        "adjustmentBreakdown": []
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0120",
+    "address": "3125 OVERTON PARK EAST, Fort Worth, TX",
+    "assessed": 909091,
+    "tadValue": null,
+    "recommended": 681818,
+    "reduction": 227273,
+    "savings": 5455,
+    "pct": 25.000027499997252,
+    "primaryStrategy": "market_value",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $20,014, median: $20,000, weighted: $20,014). Recommended protest value: $681,818.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 681818,
+    "mvReduction": 227273,
+    "mvSavings": 5455,
+    "euRecommended": null,
+    "euReduction": null,
+    "euSavings": null,
+    "euMedianPSF": null,
+    "euSubjectPSF": null,
+    "euCompsUsed": null,
+    "topComps": [
+      {
+        "address": "7613 LAKE VISTA WAY",
+        "accountId": "42119497",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4700 RENDON RD",
+        "accountId": "03838129",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1959,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "7709 LAKE VISTA WAY",
+        "accountId": "42119535",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "04091221",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "1985 FLORENCE RD",
+        "accountId": "42719826",
+        "assessed": 20069,
+        "adjusted": 20069,
+        "sqft": 0,
+        "yearBuilt": 2022,
+        "score": 100,
+        "adjustmentBreakdown": []
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0111",
+    "address": "1241 VALLEY VISTA DR, Fort Worth, TX",
+    "assessed": 459503,
+    "tadValue": 0,
+    "recommended": 36900,
+    "reduction": 422603,
+    "savings": 10142,
+    "pct": 91.96958452937196,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 65,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $36,900. Subject $/sqft: $175.12/sqft vs. Median comp $/sqft: $33.07/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 344627,
+    "mvReduction": 114876,
+    "mvSavings": 2757,
+    "euRecommended": 36900,
+    "euReduction": 422603,
+    "euSavings": 10142,
+    "euMedianPSF": 33.07,
+    "euSubjectPSF": 175.12,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "2100 TIERNEY RD",
+        "accountId": "04706196",
+        "assessed": 99000,
+        "adjusted": 133912,
+        "sqft": 1969,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.26565656565656,
+            "dollar": 32933,
+            "subjectVal": 2624,
+            "compVal": 1969,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9989898989898989,
+            "dollar": 1979,
+            "subjectVal": 1956,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BELLAIRE ADDITION-GRAPEVINE",
+            "compVal": "TIERNEY HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "7316 MANSFIELD CARDINAL RD",
+        "accountId": "41319524",
+        "assessed": 103640,
+        "adjusted": 131452,
+        "sqft": 2044,
+        "yearBuilt": 1960,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 28.376109610189115,
+            "dollar": 29409,
+            "subjectVal": 2624,
+            "compVal": 2044,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.5409108452335005,
+            "dollar": -1597,
+            "subjectVal": 1956,
+            "compVal": 1960,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "1500 VINEWOOD CT",
+        "accountId": "00765945",
+        "assessed": 103641,
+        "adjusted": 135704,
+        "sqft": 1992,
+        "yearBuilt": 1958,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.72682625601837,
+            "dollar": 32882,
+            "subjectVal": 2624,
+            "compVal": 1992,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -0.7902278055981706,
+            "dollar": -819,
+            "subjectVal": 1956,
+            "compVal": 1958,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BELLAIRE ADDITION-GRAPEVINE",
+            "compVal": "EASTERN HILLS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "190 COTILLION RD",
+        "accountId": "01155148",
+        "assessed": 99379,
+        "adjusted": 129460,
+        "sqft": 1972,
+        "yearBuilt": 1963,
+        "score": 85,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.063323237303656,
+            "dollar": 32858,
+            "subjectVal": 2624,
+            "compVal": 1972,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -2.7943529317058937,
+            "dollar": -2777,
+            "subjectVal": 1956,
+            "compVal": 1963,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BELLAIRE ADDITION-GRAPEVINE",
+            "compVal": "HALLMARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "225 BELLVUE DR",
+        "accountId": "01150243",
+        "assessed": 95016,
+        "adjusted": 134093,
+        "sqft": 1837,
+        "yearBuilt": 1960,
+        "score": 75,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 42.84120569167298,
+            "dollar": 40706,
+            "subjectVal": 2624,
+            "compVal": 1837,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.714448092952766,
+            "dollar": -1629,
+            "subjectVal": 1956,
+            "compVal": 1960,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BELLAIRE ADDITION-GRAPEVINE",
+            "compVal": "HALLMARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0108",
+    "address": "1313 E. INWOOD DR., Fort Worth, TX",
+    "assessed": 215000,
+    "tadValue": 0,
+    "recommended": 13869,
+    "reduction": 201131,
+    "savings": 4827,
+    "pct": 93.5493023255814,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 60,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $13,869. Subject $/sqft: $160.45/sqft vs. Median comp $/sqft: $24.905/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 161250,
+    "mvReduction": 53750,
+    "mvSavings": 1290,
+    "euRecommended": 13869,
+    "euReduction": 201131,
+    "euSavings": 4827,
+    "euMedianPSF": 24.91,
+    "euSubjectPSF": 160.45,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "4421 COLE ST",
+        "accountId": "07512406",
+        "assessed": 52049,
+        "adjusted": 67846,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.350246882745108,
+            "dollar": 15797,
+            "subjectVal": 1340,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4421 COLE ST",
+        "accountId": "02861984",
+        "assessed": 52049,
+        "adjusted": 67846,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.350246882745108,
+            "dollar": 15797,
+            "subjectVal": 1340,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "7612 WILLIS AVE",
+        "accountId": "00073547",
+        "assessed": 52174,
+        "adjusted": 69913,
+        "sqft": 1006,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.20044466592555,
+            "dollar": 17322,
+            "subjectVal": 1340,
+            "compVal": 1006,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.7992486679188868,
+            "dollar": 417,
+            "subjectVal": 1954,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "ARLINGTON HEIGHTS WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "7612 WILLIS AVE",
+        "accountId": "41683234",
+        "assessed": 52174,
+        "adjusted": 69913,
+        "sqft": 1006,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.20044466592555,
+            "dollar": 17322,
+            "subjectVal": 1340,
+            "compVal": 1006,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.7992486679188868,
+            "dollar": 417,
+            "subjectVal": 1954,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "ARLINGTON HEIGHTS WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4717 PENROSE AVE",
+        "accountId": "02432854",
+        "assessed": 52190,
+        "adjusted": 70004,
+        "sqft": 1014,
+        "yearBuilt": 1949,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.14983713355049,
+            "dollar": 16779,
+            "subjectVal": 1340,
+            "compVal": 1014,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9831385322858786,
+            "dollar": 1035,
+            "subjectVal": 1954,
+            "compVal": 1949,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "RIDGLEA WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0100",
+    "address": "1505 JANANN AVE., Fort Worth, TX",
+    "assessed": 160000,
+    "tadValue": 160000,
+    "recommended": 77653,
+    "reduction": 82347,
+    "savings": 1976,
+    "pct": 51.466875,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 67,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $77,653. Subject $/sqft: $80.32/sqft vs. Median comp $/sqft: $27.67/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 120000,
+    "mvReduction": 40000,
+    "mvSavings": 960,
+    "euRecommended": 77653,
+    "euReduction": 82347,
+    "euSavings": 1976,
+    "euMedianPSF": 27.67,
+    "euSubjectPSF": 80.32,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "4421 COLE ST",
+        "accountId": "07512406",
+        "assessed": 52049,
+        "adjusted": 58644,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 93,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 8.755211435378202,
+            "dollar": 4557,
+            "subjectVal": 1118,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 3.9155411247094083,
+            "dollar": 2038,
+            "subjectVal": 1966,
+            "compVal": 1954,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4421 COLE ST",
+        "accountId": "02861984",
+        "assessed": 52049,
+        "adjusted": 58644,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 93,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 8.755211435378202,
+            "dollar": 4557,
+            "subjectVal": 1118,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 3.9155411247094083,
+            "dollar": 2038,
+            "subjectVal": 1966,
+            "compVal": 1954,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3016 GOULD AVE",
+        "accountId": "00845760",
+        "assessed": 50000,
+        "adjusted": 61798,
+        "sqft": 910,
+        "yearBuilt": 1964,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 22.858,
+            "dollar": 11429,
+            "subjectVal": 1118,
+            "compVal": 910,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.738,
+            "dollar": 369,
+            "subjectVal": 1966,
+            "compVal": 1964,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "ELLIS, M G ADDITION",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "12527 MORRIS DIDO NEWARK RD",
+        "accountId": "00747254",
+        "assessed": 50403,
+        "adjusted": 64438,
+        "sqft": 864,
+        "yearBuilt": 1970,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 29.399043707715812,
+            "dollar": 14818,
+            "subjectVal": 1118,
+            "compVal": 864,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.553478959585739,
+            "dollar": -783,
+            "subjectVal": 1966,
+            "compVal": 1970,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "EAGLE LAKE BEACH SUBDIVISION",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "8125 ELIZABETH LN W",
+        "accountId": "00289876",
+        "assessed": 51799,
+        "adjusted": 67429,
+        "sqft": 864,
+        "yearBuilt": 1964,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 29.398250931485165,
+            "dollar": 15228,
+            "subjectVal": 1118,
+            "compVal": 864,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.776076758238576,
+            "dollar": 402,
+            "subjectVal": 1966,
+            "compVal": 1964,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "BROADMOOR ADDITION-FORT WORTH",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0105",
+    "address": "1615 KENT DR., Fort Worth, TX",
+    "assessed": 155000,
+    "tadValue": 0,
+    "recommended": 4140,
+    "reduction": 150860,
+    "savings": 3621,
+    "pct": 97.32903225806452,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $4,140. Subject $/sqft: $173.38/sqft vs. Median comp $/sqft: $27.68/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 116250,
+    "mvReduction": 38750,
+    "mvSavings": 930,
+    "euRecommended": 4140,
+    "euReduction": 150860,
+    "euSavings": 3621,
+    "euMedianPSF": 27.68,
+    "euSubjectPSF": 173.38,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3301 BROADMOOR DR",
+        "accountId": "00290254",
+        "assessed": 43064,
+        "adjusted": 46794,
+        "sqft": 840,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 6.427642578487832,
+            "dollar": 2768,
+            "subjectVal": 894,
+            "compVal": 840,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.2338844510496005,
+            "dollar": 962,
+            "subjectVal": 1955,
+            "compVal": 1948,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "BROADMOOR ADDITION-FORT WORTH",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "06329748",
+        "assessed": 43560,
+        "adjusted": 49208,
+        "sqft": 808,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 10.64279155188246,
+            "dollar": 4636,
+            "subjectVal": 894,
+            "compVal": 808,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.323232323232323,
+            "dollar": 1012,
+            "subjectVal": 1955,
+            "compVal": 1948,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "3014 TIMBERLINE DR",
+        "accountId": "03188086",
+        "assessed": 43964,
+        "adjusted": 45960,
+        "sqft": 868,
+        "yearBuilt": 1950,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 2.995632790464926,
+            "dollar": 1317,
+            "subjectVal": 894,
+            "compVal": 868,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.5444454553725775,
+            "dollar": 679,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "TRUELAND",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5428 COTTEY ST",
+        "accountId": "03030903",
+        "assessed": 39672,
+        "adjusted": 45705,
+        "sqft": 776,
+        "yearBuilt": 0,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 15.207199032062915,
+            "dollar": 6033,
+            "subjectVal": 894,
+            "compVal": 776,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "SUNRISE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5653 LESTER GRANGER ST",
+        "accountId": "02516950",
+        "assessed": 42000,
+        "adjusted": 49038,
+        "sqft": 768,
+        "yearBuilt": 1954,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 16.407142857142855,
+            "dollar": 6891,
+            "subjectVal": 894,
+            "compVal": 768,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.35000000000000003,
+            "dollar": 147,
+            "subjectVal": 1955,
+            "compVal": 1954,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "ROSEDALE PARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0114",
+    "address": "1938 OVERBROOK DR., Fort Worth, TX",
+    "assessed": 235823,
+    "tadValue": 235823,
+    "recommended": 91676,
+    "reduction": 144147,
+    "savings": 3460,
+    "pct": 61.12508109895981,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 59,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $91,676. Subject $/sqft: $108.92/sqft vs. Median comp $/sqft: $34.31/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 176867,
+    "mvReduction": 58956,
+    "mvSavings": 1415,
+    "euRecommended": 91676,
+    "euReduction": 144147,
+    "euSavings": 3460,
+    "euMedianPSF": 34.31,
+    "euSubjectPSF": 108.92,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "1610 GRANDVIEW DR",
+        "accountId": "41617800",
+        "assessed": 67410,
+        "adjusted": 79246,
+        "sqft": 1324,
+        "yearBuilt": 1974,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 16.163773920783267,
+            "dollar": 10896,
+            "subjectVal": 1538,
+            "compVal": 1324,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.3944518617415813,
+            "dollar": 940,
+            "subjectVal": 1978,
+            "compVal": 1974,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRIAR MEADOW",
+            "compVal": "RANDOL MILL PK GARDEN HOME SUB",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1832 PANTEGO DR",
+        "accountId": "07726325",
+        "assessed": 70611,
+        "adjusted": 80063,
+        "sqft": 1332,
+        "yearBuilt": 1984,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 15.465012533457958,
+            "dollar": 10920,
+            "subjectVal": 1538,
+            "compVal": 1332,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -2.078996190395264,
+            "dollar": -1468,
+            "subjectVal": 1978,
+            "compVal": 1984,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRIAR MEADOW",
+            "compVal": "CAMELOT",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5141 SEARS DR",
+        "accountId": "01140361",
+        "assessed": 70803,
+        "adjusted": 81272,
+        "sqft": 1364,
+        "yearBuilt": 1972,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 12.756521616315695,
+            "dollar": 9032,
+            "subjectVal": 1538,
+            "compVal": 1364,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.0295750180077112,
+            "dollar": 1437,
+            "subjectVal": 1978,
+            "compVal": 1972,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRIAR MEADOW",
+            "compVal": "GROVE HILL",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "924 E RAMSEY AVE",
+        "accountId": "02607107",
+        "assessed": 64000,
+        "adjusted": 85149,
+        "sqft": 1156,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.0453125,
+            "dollar": 21149,
+            "subjectVal": 1538,
+            "compVal": 1156,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRIAR MEADOW",
+            "compVal": "RYAN SOUTHEAST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5912 SPRINGTIDE DR",
+        "accountId": "07537913",
+        "assessed": 67207,
+        "adjusted": 83181,
+        "sqft": 1224,
+        "yearBuilt": 1983,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 25.653577752317467,
+            "dollar": 17241,
+            "subjectVal": 1538,
+            "compVal": 1224,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.8852202895531716,
+            "dollar": -1267,
+            "subjectVal": 1978,
+            "compVal": 1983,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRIAR MEADOW",
+            "compVal": "MARINE CREEK HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0101",
+    "address": "1203 JANANN AVE., Fort Worth, TX",
+    "assessed": 150000,
+    "tadValue": 150000,
+    "recommended": 72689,
+    "reduction": 77311,
+    "savings": 1855,
+    "pct": 51.54066666666667,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 64,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $72,689. Subject $/sqft: $78.01/sqft vs. Median comp $/sqft: $25.49/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 112500,
+    "mvReduction": 37500,
+    "mvSavings": 900,
+    "euRecommended": 72689,
+    "euReduction": 77311,
+    "euSavings": 1855,
+    "euMedianPSF": 25.49,
+    "euSubjectPSF": 78.01,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "8136 DOWNE DR",
+        "accountId": "01733141",
+        "assessed": 48128,
+        "adjusted": 54337,
+        "sqft": 936,
+        "yearBuilt": 1955,
+        "score": 93,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 9.293966090425531,
+            "dollar": 4473,
+            "subjectVal": 1023,
+            "compVal": 936,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 3.607047872340426,
+            "dollar": 1736,
+            "subjectVal": 1966,
+            "compVal": 1955,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "MEADOW PARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4505 PLEASANT ST",
+        "accountId": "40451089",
+        "assessed": 49213,
+        "adjusted": 56427,
+        "sqft": 927,
+        "yearBuilt": 1953,
+        "score": 93,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 10.354987503301972,
+            "dollar": 5096,
+            "subjectVal": 1023,
+            "compVal": 927,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 4.303740881474407,
+            "dollar": 2118,
+            "subjectVal": 1966,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SOUTHWAYSIDE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4505 PLEASANT ST",
+        "accountId": "02905191",
+        "assessed": 49213,
+        "adjusted": 56427,
+        "sqft": 927,
+        "yearBuilt": 1953,
+        "score": 93,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 10.354987503301972,
+            "dollar": 5096,
+            "subjectVal": 1023,
+            "compVal": 927,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 4.303740881474407,
+            "dollar": 2118,
+            "subjectVal": 1966,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SOUTHWAYSIDE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5580 COTTEY ST",
+        "accountId": "02134209",
+        "assessed": 49048,
+        "adjusted": 58788,
+        "sqft": 874,
+        "yearBuilt": 1958,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 17.048605447724675,
+            "dollar": 8362,
+            "subjectVal": 1023,
+            "compVal": 874,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.8094927418039473,
+            "dollar": 1378,
+            "subjectVal": 1966,
+            "compVal": 1958,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "PARKSIDE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5428 COTTEY ST",
+        "accountId": "03030903",
+        "assessed": 39672,
+        "adjusted": 52300,
+        "sqft": 776,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.8310143174027,
+            "dollar": 12628,
+            "subjectVal": 1023,
+            "compVal": 776,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SUNRISE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0110",
+    "address": "3725 SELMA ST, Fort Worth, TX",
+    "assessed": 216514,
+    "tadValue": 0,
+    "recommended": 11156,
+    "reduction": 205358,
+    "savings": 4929,
+    "pct": 94.84744635450826,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 72,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $11,156. Subject $/sqft: $168.1/sqft vs. Median comp $/sqft: $20.04/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 162386,
+    "mvReduction": 54128,
+    "mvSavings": 1299,
+    "euRecommended": 11156,
+    "euReduction": 205358,
+    "euSavings": 4929,
+    "euMedianPSF": 20.04,
+    "euSubjectPSF": 168.1,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "700 W SANFORD ST",
+        "accountId": "01271946",
+        "assessed": 50000,
+        "adjusted": 64657,
+        "sqft": 999,
+        "yearBuilt": 1946,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 28.927999999999997,
+            "dollar": 14464,
+            "subjectVal": 1288,
+            "compVal": 999,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.386,
+            "dollar": 193,
+            "subjectVal": 1947,
+            "compVal": 1946,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEACH PLACE",
+            "compVal": "HIGHWAY PARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3517 BONNIE DR",
+        "accountId": "01237489",
+        "assessed": 50023,
+        "adjusted": 66560,
+        "sqft": 968,
+        "yearBuilt": 1947,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 33.05879295524059,
+            "dollar": 16537,
+            "subjectVal": 1288,
+            "compVal": 968,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEACH PLACE",
+            "compVal": "HIGHLAND HOMES",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "107 HAMIL ST",
+        "accountId": "01167081",
+        "assessed": 52110,
+        "adjusted": 67595,
+        "sqft": 984,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.894262137785454,
+            "dollar": 16099,
+            "subjectVal": 1288,
+            "compVal": 984,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.1782767223181732,
+            "dollar": -614,
+            "subjectVal": 1947,
+            "compVal": 1950,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "7612 WILLIS AVE",
+        "accountId": "00073547",
+        "assessed": 52174,
+        "adjusted": 65797,
+        "sqft": 1006,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 28.031203281327866,
+            "dollar": 14625,
+            "subjectVal": 1288,
+            "compVal": 1006,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.9204967991720014,
+            "dollar": -1002,
+            "subjectVal": 1947,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEACH PLACE",
+            "compVal": "ARLINGTON HEIGHTS WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "7612 WILLIS AVE",
+        "accountId": "41683234",
+        "assessed": 52174,
+        "adjusted": 65797,
+        "sqft": 1006,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 28.031203281327866,
+            "dollar": 14625,
+            "subjectVal": 1288,
+            "compVal": 1006,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.9204967991720014,
+            "dollar": -1002,
+            "subjectVal": 1947,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEACH PLACE",
+            "compVal": "ARLINGTON HEIGHTS WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0117",
+    "address": "2513 MIRIAM LANE, Fort Worth, TX",
+    "assessed": 183617,
+    "tadValue": null,
+    "recommended": 137713,
+    "reduction": 45904,
+    "savings": 1102,
+    "pct": 24.999863847029413,
+    "primaryStrategy": "market_value",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $20,014, median: $20,000, weighted: $20,014). Recommended protest value: $137,713.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 137713,
+    "mvReduction": 45904,
+    "mvSavings": 1102,
+    "euRecommended": null,
+    "euReduction": null,
+    "euSavings": null,
+    "euMedianPSF": null,
+    "euSubjectPSF": null,
+    "euCompsUsed": null,
+    "topComps": [
+      {
+        "address": "7613 LAKE VISTA WAY",
+        "accountId": "42119497",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4700 RENDON RD",
+        "accountId": "03838129",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1959,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "7709 LAKE VISTA WAY",
+        "accountId": "42119535",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "04091221",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "1985 FLORENCE RD",
+        "accountId": "42719826",
+        "assessed": 20069,
+        "adjusted": 20069,
+        "sqft": 0,
+        "yearBuilt": 2022,
+        "score": 100,
+        "adjustmentBreakdown": []
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0103",
+    "address": "1203 REBECCA LN., Fort Worth, TX",
+    "assessed": 175000,
+    "tadValue": 175000,
+    "recommended": 86229,
+    "reduction": 88771,
+    "savings": 2131,
+    "pct": 50.726285714285716,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 63,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $86,229. Subject $/sqft: $73.08/sqft vs. Median comp $/sqft: $28.85/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 131250,
+    "mvReduction": 43750,
+    "mvSavings": 1050,
+    "euRecommended": 86229,
+    "euReduction": 88771,
+    "euSavings": 2131,
+    "euMedianPSF": 28.85,
+    "euSubjectPSF": 73.08,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "41558359",
+        "assessed": 54004,
+        "adjusted": 70753,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.014369305977336,
+            "dollar": 16749,
+            "subjectVal": 1394,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "41558367",
+        "assessed": 54004,
+        "adjusted": 70753,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.014369305977336,
+            "dollar": 16749,
+            "subjectVal": 1394,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "04910583",
+        "assessed": 54021,
+        "adjusted": 70776,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.01571611040151,
+            "dollar": 16755,
+            "subjectVal": 1394,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "4840 EASTOVER AVE",
+        "accountId": "00789003",
+        "assessed": 57908,
+        "adjusted": 71135,
+        "sqft": 1128,
+        "yearBuilt": 1969,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 23.582233888236512,
+            "dollar": 13656,
+            "subjectVal": 1394,
+            "compVal": 1128,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -0.740830282517096,
+            "dollar": -429,
+            "subjectVal": 1967,
+            "compVal": 1969,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "ECHO HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4840 EASTOVER AVE",
+        "accountId": "43209117",
+        "assessed": 57908,
+        "adjusted": 71135,
+        "sqft": 1128,
+        "yearBuilt": 1969,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 23.582233888236512,
+            "dollar": 13656,
+            "subjectVal": 1394,
+            "compVal": 1128,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -0.740830282517096,
+            "dollar": -429,
+            "subjectVal": 1967,
+            "compVal": 1969,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "ECHO HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0107",
+    "address": "1611 KELLY TERR., Fort Worth, TX",
+    "assessed": 197000,
+    "tadValue": 0,
+    "recommended": 7173,
+    "reduction": 189827,
+    "savings": 4556,
+    "pct": 96.35888324873096,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 52,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $7,173. Subject $/sqft: $159.9/sqft vs. Median comp $/sqft: $17.29/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 147750,
+    "mvReduction": 49250,
+    "mvSavings": 1182,
+    "euRecommended": 7173,
+    "euReduction": 189827,
+    "euSavings": 4556,
+    "euMedianPSF": 17.29,
+    "euSubjectPSF": 159.9,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "8136 DOWNE DR",
+        "accountId": "01733141",
+        "assessed": 48128,
+        "adjusted": 62778,
+        "sqft": 936,
+        "yearBuilt": 1955,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.62400265957447,
+            "dollar": 15220,
+            "subjectVal": 1232,
+            "compVal": 936,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.1843417553191489,
+            "dollar": -570,
+            "subjectVal": 1952,
+            "compVal": 1955,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "MEADOW PARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4505 PLEASANT ST",
+        "accountId": "40451089",
+        "assessed": 49213,
+        "adjusted": 65209,
+        "sqft": 927,
+        "yearBuilt": 1953,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.901875520695754,
+            "dollar": 16192,
+            "subjectVal": 1232,
+            "compVal": 927,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -0.3982687501269989,
+            "dollar": -196,
+            "subjectVal": 1952,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "SOUTHWAYSIDE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4505 PLEASANT ST",
+        "accountId": "02905191",
+        "assessed": 49213,
+        "adjusted": 65209,
+        "sqft": 927,
+        "yearBuilt": 1953,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.901875520695754,
+            "dollar": 16192,
+            "subjectVal": 1232,
+            "compVal": 927,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -0.3982687501269989,
+            "dollar": -196,
+            "subjectVal": 1952,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "SOUTHWAYSIDE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1909 ASH CRESCENT ST",
+        "accountId": "01082620",
+        "assessed": 50000,
+        "adjusted": 61787,
+        "sqft": 988,
+        "yearBuilt": 1955,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 24.696,
+            "dollar": 12348,
+            "subjectVal": 1232,
+            "compVal": 988,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.122,
+            "dollar": -561,
+            "subjectVal": 1952,
+            "compVal": 1955,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "GRAHAM PARK",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3517 BONNIE DR",
+        "accountId": "01237489",
+        "assessed": 50023,
+        "adjusted": 64621,
+        "sqft": 968,
+        "yearBuilt": 1947,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 27.27345421106291,
+            "dollar": 13643,
+            "subjectVal": 1232,
+            "compVal": 968,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9091218039701738,
+            "dollar": 955,
+            "subjectVal": 1952,
+            "compVal": 1947,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON TERRACE",
+            "compVal": "HIGHLAND HOMES",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0113",
+    "address": "2017 NEWBURY DR., Fort Worth, TX",
+    "assessed": 229000,
+    "tadValue": 229000,
+    "recommended": 88692,
+    "reduction": 140308,
+    "savings": 3367,
+    "pct": 61.26986899563319,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 59,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $88,692. Subject $/sqft: $106.28/sqft vs. Median comp $/sqft: $34.31/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 171750,
+    "mvReduction": 57250,
+    "mvSavings": 1374,
+    "euRecommended": 88692,
+    "euReduction": 140308,
+    "euSavings": 3367,
+    "euMedianPSF": 34.31,
+    "euSubjectPSF": 106.28,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "1610 GRANDVIEW DR",
+        "accountId": "41617800",
+        "assessed": 67410,
+        "adjusted": 79842,
+        "sqft": 1324,
+        "yearBuilt": 1974,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 16.691885476932207,
+            "dollar": 11252,
+            "subjectVal": 1545,
+            "compVal": 1324,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.7504821243139,
+            "dollar": 1180,
+            "subjectVal": 1979,
+            "compVal": 1974,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRANDYRIDGE",
+            "compVal": "RANDOL MILL PK GARDEN HOME SUB",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1832 PANTEGO DR",
+        "accountId": "07726325",
+        "assessed": 70611,
+        "adjusted": 80673,
+        "sqft": 1332,
+        "yearBuilt": 1984,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 15.99042642081262,
+            "dollar": 11291,
+            "subjectVal": 1545,
+            "compVal": 1332,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.7405220149835012,
+            "dollar": -1229,
+            "subjectVal": 1979,
+            "compVal": 1984,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRANDYRIDGE",
+            "compVal": "CAMELOT",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5141 SEARS DR",
+        "accountId": "01140361",
+        "assessed": 70803,
+        "adjusted": 81882,
+        "sqft": 1364,
+        "yearBuilt": 1972,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 13.269211756563987,
+            "dollar": 9395,
+            "subjectVal": 1545,
+            "compVal": 1364,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.37843029250173,
+            "dollar": 1684,
+            "subjectVal": 1979,
+            "compVal": 1972,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRANDYRIDGE",
+            "compVal": "GROVE HILL",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5141 SEARS DR",
+        "accountId": "42729058",
+        "assessed": 70803,
+        "adjusted": 81882,
+        "sqft": 1364,
+        "yearBuilt": 1972,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 13.269211756563987,
+            "dollar": 9395,
+            "subjectVal": 1545,
+            "compVal": 1364,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.37843029250173,
+            "dollar": 1684,
+            "subjectVal": 1979,
+            "compVal": 1972,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRANDYRIDGE",
+            "compVal": "GROVE HILL",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5113 SEARS DR",
+        "accountId": "42185295",
+        "assessed": 70803,
+        "adjusted": 81882,
+        "sqft": 1364,
+        "yearBuilt": 1972,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 13.269211756563987,
+            "dollar": 9395,
+            "subjectVal": 1545,
+            "compVal": 1364,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.37843029250173,
+            "dollar": 1684,
+            "subjectVal": 1979,
+            "compVal": 1972,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BRANDYRIDGE",
+            "compVal": "GROVE HILL",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0102",
+    "address": "1510 JANANN AVE., Fort Worth, TX",
+    "assessed": 178000,
+    "tadValue": 178000,
+    "recommended": 84100,
+    "reduction": 93900,
+    "savings": 2254,
+    "pct": 52.752808988764045,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 75,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $84,100. Subject $/sqft: $64.68/sqft vs. Median comp $/sqft: $28.6/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 133500,
+    "mvReduction": 44500,
+    "mvSavings": 1068,
+    "euRecommended": 84100,
+    "euReduction": 93900,
+    "euSavings": 2254,
+    "euMedianPSF": 28.6,
+    "euSubjectPSF": 64.68,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "4054 FAIR PARK BLVD",
+        "accountId": "00918555",
+        "assessed": 67036,
+        "adjusted": 89361,
+        "sqft": 1292,
+        "yearBuilt": 1964,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.50790619965392,
+            "dollar": 21792,
+            "subjectVal": 1712,
+            "compVal": 1292,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.7950951727430038,
+            "dollar": 533,
+            "subjectVal": 1966,
+            "compVal": 1964,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "FAIRVIEW HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4933 EASTOVER AVE",
+        "accountId": "07277520",
+        "assessed": 67093,
+        "adjusted": 87296,
+        "sqft": 1300,
+        "yearBuilt": 1970,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.691830742402338,
+            "dollar": 21263,
+            "subjectVal": 1712,
+            "compVal": 1300,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.579896561489276,
+            "dollar": -1060,
+            "subjectVal": 1966,
+            "compVal": 1970,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "ECHO HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4933 EASTOVER AVE",
+        "accountId": "00790559",
+        "assessed": 67093,
+        "adjusted": 87296,
+        "sqft": 1300,
+        "yearBuilt": 1970,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.691830742402338,
+            "dollar": 21263,
+            "subjectVal": 1712,
+            "compVal": 1300,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": -1.579896561489276,
+            "dollar": -1060,
+            "subjectVal": 1966,
+            "compVal": 1970,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "ECHO HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "319 ALAMEDA RD",
+        "accountId": "00457035",
+        "assessed": 69242,
+        "adjusted": 89194,
+        "sqft": 1345,
+        "yearBuilt": 1962,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 27.28690679067618,
+            "dollar": 18894,
+            "subjectVal": 1712,
+            "compVal": 1345,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.5279743508275325,
+            "dollar": 1058,
+            "subjectVal": 1966,
+            "compVal": 1962,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "CASTLE HILLS ESTATES",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "2825 DONALEE ST",
+        "accountId": "02676060",
+        "assessed": 66227,
+        "adjusted": 89048,
+        "sqft": 1300,
+        "yearBuilt": 1959,
+        "score": 85,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.692512117414346,
+            "dollar": 20989,
+            "subjectVal": 1712,
+            "compVal": 1300,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 2.7662433750585107,
+            "dollar": 1832,
+            "subjectVal": 1966,
+            "compVal": 1959,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARKANSAS HEIGHTS",
+            "compVal": "SAN ROE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "OA-0005",
+    "address": "2208 SEVILLE CT., Fort Worth, TX",
+    "assessed": 166000,
+    "tadValue": 166000,
+    "recommended": 59395,
+    "reduction": 106605,
+    "savings": 2559,
+    "pct": 64.21987951807229,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 66,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $59,395. Subject $/sqft: $110.3/sqft vs. Median comp $/sqft: $30.17/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 124500,
+    "mvReduction": 41500,
+    "mvSavings": 996,
+    "euRecommended": 59395,
+    "euReduction": 106605,
+    "euSavings": 2559,
+    "euMedianPSF": 30.17,
+    "euSubjectPSF": 110.3,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "41558359",
+        "assessed": 54004,
+        "adjusted": 55679,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 3.101622102066514,
+            "dollar": 1675,
+            "subjectVal": 1097,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "41558367",
+        "assessed": 54004,
+        "adjusted": 55679,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 3.101622102066514,
+            "dollar": 1675,
+            "subjectVal": 1097,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "3501 ARROW LN",
+        "accountId": "04910583",
+        "assessed": 54021,
+        "adjusted": 55696,
+        "sqft": 1064,
+        "yearBuilt": 0,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 3.100646045056552,
+            "dollar": 1675,
+            "subjectVal": 1097,
+            "compVal": 1064,
+            "unit": "sqft"
+          }
+        ]
+      },
+      {
+        "address": "8060 PORTWOOD RD",
+        "accountId": "04528646",
+        "assessed": 55000,
+        "adjusted": 61240,
+        "sqft": 1000,
+        "yearBuilt": 1967,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 9.700000000000001,
+            "dollar": 5335,
+            "subjectVal": 1097,
+            "compVal": 1000,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.6454545454545455,
+            "dollar": 905,
+            "subjectVal": 1972,
+            "compVal": 1967,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "3728 RUTHANN DR",
+        "accountId": "00783374",
+        "assessed": 54000,
+        "adjusted": 62261,
+        "sqft": 960,
+        "yearBuilt": 1969,
+        "score": 92,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 14.270370370370369,
+            "dollar": 7706,
+            "subjectVal": 1097,
+            "compVal": 960,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.027777777777778,
+            "dollar": 555,
+            "subjectVal": 1972,
+            "compVal": 1969,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "AMBASSADOR SQUARE-ONE",
+            "compVal": "EASTWOOD 4TH & 5TH FILING ADDN",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0109",
+    "address": "4600 VIRGINIA LANE, Fort Worth, TX",
+    "assessed": 183784,
+    "tadValue": null,
+    "recommended": 137838,
+    "reduction": 45946,
+    "savings": 1103,
+    "pct": 25,
+    "primaryStrategy": "market_value",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $20,014, median: $20,000, weighted: $20,014). Recommended protest value: $137,838.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 137838,
+    "mvReduction": 45946,
+    "mvSavings": 1103,
+    "euRecommended": null,
+    "euReduction": null,
+    "euSavings": null,
+    "euMedianPSF": null,
+    "euSubjectPSF": null,
+    "euCompsUsed": null,
+    "topComps": [
+      {
+        "address": "7613 LAKE VISTA WAY",
+        "accountId": "42119497",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4700 RENDON RD",
+        "accountId": "03838129",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1959,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "7709 LAKE VISTA WAY",
+        "accountId": "42119535",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "04091221",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "1985 FLORENCE RD",
+        "accountId": "42719826",
+        "assessed": 20069,
+        "adjusted": 20069,
+        "sqft": 0,
+        "yearBuilt": 2022,
+        "score": 100,
+        "adjustmentBreakdown": []
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0104",
+    "address": "1816 REEVER ST., Fort Worth, TX",
+    "assessed": 151207,
+    "tadValue": 151207,
+    "recommended": 37470,
+    "reduction": 113737,
+    "savings": 2730,
+    "pct": 75.21940121819756,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $37,470. Subject $/sqft: $126.95/sqft vs. Median comp $/sqft: $23.72/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 113405,
+    "mvReduction": 37802,
+    "mvSavings": 907,
+    "euRecommended": 37470,
+    "euReduction": 113737,
+    "euSavings": 2730,
+    "euMedianPSF": 23.72,
+    "euSubjectPSF": 126.95,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3301 BROADMOOR DR",
+        "accountId": "00290254",
+        "assessed": 43064,
+        "adjusted": 45584,
+        "sqft": 840,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 4.286643135797882,
+            "dollar": 1846,
+            "subjectVal": 876,
+            "compVal": 840,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.5651123908601152,
+            "dollar": 674,
+            "subjectVal": 1953,
+            "compVal": 1948,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON ESTATES",
+            "compVal": "BROADMOOR ADDITION-FORT WORTH",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "06329748",
+        "assessed": 43560,
+        "adjusted": 47934,
+        "sqft": 808,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 8.415977961432507,
+            "dollar": 3666,
+            "subjectVal": 876,
+            "compVal": 808,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.6253443526170797,
+            "dollar": 708,
+            "subjectVal": 1953,
+            "compVal": 1948,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "3014 TIMBERLINE DR",
+        "accountId": "03188086",
+        "assessed": 43964,
+        "adjusted": 44768,
+        "sqft": 868,
+        "yearBuilt": 1950,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 0.9212082613047038,
+            "dollar": 405,
+            "subjectVal": 876,
+            "compVal": 868,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.9075607315075972,
+            "dollar": 399,
+            "subjectVal": 1953,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON ESTATES",
+            "compVal": "TRUELAND",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1112 EUGENE AVE",
+        "accountId": "00919306",
+        "assessed": 44142,
+        "adjusted": 48457,
+        "sqft": 798,
+        "yearBuilt": 0,
+        "score": 100,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 9.775270717230756,
+            "dollar": 4315,
+            "subjectVal": 876,
+            "compVal": 798,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON ESTATES",
+            "compVal": "FAIRVIEW HEIGHTS",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5428 COTTEY ST",
+        "accountId": "03030903",
+        "assessed": 39672,
+        "adjusted": 44784,
+        "sqft": 776,
+        "yearBuilt": 0,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 12.885662431941924,
+            "dollar": 5112,
+            "subjectVal": 876,
+            "compVal": 776,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON ESTATES",
+            "compVal": "SUNRISE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0115",
+    "address": "5233 MALLORY DR., Fort Worth, TX",
+    "assessed": 200000,
+    "tadValue": 200000,
+    "recommended": 38496,
+    "reduction": 161504,
+    "savings": 3876,
+    "pct": 80.752,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 54,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $38,496. Subject $/sqft: $137.2/sqft vs. Median comp $/sqft: $19.03/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 150000,
+    "mvReduction": 50000,
+    "mvSavings": 1200,
+    "euRecommended": 38496,
+    "euReduction": 161504,
+    "euSavings": 3876,
+    "euMedianPSF": 19.03,
+    "euSubjectPSF": 137.2,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3014 TIMBERLINE DR",
+        "accountId": "03188086",
+        "assessed": 43964,
+        "adjusted": 58453,
+        "sqft": 868,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.99126558092985,
+            "dollar": 13625,
+            "subjectVal": 1137,
+            "compVal": 868,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9652442907833683,
+            "dollar": 864,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "TRUELAND",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3108 FINLEY ST",
+        "accountId": "07548478",
+        "assessed": 45777,
+        "adjusted": 58010,
+        "sqft": 908,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 25.220088690827268,
+            "dollar": 11545,
+            "subjectVal": 1137,
+            "compVal": 908,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.502938156716255,
+            "dollar": 688,
+            "subjectVal": 1955,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "CARVER PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3108 FINLEY ST",
+        "accountId": "00446416",
+        "assessed": 45777,
+        "adjusted": 58010,
+        "sqft": 908,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 25.220088690827268,
+            "dollar": 11545,
+            "subjectVal": 1137,
+            "compVal": 908,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.502938156716255,
+            "dollar": 688,
+            "subjectVal": 1955,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "CARVER PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4000 SPRINGDALE RD",
+        "accountId": "03658805",
+        "assessed": 47175,
+        "adjusted": 63158,
+        "sqft": 862,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.90249072602014,
+            "dollar": 15050,
+            "subjectVal": 1137,
+            "compVal": 862,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9777424483306838,
+            "dollar": 933,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "WOODVIEW SUBDIVISION (HALTOM)",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4429 CAROL AVE",
+        "accountId": "00781886",
+        "assessed": 48000,
+        "adjusted": 63460,
+        "sqft": 860,
+        "yearBuilt": 1955,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.208333333333336,
+            "dollar": 15460,
+            "subjectVal": 1137,
+            "compVal": 860,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "EASTWOOD",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0118",
+    "address": "2509 PLAZA ST., Fort Worth, TX",
+    "assessed": 177484,
+    "tadValue": 177484,
+    "recommended": 42379,
+    "reduction": 135105,
+    "savings": 3243,
+    "pct": 76.12235469112709,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 58,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $42,379. Subject $/sqft: $124.65/sqft vs. Median comp $/sqft: $18.924999999999997/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 133113,
+    "mvReduction": 44371,
+    "mvSavings": 1065,
+    "euRecommended": 42379,
+    "euReduction": 135105,
+    "euSavings": 3243,
+    "euMedianPSF": 18.92,
+    "euSubjectPSF": 124.65,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "1509 CARSWELL TERR",
+        "accountId": "07263848",
+        "assessed": 44727,
+        "adjusted": 59294,
+        "sqft": 842,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.996936973192923,
+            "dollar": 13864,
+            "subjectVal": 1103,
+            "compVal": 842,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.571757551367183,
+            "dollar": 703,
+            "subjectVal": 1956,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BUENA VISTA ADDITION-ARLINGTON",
+            "compVal": "ARLINGTON TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1509 CARSWELL TERR",
+        "accountId": "07263856",
+        "assessed": 44727,
+        "adjusted": 59294,
+        "sqft": 842,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.996936973192923,
+            "dollar": 13864,
+            "subjectVal": 1103,
+            "compVal": 842,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.571757551367183,
+            "dollar": 703,
+            "subjectVal": 1956,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BUENA VISTA ADDITION-ARLINGTON",
+            "compVal": "ARLINGTON TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3200 KNOX ST",
+        "accountId": "00702838",
+        "assessed": 45255,
+        "adjusted": 60391,
+        "sqft": 834,
+        "yearBuilt": 1953,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.25499944757485,
+            "dollar": 14597,
+            "subjectVal": 1103,
+            "compVal": 834,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.191028615622583,
+            "dollar": 539,
+            "subjectVal": 1956,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BUENA VISTA ADDITION-ARLINGTON",
+            "compVal": "DENMAN SUBDIVISION OAKLAWN",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3200 KNOX ST",
+        "accountId": "41271815",
+        "assessed": 45255,
+        "adjusted": 60391,
+        "sqft": 834,
+        "yearBuilt": 1953,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.25499944757485,
+            "dollar": 14597,
+            "subjectVal": 1103,
+            "compVal": 834,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.191028615622583,
+            "dollar": 539,
+            "subjectVal": 1956,
+            "compVal": 1953,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BUENA VISTA ADDITION-ARLINGTON",
+            "compVal": "DENMAN SUBDIVISION OAKLAWN",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3108 FINLEY ST",
+        "accountId": "07548478",
+        "assessed": 45777,
+        "adjusted": 56442,
+        "sqft": 908,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 21.475850317845204,
+            "dollar": 9831,
+            "subjectVal": 1103,
+            "compVal": 908,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.8218756143915067,
+            "dollar": 834,
+            "subjectVal": 1956,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BUENA VISTA ADDITION-ARLINGTON",
+            "compVal": "CARVER PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0106",
+    "address": "1619 KENT DR., Fort Worth, TX",
+    "assessed": 200000,
+    "tadValue": 0,
+    "recommended": 14133,
+    "reduction": 185867,
+    "savings": 4461,
+    "pct": 92.93350000000001,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 60,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $14,133. Subject $/sqft: $148.59/sqft vs. Median comp $/sqft: $24.905/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 150000,
+    "mvReduction": 50000,
+    "mvSavings": 1200,
+    "euRecommended": 14133,
+    "euReduction": 185867,
+    "euSavings": 4461,
+    "euMedianPSF": 24.91,
+    "euSubjectPSF": 148.59,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "4421 COLE ST",
+        "accountId": "07512406",
+        "assessed": 52049,
+        "adjusted": 68354,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.934311898403426,
+            "dollar": 16101,
+            "subjectVal": 1346,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.39193836577071606,
+            "dollar": 204,
+            "subjectVal": 1955,
+            "compVal": 1954,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4421 COLE ST",
+        "accountId": "02861984",
+        "assessed": 52049,
+        "adjusted": 68354,
+        "sqft": 1028,
+        "yearBuilt": 1954,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 30.934311898403426,
+            "dollar": 16101,
+            "subjectVal": 1346,
+            "compVal": 1028,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.39193836577071606,
+            "dollar": 204,
+            "subjectVal": 1955,
+            "compVal": 1954,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "SOUTHLAND TERRACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "1575 NEWT PATTERSON RD",
+        "accountId": "04119576",
+        "assessed": 52217,
+        "adjusted": 68397,
+        "sqft": 1043,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 29.049926269222663,
+            "dollar": 15169,
+            "subjectVal": 1346,
+            "compVal": 1043,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.936151061914702,
+            "dollar": 1011,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "7484 MOHAWK AVE",
+        "accountId": "02432374",
+        "assessed": 53342,
+        "adjusted": 68087,
+        "sqft": 1064,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 26.50444302800795,
+            "dollar": 14138,
+            "subjectVal": 1346,
+            "compVal": 1064,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.1379400847362304,
+            "dollar": 607,
+            "subjectVal": 1955,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "RIDGLEA WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "7484 MOHAWK AVE",
+        "accountId": "42857978",
+        "assessed": 53342,
+        "adjusted": 68087,
+        "sqft": 1064,
+        "yearBuilt": 1952,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 26.50444302800795,
+            "dollar": 14138,
+            "subjectVal": 1346,
+            "compVal": 1064,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.1379400847362304,
+            "dollar": 607,
+            "subjectVal": 1955,
+            "compVal": 1952,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "ARLINGTON MANOR",
+            "compVal": "RIDGLEA WEST",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0116",
+    "address": "5224 JERRI LN, Fort Worth, TX",
+    "assessed": 150000,
+    "tadValue": 150000,
+    "recommended": 35058,
+    "reduction": 114942,
+    "savings": 2759,
+    "pct": 76.628,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 53,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $35,058. Subject $/sqft: $90.57/sqft vs. Median comp $/sqft: $19.03/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 112500,
+    "mvReduction": 37500,
+    "mvSavings": 900,
+    "euRecommended": 35058,
+    "euReduction": 114942,
+    "euSavings": 2759,
+    "euMedianPSF": 19.03,
+    "euSubjectPSF": 90.57,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "3014 TIMBERLINE DR",
+        "accountId": "03188086",
+        "assessed": 43964,
+        "adjusted": 58607,
+        "sqft": 868,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 31.337003002456555,
+            "dollar": 13777,
+            "subjectVal": 1140,
+            "compVal": 868,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9697934673824038,
+            "dollar": 866,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "TRUELAND",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3108 FINLEY ST",
+        "accountId": "07548478",
+        "assessed": 45777,
+        "adjusted": 58163,
+        "sqft": 908,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 25.54994866417633,
+            "dollar": 11696,
+            "subjectVal": 1140,
+            "compVal": 908,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.507307162985779,
+            "dollar": 690,
+            "subjectVal": 1955,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "CARVER PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3108 FINLEY ST",
+        "accountId": "00446416",
+        "assessed": 45777,
+        "adjusted": 58163,
+        "sqft": 908,
+        "yearBuilt": 1951,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 25.54994866417633,
+            "dollar": 11696,
+            "subjectVal": 1140,
+            "compVal": 908,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.507307162985779,
+            "dollar": 690,
+            "subjectVal": 1955,
+            "compVal": 1951,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "CARVER PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4000 SPRINGDALE RD",
+        "accountId": "03658805",
+        "assessed": 47175,
+        "adjusted": 63325,
+        "sqft": 862,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.250132485426604,
+            "dollar": 15214,
+            "subjectVal": 1140,
+            "compVal": 862,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.9841017488076311,
+            "dollar": 936,
+            "subjectVal": 1955,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "WOODVIEW SUBDIVISION (HALTOM)",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4429 CAROL AVE",
+        "accountId": "00781886",
+        "assessed": 48000,
+        "adjusted": 63628,
+        "sqft": 860,
+        "yearBuilt": 1955,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.55833333333334,
+            "dollar": 15628,
+            "subjectVal": 1140,
+            "compVal": 860,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BROWNING HEIGHTS EAST",
+            "compVal": "EASTWOOD",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0112",
+    "address": "2720 BEVERLY HILLS DR., Fort Worth, TX",
+    "assessed": 169871,
+    "tadValue": 169871,
+    "recommended": 67074,
+    "reduction": 102797,
+    "savings": 2467,
+    "pct": 60.51474354068675,
+    "primaryStrategy": "equal_and_uniform",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. Evaluated 50 comparable properties, selected 20 most favorable. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $67,074. Subject $/sqft: $100.4/sqft vs. Median comp $/sqft: $25.799999999999997/sqft.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 127403,
+    "mvReduction": 42468,
+    "mvSavings": 1019,
+    "euRecommended": 67074,
+    "euReduction": 102797,
+    "euSavings": 2467,
+    "euMedianPSF": 25.8,
+    "euSubjectPSF": 100.4,
+    "euCompsUsed": 20,
+    "topComps": [
+      {
+        "address": "1000 CHICAGO AVE",
+        "accountId": "02566958",
+        "assessed": 45000,
+        "adjusted": 52483,
+        "sqft": 892,
+        "yearBuilt": 1948,
+        "score": 97,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 15.246666666666666,
+            "dollar": 6861,
+            "subjectVal": 1028,
+            "compVal": 892,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.3822222222222222,
+            "dollar": 622,
+            "subjectVal": 1952,
+            "compVal": 1948,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEVERLY HILLS ESTATES",
+            "compVal": "ROWLAND PLACE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "5428 COTTEY ST",
+        "accountId": "03030903",
+        "assessed": 39672,
+        "adjusted": 52555,
+        "sqft": 776,
+        "yearBuilt": 0,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 32.47378503730591,
+            "dollar": 12883,
+            "subjectVal": 1028,
+            "compVal": 776,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEVERLY HILLS ESTATES",
+            "compVal": "SUNRISE",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "3301 BROADMOOR DR",
+        "accountId": "00290254",
+        "assessed": 43064,
+        "adjusted": 53334,
+        "sqft": 840,
+        "yearBuilt": 1948,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 22.38064276425785,
+            "dollar": 9638,
+            "subjectVal": 1028,
+            "compVal": 840,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.467583132082482,
+            "dollar": 632,
+            "subjectVal": 1952,
+            "compVal": 1948,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEVERLY HILLS ESTATES",
+            "compVal": "BROADMOOR ADDITION-FORT WORTH",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "06329748",
+        "assessed": 43560,
+        "adjusted": 56085,
+        "sqft": 808,
+        "yearBuilt": 1948,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 27.226813590449954,
+            "dollar": 11860,
+            "subjectVal": 1028,
+            "compVal": 808,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 1.5266299357208448,
+            "dollar": 665,
+            "subjectVal": 1952,
+            "compVal": 1948,
+            "unit": ""
+          }
+        ]
+      },
+      {
+        "address": "3014 TIMBERLINE DR",
+        "accountId": "03188086",
+        "assessed": 43964,
+        "adjusted": 52380,
+        "sqft": 868,
+        "yearBuilt": 1950,
+        "score": 90,
+        "adjustmentBreakdown": [
+          {
+            "factor": "Sq Ft",
+            "pct": 18.43326357929215,
+            "dollar": 8104,
+            "subjectVal": 1028,
+            "compVal": 868,
+            "unit": "sqft"
+          },
+          {
+            "factor": "Year Built",
+            "pct": 0.7096715494495497,
+            "dollar": 312,
+            "subjectVal": 1952,
+            "compVal": 1950,
+            "unit": ""
+          },
+          {
+            "factor": "Location",
+            "pct": 0,
+            "dollar": 0,
+            "subjectVal": "BEVERLY HILLS ESTATES",
+            "compVal": "TRUELAND",
+            "unit": "",
+            "note": "Different neighborhood — no dollar adj applied"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "BM-0119",
+    "address": "2905 FITZHUGH AVENUE, Fort Worth, TX",
+    "assessed": 93000,
+    "tadValue": null,
+    "recommended": 69750,
+    "reduction": 23250,
+    "savings": 558,
+    "pct": 25,
+    "primaryStrategy": "market_value",
+    "totalCompsFound": 50,
+    "evidenceComps": 5,
+    "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $20,014, median: $20,000, weighted: $20,014). Recommended protest value: $69,750.",
+    "needsManualReview": false,
+    "reviewReason": null,
+    "mvRecommended": 69750,
+    "mvReduction": 23250,
+    "mvSavings": 558,
+    "euRecommended": null,
+    "euReduction": null,
+    "euSavings": null,
+    "euMedianPSF": null,
+    "euSubjectPSF": null,
+    "euCompsUsed": null,
+    "topComps": [
+      {
+        "address": "7613 LAKE VISTA WAY",
+        "accountId": "42119497",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4700 RENDON RD",
+        "accountId": "03838129",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1959,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "7709 LAKE VISTA WAY",
+        "accountId": "42119535",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 2016,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "4658 KENNEDALE NEW HOPE RD",
+        "accountId": "04091221",
+        "assessed": 20000,
+        "adjusted": 20000,
+        "sqft": 0,
+        "yearBuilt": 1948,
+        "score": 100,
+        "adjustmentBreakdown": []
+      },
+      {
+        "address": "1985 FLORENCE RD",
+        "accountId": "42719826",
+        "assessed": 20069,
+        "adjusted": 20069,
+        "sqft": 0,
+        "yearBuilt": 2022,
+        "score": 100,
+        "adjustmentBreakdown": []
+      }
+    ]
+  }
+]

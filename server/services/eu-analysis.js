@@ -172,16 +172,36 @@ function runEUAnalysis(subject, allComps, options = {}) {
     const subjectPSF = subjectSqft > 0 ? round2(subjectImpValue / subjectSqft) : 0;
 
     // Step 1: Filter comps — same type, reasonable size/condition match
+    // Bug 1 fix: filter out $0/low-value comps and vacant land
     let pool = allComps
         .filter(c => c.address !== subject.address)
         .filter(c => c.sqft && c.sqft > 0)
-        .filter(c => c.assessedValue && c.assessedValue > 0)
+        .filter(c => c.assessedValue && c.assessedValue >= 20000)
+        .filter(c => {
+            // Bug 4 fix: exclude vacant land (no improvement value) when subject has improvements
+            if (subjectSqft > 0 && subjectImpValue > 0) {
+                const compImp = c.improvementValue || (c.assessedValue - (c.landValue || 0));
+                if (!compImp || compImp <= 0) return false;
+            }
+            return true;
+        })
         .filter(c => {
             // Size filter: within 40% of subject (generous for large pool)
             if (!subjectSqft) return true;
             const ratio = c.sqft / subjectSqft;
             return ratio >= 0.60 && ratio <= 1.40;
         });
+
+    // Bug 5 fix: Deduplicate pool by accountId or address
+    const seenEU = new Set();
+    pool = pool.filter(c => {
+        const key = c.accountId 
+            ? `acct:${c.accountId}` 
+            : `addr:${(c.address || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
+        if (seenEU.has(key)) return false;
+        seenEU.add(key);
+        return true;
+    });
 
     // Sort by similarity to subject (neighborhood match first, then closest size)
     pool.sort((a, b) => {
@@ -221,20 +241,32 @@ function runEUAnalysis(subject, allComps, options = {}) {
         };
     });
 
-    // Step 3: Cherry-pick — select comps with lowest adjusted values (most favorable)
-    // Only include comps whose adjusted value is BELOW subject assessed value
-    const favorable = evaluated
-        .filter(c => c.adjustedValue < subject.assessedValue)
-        .sort((a, b) => a.adjustedValue - b.adjustedValue);
+    // Step 3: Select representative comps — NOT cherry-picking the lowest!
+    // Bug 2 fix: Sort by similarity (closest adjusted value to subject), not lowest value.
+    // This produces a representative sample rather than biased cherry-picking.
+    // For E&U, we want comps that are COMPARABLE (similar properties), and then
+    // the median naturally shows whether the subject is overassessed.
+    
+    // First, filter out extreme outliers (adjusted value <40% or >200% of subject)
+    const reasonable = evaluated.filter(c => {
+        const ratio = c.adjustedValue / subject.assessedValue;
+        return ratio >= 0.40 && ratio <= 2.0;
+    });
 
-    // Take the best (lowest) comps, up to maxComps
-    const selectedComps = favorable.slice(0, maxComps);
+    // Sort by closeness to subject value (most representative comps first)
+    const sorted = reasonable.sort((a, b) => {
+        // Primary: closest adjusted value to subject assessed value
+        return Math.abs(a.adjustedValue - subject.assessedValue) - Math.abs(b.adjustedValue - subject.assessedValue);
+    });
 
-    // If we don't have enough favorable comps, fill with closest-to-subject
+    // Take representative comps, up to maxComps
+    const selectedComps = sorted.slice(0, maxComps);
+
+    // If we don't have enough, fill from all evaluated
     if (selectedComps.length < MIN_COMPS) {
         const remaining = evaluated
             .filter(c => !selectedComps.find(s => s.address === c.address))
-            .sort((a, b) => a.adjustedValue - b.adjustedValue);
+            .sort((a, b) => Math.abs(a.adjustedValue - subject.assessedValue) - Math.abs(b.adjustedValue - subject.assessedValue));
         while (selectedComps.length < Math.min(MIN_COMPS, evaluated.length)) {
             const next = remaining.shift();
             if (!next) break;
@@ -251,7 +283,31 @@ function runEUAnalysis(subject, allComps, options = {}) {
     const compPSFs = selectedComps.map(c => c.compPSF).filter(v => v > 0);
     const medianPSF = median(compPSFs);
 
-    const recommendedValue = medianAdjustedValue ? Math.round(medianAdjustedValue) : null;
+    let recommendedValue = medianAdjustedValue ? Math.round(medianAdjustedValue) : null;
+
+    // Bug 3 fix: Cap E&U reduction at 30% — anything more is almost certainly a data/methodology error
+    // Real-world E&U reductions are typically 5-15%, rarely above 20%
+    const MAX_EU_REDUCTION_PCT = 0.30;
+    let reductionCapped = false;
+    // Track the uncapped value/pct for diagnostics
+    const euUncappedValue = recommendedValue;
+    const euUncappedPct = (recommendedValue !== null && subject.assessedValue > 0)
+        ? round2((subject.assessedValue - recommendedValue) / subject.assessedValue)
+        : null;
+
+    if (recommendedValue !== null && recommendedValue < subject.assessedValue) {
+        const rawReductionPct = (subject.assessedValue - recommendedValue) / subject.assessedValue;
+        if (rawReductionPct > MAX_EU_REDUCTION_PCT) {
+            recommendedValue = Math.round(subject.assessedValue * (1 - MAX_EU_REDUCTION_PCT));
+            reductionCapped = true;
+        }
+    }
+
+    // Issue 1 fix: If recommended value > assessed, property is fairly valued — cap at assessed (0% reduction)
+    if (recommendedValue !== null && recommendedValue > subject.assessedValue) {
+        recommendedValue = subject.assessedValue;
+    }
+
     const reduction = recommendedValue !== null ? Math.max(0, subject.assessedValue - recommendedValue) : 0;
     const estimatedSavings = Math.round(reduction * taxRate);
 
@@ -312,11 +368,15 @@ function runEUAnalysis(subject, allComps, options = {}) {
         },
         recommendation,
         insufficientData,
+        reductionCapped,
+        euUncappedValue,
+        euUncappedPct,
         methodology: `Equal & Uniform analysis (TX Tax Code §42.26) using $/sqft of improvements. ` +
-            `Evaluated ${evaluated.length} comparable properties, selected ${selectedComps.length} most favorable. ` +
+            `Evaluated ${evaluated.length} comparable properties, selected ${selectedComps.length} most similar. ` +
             `Adjustments applied for size, age, land value, features, and pool. ` +
             `Median adjusted value: ${recommendedValue ? dollars(recommendedValue) : 'N/A'}. ` +
-            `Subject $/sqft: $${subjectPSF}/sqft vs. Median comp $/sqft: $${medianPSF || 'N/A'}/sqft.`,
+            `Subject $/sqft: $${subjectPSF}/sqft vs. Median comp $/sqft: $${medianPSF || 'N/A'}/sqft.` +
+            (reductionCapped ? ` NOTE: E&U reduction capped at ${(MAX_EU_REDUCTION_PCT * 100).toFixed(0)}% — original calculation exceeded cap, flagged for manual review.` : ''),
         analyzedAt: new Date().toISOString()
     };
 }

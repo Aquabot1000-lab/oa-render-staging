@@ -1,0 +1,41 @@
+{
+  "date": "2026-03-19",
+  "account": "OA 351-343-8695",
+  "campaign": "OA - TX Property Tax Protest - Search",
+  "period": "Mar 3-18 (16 days)",
+  "budget": "$33/day",
+  "strategy": "Maximize conversions",
+  "metrics": {
+    "impressions": 4034,
+    "clicks": 204,
+    "ctr": 5.06,
+    "avgCpc": 2.40,
+    "cost": 490.13,
+    "conversions": 50,
+    "convRate": 24.51,
+    "costPerConv": 9.80
+  },
+  "keywords": {
+    "property_tax_protest": {"clicks": 139, "impr": 2708, "ctr": 5.13, "cpc": 2.25, "cost": 313.20, "conv": 31, "convRate": 22.3, "costPerConv": 10.10},
+    "property_tax_help_texas": {"clicks": 13, "impr": 178, "ctr": 7.3, "cpc": 1.52, "cost": 19.70, "conv": 2, "convRate": 15.38, "costPerConv": 9.85},
+    "tax_relief_program": {"clicks": 10, "impr": 32, "ctr": 31.25, "cpc": 2.02, "cost": 20.24, "conv": 5, "convRate": 50.0, "costPerConv": 4.05},
+    "property_tax_appeal": {"clicks": 9, "impr": 300, "ctr": 3.0, "cpc": 3.36, "cost": 30.26, "conv": 3, "convRate": 33.33, "costPerConv": 10.09},
+    "property_tax_protest_texas": {"clicks": 9, "impr": 454, "ctr": 1.98, "cpc": 1.90, "cost": 17.07, "conv": 2, "convRate": 22.22, "costPerConv": 8.54},
+    "property_tax_appeal_service": {"clicks": 6, "impr": 48, "ctr": 12.5, "cpc": 0.86, "cost": 5.18, "conv": 0, "convRate": 0, "costPerConv": null},
+    "property_tax_reduction": {"clicks": 4, "impr": 59, "ctr": 6.78, "cpc": 2.89, "cost": 11.55, "conv": 5, "convRate": 125.0, "costPerConv": 2.31},
+    "lower_property_taxes_texas": {"clicks": 4, "impr": 45, "ctr": 8.89, "cpc": 1.86, "cost": 7.43, "conv": 1, "convRate": 25.0, "costPerConv": 7.43},
+    "property_tax_reduction_seniors": {"clicks": 3, "impr": 6, "ctr": 50.0, "cpc": 1.90, "cost": 5.71, "conv": 0, "convRate": 0, "costPerConv": null},
+    "lower_my_property_taxes": {"clicks": 2, "impr": 9, "ctr": 22.22, "cpc": 23.25, "cost": 46.50, "conv": 0, "convRate": 0, "costPerConv": null, "status": "PAUSED"}
+  },
+  "negativeKeywords": {
+    "existing_25": ["2025", "attorney", "calculator", "chandler crouch", "definition", "diy", "exemption", "gill denson", "hcad", "homestead exemption"],
+    "added_19_today": ["tax office", "tax collector", "appraisal district", "property search", "assessor", "county assessor", "isd", "school district", "pay property tax", "property tax payment", "tax rate", "how much", "what is", "jobs", "careers", "salary", "free", "reddit", "near me"],
+    "total": 44
+  },
+  "alerts": {
+    "conversionTagUnverified": true,
+    "optimizationScore": 62.3,
+    "budgetLimited": "possible - spending ~$30.60/day of $33 budget"
+  },
+  "topBiddingSignals": ["Weekdays after 4PM", "Weekdays 5AM-9AM"]
+}

@@ -124,6 +124,8 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
             doc.y += 4;
 
             const tableX = LM;
+            const comps = compResults.comps || [];
+            const assessedVal = propertyData.assessedValue || 0;
             // Check if comps have real account IDs (Tarrant CAD data)
             const hasRealAccounts = comps.some(c => c.accountId && !c.accountId.startsWith('R'));
             const colWidths = hasRealAccounts 
@@ -143,9 +145,6 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
                 colX += colWidths[i];
             });
             doc.y = thY + 15;
-
-            const comps = compResults.comps || [];
-            const assessedVal = propertyData.assessedValue || 0;
 
             comps.forEach((comp, i) => {
                 const rowY = doc.y;
@@ -208,7 +207,67 @@ async function generateEvidencePacket(caseData, propertyData, compResults) {
 
             // Thin line under table
             doc.moveTo(tableX, doc.y).lineTo(tableX + CW, doc.y).strokeColor('#e0e0e8').lineWidth(0.5).stroke();
-            doc.y += 8;
+            doc.y += 6;
+
+            // ===== ADJUSTMENT BREAKDOWNS PER COMP =====
+            const compsWithBreakdown = comps.filter(c => c.adjustmentBreakdown && c.adjustmentBreakdown.length > 0);
+            if (compsWithBreakdown.length > 0) {
+                doc.fontSize(9).fillColor(TEXT_DARK).font('Helvetica-Bold').text('ADJUSTMENT BREAKDOWNS', LM, doc.y);
+                doc.y += 3;
+
+                compsWithBreakdown.forEach((comp, ci) => {
+                    if (doc.y > 680) return; // Don't overflow into footer
+
+                    const blockY = doc.y;
+                    // Comp header line
+                    const baseVal = comp.baseValue || comp.assessedValue || 0;
+                    const compLabel = `Comp #${ci + 1}: ${(comp.address || '').substring(0, 35)}`;
+                    const compValLabel = ` — Assessed: $${baseVal.toLocaleString()}`;
+
+                    doc.rect(LM, blockY, CW, 11).fill(PURPLE_LIGHT);
+                    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(PURPLE)
+                        .text(compLabel, LM + 4, blockY + 2.5, { continued: true, width: CW - 8 });
+                    doc.font('Helvetica').fillColor(TEXT_DARK).text(compValLabel);
+                    doc.y = blockY + 12;
+
+                    // Each adjustment line
+                    (comp.adjustmentBreakdown || []).forEach(adj => {
+                        if (doc.y > 690) return;
+                        const adjY = doc.y;
+                        const sign = adj.dollar >= 0 ? '+' : '-';
+                        const pctStr = `${adj.pct >= 0 ? '+' : ''}${adj.pct.toFixed(1)}%`;
+                        const dollarStr = `(${sign}$${Math.abs(adj.dollar).toLocaleString()})`;
+                        const detailStr = adj.note
+                            ? adj.note
+                            : `subject ${adj.subjectVal} vs comp ${adj.compVal}${adj.unit ? ' ' + adj.unit : ''}`;
+
+                        doc.fontSize(6).font('Helvetica-Bold').fillColor(TEXT_DARK)
+                            .text(`  ${adj.factor}:`, LM + 8, adjY + 1, { continued: false });
+                        doc.font('Helvetica').fillColor(adj.dollar >= 0 ? '#e17055' : GREEN)
+                            .text(`${pctStr} ${dollarStr}`, LM + 60, adjY + 1, { continued: false });
+                        doc.font('Helvetica').fillColor(TEXT_MUTED)
+                            .text(`— ${detailStr}`, LM + 148, adjY + 1, { width: CW - 156 });
+                        doc.y = adjY + 9;
+                    });
+
+                    // Net adjustment & adjusted value
+                    if (comp.netAdjustment) {
+                        const netY = doc.y;
+                        const netSign = comp.netAdjustment.dollar >= 0 ? '+' : '';
+                        const netColor = comp.adjustedValue < assessedVal ? GREEN : '#e17055';
+
+                        doc.rect(LM + 4, netY, CW - 8, 10).fill(WHITE);
+                        doc.fontSize(6).font('Helvetica-Bold').fillColor(TEXT_DARK)
+                            .text(`  Net Adjustment:`, LM + 8, netY + 1.5);
+                        doc.fillColor(netColor)
+                            .text(`${netSign}${comp.netAdjustment.pct.toFixed(1)}% (${netSign}$${Math.abs(comp.netAdjustment.dollar).toLocaleString()})`, LM + 78, netY + 1.5);
+                        doc.fillColor(TEXT_DARK)
+                            .text(`Adjusted Value: $${(comp.adjustedValue || 0).toLocaleString()}`, LM + 280, netY + 1.5);
+                        doc.y = netY + 12;
+                    }
+                });
+                doc.y += 2;
+            }
 
             // ===== EQUAL & UNIFORM SECTION (PSF-based, if applicable) =====
             const euPSF = compResults.equalUniformAnalysis;
