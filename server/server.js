@@ -863,7 +863,10 @@ app.get('/api/tad-lookup/:account', authenticateToken, (req, res) => {
     try {
         const record = tarrantData.lookupAccount(req.params.account);
         if (!record) return res.status(404).json({ error: 'Account not found' });
-    res.json(record);
+        res.json(record);
+    } catch(e) {
+        res.json({ error: e.message });
+    }
 });
 
 // TAD address search (admin)
