@@ -851,13 +851,18 @@ app.get('/api/health', (req, res) => {
 
 // TAD data stats (admin)
 app.get('/api/tad-stats', authenticateToken, (req, res) => {
-    res.json(tarrantData.getStats());
+    try {
+        res.json(tarrantData.getStats() || { loaded: false, error: 'getStats returned null' });
+    } catch(e) {
+        res.json({ loaded: false, error: e.message });
+    }
 });
 
 // TAD property lookup by account number (admin)
 app.get('/api/tad-lookup/:account', authenticateToken, (req, res) => {
-    const record = tarrantData.lookupAccount(req.params.account);
-    if (!record) return res.status(404).json({ error: 'Account not found' });
+    try {
+        const record = tarrantData.lookupAccount(req.params.account);
+        if (!record) return res.status(404).json({ error: 'Account not found' });
     res.json(record);
 });
 
