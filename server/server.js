@@ -3002,7 +3002,7 @@ async function callClaude(messages) {
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'claude-3-5-haiku-20241022',
+                model: 'claude-3-5-haiku-latest',
                 max_tokens: 250,
                 system: AI_SYSTEM_PROMPT,
                 messages: anthropicMessages

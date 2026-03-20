@@ -1081,9 +1081,12 @@ function openDetail(id) {
     if (s.analysisReport || s.compResults) {
         document.getElementById('detailAnalysisSection').style.display = 'block';
         document.getElementById('detailAnalysisStatus').textContent = s.analysisStatus || (s.analysisReport ? 'Complete' : 'Not Started');
-        document.getElementById('detailMarketVal').textContent = s.analysisReport?.estimatedMarketValue ? '$' + s.analysisReport.estimatedMarketValue.toLocaleString() : '—';
-        document.getElementById('detailReduction').textContent = s.analysisReport?.estimatedReduction ? '$' + s.analysisReport.estimatedReduction.toLocaleString() : '—';
-        document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() + '/yr' : '—';
+        // Use primary recommended value from compResults (respects E&U sqft guard)
+        const recVal = s.compResults?.recommendedValue || s.analysisReport?.estimatedMarketValue;
+        const reduction = s.compResults?.reduction || s.analysisReport?.estimatedReduction;
+        document.getElementById('detailMarketVal').textContent = recVal ? '$' + recVal.toLocaleString() : '—';
+        document.getElementById('detailReduction').textContent = reduction ? '$' + reduction.toLocaleString() : '—';
+        document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + Number(s.estimatedSavings).toLocaleString() + '/yr' : '—';
     } else { document.getElementById('detailAnalysisSection').style.display = 'none'; }
 
     // Comps
