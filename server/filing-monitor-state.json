@@ -1,0 +1,42 @@
+{
+  "lastRun": "2026-03-19T21:52:32.896Z",
+  "clients": {
+    "OA-0010": {
+      "county": "Fort Bend",
+      "accountId": "R523440",
+      "ownerName": "Khiem Nguyen",
+      "checks": [
+        {
+          "timestamp": "2026-03-19T21:52:34.198Z",
+          "found": false,
+          "value": null,
+          "raw": "2026 row found but values show N/A — not yet posted"
+        }
+      ],
+      "lastChecked": "2026-03-19T21:52:34.198Z"
+    }
+  },
+  "filingResults": {},
+  "log": [
+    {
+      "timestamp": "2026-03-19T21:52:33.323Z",
+      "level": "info",
+      "message": "Found 2 active client(s) to check"
+    },
+    {
+      "timestamp": "2026-03-19T21:52:33.324Z",
+      "level": "info",
+      "message": "Checking OA-0010 (Khiem Nguyen) at https://esearch.fbcad.org/Property/View/R523440"
+    },
+    {
+      "timestamp": "2026-03-19T21:52:34.198Z",
+      "level": "info",
+      "message": "No 2026 values yet for OA-0010: 2026 row found but values show N/A — not yet posted"
+    },
+    {
+      "timestamp": "2026-03-19T21:52:36.199Z",
+      "level": "warn",
+      "message": "No account ID for OA-0017 (Hunt) — skipping value check"
+    }
+  ]
+}

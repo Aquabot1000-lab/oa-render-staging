@@ -9,9 +9,9 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: -apple-system, 'Helvetica Neue', 'SF Pro Display', Helvetica, Arial, sans-serif;
     font-size: 9pt;
-    color: #222;
+    color: #2d3436;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -19,110 +19,139 @@
   .page {
     width: 10in;
     height: 7.5in;
-    padding: 0.15in 0.25in;
+    padding: 0.2in 0.3in 0.35in 0.3in;
     page-break-after: always;
     position: relative;
     overflow: hidden;
   }
   .page:last-child { page-break-after: auto; }
-  
-  /* Header */
+
+  /* ── Header ── */
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px;
-    margin-bottom: 2px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    border-bottom: 0.5px solid #e0e0e0;
   }
   .header-logo {
-    font-size: 18pt;
-    font-weight: bold;
-    color: #333;
+    font-size: 16pt;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
-  .header-logo .oa-icon {
-    width: 28px;
-    height: 28px;
+  .header-logo .icon {
+    width: 24px;
+    height: 24px;
     background: #6c5ce7;
-    border-radius: 6px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 14pt;
-    font-weight: bold;
+    font-size: 11pt;
+    font-weight: 800;
   }
   .header-logo .brand-over { color: #6c5ce7; }
-  .header-logo .brand-assessed { color: #333; }
-  .header-center {
-    text-align: left;
-    font-size: 8pt;
-    line-height: 1.4;
+  .header-logo .brand-assessed { color: #2d3436; }
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    align-items: center;
   }
-  .header-center .prep-label { font-style: italic; color: #666; }
-  .header-center .prep-name { font-weight: bold; }
-  .header-right {
+  .header-meta .meta-block {
     text-align: right;
-    font-size: 8pt;
-    line-height: 1.4;
-    color: #444;
+    font-size: 7.5pt;
+    line-height: 1.5;
+    color: #636e72;
   }
-  
-  /* Dark banner */
-  .banner {
-    background: #333;
-    color: #fff;
-    text-align: center;
-    font-size: 14pt;
-    font-weight: bold;
-    padding: 6px 0;
-    margin-bottom: 2px;
-    letter-spacing: 0.5px;
-  }
-  
-  /* Property ID bar */
-  .prop-id-bar {
-    background: #e8e8e8;
+  .header-meta .meta-block strong { color: #2d3436; }
+
+  /* ── Property Bar ── */
+  .prop-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 10px;
-    margin-bottom: 2px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #6c5ce7;
   }
-  .prop-id-bar .address { font-size: 13pt; font-weight: bold; }
-  .prop-id-bar .details { text-align: right; font-size: 8.5pt; line-height: 1.4; }
-  
-  /* Indicated value + stats */
+  .prop-bar .address {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #2d3436;
+    letter-spacing: -0.3px;
+  }
+  .prop-bar .details {
+    text-align: right;
+    font-size: 8pt;
+    color: #636e72;
+    line-height: 1.5;
+  }
+  .prop-bar .details strong { color: #2d3436; }
+
+  /* ── Indicated Value Bar ── */
   .value-bar {
     display: flex;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
+    margin-bottom: 10px;
     align-items: stretch;
   }
   .indicated-value {
-    border: 1.5px solid #333;
-    padding: 5px 14px;
-    font-size: 13pt;
-    font-weight: bold;
-    background: #f5f5f5;
-    white-space: nowrap;
+    padding: 8px 18px;
+    background: #f5f3ff;
+    border: 1.5px solid #6c5ce7;
+    border-radius: 6px;
     display: flex;
     align-items: center;
+    gap: 10px;
+    white-space: nowrap;
   }
-  .indicated-value .label { color: #666; margin-right: 8px; font-size: 10pt; }
-  .indicated-value .val { color: #6c5ce7; }
-  .stats-box {
-    border: 1px solid #999;
-    padding: 4px 10px;
-    font-size: 7.5pt;
-    line-height: 1.5;
+  .indicated-value .label {
+    font-size: 8pt;
+    font-weight: 600;
+    color: #6c5ce7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .indicated-value .val {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #6c5ce7;
+  }
+  .stats-bar {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 6px 14px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 7.5pt;
+    color: #636e72;
   }
-  .stats-box b { font-weight: 600; }
-  
-  /* Main comparison table */
+  .stats-bar .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .stats-bar .stat-label {
+    font-size: 6pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999;
+  }
+  .stats-bar .stat-val {
+    font-weight: 700;
+    color: #2d3436;
+    font-size: 8.5pt;
+  }
+
+  /* ── Comparison Table ── */
   .comp-table {
     width: 100%;
     border-collapse: collapse;
@@ -130,25 +159,29 @@
     table-layout: fixed;
   }
   .comp-table th {
-    background: #555;
+    background: #2d3436;
     color: #fff;
-    font-weight: bold;
-    font-size: 9pt;
-    padding: 5px 4px;
+    font-weight: 600;
+    font-size: 7.5pt;
+    padding: 6px 6px;
     text-align: center;
-    border: 1px solid #444;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: none;
   }
   .comp-table th:first-child {
-    background: #777;
     text-align: left;
-    padding-left: 8px;
-    width: 16%;
+    padding-left: 10px;
+    width: 15%;
+    background: #2d3436;
   }
-  .comp-table th.subject-col { background: #444; }
+  .comp-table th.subject-col {
+    background: #3d3d5c;
+  }
   .comp-table td {
-    padding: 3px 6px;
+    padding: 4px 6px;
     text-align: center;
-    border: 1px solid #ddd;
+    border-bottom: 0.5px solid #eee;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -156,1286 +189,1244 @@
   .comp-table td:first-child {
     text-align: left;
     font-weight: 500;
-    background: #f0f0f0;
-    padding-left: 8px;
-    color: #333;
-  }
-  .comp-table tr:nth-child(even) td { background: #fafafa; }
-  .comp-table tr:nth-child(even) td:first-child { background: #eaeaea; }
-  .comp-table tr.section-header td {
-    background: #e0dff5 !important;
-    font-weight: bold;
+    padding-left: 10px;
+    color: #636e72;
     font-size: 7.5pt;
+  }
+  .comp-table tr:nth-child(even) td {
+    background: #fafafa;
+  }
+  .comp-table tr:nth-child(even) td:first-child {
+    background: #fafafa;
+  }
+
+  /* Subject column highlight */
+  .comp-table .subject-cell {
+    background: #faf9ff !important;
+    color: #2d3436;
+    font-weight: 500;
+  }
+  .comp-table tr:nth-child(even) .subject-cell {
+    background: #f5f3ff !important;
+  }
+
+  /* Adjustment section */
+  .comp-table tr.adj-header td {
+    background: #f8f9fa !important;
+    font-weight: 700;
+    font-size: 6.5pt;
     color: #6c5ce7;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
+    letter-spacing: 0.8px;
+    padding: 4px 10px;
+    border-top: 0.5px solid #e0e0e0;
+    border-bottom: 0.5px solid #e0e0e0;
   }
+
+  /* Total row */
   .comp-table tr.total-row td {
-    font-weight: bold;
+    font-weight: 700;
     font-size: 10pt;
-    background: #f0eef9 !important;
+    background: #f5f3ff !important;
     border-top: 2px solid #6c5ce7;
-    padding: 5px 6px;
-    color: #333;
+    padding: 6px 6px;
+    color: #2d3436;
   }
   .comp-table tr.total-row td:first-child {
-    background: #e0dff5 !important;
     color: #6c5ce7;
+    font-size: 8pt;
+    font-weight: 700;
   }
-  .comp-table .subject-cell { background: #f9f8ff !important; color: #444; }
-  
-  /* Footer */
+
+  /* ── Footer ── */
   .footer {
     position: absolute;
-    bottom: 6px;
-    left: 0.25in;
-    right: 0.25in;
+    bottom: 8px;
+    left: 0.3in;
+    right: 0.3in;
     display: flex;
     justify-content: space-between;
-    font-size: 7pt;
-    color: #888;
-    border-top: 1px solid #ddd;
-    padding-top: 3px;
+    align-items: center;
+    font-size: 6.5pt;
+    color: #b2bec3;
+    border-top: 0.5px solid #e0e0e0;
+    padding-top: 4px;
   }
-  
-  /* Notes page */
+
+  /* ── Notes page ── */
   .notes-content {
-    padding: 10px 20px;
+    padding: 12px 20px;
     font-size: 9pt;
-    line-height: 1.6;
+    line-height: 1.7;
+    color: #636e72;
   }
   .notes-content h3 {
-    color: #6c5ce7;
     font-size: 11pt;
-    margin: 14px 0 6px 0;
-    border-bottom: 1px solid #e0dff5;
-    padding-bottom: 3px;
+    font-weight: 600;
+    color: #2d3436;
+    margin: 18px 0 8px 0;
   }
-  .notes-content p { margin-bottom: 6px; }
-  .notes-content ul { margin-left: 20px; margin-bottom: 8px; }
-  .notes-content li { margin-bottom: 3px; }
+  .notes-content h3:first-child { margin-top: 0; }
+  .notes-content p { margin-bottom: 8px; }
+  .notes-content ul {
+    margin-left: 20px;
+    margin-bottom: 10px;
+  }
+  .notes-content li { margin-bottom: 4px; }
   .notes-content .formula {
-    background: #f5f4ff;
-    border: 1px solid #e0dff5;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 8.5pt;
-    margin: 6px 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 8pt;
+    margin: 8px 0;
+    line-height: 1.8;
+    color: #2d3436;
   }
-  
-  /* Map page */
-  .map-container {
+  .notes-content .disclaimer {
+    font-size: 7pt;
+    color: #b2bec3;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 0.5px solid #eee;
+    line-height: 1.6;
+  }
+
+  /* ── Summary Table (comps map page) ── */
+  .summary-table {
     width: 100%;
-    height: calc(100% - 90px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: 8pt;
   }
-  .map-placeholder {
-    text-align: center;
+  .summary-table th {
+    text-align: left;
+    font-size: 6.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: #999;
-    font-size: 12pt;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1.5px solid #2d3436;
   }
-  .map-placeholder img {
-    max-width: 100%;
-    max-height: 100%;
+  .summary-table th:nth-child(n+4) { text-align: right; }
+  .summary-table th:nth-child(5),
+  .summary-table th:nth-child(6),
+  .summary-table th:nth-child(7),
+  .summary-table th:nth-child(9) { text-align: center; }
+  .summary-table td {
+    padding: 4px 8px;
+    border-bottom: 0.5px solid #f0f0f0;
+    vertical-align: middle;
+  }
+  .summary-table td:nth-child(n+4) { text-align: right; }
+  .summary-table td:nth-child(5),
+  .summary-table td:nth-child(6),
+  .summary-table td:nth-child(7),
+  .summary-table td:nth-child(9) { text-align: center; }
+  .summary-table tr:nth-child(even) td { background: #fafafa; }
+  .summary-table tr.subject-row td {
+    background: #f5f3ff !important;
+    font-weight: 600;
+  }
+  .summary-table tr.subject-row td:first-child { color: #6c5ce7; }
+  .summary-table .comp-num {
+    font-weight: 700;
+    color: #6c5ce7;
+    width: 20px;
+    text-align: center;
+  }
+  .summary-table .adj-val {
+    font-weight: 700;
+    color: #2d3436;
   }
 </style>
 </head>
 <body>
 
+  <!-- ═══════ PAGE 1: COMPS 1-3 ═══════ -->
   <div class="page">
-    <!-- Header -->
     <div class="header">
       <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
       </div>
     </div>
-    
-    <!-- Banner -->
-    <div class="banner">Equal &amp; Uniform Analysis</div>
-    
-    <!-- Property ID -->
-    <div class="prop-id-bar">
+
+    <div class="prop-bar">
       <div class="address">3125 OVERTON PARK DR E</div>
       <div class="details">
-        Tax ID: 03086925<br>
-        Owner: PETTITT, ANTHONY
+        Tax ID: <strong>03086925</strong><br>
+        Owner: <strong>PETTITT, ANTHONY</strong>
       </div>
     </div>
-    
-    <!-- Indicated Value + Stats -->
+
     <div class="value-bar">
       <div class="indicated-value">
-        <span class="label">Indicated Value</span>
+        <span class="label">Indicated<br>Value</span>
         <span class="val">$955,842</span>
       </div>
-      <div class="stats-box">
-        Number of Comps: <b>15</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>$872,972</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>$1,007,308</b> &nbsp;|&nbsp;
-        Median Value: <b>$955,842</b>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Comps</span>
+          <span class="stat-val">15</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Minimum</span>
+          <span class="stat-val">$872,972</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Median</span>
+          <span class="stat-val">$955,842</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Maximum</span>
+          <span class="stat-val">$1,007,308</span>
+        </div>
       </div>
     </div>
-    
-    <!-- Comparison Table -->
+
     <table class="comp-table">
       <thead>
         <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
-          <th>COMP 1</th><th>COMP 2</th><th>COMP 3</th>
-          
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
+          <th>Comp 1</th>
+          <th>Comp 2</th>
+          <th>Comp 3</th>
         </tr>
       </thead>
       <tbody>
-        
-    <tr>
-      <td>Tax ID</td>
-      <td class="subject-cell">03086925</td>
-      <td>03087972</td><td>03088812</td><td>03089495</td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td class="subject-cell">3125 OVERTON PARK DR E</td>
-      <td>3104 SPANISH OAK DR</td><td>3109 PRESTON HOLLOW RD</td><td>4112 GLENWOOD DR</td>
-    </tr>
-    <tr>
-      <td>Market Value</td>
-      <td class="subject-cell">$909,091</td>
-      <td>$658,766</td><td>$754,545</td><td>$725,400</td>
-    </tr>
-    <tr>
-      <td>Distance (Miles)</td>
-      <td class="subject-cell">-</td>
-      <td>0.18</td><td>0.43</td><td>0.52</td>
-    </tr>
-    <tr>
-      <td>Property Class</td>
-      <td class="subject-cell">A1</td>
-      <td>A1</td><td>A1</td><td>A1</td>
-    </tr>
-    <tr>
-      <td>Condition</td>
-      <td class="subject-cell">Good</td>
-      <td>Good</td><td>Good</td><td>Good</td>
-    </tr>
-    <tr>
-      <td>Year Built (Effective)</td>
-      <td class="subject-cell">1961 (1995)</td>
-      <td>1956 (1956)</td><td>1958 (1961)</td><td>1960 (1960)</td>
-    </tr>
-    <tr>
-      <td>Main SQFT (PSF)</td>
-      <td class="subject-cell">3,277 ($65)</td>
-      <td>3,265 ($17)</td><td>3,363 ($23)</td><td>3,193 ($20)</td>
-    </tr>
-    <tr>
-      <td>Improvement Value</td>
-      <td class="subject-cell">$213,751</td>
-      <td>$55,766</td><td>$78,930</td><td>$64,470</td>
-    </tr>
-    <tr>
-      <td>Feature Value</td>
-      <td class="subject-cell">$124,584</td>
-      <td>$4,461</td><td>$6,314</td><td>$5,158</td>
-    </tr>
-    <tr>
-      <td>Pool Value</td>
-      <td class="subject-cell">$30,000</td>
-      <td>$0</td><td>$15,000</td><td>$0</td>
-    </tr>
-    <tr>
-      <td>Land Value</td>
-      <td class="subject-cell">$695,340</td>
-      <td>$603,000</td><td>$675,615</td><td>$660,930</td>
-    </tr>
-    <tr class="section-header">
-      <td colspan="5">Adjustments</td>
-    </tr>
-    <tr>
-      <td>Age Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$10,894 (1.65%)</td><td>$13,247 (1.76%)</td><td>$11,431 (1.58%)</td>
-    </tr>
-    <tr>
-      <td>Size Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$102 (0.02%)</td><td>$-1,009 (-0.13%)</td><td>$848 (0.12%)</td>
-    </tr>
-    <tr>
-      <td>Land Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$92,340 (14.02%)</td><td>$19,725 (2.61%)</td><td>$34,410 (4.74%)</td>
-    </tr>
-    <tr>
-      <td>Feature Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$120,123 (18.23%)</td><td>$118,270 (15.67%)</td><td>$119,426 (16.46%)</td>
-    </tr>
-    <tr>
-      <td>Pool Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$30,000 (4.55%)</td><td>$15,000 (1.99%)</td><td>$30,000 (4.14%)</td>
-    </tr>
-    <tr>
-      <td>Net Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$253,459 (38.47%)</td><td>$165,233 (21.90%)</td><td>$196,115 (27.04%)</td>
-    </tr>
-    <tr class="total-row">
-      <td>Total Adjusted Value</td>
-      <td class="subject-cell">-</td>
-      <td>$912,225</td><td>$919,778</td><td>$921,515</td>
-    </tr>
+        <tr>
+          <td>Tax ID</td>
+          <td class="subject-cell">03086925</td>
+          <td>03087972</td><td>03088812</td><td>03089495</td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td class="subject-cell">3125 Overton Park Dr E</td>
+          <td>3104 Spanish Oak Dr</td><td>3109 Preston Hollow Rd</td><td>4112 Glenwood Dr</td>
+        </tr>
+        <tr>
+          <td>Market Value</td>
+          <td class="subject-cell">$909,091</td>
+          <td>$658,766</td><td>$754,545</td><td>$725,400</td>
+        </tr>
+        <tr>
+          <td>Distance</td>
+          <td class="subject-cell">—</td>
+          <td>0.18 mi</td><td>0.43 mi</td><td>0.52 mi</td>
+        </tr>
+        <tr>
+          <td>Class / Condition</td>
+          <td class="subject-cell">A1 / Good</td>
+          <td>A1 / Good</td><td>A1 / Good</td><td>A1 / Good</td>
+        </tr>
+        <tr>
+          <td>Year Built (Eff)</td>
+          <td class="subject-cell">1961 (1995)</td>
+          <td>1956 (1956)</td><td>1958 (1961)</td><td>1960 (1960)</td>
+        </tr>
+        <tr>
+          <td>Main SF (PSF)</td>
+          <td class="subject-cell">3,277 ($65)</td>
+          <td>3,265 ($17)</td><td>3,363 ($23)</td><td>3,193 ($20)</td>
+        </tr>
+        <tr>
+          <td>Improvement Value</td>
+          <td class="subject-cell">$213,751</td>
+          <td>$55,766</td><td>$78,930</td><td>$64,470</td>
+        </tr>
+        <tr>
+          <td>Feature Value</td>
+          <td class="subject-cell">$124,584</td>
+          <td>$4,461</td><td>$6,314</td><td>$5,158</td>
+        </tr>
+        <tr>
+          <td>Pool Value</td>
+          <td class="subject-cell">$30,000</td>
+          <td>$0</td><td>$15,000</td><td>$0</td>
+        </tr>
+        <tr>
+          <td>Land Value</td>
+          <td class="subject-cell">$695,340</td>
+          <td>$603,000</td><td>$675,615</td><td>$660,930</td>
+        </tr>
+        <tr class="adj-header">
+          <td colspan="5">Adjustments</td>
+        </tr>
+        <tr>
+          <td>Age</td>
+          <td class="subject-cell">—</td>
+          <td>$10,894 (1.65%)</td><td>$13,247 (1.76%)</td><td>$11,431 (1.58%)</td>
+        </tr>
+        <tr>
+          <td>Size</td>
+          <td class="subject-cell">—</td>
+          <td>$102 (0.02%)</td><td>−$1,009 (−0.13%)</td><td>$848 (0.12%)</td>
+        </tr>
+        <tr>
+          <td>Land</td>
+          <td class="subject-cell">—</td>
+          <td>$92,340 (14.02%)</td><td>$19,725 (2.61%)</td><td>$34,410 (4.74%)</td>
+        </tr>
+        <tr>
+          <td>Features</td>
+          <td class="subject-cell">—</td>
+          <td>$120,123 (18.23%)</td><td>$118,270 (15.67%)</td><td>$119,426 (16.46%)</td>
+        </tr>
+        <tr>
+          <td>Pool</td>
+          <td class="subject-cell">—</td>
+          <td>$30,000 (4.55%)</td><td>$15,000 (1.99%)</td><td>$30,000 (4.14%)</td>
+        </tr>
+        <tr>
+          <td>Net Adjustment</td>
+          <td class="subject-cell">—</td>
+          <td>$253,459 (38.47%)</td><td>$165,233 (21.90%)</td><td>$196,115 (27.04%)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Adjusted Value</td>
+          <td class="subject-cell">—</td>
+          <td>$912,225</td><td>$919,778</td><td>$921,515</td>
+        </tr>
       </tbody>
     </table>
-    
-    <!-- Footer -->
+
     <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
       <span>Page 1 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
-    </div>
-  </div>
-  <div class="page">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
-      </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    
-    <!-- Banner -->
-    <div class="banner">Equal &amp; Uniform Analysis</div>
-    
-    <!-- Property ID -->
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">
-        Tax ID: 03086925<br>
-        Owner: PETTITT, ANTHONY
-      </div>
-    </div>
-    
-    <!-- Indicated Value + Stats -->
-    <div class="value-bar">
-      <div class="indicated-value">
-        <span class="label">Indicated Value</span>
-        <span class="val">$955,842</span>
-      </div>
-      <div class="stats-box">
-        Number of Comps: <b>15</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>$872,972</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>$1,007,308</b> &nbsp;|&nbsp;
-        Median Value: <b>$955,842</b>
-      </div>
-    </div>
-    
-    <!-- Comparison Table -->
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
-          <th>COMP 4</th><th>COMP 5</th><th>COMP 6</th>
-          
-        </tr>
-      </thead>
-      <tbody>
-        
-    <tr>
-      <td>Tax ID</td>
-      <td class="subject-cell">03086925</td>
-      <td>03086887</td><td>03088421</td><td>03087212</td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td class="subject-cell">3125 OVERTON PARK DR E</td>
-      <td>4220 BELLAIRE DR S</td><td>3212 PRESTON HOLLOW RD</td><td>3117 CHAPARRAL LN</td>
-    </tr>
-    <tr>
-      <td>Market Value</td>
-      <td class="subject-cell">$909,091</td>
-      <td>$755,525</td><td>$727,304</td><td>$679,585</td>
-    </tr>
-    <tr>
-      <td>Distance (Miles)</td>
-      <td class="subject-cell">-</td>
-      <td>0.55</td><td>0.33</td><td>0.53</td>
-    </tr>
-    <tr>
-      <td>Property Class</td>
-      <td class="subject-cell">A1</td>
-      <td>A1</td><td>A1</td><td>A1</td>
-    </tr>
-    <tr>
-      <td>Condition</td>
-      <td class="subject-cell">Good</td>
-      <td>Good</td><td>Good</td><td>Good</td>
-    </tr>
-    <tr>
-      <td>Year Built (Effective)</td>
-      <td class="subject-cell">1961 (1995)</td>
-      <td>1960 (1961)</td><td>1958 (1958)</td><td>1956 (1958)</td>
-    </tr>
-    <tr>
-      <td>Main SQFT (PSF)</td>
-      <td class="subject-cell">3,277 ($65)</td>
-      <td>3,538 ($11)</td><td>3,041 ($16)</td><td>3,000 ($26)</td>
-    </tr>
-    <tr>
-      <td>Improvement Value</td>
-      <td class="subject-cell">$213,751</td>
-      <td>$40,565</td><td>$47,684</td><td>$78,385</td>
-    </tr>
-    <tr>
-      <td>Feature Value</td>
-      <td class="subject-cell">$124,584</td>
-      <td>$3,245</td><td>$3,815</td><td>$6,271</td>
-    </tr>
-    <tr>
-      <td>Pool Value</td>
-      <td class="subject-cell">$30,000</td>
-      <td>$0</td><td>$15,000</td><td>$0</td>
-    </tr>
-    <tr>
-      <td>Land Value</td>
-      <td class="subject-cell">$695,340</td>
-      <td>$714,960</td><td>$679,620</td><td>$601,200</td>
-    </tr>
-    <tr class="section-header">
-      <td colspan="5">Adjustments</td>
-    </tr>
-    <tr>
-      <td>Age Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$6,642 (0.88%)</td><td>$9,164 (1.26%)</td><td>$15,171 (2.23%)</td>
-    </tr>
-    <tr>
-      <td>Size Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$-1,496 (-0.20%)</td><td>$1,850 (0.25%)</td><td>$3,619 (0.53%)</td>
-    </tr>
-    <tr>
-      <td>Land Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$-19,620 (-2.60%)</td><td>$15,720 (2.16%)</td><td>$94,140 (13.85%)</td>
-    </tr>
-    <tr>
-      <td>Feature Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$121,339 (16.06%)</td><td>$120,769 (16.61%)</td><td>$118,313 (17.41%)</td>
-    </tr>
-    <tr>
-      <td>Pool Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$30,000 (3.97%)</td><td>$15,000 (2.06%)</td><td>$30,000 (4.41%)</td>
-    </tr>
-    <tr>
-      <td>Net Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$136,865 (18.12%)</td><td>$162,503 (22.34%)</td><td>$261,243 (38.44%)</td>
-    </tr>
-    <tr class="total-row">
-      <td>Total Adjusted Value</td>
-      <td class="subject-cell">-</td>
-      <td>$892,390</td><td>$889,807</td><td>$940,828</td>
-    </tr>
-      </tbody>
-    </table>
-    
-    <!-- Footer -->
-    <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
-      <span>Page 2 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
-    </div>
-  </div>
-  <div class="page">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
-      </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    
-    <!-- Banner -->
-    <div class="banner">Equal &amp; Uniform Analysis</div>
-    
-    <!-- Property ID -->
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">
-        Tax ID: 03086925<br>
-        Owner: PETTITT, ANTHONY
-      </div>
-    </div>
-    
-    <!-- Indicated Value + Stats -->
-    <div class="value-bar">
-      <div class="indicated-value">
-        <span class="label">Indicated Value</span>
-        <span class="val">$955,842</span>
-      </div>
-      <div class="stats-box">
-        Number of Comps: <b>15</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>$872,972</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>$1,007,308</b> &nbsp;|&nbsp;
-        Median Value: <b>$955,842</b>
-      </div>
-    </div>
-    
-    <!-- Comparison Table -->
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
-          <th>COMP 7</th><th>MEDIAN<br>COMP 8</th><th>COMP 9</th>
-          
-        </tr>
-      </thead>
-      <tbody>
-        
-    <tr>
-      <td>Tax ID</td>
-      <td class="subject-cell">03086925</td>
-      <td>03089282</td><td>03089614</td><td>03088936</td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td class="subject-cell">3125 OVERTON PARK DR E</td>
-      <td>4025 GLENWOOD DR</td><td>4209 SHADY CREEK DR</td><td>4116 HARLANWOOD DR</td>
-    </tr>
-    <tr>
-      <td>Market Value</td>
-      <td class="subject-cell">$909,091</td>
-      <td>$649,800</td><td>$711,043</td><td>$768,978</td>
-    </tr>
-    <tr>
-      <td>Distance (Miles)</td>
-      <td class="subject-cell">-</td>
-      <td>0.34</td><td>0.62</td><td>0.49</td>
-    </tr>
-    <tr>
-      <td>Property Class</td>
-      <td class="subject-cell">A1</td>
-      <td>A1</td><td>A1</td><td>A1</td>
-    </tr>
-    <tr>
-      <td>Condition</td>
-      <td class="subject-cell">Good</td>
-      <td>Good</td><td>Good</td><td>Good</td>
-    </tr>
-    <tr>
-      <td>Year Built (Effective)</td>
-      <td class="subject-cell">1961 (1995)</td>
-      <td>1959 (1960)</td><td>1963 (1966)</td><td>1961 (1965)</td>
-    </tr>
-    <tr>
-      <td>Main SQFT (PSF)</td>
-      <td class="subject-cell">3,277 ($65)</td>
-      <td>3,496 ($6)</td><td>3,309 ($30)</td><td>3,396 ($35)</td>
-    </tr>
-    <tr>
-      <td>Improvement Value</td>
-      <td class="subject-cell">$213,751</td>
-      <td>$21,780</td><td>$99,973</td><td>$120,528</td>
-    </tr>
-    <tr>
-      <td>Feature Value</td>
-      <td class="subject-cell">$124,584</td>
-      <td>$1,742</td><td>$7,998</td><td>$9,642</td>
-    </tr>
-    <tr>
-      <td>Pool Value</td>
-      <td class="subject-cell">$30,000</td>
-      <td>$0</td><td>$0</td><td>$15,000</td>
-    </tr>
-    <tr>
-      <td>Land Value</td>
-      <td class="subject-cell">$695,340</td>
-      <td>$628,020</td><td>$611,070</td><td>$648,450</td>
-    </tr>
-    <tr class="section-header">
-      <td colspan="5">Adjustments</td>
-    </tr>
-    <tr>
-      <td>Age Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$3,692 (0.57%)</td><td>$14,426 (2.03%)</td><td>$17,762 (2.31%)</td>
-    </tr>
-    <tr>
-      <td>Size Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$-682 (-0.10%)</td><td>$-483 (-0.07%)</td><td>$-2,112 (-0.27%)</td>
-    </tr>
-    <tr>
-      <td>Land Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$67,320 (10.36%)</td><td>$84,270 (11.85%)</td><td>$46,890 (6.10%)</td>
-    </tr>
-    <tr>
-      <td>Feature Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$122,842 (18.90%)</td><td>$116,586 (16.40%)</td><td>$114,942 (14.95%)</td>
-    </tr>
-    <tr>
-      <td>Pool Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$30,000 (4.62%)</td><td>$30,000 (4.22%)</td><td>$15,000 (1.95%)</td>
-    </tr>
-    <tr>
-      <td>Net Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$223,172 (34.34%)</td><td>$244,799 (34.43%)</td><td>$192,482 (25.03%)</td>
-    </tr>
-    <tr class="total-row">
-      <td>Total Adjusted Value</td>
-      <td class="subject-cell">-</td>
-      <td>$872,972</td><td>$955,842</td><td>$961,460</td>
-    </tr>
-      </tbody>
-    </table>
-    
-    <!-- Footer -->
-    <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
-      <span>Page 3 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
-    </div>
-  </div>
-  <div class="page">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
-      </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    
-    <!-- Banner -->
-    <div class="banner">Equal &amp; Uniform Analysis</div>
-    
-    <!-- Property ID -->
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">
-        Tax ID: 03086925<br>
-        Owner: PETTITT, ANTHONY
-      </div>
-    </div>
-    
-    <!-- Indicated Value + Stats -->
-    <div class="value-bar">
-      <div class="indicated-value">
-        <span class="label">Indicated Value</span>
-        <span class="val">$955,842</span>
-      </div>
-      <div class="stats-box">
-        Number of Comps: <b>15</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>$872,972</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>$1,007,308</b> &nbsp;|&nbsp;
-        Median Value: <b>$955,842</b>
-      </div>
-    </div>
-    
-    <!-- Comparison Table -->
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
-          <th>COMP 10</th><th>COMP 11</th><th>COMP 12</th>
-          
-        </tr>
-      </thead>
-      <tbody>
-        
-    <tr>
-      <td>Tax ID</td>
-      <td class="subject-cell">03086925</td>
-      <td>03089525</td><td>03088464</td><td>03089398</td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td class="subject-cell">3125 OVERTON PARK DR E</td>
-      <td>4204 GLENWOOD DR</td><td>3224 PRESTON HOLLOW RD</td><td>4221 BLACKHAW AVE</td>
-    </tr>
-    <tr>
-      <td>Market Value</td>
-      <td class="subject-cell">$909,091</td>
-      <td>$727,273</td><td>$739,000</td><td>$739,000</td>
-    </tr>
-    <tr>
-      <td>Distance (Miles)</td>
-      <td class="subject-cell">-</td>
-      <td>0.23</td><td>0.63</td><td>0.16</td>
-    </tr>
-    <tr>
-      <td>Property Class</td>
-      <td class="subject-cell">A1</td>
-      <td>A1</td><td>A1</td><td>A1</td>
-    </tr>
-    <tr>
-      <td>Condition</td>
-      <td class="subject-cell">Good</td>
-      <td>Good</td><td>Good</td><td>Good</td>
-    </tr>
-    <tr>
-      <td>Year Built (Effective)</td>
-      <td class="subject-cell">1961 (1995)</td>
-      <td>1962 (1963)</td><td>1957 (1961)</td><td>1960 (1964)</td>
-    </tr>
-    <tr>
-      <td>Main SQFT (PSF)</td>
-      <td class="subject-cell">3,277 ($65)</td>
-      <td>3,582 ($30)</td><td>3,081 ($37)</td><td>3,156 ($38)</td>
-    </tr>
-    <tr>
-      <td>Improvement Value</td>
-      <td class="subject-cell">$213,751</td>
-      <td>$108,523</td><td>$114,325</td><td>$118,375</td>
-    </tr>
-    <tr>
-      <td>Feature Value</td>
-      <td class="subject-cell">$124,584</td>
-      <td>$8,682</td><td>$9,146</td><td>$9,470</td>
-    </tr>
-    <tr>
-      <td>Pool Value</td>
-      <td class="subject-cell">$30,000</td>
-      <td>$0</td><td>$0</td><td>$0</td>
-    </tr>
-    <tr>
-      <td>Land Value</td>
-      <td class="subject-cell">$695,340</td>
-      <td>$618,750</td><td>$624,675</td><td>$620,625</td>
-    </tr>
-    <tr class="section-header">
-      <td colspan="5">Adjustments</td>
-    </tr>
-    <tr>
-      <td>Age Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$16,624 (2.29%)</td><td>$20,053 (2.71%)</td><td>$18,700 (2.53%)</td>
-    </tr>
-    <tr>
-      <td>Size Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$-4,620 (-0.64%)</td><td>$3,636 (0.49%)</td><td>$2,269 (0.31%)</td>
-    </tr>
-    <tr>
-      <td>Land Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$76,590 (10.53%)</td><td>$70,665 (9.56%)</td><td>$74,715 (10.11%)</td>
-    </tr>
-    <tr>
-      <td>Feature Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$115,902 (15.94%)</td><td>$115,438 (15.62%)</td><td>$115,114 (15.58%)</td>
-    </tr>
-    <tr>
-      <td>Pool Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$30,000 (4.12%)</td><td>$30,000 (4.06%)</td><td>$30,000 (4.06%)</td>
-    </tr>
-    <tr>
-      <td>Net Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$234,496 (32.24%)</td><td>$239,792 (32.45%)</td><td>$240,798 (32.58%)</td>
-    </tr>
-    <tr class="total-row">
-      <td>Total Adjusted Value</td>
-      <td class="subject-cell">-</td>
-      <td>$961,769</td><td>$978,792</td><td>$979,798</td>
-    </tr>
-      </tbody>
-    </table>
-    
-    <!-- Footer -->
-    <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
-      <span>Page 4 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
-    </div>
-  </div>
-  <div class="page">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
-      </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    
-    <!-- Banner -->
-    <div class="banner">Equal &amp; Uniform Analysis</div>
-    
-    <!-- Property ID -->
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">
-        Tax ID: 03086925<br>
-        Owner: PETTITT, ANTHONY
-      </div>
-    </div>
-    
-    <!-- Indicated Value + Stats -->
-    <div class="value-bar">
-      <div class="indicated-value">
-        <span class="label">Indicated Value</span>
-        <span class="val">$955,842</span>
-      </div>
-      <div class="stats-box">
-        Number of Comps: <b>15</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>$872,972</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>$1,007,308</b> &nbsp;|&nbsp;
-        Median Value: <b>$955,842</b>
-      </div>
-    </div>
-    
-    <!-- Comparison Table -->
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
-          <th>COMP 13</th><th>COMP 14</th><th>COMP 15</th>
-          
-        </tr>
-      </thead>
-      <tbody>
-        
-    <tr>
-      <td>Tax ID</td>
-      <td class="subject-cell">03086925</td>
-      <td>03088618</td><td>03088901</td><td>03087964</td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td class="subject-cell">3125 OVERTON PARK DR E</td>
-      <td>3104 PRESTON HOLLOW RD</td><td>4200 HARLANWOOD DR</td><td>3100 SPANISH OAK DR</td>
-    </tr>
-    <tr>
-      <td>Market Value</td>
-      <td class="subject-cell">$909,091</td>
-      <td>$775,348</td><td>$785,000</td><td>$792,000</td>
-    </tr>
-    <tr>
-      <td>Distance (Miles)</td>
-      <td class="subject-cell">-</td>
-      <td>0.44</td><td>0.45</td><td>0.48</td>
-    </tr>
-    <tr>
-      <td>Property Class</td>
-      <td class="subject-cell">A1</td>
-      <td>A1</td><td>A1</td><td>A1</td>
-    </tr>
-    <tr>
-      <td>Condition</td>
-      <td class="subject-cell">Good</td>
-      <td>Good</td><td>Good</td><td>Good</td>
-    </tr>
-    <tr>
-      <td>Year Built (Effective)</td>
-      <td class="subject-cell">1961 (1995)</td>
-      <td>1957 (1961)</td><td>1959 (1961)</td><td>1956 (1957)</td>
-    </tr>
-    <tr>
-      <td>Main SQFT (PSF)</td>
-      <td class="subject-cell">3,277 ($65)</td>
-      <td>3,164 ($39)</td><td>3,186 ($45)</td><td>2,996 ($45)</td>
-    </tr>
-    <tr>
-      <td>Improvement Value</td>
-      <td class="subject-cell">$213,751</td>
-      <td>$123,328</td><td>$141,950</td><td>$135,000</td>
-    </tr>
-    <tr>
-      <td>Feature Value</td>
-      <td class="subject-cell">$124,584</td>
-      <td>$9,866</td><td>$11,356</td><td>$10,800</td>
-    </tr>
-    <tr>
-      <td>Pool Value</td>
-      <td class="subject-cell">$30,000</td>
-      <td>$0</td><td>$0</td><td>$0</td>
-    </tr>
-    <tr>
-      <td>Land Value</td>
-      <td class="subject-cell">$695,340</td>
-      <td>$652,020</td><td>$643,050</td><td>$657,000</td>
-    </tr>
-    <tr class="section-header">
-      <td colspan="5">Adjustments</td>
-    </tr>
-    <tr>
-      <td>Age Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$21,340 (2.75%)</td><td>$24,476 (3.12%)</td><td>$26,853 (3.39%)</td>
-    </tr>
-    <tr>
-      <td>Size Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$2,202 (0.28%)</td><td>$2,027 (0.26%)</td><td>$6,331 (0.80%)</td>
-    </tr>
-    <tr>
-      <td>Land Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$43,320 (5.59%)</td><td>$52,290 (6.66%)</td><td>$38,340 (4.84%)</td>
-    </tr>
-    <tr>
-      <td>Feature Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$114,718 (14.80%)</td><td>$113,228 (14.42%)</td><td>$113,784 (14.37%)</td>
-    </tr>
-    <tr>
-      <td>Pool Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$30,000 (3.87%)</td><td>$30,000 (3.82%)</td><td>$30,000 (3.79%)</td>
-    </tr>
-    <tr>
-      <td>Net Adjustment</td>
-      <td class="subject-cell">-</td>
-      <td>$211,580 (27.29%)</td><td>$222,021 (28.28%)</td><td>$215,308 (27.19%)</td>
-    </tr>
-    <tr class="total-row">
-      <td>Total Adjusted Value</td>
-      <td class="subject-cell">-</td>
-      <td>$986,928</td><td>$1,007,021</td><td>$1,007,308</td>
-    </tr>
-      </tbody>
-    </table>
-    
-    <!-- Footer -->
-    <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
-      <span>Page 5 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
+      <span>© 2026 OverAssessed LLC</span>
     </div>
   </div>
 
+  <!-- ═══════ PAGE 2: COMPS 4-6 ═══════ -->
   <div class="page">
     <div class="header">
       <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
       </div>
     </div>
-    <div class="banner">Notes &amp; Methodology</div>
-    <div class="prop-id-bar">
+
+    <div class="prop-bar">
       <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">Tax ID: 03086925</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong><br>
+        Owner: <strong>PETTITT, ANTHONY</strong>
+      </div>
     </div>
-    
+
+    <div class="value-bar">
+      <div class="indicated-value">
+        <span class="label">Indicated<br>Value</span>
+        <span class="val">$955,842</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Comps</span>
+          <span class="stat-val">15</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Minimum</span>
+          <span class="stat-val">$872,972</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Median</span>
+          <span class="stat-val">$955,842</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Maximum</span>
+          <span class="stat-val">$1,007,308</span>
+        </div>
+      </div>
+    </div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
+          <th>Comp 4</th>
+          <th>Comp 5</th>
+          <th>Comp 6</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tax ID</td>
+          <td class="subject-cell">03086925</td>
+          <td>03086887</td><td>03088421</td><td>03087212</td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td class="subject-cell">3125 Overton Park Dr E</td>
+          <td>4220 Bellaire Dr S</td><td>3212 Preston Hollow Rd</td><td>3117 Chaparral Ln</td>
+        </tr>
+        <tr>
+          <td>Market Value</td>
+          <td class="subject-cell">$909,091</td>
+          <td>$755,525</td><td>$727,304</td><td>$679,585</td>
+        </tr>
+        <tr>
+          <td>Distance</td>
+          <td class="subject-cell">—</td>
+          <td>0.55 mi</td><td>0.33 mi</td><td>0.53 mi</td>
+        </tr>
+        <tr>
+          <td>Class / Condition</td>
+          <td class="subject-cell">A1 / Good</td>
+          <td>A1 / Good</td><td>A1 / Good</td><td>A1 / Good</td>
+        </tr>
+        <tr>
+          <td>Year Built (Eff)</td>
+          <td class="subject-cell">1961 (1995)</td>
+          <td>1960 (1961)</td><td>1958 (1958)</td><td>1956 (1958)</td>
+        </tr>
+        <tr>
+          <td>Main SF (PSF)</td>
+          <td class="subject-cell">3,277 ($65)</td>
+          <td>3,538 ($11)</td><td>3,041 ($16)</td><td>3,000 ($26)</td>
+        </tr>
+        <tr>
+          <td>Improvement Value</td>
+          <td class="subject-cell">$213,751</td>
+          <td>$40,565</td><td>$47,684</td><td>$78,385</td>
+        </tr>
+        <tr>
+          <td>Feature Value</td>
+          <td class="subject-cell">$124,584</td>
+          <td>$3,245</td><td>$3,815</td><td>$6,271</td>
+        </tr>
+        <tr>
+          <td>Pool Value</td>
+          <td class="subject-cell">$30,000</td>
+          <td>$0</td><td>$15,000</td><td>$0</td>
+        </tr>
+        <tr>
+          <td>Land Value</td>
+          <td class="subject-cell">$695,340</td>
+          <td>$714,960</td><td>$679,620</td><td>$601,200</td>
+        </tr>
+        <tr class="adj-header">
+          <td colspan="5">Adjustments</td>
+        </tr>
+        <tr>
+          <td>Age</td>
+          <td class="subject-cell">—</td>
+          <td>$6,642 (0.88%)</td><td>$9,164 (1.26%)</td><td>$15,171 (2.23%)</td>
+        </tr>
+        <tr>
+          <td>Size</td>
+          <td class="subject-cell">—</td>
+          <td>−$1,496 (−0.20%)</td><td>$1,850 (0.25%)</td><td>$3,619 (0.53%)</td>
+        </tr>
+        <tr>
+          <td>Land</td>
+          <td class="subject-cell">—</td>
+          <td>−$19,620 (−2.60%)</td><td>$15,720 (2.16%)</td><td>$94,140 (13.85%)</td>
+        </tr>
+        <tr>
+          <td>Features</td>
+          <td class="subject-cell">—</td>
+          <td>$121,339 (16.06%)</td><td>$120,769 (16.61%)</td><td>$118,313 (17.41%)</td>
+        </tr>
+        <tr>
+          <td>Pool</td>
+          <td class="subject-cell">—</td>
+          <td>$30,000 (3.97%)</td><td>$15,000 (2.06%)</td><td>$30,000 (4.41%)</td>
+        </tr>
+        <tr>
+          <td>Net Adjustment</td>
+          <td class="subject-cell">—</td>
+          <td>$136,865 (18.12%)</td><td>$162,503 (22.34%)</td><td>$261,243 (38.44%)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Adjusted Value</td>
+          <td class="subject-cell">—</td>
+          <td>$892,390</td><td>$889,807</td><td>$940,828</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
+      <span>Page 2 of 8</span>
+      <span>© 2026 OverAssessed LLC</span>
+    </div>
+  </div>
+
+  <!-- ═══════ PAGE 3: COMPS 7-9 (MEDIAN) ═══════ -->
+  <div class="page">
+    <div class="header">
+      <div class="header-logo">
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
+      </div>
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prop-bar">
+      <div class="address">3125 OVERTON PARK DR E</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong><br>
+        Owner: <strong>PETTITT, ANTHONY</strong>
+      </div>
+    </div>
+
+    <div class="value-bar">
+      <div class="indicated-value">
+        <span class="label">Indicated<br>Value</span>
+        <span class="val">$955,842</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Comps</span>
+          <span class="stat-val">15</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Minimum</span>
+          <span class="stat-val">$872,972</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Median</span>
+          <span class="stat-val">$955,842</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Maximum</span>
+          <span class="stat-val">$1,007,308</span>
+        </div>
+      </div>
+    </div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
+          <th>Comp 7</th>
+          <th style="background:#5b4bc4;">Median · Comp 8</th>
+          <th>Comp 9</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tax ID</td>
+          <td class="subject-cell">03086925</td>
+          <td>03089282</td><td>03089614</td><td>03088936</td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td class="subject-cell">3125 Overton Park Dr E</td>
+          <td>4025 Glenwood Dr</td><td>4209 Shady Creek Dr</td><td>4116 Harlanwood Dr</td>
+        </tr>
+        <tr>
+          <td>Market Value</td>
+          <td class="subject-cell">$909,091</td>
+          <td>$649,800</td><td>$711,043</td><td>$768,978</td>
+        </tr>
+        <tr>
+          <td>Distance</td>
+          <td class="subject-cell">—</td>
+          <td>0.34 mi</td><td>0.62 mi</td><td>0.49 mi</td>
+        </tr>
+        <tr>
+          <td>Class / Condition</td>
+          <td class="subject-cell">A1 / Good</td>
+          <td>A1 / Good</td><td>A1 / Good</td><td>A1 / Good</td>
+        </tr>
+        <tr>
+          <td>Year Built (Eff)</td>
+          <td class="subject-cell">1961 (1995)</td>
+          <td>1959 (1960)</td><td>1963 (1966)</td><td>1961 (1965)</td>
+        </tr>
+        <tr>
+          <td>Main SF (PSF)</td>
+          <td class="subject-cell">3,277 ($65)</td>
+          <td>3,496 ($6)</td><td>3,309 ($30)</td><td>3,396 ($35)</td>
+        </tr>
+        <tr>
+          <td>Improvement Value</td>
+          <td class="subject-cell">$213,751</td>
+          <td>$21,780</td><td>$99,973</td><td>$120,528</td>
+        </tr>
+        <tr>
+          <td>Feature Value</td>
+          <td class="subject-cell">$124,584</td>
+          <td>$1,742</td><td>$7,998</td><td>$9,642</td>
+        </tr>
+        <tr>
+          <td>Pool Value</td>
+          <td class="subject-cell">$30,000</td>
+          <td>$0</td><td>$0</td><td>$15,000</td>
+        </tr>
+        <tr>
+          <td>Land Value</td>
+          <td class="subject-cell">$695,340</td>
+          <td>$628,020</td><td>$611,070</td><td>$648,450</td>
+        </tr>
+        <tr class="adj-header">
+          <td colspan="5">Adjustments</td>
+        </tr>
+        <tr>
+          <td>Age</td>
+          <td class="subject-cell">—</td>
+          <td>$3,692 (0.57%)</td><td>$14,426 (2.03%)</td><td>$17,762 (2.31%)</td>
+        </tr>
+        <tr>
+          <td>Size</td>
+          <td class="subject-cell">—</td>
+          <td>−$682 (−0.10%)</td><td>−$483 (−0.07%)</td><td>−$2,112 (−0.27%)</td>
+        </tr>
+        <tr>
+          <td>Land</td>
+          <td class="subject-cell">—</td>
+          <td>$67,320 (10.36%)</td><td>$84,270 (11.85%)</td><td>$46,890 (6.10%)</td>
+        </tr>
+        <tr>
+          <td>Features</td>
+          <td class="subject-cell">—</td>
+          <td>$122,842 (18.90%)</td><td>$116,586 (16.40%)</td><td>$114,942 (14.95%)</td>
+        </tr>
+        <tr>
+          <td>Pool</td>
+          <td class="subject-cell">—</td>
+          <td>$30,000 (4.62%)</td><td>$30,000 (4.22%)</td><td>$15,000 (1.95%)</td>
+        </tr>
+        <tr>
+          <td>Net Adjustment</td>
+          <td class="subject-cell">—</td>
+          <td>$223,172 (34.34%)</td><td>$244,799 (34.43%)</td><td>$192,482 (25.03%)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Adjusted Value</td>
+          <td class="subject-cell">—</td>
+          <td>$872,972</td><td>$955,842</td><td>$961,460</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
+      <span>Page 3 of 8</span>
+      <span>© 2026 OverAssessed LLC</span>
+    </div>
+  </div>
+
+  <!-- ═══════ PAGE 4: COMPS 10-12 ═══════ -->
+  <div class="page">
+    <div class="header">
+      <div class="header-logo">
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
+      </div>
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prop-bar">
+      <div class="address">3125 OVERTON PARK DR E</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong><br>
+        Owner: <strong>PETTITT, ANTHONY</strong>
+      </div>
+    </div>
+
+    <div class="value-bar">
+      <div class="indicated-value">
+        <span class="label">Indicated<br>Value</span>
+        <span class="val">$955,842</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Comps</span>
+          <span class="stat-val">15</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Minimum</span>
+          <span class="stat-val">$872,972</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Median</span>
+          <span class="stat-val">$955,842</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Maximum</span>
+          <span class="stat-val">$1,007,308</span>
+        </div>
+      </div>
+    </div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
+          <th>Comp 10</th>
+          <th>Comp 11</th>
+          <th>Comp 12</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tax ID</td>
+          <td class="subject-cell">03086925</td>
+          <td>03089525</td><td>03088464</td><td>03089398</td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td class="subject-cell">3125 Overton Park Dr E</td>
+          <td>4204 Glenwood Dr</td><td>3224 Preston Hollow Rd</td><td>4221 Blackhaw Ave</td>
+        </tr>
+        <tr>
+          <td>Market Value</td>
+          <td class="subject-cell">$909,091</td>
+          <td>$727,273</td><td>$739,000</td><td>$739,000</td>
+        </tr>
+        <tr>
+          <td>Distance</td>
+          <td class="subject-cell">—</td>
+          <td>0.23 mi</td><td>0.63 mi</td><td>0.16 mi</td>
+        </tr>
+        <tr>
+          <td>Class / Condition</td>
+          <td class="subject-cell">A1 / Good</td>
+          <td>A1 / Good</td><td>A1 / Good</td><td>A1 / Good</td>
+        </tr>
+        <tr>
+          <td>Year Built (Eff)</td>
+          <td class="subject-cell">1961 (1995)</td>
+          <td>1962 (1963)</td><td>1957 (1961)</td><td>1960 (1964)</td>
+        </tr>
+        <tr>
+          <td>Main SF (PSF)</td>
+          <td class="subject-cell">3,277 ($65)</td>
+          <td>3,582 ($30)</td><td>3,081 ($37)</td><td>3,156 ($38)</td>
+        </tr>
+        <tr>
+          <td>Improvement Value</td>
+          <td class="subject-cell">$213,751</td>
+          <td>$108,523</td><td>$114,325</td><td>$118,375</td>
+        </tr>
+        <tr>
+          <td>Feature Value</td>
+          <td class="subject-cell">$124,584</td>
+          <td>$8,682</td><td>$9,146</td><td>$9,470</td>
+        </tr>
+        <tr>
+          <td>Pool Value</td>
+          <td class="subject-cell">$30,000</td>
+          <td>$0</td><td>$0</td><td>$0</td>
+        </tr>
+        <tr>
+          <td>Land Value</td>
+          <td class="subject-cell">$695,340</td>
+          <td>$618,750</td><td>$624,675</td><td>$620,625</td>
+        </tr>
+        <tr class="adj-header">
+          <td colspan="5">Adjustments</td>
+        </tr>
+        <tr>
+          <td>Age</td>
+          <td class="subject-cell">—</td>
+          <td>$16,624 (2.29%)</td><td>$20,053 (2.71%)</td><td>$18,700 (2.53%)</td>
+        </tr>
+        <tr>
+          <td>Size</td>
+          <td class="subject-cell">—</td>
+          <td>−$4,620 (−0.64%)</td><td>$3,636 (0.49%)</td><td>$2,269 (0.31%)</td>
+        </tr>
+        <tr>
+          <td>Land</td>
+          <td class="subject-cell">—</td>
+          <td>$76,590 (10.53%)</td><td>$70,665 (9.56%)</td><td>$74,715 (10.11%)</td>
+        </tr>
+        <tr>
+          <td>Features</td>
+          <td class="subject-cell">—</td>
+          <td>$115,902 (15.94%)</td><td>$115,438 (15.62%)</td><td>$115,114 (15.58%)</td>
+        </tr>
+        <tr>
+          <td>Pool</td>
+          <td class="subject-cell">—</td>
+          <td>$30,000 (4.12%)</td><td>$30,000 (4.06%)</td><td>$30,000 (4.06%)</td>
+        </tr>
+        <tr>
+          <td>Net Adjustment</td>
+          <td class="subject-cell">—</td>
+          <td>$234,496 (32.24%)</td><td>$239,792 (32.45%)</td><td>$240,798 (32.58%)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Adjusted Value</td>
+          <td class="subject-cell">—</td>
+          <td>$961,769</td><td>$978,792</td><td>$979,798</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
+      <span>Page 4 of 8</span>
+      <span>© 2026 OverAssessed LLC</span>
+    </div>
+  </div>
+
+  <!-- ═══════ PAGE 5: COMPS 13-15 ═══════ -->
+  <div class="page">
+    <div class="header">
+      <div class="header-logo">
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
+      </div>
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prop-bar">
+      <div class="address">3125 OVERTON PARK DR E</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong><br>
+        Owner: <strong>PETTITT, ANTHONY</strong>
+      </div>
+    </div>
+
+    <div class="value-bar">
+      <div class="indicated-value">
+        <span class="label">Indicated<br>Value</span>
+        <span class="val">$955,842</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Comps</span>
+          <span class="stat-val">15</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Minimum</span>
+          <span class="stat-val">$872,972</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Median</span>
+          <span class="stat-val">$955,842</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Maximum</span>
+          <span class="stat-val">$1,007,308</span>
+        </div>
+      </div>
+    </div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
+          <th>Comp 13</th>
+          <th>Comp 14</th>
+          <th>Comp 15</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tax ID</td>
+          <td class="subject-cell">03086925</td>
+          <td>03088618</td><td>03088901</td><td>03087964</td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td class="subject-cell">3125 Overton Park Dr E</td>
+          <td>3104 Preston Hollow Rd</td><td>4200 Harlanwood Dr</td><td>3100 Spanish Oak Dr</td>
+        </tr>
+        <tr>
+          <td>Market Value</td>
+          <td class="subject-cell">$909,091</td>
+          <td>$775,348</td><td>$785,000</td><td>$792,000</td>
+        </tr>
+        <tr>
+          <td>Distance</td>
+          <td class="subject-cell">—</td>
+          <td>0.44 mi</td><td>0.45 mi</td><td>0.48 mi</td>
+        </tr>
+        <tr>
+          <td>Class / Condition</td>
+          <td class="subject-cell">A1 / Good</td>
+          <td>A1 / Good</td><td>A1 / Good</td><td>A1 / Good</td>
+        </tr>
+        <tr>
+          <td>Year Built (Eff)</td>
+          <td class="subject-cell">1961 (1995)</td>
+          <td>1957 (1961)</td><td>1959 (1961)</td><td>1956 (1957)</td>
+        </tr>
+        <tr>
+          <td>Main SF (PSF)</td>
+          <td class="subject-cell">3,277 ($65)</td>
+          <td>3,164 ($39)</td><td>3,186 ($45)</td><td>2,996 ($45)</td>
+        </tr>
+        <tr>
+          <td>Improvement Value</td>
+          <td class="subject-cell">$213,751</td>
+          <td>$123,328</td><td>$141,950</td><td>$135,000</td>
+        </tr>
+        <tr>
+          <td>Feature Value</td>
+          <td class="subject-cell">$124,584</td>
+          <td>$9,866</td><td>$11,356</td><td>$10,800</td>
+        </tr>
+        <tr>
+          <td>Pool Value</td>
+          <td class="subject-cell">$30,000</td>
+          <td>$0</td><td>$0</td><td>$0</td>
+        </tr>
+        <tr>
+          <td>Land Value</td>
+          <td class="subject-cell">$695,340</td>
+          <td>$652,020</td><td>$643,050</td><td>$657,000</td>
+        </tr>
+        <tr class="adj-header">
+          <td colspan="5">Adjustments</td>
+        </tr>
+        <tr>
+          <td>Age</td>
+          <td class="subject-cell">—</td>
+          <td>$21,340 (2.75%)</td><td>$24,476 (3.12%)</td><td>$26,853 (3.39%)</td>
+        </tr>
+        <tr>
+          <td>Size</td>
+          <td class="subject-cell">—</td>
+          <td>$2,202 (0.28%)</td><td>$2,027 (0.26%)</td><td>$6,331 (0.80%)</td>
+        </tr>
+        <tr>
+          <td>Land</td>
+          <td class="subject-cell">—</td>
+          <td>$43,320 (5.59%)</td><td>$52,290 (6.66%)</td><td>$38,340 (4.84%)</td>
+        </tr>
+        <tr>
+          <td>Features</td>
+          <td class="subject-cell">—</td>
+          <td>$114,718 (14.80%)</td><td>$113,228 (14.42%)</td><td>$113,784 (14.37%)</td>
+        </tr>
+        <tr>
+          <td>Pool</td>
+          <td class="subject-cell">—</td>
+          <td>$30,000 (3.87%)</td><td>$30,000 (3.82%)</td><td>$30,000 (3.79%)</td>
+        </tr>
+        <tr>
+          <td>Net Adjustment</td>
+          <td class="subject-cell">—</td>
+          <td>$211,580 (27.29%)</td><td>$222,021 (28.28%)</td><td>$215,308 (27.19%)</td>
+        </tr>
+        <tr class="total-row">
+          <td>Adjusted Value</td>
+          <td class="subject-cell">—</td>
+          <td>$986,928</td><td>$1,007,021</td><td>$1,007,308</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
+      <span>Page 5 of 8</span>
+      <span>© 2026 OverAssessed LLC</span>
+    </div>
+  </div>
+
+  <!-- ═══════ PAGE 6: NOTES & METHODOLOGY ═══════ -->
+  <div class="page">
+    <div class="header">
+      <div class="header-logo">
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
+      </div>
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prop-bar">
+      <div class="address">Notes & Methodology</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong> · 3125 Overton Park Dr E
+      </div>
+    </div>
+
     <div class="notes-content">
       <h3>Analysis Summary</h3>
-      <p>This Equal &amp; Uniform analysis demonstrates that the subject property at <b>3125 OVERTON PARK DR E</b> 
-      (Account 03086925) is assessed above comparable properties in the same neighborhood.</p>
-      <p><b>Current Assessed Value:</b> $909,091<br>
-      <b>Indicated Value (Median Adjusted):</b> $955,842<br>
-      <b>Potential Reduction:</b> $-46,751 (-5.1%)<br>
-      <b>Estimated Tax Savings:</b> $-1,122/year</p>
-      
-      <h3>Comp Selection Criteria</h3>
+      <p>This Equal & Uniform analysis demonstrates that the subject property at <strong>3125 Overton Park Dr E</strong>
+      (Account 03086925) is assessed above comparable properties in the Tanglewood Addition subdivision.</p>
+      <p><strong>Current Assessed Value:</strong> $909,091<br>
+      <strong>Indicated Value (Median Adjusted):</strong> $955,842<br>
+      <strong>Potential Reduction:</strong> −$46,751 (−5.1%)<br>
+      <strong>Estimated Annual Tax Savings:</strong> −$1,122/year</p>
+
+      <h3>Comparable Selection Criteria</h3>
       <ul>
-        <li><b>Property Class:</b> A1 (Single Family Residence) — same as subject</li>
-        <li><b>Neighborhood:</b> TANGLEWOOD ADDITION-FORT WORTH — all comps from same subdivision</li>
-        <li><b>Size Range:</b> ±40% of subject's 3,277 sq ft (1,966 – 4,588 sq ft)</li>
-        <li><b>Year Built Range:</b> ±25 years of 1961 (1936 – 1986)</li>
-        <li><b>Condition:</b> Good — consistent with subject</li>
-        <li><b>Data Source:</b> Tarrant County Appraisal District (TAD) 2025 Certified Values</li>
+        <li><strong>Property Class:</strong> A1 (Single Family Residence) — same as subject</li>
+        <li><strong>Neighborhood:</strong> Tanglewood Addition — all comps from same subdivision</li>
+        <li><strong>Size Range:</strong> ±40% of subject's 3,277 SF (1,966–4,588 SF)</li>
+        <li><strong>Year Built:</strong> ±25 years of 1961 (1936–1986)</li>
+        <li><strong>Condition:</strong> Good — consistent across all properties</li>
+        <li><strong>Source:</strong> Tarrant County Appraisal District (TAD) 2025 Certified Values</li>
       </ul>
-      
-      <h3>Adjustment Formulas</h3>
+
+      <h3>Adjustment Methodology</h3>
       <div class="formula">
-        <b>Size Adjustment:</b> (Comp_PSF × (Subject_Area − Comp_Area)) / 2<br>
-        Where PSF = Improvement Value / Living Area
+        <strong>Size:</strong> (Comp_PSF × (Subject_Area − Comp_Area)) / 2<br>
+        <strong>Age:</strong> Adjusted_Value × 0.5 × (Subject_EffYear − Comp_EffYear) / 100<br>
+        <strong>Land:</strong> Subject_Land_Value − Comp_Land_Value<br>
+        <strong>Features:</strong> Subject_Feature_Value − Comp_Feature_Value<br>
+        <strong>Pool:</strong> Subject_Pool_Value − Comp_Pool_Value<br>
+        <strong>Indicated Value:</strong> Median of all 15 adjusted comparable values
       </div>
-      <div class="formula">
-        <b>Age Adjustment:</b> Adjusted_Value × 0.5 × (Subject_EffYear − Comp_EffYear) / 100
-      </div>
-      <div class="formula">
-        <b>Land Adjustment:</b> Subject_Land_Value − Comp_Land_Value
-      </div>
-      <div class="formula">
-        <b>Feature Adjustment:</b> Subject_Feature_Value − Comp_Feature_Value
-      </div>
-      <div class="formula">
-        <b>Pool Adjustment:</b> Subject_Pool_Value − Comp_Pool_Value
-      </div>
-      <div class="formula">
-        <b>Total Adjusted Value:</b> Comp_Market_Value + All_Adjustments<br>
-        <b>Indicated Value:</b> Median of all 15 Total Adjusted Values
-      </div>
-      
+
       <h3>Legal Basis</h3>
-      <p>This analysis is prepared under <b>Texas Tax Code §42.26 (Equal &amp; Uniform)</b>, which provides that 
-      a property owner may protest on the ground that the appraised value of the owner's property exceeds the 
-      median appraised value of a reasonable number of comparable properties appropriately adjusted.</p>
-      
-      <h3>Disclaimer</h3>
-      <p style="font-size: 7.5pt; color: #666;">This analysis is prepared for protest purposes only and does not 
-      constitute an appraisal. All data sourced from Tarrant County Appraisal District public records. 
-      OverAssessed LLC makes no warranty regarding hearing outcomes.</p>
+      <p>Prepared under <strong>Texas Tax Code §42.26 (Equal & Uniform)</strong>. A property owner may protest
+      that the appraised value exceeds the median appraised value of a reasonable number of comparable
+      properties appropriately adjusted.</p>
+
+      <p class="disclaimer">This analysis is prepared for property tax protest purposes only and does not constitute a formal appraisal.
+      All data sourced from Tarrant County Appraisal District public records. OverAssessed LLC makes no warranty
+      regarding hearing outcomes. Adjustment percentages shown are relative to each comparable's market value.</p>
     </div>
-    
+
     <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
       <span>Page 6 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
+      <span>© 2026 OverAssessed LLC</span>
     </div>
   </div>
 
+  <!-- ═══════ PAGE 7: SUBJECT MAP ═══════ -->
   <div class="page">
     <div class="header">
       <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    <div class="banner">Subject Property Map</div>
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E</div>
-      <div class="details">Tax ID: 03086925</div>
-    </div>
-    
-    <div class="map-container">
-      <div class="map-placeholder" style="width:100%;height:100%;position:relative;">
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-          <div style="font-size:48pt;color:#6c5ce7;">📍</div>
-          <div style="font-size:14pt;font-weight:bold;color:#333;margin-top:8px;">3125 OVERTON PARK DR E</div>
-          <div style="font-size:11pt;color:#666;margin-top:4px;">Tanglewood Addition, Fort Worth, TX 76109</div>
-          <div style="font-size:10pt;color:#999;margin-top:12px;">
-            Subject property location — Tanglewood neighborhood<br>
-            All 15 comparable properties are within this subdivision
-          </div>
-          <div style="margin-top:20px;padding:12px 20px;background:#f0eef9;border-radius:8px;display:inline-block;">
-            <div style="font-size:9pt;color:#6c5ce7;font-weight:bold;">🗺️ Interactive map available at overassessed.ai</div>
-          </div>
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
         </div>
       </div>
     </div>
-    
+
+    <div class="prop-bar">
+      <div class="address">Subject Property Location</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong> · 3125 Overton Park Dr E
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;height:calc(100% - 140px);background:#f8f9fa;border-radius:8px;margin-top:12px;">
+      <div style="text-align:center;">
+        <div style="font-size:42pt;color:#6c5ce7;margin-bottom:12px;">📍</div>
+        <div style="font-size:16pt;font-weight:700;color:#2d3436;">3125 OVERTON PARK DR E</div>
+        <div style="font-size:11pt;color:#636e72;margin-top:6px;">Tanglewood Addition · Fort Worth, TX 76109</div>
+        <div style="font-size:9pt;color:#999;margin-top:16px;">
+          All 15 comparable properties are within this subdivision
+        </div>
+        <div style="margin-top:24px;padding:10px 20px;background:#f5f3ff;border-radius:6px;display:inline-block;">
+          <span style="font-size:8pt;color:#6c5ce7;font-weight:600;">Map available at overassessed.ai</span>
+        </div>
+      </div>
+    </div>
+
     <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
       <span>Page 7 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
+      <span>© 2026 OverAssessed LLC</span>
     </div>
   </div>
 
+  <!-- ═══════ PAGE 8: ALL COMPS SUMMARY ═══════ -->
   <div class="page">
     <div class="header">
       <div class="header-logo">
-        <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <div class="icon">OA</div>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
-      <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
-        <div class="prep-name">Tyler Worthey</div>
-      </div>
-      <div class="header-right">
-        tyler@overassessed.ai<br>
-        (888) 282-9165
-      </div>
-    </div>
-    <div class="banner">Comparable Properties Map</div>
-    <div class="prop-id-bar">
-      <div class="address">3125 OVERTON PARK DR E — 15 Comparable Properties</div>
-      <div class="details">Tax ID: 03086925</div>
-    </div>
-    
-    <div class="map-container">
-      <div style="width:100%;padding:20px;">
-        <table style="width:100%;border-collapse:collapse;font-size:8.5pt;">
-          <thead>
-            <tr style="background:#555;color:#fff;">
-              <th style="padding:5px 8px;text-align:left;border:1px solid #444;">#</th>
-              <th style="padding:5px 8px;text-align:left;border:1px solid #444;">Account</th>
-              <th style="padding:5px 8px;text-align:left;border:1px solid #444;">Address</th>
-              <th style="padding:5px 8px;text-align:right;border:1px solid #444;">Market Value</th>
-              <th style="padding:5px 8px;text-align:center;border:1px solid #444;">Sq Ft</th>
-              <th style="padding:5px 8px;text-align:center;border:1px solid #444;">Year Built</th>
-              <th style="padding:5px 8px;text-align:center;border:1px solid #444;">Pool</th>
-              <th style="padding:5px 8px;text-align:right;border:1px solid #444;">Adjusted Value</th>
-              <th style="padding:5px 8px;text-align:center;border:1px solid #444;">Dist (mi)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="background:#f0eef9;font-weight:bold;">
-              <td style="padding:4px 8px;border:1px solid #ddd;color:#6c5ce7;">S</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03086925</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3125 OVERTON PARK DR E</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$909,091</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,277</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1961</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">Yes</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">-</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">-</td>
-            </tr>
-            
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">1</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03087972</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3104 SPANISH OAK DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$658,766</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,265</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1956</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$912,225</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.18</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">2</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088812</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3109 PRESTON HOLLOW RD</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$754,545</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,363</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1958</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">Yes</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$919,778</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.43</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">3</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03089495</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4112 GLENWOOD DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$725,400</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,193</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1960</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$921,515</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.52</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">4</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03086887</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4220 BELLAIRE DR S</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$755,525</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,538</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1960</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$892,390</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.55</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">5</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088421</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3212 PRESTON HOLLOW RD</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$727,304</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,041</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1958</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">Yes</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$889,807</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.33</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">6</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03087212</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3117 CHAPARRAL LN</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$679,585</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,000</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1956</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$940,828</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.53</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">7</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03089282</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4025 GLENWOOD DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$649,800</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,496</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1959</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$872,972</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.34</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">8</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03089614</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4209 SHADY CREEK DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$711,043</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,309</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1963</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$955,842</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.62</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">9</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088936</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4116 HARLANWOOD DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$768,978</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,396</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1961</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">Yes</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$961,460</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.49</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">10</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03089525</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4204 GLENWOOD DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$727,273</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,582</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1962</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$961,769</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.23</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">11</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088464</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3224 PRESTON HOLLOW RD</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$739,000</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,081</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1957</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$978,792</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.63</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">12</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03089398</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4221 BLACKHAW AVE</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$739,000</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,156</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1960</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$979,798</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.16</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">13</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088618</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3104 PRESTON HOLLOW RD</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$775,348</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,164</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1957</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$986,928</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.44</td>
-            </tr>
-            <tr style="background:#fafafa;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">14</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03088901</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">4200 HARLANWOOD DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$785,000</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">3,186</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1959</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$1,007,021</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.45</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">15</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">03087964</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;">3100 SPANISH OAK DR</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">$792,000</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">2,996</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">1956</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">No</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">$1,007,308</td>
-              <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">0.48</td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="margin-top:12px;text-align:center;font-size:8pt;color:#888;">
-          All comparable properties are within the Tanglewood Addition subdivision, Fort Worth, TX 76109.<br>
-          Properties selected from Tarrant County Appraisal District 2025 certified values.
+      <div class="header-meta">
+        <div class="meta-block">
+          <div>Prepared by <strong>Tyler Worthey</strong></div>
+          <div>OverAssessed LLC</div>
+        </div>
+        <div class="meta-block">
+          <div>tyler@overassessed.ai</div>
+          <div>(888) 282-9165</div>
         </div>
       </div>
     </div>
-    
+
+    <div class="prop-bar">
+      <div class="address">All Comparable Properties</div>
+      <div class="details">
+        Tax ID: <strong>03086925</strong> · 15 Comps · Indicated Value: <strong style="color:#6c5ce7;">$955,842</strong>
+      </div>
+    </div>
+
+    <div style="padding:8px 0;">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Account</th>
+            <th>Address</th>
+            <th>Market Value</th>
+            <th>SF</th>
+            <th>Year</th>
+            <th>Pool</th>
+            <th>Adjusted Value</th>
+            <th>Dist</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="subject-row">
+            <td class="comp-num">S</td>
+            <td>03086925</td>
+            <td>3125 Overton Park Dr E</td>
+            <td>$909,091</td>
+            <td>3,277</td>
+            <td>1961</td>
+            <td>Yes</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td class="comp-num">1</td><td>03087972</td><td>3104 Spanish Oak Dr</td>
+            <td>$658,766</td><td>3,265</td><td>1956</td><td>No</td><td class="adj-val">$912,225</td><td>0.18</td>
+          </tr>
+          <tr>
+            <td class="comp-num">2</td><td>03088812</td><td>3109 Preston Hollow Rd</td>
+            <td>$754,545</td><td>3,363</td><td>1958</td><td>Yes</td><td class="adj-val">$919,778</td><td>0.43</td>
+          </tr>
+          <tr>
+            <td class="comp-num">3</td><td>03089495</td><td>4112 Glenwood Dr</td>
+            <td>$725,400</td><td>3,193</td><td>1960</td><td>No</td><td class="adj-val">$921,515</td><td>0.52</td>
+          </tr>
+          <tr>
+            <td class="comp-num">4</td><td>03086887</td><td>4220 Bellaire Dr S</td>
+            <td>$755,525</td><td>3,538</td><td>1960</td><td>No</td><td class="adj-val">$892,390</td><td>0.55</td>
+          </tr>
+          <tr>
+            <td class="comp-num">5</td><td>03088421</td><td>3212 Preston Hollow Rd</td>
+            <td>$727,304</td><td>3,041</td><td>1958</td><td>Yes</td><td class="adj-val">$889,807</td><td>0.33</td>
+          </tr>
+          <tr>
+            <td class="comp-num">6</td><td>03087212</td><td>3117 Chaparral Ln</td>
+            <td>$679,585</td><td>3,000</td><td>1956</td><td>No</td><td class="adj-val">$940,828</td><td>0.53</td>
+          </tr>
+          <tr>
+            <td class="comp-num">7</td><td>03089282</td><td>4025 Glenwood Dr</td>
+            <td>$649,800</td><td>3,496</td><td>1959</td><td>No</td><td class="adj-val">$872,972</td><td>0.34</td>
+          </tr>
+          <tr style="background:#f5f3ff !important;">
+            <td class="comp-num" style="font-size:9pt;">✦ 8</td><td>03089614</td><td><strong>4209 Shady Creek Dr</strong></td>
+            <td>$711,043</td><td>3,309</td><td>1963</td><td>No</td><td class="adj-val" style="color:#6c5ce7;">$955,842</td><td>0.62</td>
+          </tr>
+          <tr>
+            <td class="comp-num">9</td><td>03088936</td><td>4116 Harlanwood Dr</td>
+            <td>$768,978</td><td>3,396</td><td>1961</td><td>Yes</td><td class="adj-val">$961,460</td><td>0.49</td>
+          </tr>
+          <tr>
+            <td class="comp-num">10</td><td>03089525</td><td>4204 Glenwood Dr</td>
+            <td>$727,273</td><td>3,582</td><td>1962</td><td>No</td><td class="adj-val">$961,769</td><td>0.23</td>
+          </tr>
+          <tr>
+            <td class="comp-num">11</td><td>03088464</td><td>3224 Preston Hollow Rd</td>
+            <td>$739,000</td><td>3,081</td><td>1957</td><td>No</td><td class="adj-val">$978,792</td><td>0.63</td>
+          </tr>
+          <tr>
+            <td class="comp-num">12</td><td>03089398</td><td>4221 Blackhaw Ave</td>
+            <td>$739,000</td><td>3,156</td><td>1960</td><td>No</td><td class="adj-val">$979,798</td><td>0.16</td>
+          </tr>
+          <tr>
+            <td class="comp-num">13</td><td>03088618</td><td>3104 Preston Hollow Rd</td>
+            <td>$775,348</td><td>3,164</td><td>1957</td><td>No</td><td class="adj-val">$986,928</td><td>0.44</td>
+          </tr>
+          <tr>
+            <td class="comp-num">14</td><td>03088901</td><td>4200 Harlanwood Dr</td>
+            <td>$785,000</td><td>3,186</td><td>1959</td><td>No</td><td class="adj-val">$1,007,021</td><td>0.45</td>
+          </tr>
+          <tr>
+            <td class="comp-num">15</td><td>03087964</td><td>3100 Spanish Oak Dr</td>
+            <td>$792,000</td><td>2,996</td><td>1956</td><td>No</td><td class="adj-val">$1,007,308</td><td>0.48</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align:center;font-size:7pt;color:#b2bec3;margin-top:8px;">
+        ✦ Median comp · All properties within Tanglewood Addition, Fort Worth TX 76109<br>
+        Source: Tarrant County Appraisal District 2025 certified values
+      </div>
+    </div>
+
     <div class="footer">
-      <span>Account: 03086925</span>
-      <span>03/19/2026</span>
+      <span>Confidential — Prepared for PETTITT, ANTHONY</span>
+      <span>Account 03086925 · Equal & Uniform Analysis</span>
       <span>Page 8 of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
+      <span>© 2026 OverAssessed LLC</span>
     </div>
   </div>
+
 </body>
 </html>

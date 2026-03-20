@@ -466,6 +466,17 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                     <div class="info-row" style="margin-top: 1rem;"><label>Signed By</label><div class="value" id="signedName">—</div></div>
                     <div class="info-row"><label>Signed On</label><div class="value" id="signedDate">—</div></div>
                 </div>
+
+                <!-- Fee Agreement Status -->
+                <div id="feeAgreementStatus" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,0,0,0.06);">
+                    <h4 style="margin-bottom: 0.75rem;">💰 Contingency Fee Agreement</h4>
+                    <div id="feeSignedStatus" style="display: none;">
+                        <div class="signed-badge" style="background: #c6f6d5;">✓ Fee Agreement Signed</div>
+                        <div class="info-row" style="margin-top: 0.75rem;"><label>Signed By</label><div class="value" id="feeSignedName">—</div></div>
+                        <div class="info-row"><label>Signed On</label><div class="value" id="feeSignedDate">—</div></div>
+                        <div class="info-row"><label>Fee Rate</label><div class="value" id="feeSignedRate">—</div></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -641,6 +652,16 @@ function renderCase() {
         document.getElementById('signedStatus').style.display = 'block';
         document.getElementById('signedName').textContent = s.signature.fullName;
         document.getElementById('signedDate').textContent = new Date(s.signature.signedAt).toLocaleDateString();
+
+        // Fee Agreement
+        if (s.feeAgreementSignature || s.fee_agreement_signed) {
+            document.getElementById('feeAgreementStatus').style.display = 'block';
+            document.getElementById('feeSignedStatus').style.display = 'block';
+            const feeSig = s.feeAgreementSignature || {};
+            document.getElementById('feeSignedName').textContent = feeSig.fullName || s.ownerName || '—';
+            document.getElementById('feeSignedDate').textContent = feeSig.signedAt ? new Date(feeSig.signedAt).toLocaleDateString() : '—';
+            document.getElementById('feeSignedRate').textContent = feeSig.applicableRate || '—';
+        }
     } else {
         document.getElementById('signBtn').href = `/sign/${s.caseId}`;
     }

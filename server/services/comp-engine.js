@@ -405,7 +405,13 @@ async function findComparables(subject, caseData) {
     const euLegacyReduction = euAnalysisLegacy && euAnalysisLegacy.result ? euAnalysisLegacy.result.potentialReduction || 0 : 0;
     const bestEUReduction = Math.max(euReduction, euLegacyReduction);
 
-    if (bestEUReduction > mvReduction && bestEUReduction > 0) {
+    // Guard: E&U requires valid subject sqft to produce reliable $/sqft comparisons
+    const subjectHasSqft = subject.sqft && subject.sqft > 0;
+    if (!subjectHasSqft && bestEUReduction > mvReduction) {
+        console.log(`[CompEngine] E&U skipped — subject sqft missing (would have been $${bestEUReduction.toLocaleString()} reduction vs market $${mvReduction.toLocaleString()}). Using market value.`);
+    }
+
+    if (bestEUReduction > mvReduction && bestEUReduction > 0 && subjectHasSqft) {
         primaryStrategy = 'equal_and_uniform';
         if (euReduction >= euLegacyReduction && euResult) {
             recommendedValue = euResult.recommendedValue;

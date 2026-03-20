@@ -275,9 +275,9 @@ function buildHTML(subject, comps, stats) {
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: -apple-system, 'Helvetica Neue', 'SF Pro Display', Helvetica, Arial, sans-serif;
     font-size: 9pt;
-    color: #222;
+    color: #2d3436;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -285,7 +285,7 @@ function buildHTML(subject, comps, stats) {
   .page {
     width: 10in;
     height: 7.5in;
-    padding: 0.15in 0.25in;
+    padding: 0.2in 0.3in 0.35in 0.3in;
     page-break-after: always;
     position: relative;
     overflow: hidden;
@@ -297,96 +297,101 @@ function buildHTML(subject, comps, stats) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px;
-    margin-bottom: 2px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    border-bottom: 0.5px solid #e0e0e0;
   }
   .header-logo {
-    font-size: 18pt;
-    font-weight: bold;
-    color: #333;
+    font-size: 16pt;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
   .header-logo .oa-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: #6c5ce7;
-    border-radius: 6px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 14pt;
-    font-weight: bold;
+    font-size: 11pt;
+    font-weight: 800;
   }
   .header-logo .brand-over { color: #6c5ce7; }
-  .header-logo .brand-assessed { color: #333; }
+  .header-logo .brand-assessed { color: #2d3436; }
   .header-center {
-    text-align: left;
-    font-size: 8pt;
-    line-height: 1.4;
+    text-align: right;
+    font-size: 7.5pt;
+    line-height: 1.5;
+    color: #636e72;
   }
-  .header-center .prep-label { font-style: italic; color: #666; }
-  .header-center .prep-name { font-weight: bold; }
+  .header-center .prep-label { color: #636e72; }
+  .header-center .prep-name { font-weight: 600; color: #2d3436; }
   .header-right {
     text-align: right;
-    font-size: 8pt;
-    line-height: 1.4;
-    color: #444;
-  }
-  
-  /* Dark banner */
-  .banner {
-    background: #333;
-    color: #fff;
-    text-align: center;
-    font-size: 14pt;
-    font-weight: bold;
-    padding: 6px 0;
-    margin-bottom: 2px;
-    letter-spacing: 0.5px;
+    font-size: 7.5pt;
+    line-height: 1.5;
+    color: #636e72;
   }
   
   /* Property ID bar */
+  .banner {
+    display: none; /* Replaced by prop-bar design */
+  }
   .prop-id-bar {
-    background: #e8e8e8;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 10px;
-    margin-bottom: 2px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    background: #edf0f2;
+    border-radius: 6px;
+    border-left: 3px solid #6c5ce7;
   }
-  .prop-id-bar .address { font-size: 13pt; font-weight: bold; }
-  .prop-id-bar .details { text-align: right; font-size: 8.5pt; line-height: 1.4; }
+  .prop-id-bar .address { font-size: 14pt; font-weight: 700; color: #2d3436; letter-spacing: -0.3px; }
+  .prop-id-bar .details { text-align: right; font-size: 8pt; line-height: 1.5; color: #636e72; }
+  .prop-id-bar .details strong, .prop-id-bar .details b { color: #2d3436; }
   
   /* Indicated value + stats */
   .value-bar {
     display: flex;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
+    margin-bottom: 10px;
     align-items: stretch;
   }
   .indicated-value {
-    border: 1.5px solid #333;
-    padding: 5px 14px;
-    font-size: 13pt;
-    font-weight: bold;
-    background: #f5f5f5;
-    white-space: nowrap;
+    padding: 8px 18px;
+    background: #f5f3ff;
+    border: 1.5px solid #6c5ce7;
+    border-radius: 6px;
     display: flex;
     align-items: center;
+    gap: 10px;
+    white-space: nowrap;
   }
-  .indicated-value .label { color: #666; margin-right: 8px; font-size: 10pt; }
-  .indicated-value .val { color: #6c5ce7; }
+  .indicated-value .label {
+    font-size: 8pt;
+    font-weight: 600;
+    color: #6c5ce7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .indicated-value .val { font-size: 16pt; font-weight: 700; color: #6c5ce7; }
   .stats-box {
-    border: 1px solid #999;
-    padding: 4px 10px;
-    font-size: 7.5pt;
-    line-height: 1.5;
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 6px 14px;
+    background: #edf0f2;
+    border-radius: 6px;
+    font-size: 7.5pt;
+    color: #636e72;
   }
-  .stats-box b { font-weight: 600; }
+  .stats-box b { font-weight: 700; color: #2d3436; }
   
   /* Main comparison table */
   .comp-table {
@@ -396,25 +401,27 @@ function buildHTML(subject, comps, stats) {
     table-layout: fixed;
   }
   .comp-table th {
-    background: #555;
+    background: #2d3436;
     color: #fff;
-    font-weight: bold;
-    font-size: 9pt;
-    padding: 5px 4px;
+    font-weight: 600;
+    font-size: 7.5pt;
+    padding: 6px 6px;
     text-align: center;
-    border: 1px solid #444;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: none;
   }
   .comp-table th:first-child {
-    background: #777;
     text-align: left;
-    padding-left: 8px;
-    width: 16%;
+    padding-left: 10px;
+    width: 15%;
+    background: #2d3436;
   }
-  .comp-table th.subject-col { background: #444; }
+  .comp-table th.subject-col { background: #3d3d5c; }
   .comp-table td {
-    padding: 3px 6px;
+    padding: 4px 6px;
     text-align: center;
-    border: 1px solid #ddd;
+    border-bottom: 0.5px solid #eee;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -422,73 +429,81 @@ function buildHTML(subject, comps, stats) {
   .comp-table td:first-child {
     text-align: left;
     font-weight: 500;
-    background: #f0f0f0;
-    padding-left: 8px;
-    color: #333;
-  }
-  .comp-table tr:nth-child(even) td { background: #fafafa; }
-  .comp-table tr:nth-child(even) td:first-child { background: #eaeaea; }
-  .comp-table tr.section-header td {
-    background: #e0dff5 !important;
-    font-weight: bold;
+    padding-left: 10px;
+    color: #636e72;
     font-size: 7.5pt;
+  }
+  .comp-table tr:nth-child(even) td { background: #f0f1f2; }
+  .comp-table tr:nth-child(even) td:first-child { background: #f0f1f2; }
+  .comp-table tr.section-header td {
+    background: #edf0f2 !important;
+    font-weight: 700;
+    font-size: 6.5pt;
     color: #6c5ce7;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
+    letter-spacing: 0.8px;
+    padding: 4px 10px;
+    border-top: 0.5px solid #e0e0e0;
+    border-bottom: 0.5px solid #e0e0e0;
   }
   .comp-table tr.total-row td {
-    font-weight: bold;
+    font-weight: 700;
     font-size: 10pt;
-    background: #f0eef9 !important;
+    background: #f5f3ff !important;
     border-top: 2px solid #6c5ce7;
-    padding: 5px 6px;
-    color: #333;
+    padding: 6px 6px;
+    color: #2d3436;
   }
   .comp-table tr.total-row td:first-child {
-    background: #e0dff5 !important;
+    background: #f5f3ff !important;
     color: #6c5ce7;
+    font-size: 8pt;
+    font-weight: 700;
   }
-  .comp-table .subject-cell { background: #f9f8ff !important; color: #444; }
+  .comp-table .subject-cell { background: #faf9ff !important; color: #2d3436; font-weight: 500; }
+  .comp-table tr:nth-child(even) .subject-cell { background: #f5f3ff !important; }
   
   /* Footer */
   .footer {
     position: absolute;
-    bottom: 6px;
-    left: 0.25in;
-    right: 0.25in;
+    bottom: 8px;
+    left: 0.3in;
+    right: 0.3in;
     display: flex;
     justify-content: space-between;
-    font-size: 7pt;
-    color: #888;
-    border-top: 1px solid #ddd;
-    padding-top: 3px;
+    align-items: center;
+    font-size: 6.5pt;
+    color: #b2bec3;
+    border-top: 0.5px solid #e0e0e0;
+    padding-top: 4px;
   }
   
   /* Notes page */
   .notes-content {
-    padding: 10px 20px;
+    padding: 12px 20px;
     font-size: 9pt;
-    line-height: 1.6;
+    line-height: 1.7;
+    color: #636e72;
   }
   .notes-content h3 {
-    color: #6c5ce7;
     font-size: 11pt;
-    margin: 14px 0 6px 0;
-    border-bottom: 1px solid #e0dff5;
-    padding-bottom: 3px;
+    font-weight: 600;
+    color: #2d3436;
+    margin: 18px 0 8px 0;
   }
-  .notes-content p { margin-bottom: 6px; }
-  .notes-content ul { margin-left: 20px; margin-bottom: 8px; }
-  .notes-content li { margin-bottom: 3px; }
+  .notes-content h3:first-child { margin-top: 0; }
+  .notes-content p { margin-bottom: 8px; }
+  .notes-content ul { margin-left: 20px; margin-bottom: 10px; }
+  .notes-content li { margin-bottom: 4px; }
   .notes-content .formula {
-    background: #f5f4ff;
-    border: 1px solid #e0dff5;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 8.5pt;
-    margin: 6px 0;
+    background: #edf0f2;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 8pt;
+    margin: 8px 0;
+    line-height: 1.8;
+    color: #2d3436;
   }
   
   /* Map page */
@@ -498,14 +513,13 @@ function buildHTML(subject, comps, stats) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-top: 8px;
+    background: #edf0f2;
+    border-radius: 8px;
+    margin-top: 12px;
   }
   .map-placeholder {
     text-align: center;
-    color: #999;
+    color: #666;
     font-size: 12pt;
   }
   .map-placeholder img {
@@ -672,12 +686,11 @@ function buildCompPage(subject, pageComps, compHeaders, stats, pageNum, subjectP
     <div class="header">
       <div class="header-logo">
         <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
       <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
         <div class="prep-name">Tyler Worthey</div>
+        <div class="prep-label">OverAssessed LLC</div>
       </div>
       <div class="header-right">
         tyler@overassessed.ai<br>
@@ -700,14 +713,14 @@ function buildCompPage(subject, pageComps, compHeaders, stats, pageNum, subjectP
     <!-- Indicated Value + Stats -->
     <div class="value-bar">
       <div class="indicated-value">
-        <span class="label">Indicated Value</span>
+        <span class="label">Indicated<br>Value</span>
         <span class="val">${fmtDollar(stats.medianAdj)}</span>
       </div>
       <div class="stats-box">
-        Number of Comps: <b>${NUM_COMPS}</b> &nbsp;|&nbsp;
-        Minimum Adjusted Value: <b>${fmtDollar(stats.minAdj)}</b> &nbsp;|&nbsp;
-        Maximum Adjusted Value: <b>${fmtDollar(stats.maxAdj)}</b> &nbsp;|&nbsp;
-        Median Value: <b>${fmtDollar(stats.medianAdj)}</b>
+        <span>Comps: <b>${NUM_COMPS}</b></span> &nbsp;·&nbsp;
+        <span>Min: <b>${fmtDollar(stats.minAdj)}</b></span> &nbsp;·&nbsp;
+        <span>Median: <b>${fmtDollar(stats.medianAdj)}</b></span> &nbsp;·&nbsp;
+        <span>Max: <b>${fmtDollar(stats.maxAdj)}</b></span>
       </div>
     </div>
     
@@ -715,8 +728,8 @@ function buildCompPage(subject, pageComps, compHeaders, stats, pageNum, subjectP
     <table class="comp-table">
       <thead>
         <tr>
-          <th>(CAD 2025)</th>
-          <th class="subject-col">SUBJECT</th>
+          <th>CAD 2025</th>
+          <th class="subject-col">Subject</th>
           ${compHeaders.map(h => `<th>${h}</th>`).join('')}
           ${'<th></th>'.repeat(emptyColCount)}
         </tr>
@@ -728,10 +741,10 @@ function buildCompPage(subject, pageComps, compHeaders, stats, pageNum, subjectP
     
     <!-- Footer -->
     <div class="footer">
-      <span>Account: ${subject.accountNumber}</span>
-      <span>${today}</span>
+      <span>Confidential — Prepared for ${ownerName}</span>
+      <span>Account ${subject.accountNumber} · Equal &amp; Uniform Analysis</span>
       <span>Page ${pageNum} of 8</span>
-      <span>Confidential &copy; 2026 OverAssessed LLC</span>
+      <span>&copy; 2026 OverAssessed LLC</span>
     </div>
   </div>`;
 }
@@ -746,22 +759,20 @@ function buildNotesPage(subject, comps, stats, today) {
     <div class="header">
       <div class="header-logo">
         <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
       <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
-        <div class="prep-name">OverAssessed LLC</div>
         <div class="prep-name">Tyler Worthey</div>
+        <div class="prep-label">OverAssessed LLC</div>
       </div>
       <div class="header-right">
         tyler@overassessed.ai<br>
         (888) 282-9165
       </div>
     </div>
-    <div class="banner">Notes &amp; Methodology</div>
     <div class="prop-id-bar">
-      <div class="address">${subject.address}</div>
-      <div class="details">Tax ID: ${subject.accountNumber}</div>
+      <div class="address">Notes &amp; Methodology</div>
+      <div class="details">Tax ID: <b>${subject.accountNumber}</b> · ${subject.address}</div>
     </div>
     
     <div class="notes-content">
@@ -838,10 +849,10 @@ function buildSubjectMapPage(subject, today) {
     <div class="header">
       <div class="header-logo">
         <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
       <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
+        <div class="prep-label">
         <div class="prep-name">OverAssessed LLC</div>
         <div class="prep-name">Tyler Worthey</div>
       </div>
@@ -862,7 +873,7 @@ function buildSubjectMapPage(subject, today) {
           <div style="font-size:48pt;color:#6c5ce7;">📍</div>
           <div style="font-size:14pt;font-weight:bold;color:#333;margin-top:8px;">${subject.address}</div>
           <div style="font-size:11pt;color:#666;margin-top:4px;">Tanglewood Addition, Fort Worth, TX 76109</div>
-          <div style="font-size:10pt;color:#999;margin-top:12px;">
+          <div style="font-size:10pt;color:#666;margin-top:12px;">
             Subject property location — Tanglewood neighborhood<br>
             All 15 comparable properties are within this subdivision
           </div>
@@ -888,10 +899,10 @@ function buildCompsMapPage(subject, comps, today) {
     <div class="header">
       <div class="header-logo">
         <div class="oa-icon">OA</div>
-        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span> LLC</span>
+        <span><span class="brand-over">Over</span><span class="brand-assessed">Assessed</span></span>
       </div>
       <div class="header-center">
-        <div class="prep-label">Prepared by:</div>
+        <div class="prep-label">
         <div class="prep-name">OverAssessed LLC</div>
         <div class="prep-name">Tyler Worthey</div>
       </div>
@@ -935,7 +946,7 @@ function buildCompsMapPage(subject, comps, today) {
               <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;">-</td>
             </tr>
             ${comps.map((c, i) => `
-            <tr style="background:${i % 2 === 0 ? '#fff' : '#fafafa'};">
+            <tr style="background:${i % 2 === 0 ? '#fff' : '#f0f1f2'};">
               <td style="padding:4px 8px;border:1px solid #ddd;font-weight:bold;color:#6c5ce7;">${c.compIndex}</td>
               <td style="padding:4px 8px;border:1px solid #ddd;">${c.accountNumber}</td>
               <td style="padding:4px 8px;border:1px solid #ddd;">${c.address}</td>

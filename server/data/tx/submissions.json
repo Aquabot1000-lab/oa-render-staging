@@ -41,7 +41,7 @@
     "caseId": "OA-0018",
     "propertyAddress": "23150 Cutcliffe, San Antonio, TX 78255",
     "propertyType": "Single Family Home",
-    "ownerName": "Gabe Garcia",
+    "ownerName": "Garcia Gabriel M & Garcia Patricia",
     "phone": "210-410-0840",
     "email": "gabe@elchaparral.com",
     "state": "TX",
@@ -50,14 +50,28 @@
     "source": "referral",
     "createdAt": "2026-03-19T17:42:53.284Z",
     "updatedAt": "2026-03-19T17:42:53.288Z",
-    "notes": []
+    "notes": [
+      {
+        "date": "2026-03-20",
+        "text": "CORRECTED: Was $300K, actual BCAD value is $1,905,000. 4833sf, built 2021, Cantera Hills. Has pool+spa. Agent 60585. HS exemption. Previously protested 2025 (VALUE AGREEMENT). Estimated taxes $31,570/yr."
+      }
+    ],
+    "assessedValue": 1905000,
+    "improvementValue": 1619220,
+    "landValue": 285780,
+    "propertyId": "1338753",
+    "geoId": "04696-103-0160",
+    "neighborhood": "CANTERA HILLS",
+    "subdivision": "CANTERA HILLS UT-2",
+    "sqft": 4833,
+    "yearBuilt": 2021
   },
   {
     "id": "c440c929-f06c-4df5-a438-6a56c5111ebf",
     "caseId": "OA-0019",
     "propertyAddress": "15103 Bandera Rd, Helotes, TX 78023",
     "propertyType": "Commercial",
-    "ownerName": "Gabe Garcia",
+    "ownerName": "Jessica Investments LP (El Chaparral Mexican Restaurant)",
     "phone": "210-410-0840",
     "email": "gabe@elchaparral.com",
     "state": "TX",
@@ -66,6 +80,31 @@
     "source": "referral",
     "createdAt": "2026-03-19T17:42:53.288Z",
     "updatedAt": "2026-03-19T17:42:53.288Z",
-    "notes": []
+    "notes": [
+      {
+        "date": "2026-03-20",
+        "text": "CORRECTED: Was $300K, actual BCAD value is $1,700,000. 2.15 acres commercial mixed use. Agent 40773. Also has 2nd parcel (242247) at $425K and personal property (860429) at $95,910. Previously protested 2025 (BULK AFF). Estimated taxes ~$40K/yr total."
+      }
+    ],
+    "assessedValue": 1700000,
+    "improvementValue": 871330,
+    "landValue": 828670,
+    "propertyId": "242274",
+    "geoId": "04524-300-0780",
+    "sqft": 0,
+    "additionalParcels": [
+      {
+        "propertyId": "242247",
+        "geoId": "04524-300-0490",
+        "assessed": 425000,
+        "description": "Lot 49"
+      },
+      {
+        "propertyId": "860429",
+        "type": "Personal",
+        "assessed": 95910,
+        "description": "El Chaparral fixtures/equipment"
+      }
+    ]
   }
 ]

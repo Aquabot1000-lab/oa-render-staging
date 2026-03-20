@@ -193,6 +193,9 @@ function submissionToRow(sub) {
         needs_manual_review: sub.needsManualReview,
         review_reason: sub.reviewReason,
         signature: sub.signature,
+        fee_agreement_signature: sub.feeAgreementSignature || null,
+        fee_agreement_signed: sub.fee_agreement_signed || false,
+        fee_agreement_signed_at: sub.fee_agreement_signed_at || null,
         pin: sub.pin,
         drip_state: sub.dripState,
         referral_code: sub.referralCode,
@@ -248,6 +251,9 @@ function rowToSubmission(row) {
         needsManualReview: row.needs_manual_review,
         reviewReason: row.review_reason,
         signature: row.signature,
+        feeAgreementSignature: row.fee_agreement_signature || row.feeAgreementSignature || null,
+        fee_agreement_signed: row.fee_agreement_signed || false,
+        fee_agreement_signed_at: row.fee_agreement_signed_at || null,
         pin: row.pin,
         dripState: row.drip_state,
         referralCode: row.referral_code,
@@ -816,6 +822,160 @@ app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
     }
 });
 
+// ==================== CONFIRM SAVINGS & AUTO-BILL ====================
+// POST /api/admin/confirm-savings — confirm savings, auto-charge or send invoice
+app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
+    try {
+        const { submissionId, verifiedSavings, feeRate, forceInvoice } = req.body;
+        if (!submissionId || !verifiedSavings || !feeRate) {
+            return res.status(400).json({ error: 'submissionId, verifiedSavings, and feeRate required' });
+        }
+
+        const fee = Math.round(verifiedSavings * feeRate * 100) / 100;
+
+        // Get the submission
+        const allSubs = await readAllSubmissions();
+        const sub = allSubs.find(s => s.id === submissionId);
+        if (!sub) return res.status(404).json({ error: 'Submission not found' });
+
+        const stripeLib = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const { chargeSavedCard } = require('./routes/stripe');
+
+        let result = null;
+        let method = 'invoice';
+
+        // Try auto-charge if client has card on file and not forcing invoice
+        if (!forceInvoice && sub.stripeCustomerId) {
+            // Find client_id from Supabase clients table (needed for chargeSavedCard)
+            let clientId = null;
+            if (isSupabaseEnabled()) {
+                const { data: client } = await supabaseAdmin
+                    .from('clients')
+                    .select('id')
+                    .eq('stripe_customer_id', sub.stripeCustomerId)
+                    .single();
+                if (client) clientId = client.id;
+
+                // If no client found by stripe_customer_id, try by email
+                if (!clientId) {
+                    const { data: clientByEmail } = await supabaseAdmin
+                        .from('clients')
+                        .select('id, stripe_customer_id')
+                        .eq('email', sub.email.toLowerCase())
+                        .single();
+                    if (clientByEmail) {
+                        clientId = clientByEmail.id;
+                        // Update stripe_customer_id on client if missing
+                        if (!clientByEmail.stripe_customer_id) {
+                            await supabaseAdmin.from('clients').update({ stripe_customer_id: sub.stripeCustomerId }).eq('id', clientId);
+                        }
+                    }
+                }
+            }
+
+            if (clientId) {
+                result = await chargeSavedCard(clientId, null, fee, `Property Tax Appeal Fee — ${sub.caseId} — ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`);
+                if (result) method = 'auto_charge';
+            }
+        }
+
+        // Fallback to invoice if no card or charge failed
+        if (!result) {
+            // Find or create Stripe customer
+            let stripeCustomerId = sub.stripeCustomerId;
+            if (!stripeCustomerId) {
+                const existingCustomers = await stripeLib.customers.list({ email: sub.email.toLowerCase(), limit: 1 });
+                if (existingCustomers.data.length > 0) {
+                    stripeCustomerId = existingCustomers.data[0].id;
+                } else {
+                    const customer = await stripeLib.customers.create({
+                        name: sub.ownerName,
+                        email: sub.email.toLowerCase(),
+                        phone: sub.phone || undefined,
+                        metadata: { source: 'overassessed.ai', case_id: sub.caseId }
+                    });
+                    stripeCustomerId = customer.id;
+                }
+                // Save stripe customer to submission
+                await updateSubmissionInPlace(submissionId, (subs, idx) => { subs[idx].stripeCustomerId = stripeCustomerId; });
+            }
+
+            // Create and send invoice
+            const invoice = await stripeLib.invoices.create({
+                customer: stripeCustomerId,
+                collection_method: 'send_invoice',
+                days_until_due: 30,
+                metadata: { case_id: sub.caseId, source: 'overassessed.ai' }
+            });
+            await stripeLib.invoiceItems.create({
+                customer: stripeCustomerId,
+                invoice: invoice.id,
+                amount: Math.round(fee * 100),
+                currency: 'usd',
+                description: `Property Tax Appeal Fee — ${sub.caseId} — ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`
+            });
+            const finalized = await stripeLib.invoices.finalizeInvoice(invoice.id);
+            await stripeLib.invoices.sendInvoice(invoice.id);
+
+            // Record payment in Supabase
+            if (isSupabaseEnabled()) {
+                await supabaseAdmin.from('payments').insert({
+                    client_id: null,
+                    appeal_id: null,
+                    stripe_payment_id: invoice.id,
+                    amount: fee,
+                    status: 'invoiced'
+                }).catch(e => console.log('[Billing] Payment record insert failed:', e.message));
+            }
+
+            result = { success: true, invoice_id: invoice.id, invoice_url: finalized.hosted_invoice_url, email: sub.email };
+            method = 'invoice';
+        }
+
+        // Update submission status to Resolved with savings
+        await updateSubmissionInPlace(submissionId, (subs, idx) => {
+            subs[idx].status = 'Resolved';
+            subs[idx].savings = verifiedSavings;
+            subs[idx].updatedAt = new Date().toISOString();
+            if (!subs[idx].notes) subs[idx].notes = [];
+            subs[idx].notes.push({
+                text: `💰 Savings confirmed: $${verifiedSavings.toLocaleString()} | Fee: $${fee.toFixed(2)} (${(feeRate*100).toFixed(0)}%) | Method: ${method === 'auto_charge' ? 'Auto-charged card on file' : 'Invoice sent'}`,
+                author: 'Admin',
+                createdAt: new Date().toISOString()
+            });
+        });
+
+        // Send confirmation notification to client
+        try {
+            const receiptHtml = brandedEmailWrapper('Your Appeal Won!', `$${verifiedSavings.toLocaleString()} in annual savings`, `
+                <h2 style="color:#00b894;">🎉 Your Property Tax Appeal Was Successful!</h2>
+                <p>Great news! We successfully reduced your property taxes.</p>
+                <div style="background:#f8f9ff;padding:20px;border-radius:12px;margin:20px 0;">
+                    <p style="margin:0 0 8px;"><strong>Property:</strong> ${sub.propertyAddress}</p>
+                    <p style="margin:0 0 8px;"><strong>Case:</strong> ${sub.caseId}</p>
+                    <p style="margin:0 0 8px;"><strong>Verified Savings:</strong> <span style="color:#00b894;font-weight:700;">$${verifiedSavings.toLocaleString()}/yr</span></p>
+                    <p style="margin:0 0 8px;"><strong>Our Fee (${(feeRate*100).toFixed(0)}%):</strong> $${fee.toFixed(2)}</p>
+                    <p style="margin:0;"><strong>Payment:</strong> ${method === 'auto_charge' ? 'Charged to your card on file — receipt sent separately by Stripe' : 'Invoice sent to your email — due in 30 days'}</p>
+                </div>
+                <p>Thank you for trusting OverAssessed with your property tax appeal. We'll continue monitoring your property for future increases.</p>
+            `);
+            sendClientEmail(sub.email, `🎉 Your Property Tax Appeal Won — $${verifiedSavings.toLocaleString()} Saved! (${sub.caseId})`, receiptHtml);
+        } catch (notifyErr) {
+            console.log('[Billing] Client notification failed:', notifyErr.message);
+        }
+
+        // Notify Tyler
+        sendNotificationSMS(`💰 ${sub.caseId} — Savings confirmed: $${verifiedSavings.toLocaleString()} | Fee: $${fee.toFixed(2)} | ${method === 'auto_charge' ? 'Auto-charged' : 'Invoice sent'}`);
+
+        console.log(`[Billing] ✅ ${sub.caseId} — $${fee.toFixed(2)} ${method} for $${verifiedSavings.toLocaleString()} savings`);
+        res.json({ success: true, method, fee, email: sub.email, ...result });
+
+    } catch (err) {
+        console.error('[Billing] Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== RENTCAST ANALYSIS ROUTES ====================
 // POST /api/analysis/run — full RentCast + ArcGIS analysis for any address
 app.post('/api/analysis/run', authenticateToken, async (req, res) => {
@@ -1277,6 +1437,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             analysisReport: null,
             signature: null,
             pin: null,
+            stripeCustomerId: stripeCustomerId || null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -1401,7 +1562,8 @@ app.get('/api/sign/:id', async (req, res) => {
             propertyType: sub.propertyType,
             state: sub.state || 'TX',
             county: sub.county || null,
-            signed: !!sub.signature
+            signed: !!sub.signature,
+            feeAgreementSigned: !!sub.feeAgreementSignature
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to load signing data' });
@@ -1504,9 +1666,12 @@ app.post('/api/commercial-intake', async (req, res) => {
 // POST submit signature
 app.post('/api/sign/:id', async (req, res) => {
     try {
-        const { fullName, authorized, email } = req.body;
+        const { fullName, authorized, email, feeAgreementName, feeAgreementAuthorized } = req.body;
         if (!fullName || !authorized) {
             return res.status(400).json({ error: 'Full name and authorization checkbox required' });
+        }
+        if (!feeAgreementName || !feeAgreementAuthorized) {
+            return res.status(400).json({ error: 'Fee agreement signature is required. Please sign both agreements.' });
         }
 
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
@@ -1524,6 +1689,19 @@ app.post('/api/sign/:id', async (req, res) => {
                 documentsSigned: docsSigned
             };
 
+            // Fee Agreement Signature
+            const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
+            submissions[idx].feeAgreementSignature = {
+                fullName: feeAgreementName,
+                authorized: true,
+                signedAt: new Date().toISOString(),
+                ipAddress: req.ip,
+                applicableRate: feeRates[state] || '20%',
+                state: state
+            };
+            submissions[idx].fee_agreement_signed = true;
+            submissions[idx].fee_agreement_signed_at = new Date().toISOString();
+
             if (['New', 'Analysis Complete'].includes(submissions[idx].status)) {
                 submissions[idx].status = 'Form Signed';
             }
@@ -1534,31 +1712,35 @@ app.post('/api/sign/:id', async (req, res) => {
 
         const state = sub.state || 'TX';
         const formName = state === 'GA' ? 'Service Agreement & Letter of Authorization' : 'Form 50-162';
+        const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
+        const feeRate = feeRates[state] || '20%';
 
         // Notify Tyler
         sendNotificationEmail(
-            `${formName} Signed — ${sub.caseId} ${sub.ownerName}`,
+            `${formName} + Fee Agreement Signed — ${sub.caseId} ${sub.ownerName}`,
             `<div style="font-family:Arial;max-width:600px;">
                 <div style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:20px;border-radius:8px 8px 0 0;">
-                    <h3 style="margin:0;">✍️ ${formName} Signed</h3>
+                    <h3 style="margin:0;">✍️ ${formName} + Fee Agreement Signed</h3>
                 </div>
                 <div style="background:#f7fafc;padding:20px;">
                     <p><strong>Case:</strong> ${sub.caseId}</p>
                     <p><strong>State:</strong> ${state}</p>
                     <p><strong>Client:</strong> ${sub.ownerName}</p>
                     <p><strong>Property:</strong> ${sub.propertyAddress}</p>
-                    <p><strong>Signed Name:</strong> ${fullName}</p>
+                    <p><strong>Authorization Signed:</strong> ${fullName}</p>
+                    <p><strong>Fee Agreement Signed:</strong> ${feeAgreementName} (${feeRate} contingency)</p>
                     <p><strong>Signed At:</strong> ${new Date().toLocaleString()}</p>
+                    <p style="margin-top:12px;padding:12px;background:#e8f5e9;border-radius:8px;"><strong>✅ Both agreements signed — ready for auto-charge on savings confirmation</strong></p>
                 </div>
             </div>`
         );
-        sendNotificationSMS(`✍️ ${formName} signed!\nCase: ${sub.caseId}\nClient: ${sub.ownerName}\nState: ${state}`);
+        sendNotificationSMS(`✍️ ${formName} + Fee Agreement signed!\nCase: ${sub.caseId}\nClient: ${sub.ownerName}\nState: ${state}\nFee: ${feeRate} contingency`);
 
         // Send stage notification to client
         const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
         sendStageNotification(sub, 'docs_signed', {}, notifyFns);
 
-        res.json({ success: true, message: 'Form signed successfully' });
+        res.json({ success: true, message: 'Both agreements signed successfully' });
     } catch (error) {
         console.error('Signature error:', error);
         res.status(500).json({ error: 'Failed to submit signature' });

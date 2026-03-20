@@ -526,10 +526,69 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                 <input type="text" class="sig-input" id="signatureName" placeholder="Your Full Legal Name" disabled="">
                 <div class="sig-date">Date: <span id="signDate"></span></div>
             </div>
+        </div>
 
+        <!-- Contingency Fee Agreement -->
+        <div class="card" id="feeAgreementCard" style="margin-top: 24px;">
+            <div class="form-title" style="font-size: 1.5rem;">💰 Contingency Fee Agreement</div>
+            <div class="form-subtitle">Required — No Win, No Fee</div>
+
+            <div class="doc-section" style="border: none; padding: 0;">
+                <div class="form-text" style="max-height: 500px; overflow-y: auto; padding: 24px; background: var(--bg-alt); border-radius: var(--radius); margin-bottom: 20px;">
+                    <h4>CONTINGENCY FEE AGREEMENT</h4>
+
+                    <p style="margin-top: 1rem;">I, <strong id="feeOwnerName">___</strong>, hereby engage OverAssessed LLC to protest the property tax assessment on my property at <strong id="feePropAddress">___</strong>.</p>
+
+                    <h4 style="margin-top: 1.5rem;">FEE STRUCTURE</h4>
+                    <ul style="margin: 0.75rem 0 0.75rem 1.5rem;" id="feeStructureList">
+                        <li id="feeRateTX"><strong>Texas properties:</strong> 20% of verified first-year tax savings</li>
+                        <li id="feeRateGA"><strong>Georgia properties:</strong> 25% of verified first-year tax savings</li>
+                        <li id="feeRateWA"><strong>Washington properties:</strong> 25% of verified first-year tax savings</li>
+                        <li>Referred clients may qualify for a discounted rate</li>
+                    </ul>
+
+                    <div id="feeHighlight" style="background: linear-gradient(135deg, rgba(108,92,231,0.08), rgba(9,132,227,0.08)); border: 1px solid rgba(108,92,231,0.2); border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">Your applicable rate:</span>
+                        <div style="font-size: 1.75rem; font-weight: 700; color: var(--primary); margin-top: 4px;" id="feeRateDisplay">20%</div>
+                        <span style="font-size: 0.8125rem; color: var(--text-secondary);">of verified first-year tax savings</span>
+                    </div>
+
+                    <h4 style="margin-top: 1.5rem;">NO WIN, NO FEE</h4>
+                    <p>If OverAssessed LLC does not achieve a reduction in your property's assessed value, you owe nothing. There are no upfront costs, retainers, or hidden fees.</p>
+
+                    <h4 style="margin-top: 1.5rem;">PAYMENT TERMS</h4>
+                    <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                        <li>Fee is due within 30 days of confirmed savings notification</li>
+                        <li>If a payment method is on file, you authorize OverAssessed LLC to charge the fee automatically upon confirmation of savings</li>
+                        <li>If no payment method is on file, an invoice will be sent via email</li>
+                        <li>Unpaid balances after 60 days may be subject to collection</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1.5rem;">SAVINGS CALCULATION</h4>
+                    <p>Savings are calculated as the difference between your property's assessed value before and after our protest, multiplied by the applicable tax rate(s) for your jurisdiction.</p>
+
+                    <h4 style="margin-top: 1.5rem;">CANCELLATION</h4>
+                    <p>You may cancel this agreement at any time before a protest is filed on your behalf by contacting us at <a href="mailto:tyler@overassessed.ai" style="color: var(--primary);">tyler@overassessed.ai</a> or <a href="tel:+18882829165" style="color: var(--primary);">(888) 282-9165</a>.</p>
+
+                    <p style="margin-top: 1.5rem; font-style: italic; color: var(--text-secondary); font-size: 0.875rem;">By signing below, I acknowledge that I have read, understand, and agree to the terms of this Contingency Fee Agreement.</p>
+                </div>
+            </div>
+
+            <div class="auth-checkbox" id="feeAuthCheckbox" onclick="toggleFeeAuth()">
+                <input type="checkbox" id="feeAuthorizeCheck">
+                <label for="feeAuthorizeCheck">I have read and agree to the Contingency Fee Agreement above. I understand the fee structure and payment terms.</label>
+            </div>
+
+            <div class="sig-section">
+                <label>Electronic Signature — Fee Agreement (Type Your Full Legal Name)</label>
+                <input type="text" class="sig-input" id="feeSignatureName" placeholder="Your Full Legal Name" disabled="">
+                <div class="sig-date">Date: <span id="feeSignDate"></span></div>
+            </div>
+        </div>
+
+        <div style="max-width: 100%; margin-top: 24px;">
             <div class="error-msg" id="errorMsg"></div>
-
-            <button class="submit-btn" id="submitBtn" onclick="submitSignature()" disabled="">Sign &amp; Submit Authorization</button>
+            <button class="submit-btn" id="submitBtn" onclick="submitSignature()" disabled="" style="width: 100%;">Sign &amp; Submit Both Agreements</button>
         </div>
     </div>
 
@@ -542,8 +601,8 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 
     <div class="success-screen" id="successScreen">
         <div class="icon">🎉</div>
-        <h2>Authorization Signed!</h2>
-        <p id="successMsg">Your authorization has been signed and recorded. We're now authorized to handle your property tax case on your behalf.</p>
+        <h2>All Agreements Signed!</h2>
+        <p id="successMsg">Your authorization form and contingency fee agreement have been signed and recorded. We're now authorized to handle your property tax case on your behalf.</p>
         <p>A confirmation email has been sent to your address.</p>
         <a href="/portal">← Back to Client Portal</a>
     </div>
@@ -553,7 +612,9 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 const caseIdFromUrl = window.location.pathname.split('/sign/')[1];
 let sigData = null;
 
-document.getElementById('signDate').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const todayFormatted = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+document.getElementById('signDate').textContent = todayFormatted;
+document.getElementById('feeSignDate').textContent = todayFormatted;
 
 async function loadSigningData() {
     if (!caseIdFromUrl) {
@@ -575,7 +636,7 @@ async function loadSigningData() {
 
         sigData = data;
 
-        if (data.signed) {
+        if (data.signed && data.feeAgreementSigned) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('alreadySigned').style.display = 'block';
             return;
@@ -587,6 +648,21 @@ async function loadSigningData() {
         document.getElementById('ownerName').textContent = data.ownerName;
         document.getElementById('propAddress').textContent = data.propertyAddress;
         document.getElementById('caseId').textContent = data.caseId;
+
+        // Populate fee agreement fields
+        document.getElementById('feeOwnerName').textContent = data.ownerName;
+        document.getElementById('feePropAddress').textContent = data.propertyAddress;
+
+        // Highlight applicable fee rate
+        const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
+        document.getElementById('feeRateDisplay').textContent = feeRates[state] || '20%';
+        // Bold the applicable state rate
+        const rateIds = { TX: 'feeRateTX', GA: 'feeRateGA', WA: 'feeRateWA' };
+        if (rateIds[state]) {
+            document.getElementById(rateIds[state]).style.background = 'rgba(108,92,231,0.08)';
+            document.getElementById(rateIds[state]).style.padding = '4px 8px';
+            document.getElementById(rateIds[state]).style.borderRadius = '6px';
+        }
 
         if (state === 'GA') {
             // GA flow
@@ -638,12 +714,23 @@ function toggleAuth() {
     updateSubmitState();
 }
 
+function toggleFeeAuth() {
+    const cb = document.getElementById('feeAuthorizeCheck');
+    cb.checked = !cb.checked;
+    document.getElementById('feeAuthCheckbox').classList.toggle('checked', cb.checked);
+    document.getElementById('feeSignatureName').disabled = !cb.checked;
+    updateSubmitState();
+}
+
 document.getElementById('signatureName').addEventListener('input', updateSubmitState);
+document.getElementById('feeSignatureName').addEventListener('input', updateSubmitState);
 
 function updateSubmitState() {
     const authorized = document.getElementById('authorizeCheck').checked;
     const name = document.getElementById('signatureName').value.trim();
-    document.getElementById('submitBtn').disabled = !(authorized && name.length >= 2);
+    const feeAuthorized = document.getElementById('feeAuthorizeCheck').checked;
+    const feeName = document.getElementById('feeSignatureName').value.trim();
+    document.getElementById('submitBtn').disabled = !(authorized && name.length >= 2 && feeAuthorized && feeName.length >= 2);
 }
 
 async function submitSignature() {
@@ -652,12 +739,13 @@ async function submitSignature() {
     btn.textContent = 'Submitting...';
 
     const fullName = document.getElementById('signatureName').value.trim();
+    const feeFullName = document.getElementById('feeSignatureName').value.trim();
 
     try {
         const res = await fetch(`/api/sign/${caseIdFromUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fullName, authorized: true })
+            body: JSON.stringify({ fullName, authorized: true, feeAgreementName: feeFullName, feeAgreementAuthorized: true })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -669,7 +757,7 @@ async function submitSignature() {
         err.textContent = e.message || 'Failed to submit. Please try again.';
         err.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Sign & Submit Authorization';
+        btn.textContent = 'Sign & Submit Both Agreements';
     }
 }
 

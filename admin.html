@@ -520,6 +520,25 @@
         </div>
     </div>
 
+    <!-- Fee Agreement -->
+    <div id="detailFeeSection" style="display:none;">
+        <div class="detail-section">
+            <h3>💰 Contingency Fee Agreement</h3>
+            <div id="detailFeeSigned" style="display:none;">
+                <div style="display:inline-flex;align-items:center;gap:8px;background:#c6f6d5;color:#22543d;padding:6px 14px;border-radius:980px;font-size:0.8125rem;font-weight:600;margin-bottom:8px;">✅ Fee Agreement Signed</div>
+                <div class="sig-info">
+                    <p><strong>Signed by:</strong> <span id="detailFeeSigName"></span></p>
+                    <p><strong>Date:</strong> <span id="detailFeeSigDate"></span></p>
+                    <p><strong>Rate:</strong> <span id="detailFeeRate"></span> contingency</p>
+                </div>
+            </div>
+            <div id="detailFeeUnsigned" style="display:none;">
+                <div style="display:inline-flex;align-items:center;gap:8px;background:#fefcbf;color:#744210;padding:6px 14px;border-radius:980px;font-size:0.8125rem;font-weight:600;">⚠️ No Fee Agreement</div>
+                <p style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">Client has not yet signed the Contingency Fee Agreement. Do not auto-charge.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Analysis -->
     <div id="detailAnalysisSection" style="display:none;">
         <div class="detail-section">
@@ -571,6 +590,33 @@
         <textarea class="note-input" id="detailNote" placeholder="Add a note..."></textarea>
         <div class="btn-row">
             <button class="btn btn-purple" onclick="saveDetail()">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Confirm Savings & Charge -->
+    <div class="detail-section" id="detailBillingSection">
+        <h3>💰 Confirm Savings & Bill Client</h3>
+        <div style="background:var(--bg-tint);padding:1rem;border-radius:var(--radius);margin-bottom:0.75rem;">
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">Verified Savings ($)</label>
+                <input type="number" id="detailVerifiedSavings" class="savings-input" placeholder="e.g. 1500" style="margin:0;flex:1;">
+            </div>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
+                <label style="font-size:0.75rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">Fee Rate</label>
+                <select id="detailFeeRate" style="padding:0.4rem;border:2px solid var(--gray-medium);border-radius:6px;font-family:inherit;font-size:0.85rem;">
+                    <option value="0.20">20% (TX)</option>
+                    <option value="0.25">25% (GA/WA)</option>
+                    <option value="0.15">15% (Referral TX)</option>
+                    <option value="0.20">20% (Referral GA)</option>
+                </select>
+            </div>
+            <div id="detailFeePreview" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">Fee: $0.00</div>
+            <div id="detailCardStatus" style="font-size:0.8rem;margin-bottom:0.75rem;"></div>
+            <div class="btn-row">
+                <button class="btn btn-green" onclick="confirmSavingsAndCharge()">✅ Confirm Savings & Charge</button>
+                <button class="btn btn-outline btn-sm" onclick="sendInvoiceOnly()">📧 Send Invoice Instead</button>
+            </div>
+            <div id="detailBillingResult" style="font-size:0.85rem;margin-top:0.5rem;"></div>
         </div>
     </div>
 
@@ -857,7 +903,7 @@ function renderSubmissionsTable() {
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
             <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
             <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '—'}</td>
-            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
+            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
             <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '—')}</td>
             <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
             <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '—'}</td>
@@ -1017,6 +1063,20 @@ function openDetail(id) {
         document.getElementById('detailSigDate').textContent = new Date(s.signature.signedAt).toLocaleString();
     } else { document.getElementById('detailSigSection').style.display = 'none'; }
 
+    // Fee Agreement section
+    document.getElementById('detailFeeSection').style.display = 'block';
+    if (s.feeAgreementSignature || s.fee_agreement_signed) {
+        document.getElementById('detailFeeSigned').style.display = 'block';
+        document.getElementById('detailFeeUnsigned').style.display = 'none';
+        const feeSig = s.feeAgreementSignature || {};
+        document.getElementById('detailFeeSigName').textContent = feeSig.fullName || s.ownerName || '—';
+        document.getElementById('detailFeeSigDate').textContent = feeSig.signedAt ? new Date(feeSig.signedAt).toLocaleString() : (s.fee_agreement_signed_at ? new Date(s.fee_agreement_signed_at).toLocaleString() : '—');
+        document.getElementById('detailFeeRate').textContent = feeSig.applicableRate || '—';
+    } else {
+        document.getElementById('detailFeeSigned').style.display = 'none';
+        document.getElementById('detailFeeUnsigned').style.display = 'block';
+    }
+
     // Analysis
     if (s.analysisReport || s.compResults) {
         document.getElementById('detailAnalysisSection').style.display = 'block';
@@ -1048,6 +1108,21 @@ function openDetail(id) {
     ).join('') || '<div class="empty-msg">No notes yet.</div>';
     document.getElementById('detailNotes').innerHTML = notesHtml;
 
+    // Billing section
+    const feeRate = s.state === 'GA' || s.state === 'WA' ? '0.25' : '0.20';
+    if (s.discountedRate) document.getElementById('detailFeeRate').value = String(s.discountedRate);
+    else document.getElementById('detailFeeRate').value = feeRate;
+    document.getElementById('detailVerifiedSavings').value = s.savings || s.estimatedSavings || '';
+    document.getElementById('detailBillingResult').textContent = '';
+    updateFeePreview();
+    // Card status
+    const cardStatusEl = document.getElementById('detailCardStatus');
+    if (s.stripeCustomerId) {
+        cardStatusEl.innerHTML = '<span style="color:var(--green);">💳 Card on file</span> (Stripe: ' + s.stripeCustomerId.slice(0,12) + '...)';
+    } else {
+        cardStatusEl.innerHTML = '<span style="color:var(--text-muted);">No card on file — will send invoice</span>';
+    }
+
     document.getElementById('detailOverlay').style.display = 'block';
     document.getElementById('detailPanel').style.display = 'block';
 }
@@ -1070,6 +1145,92 @@ async function saveDetail() {
         const res = await fetch(`/api/submissions/${currentId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
         if (res.ok) { await loadAll(); openDetail(currentId); }
     } catch (e) { console.error(e); }
+}
+
+// ===== BILLING: Fee preview, auto-charge, invoice =====
+function updateFeePreview() {
+    const savings = parseFloat(document.getElementById('detailVerifiedSavings').value) || 0;
+    const rate = parseFloat(document.getElementById('detailFeeRate').value) || 0.20;
+    const fee = savings * rate;
+    document.getElementById('detailFeePreview').textContent = `Fee: $${fee.toFixed(2)} (${(rate*100).toFixed(0)}% of $${savings.toLocaleString()})`;
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const vsEl = document.getElementById('detailVerifiedSavings');
+    const frEl = document.getElementById('detailFeeRate');
+    if (vsEl) vsEl.addEventListener('input', updateFeePreview);
+    if (frEl) frEl.addEventListener('change', updateFeePreview);
+});
+
+async function confirmSavingsAndCharge() {
+    if (!currentId) return;
+    const savings = parseFloat(document.getElementById('detailVerifiedSavings').value);
+    const rate = parseFloat(document.getElementById('detailFeeRate').value);
+    if (!savings || savings <= 0) { alert('Enter verified savings amount first.'); return; }
+    const fee = savings * rate;
+    if (!confirm(`Charge client $${fee.toFixed(2)} (${(rate*100).toFixed(0)}% of $${savings.toLocaleString()} savings)?`)) return;
+
+    const resultEl = document.getElementById('detailBillingResult');
+    resultEl.textContent = '⏳ Processing...';
+    resultEl.style.color = 'var(--text-muted)';
+
+    try {
+        const res = await fetch('/api/admin/confirm-savings', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ submissionId: currentId, verifiedSavings: savings, feeRate: rate })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            resultEl.style.color = 'var(--green)';
+            if (data.method === 'auto_charge') {
+                resultEl.textContent = `✅ Auto-charged $${fee.toFixed(2)} — Receipt sent to ${data.email}`;
+            } else {
+                resultEl.textContent = `📧 Invoice sent for $${fee.toFixed(2)} to ${data.email}`;
+            }
+            await loadAll();
+            openDetail(currentId);
+        } else {
+            resultEl.style.color = 'var(--red)';
+            resultEl.textContent = '❌ ' + (data.error || 'Failed to process billing');
+        }
+    } catch (e) {
+        resultEl.style.color = 'var(--red)';
+        resultEl.textContent = '❌ Network error: ' + e.message;
+    }
+}
+
+async function sendInvoiceOnly() {
+    if (!currentId) return;
+    const savings = parseFloat(document.getElementById('detailVerifiedSavings').value);
+    const rate = parseFloat(document.getElementById('detailFeeRate').value);
+    if (!savings || savings <= 0) { alert('Enter verified savings amount first.'); return; }
+    const fee = savings * rate;
+    if (!confirm(`Send invoice for $${fee.toFixed(2)} to client?`)) return;
+
+    const resultEl = document.getElementById('detailBillingResult');
+    resultEl.textContent = '⏳ Sending invoice...';
+    resultEl.style.color = 'var(--text-muted)';
+
+    try {
+        const res = await fetch('/api/admin/confirm-savings', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ submissionId: currentId, verifiedSavings: savings, feeRate: rate, forceInvoice: true })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            resultEl.style.color = 'var(--green)';
+            resultEl.textContent = `📧 Invoice sent for $${fee.toFixed(2)} to ${data.email}`;
+            await loadAll();
+            openDetail(currentId);
+        } else {
+            resultEl.style.color = 'var(--red)';
+            resultEl.textContent = '❌ ' + (data.error || 'Failed to send invoice');
+        }
+    } catch (e) {
+        resultEl.style.color = 'var(--red)';
+        resultEl.textContent = '❌ Network error: ' + e.message;
+    }
 }
 
 async function runAnalysis() {

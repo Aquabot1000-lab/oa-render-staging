@@ -264,6 +264,36 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             break;
         }
 
+        case 'payment_intent.succeeded': {
+            const pi = event.data.object;
+            console.log(`[Stripe] PaymentIntent succeeded: ${pi.id}, amount: ${pi.amount / 100}`);
+            // Auto-charge payments are already recorded inline, but update if status changed
+            if (isSupabaseEnabled() && pi.metadata?.client_id) {
+                await supabaseAdmin
+                    .from('payments')
+                    .update({ status: 'paid' })
+                    .eq('stripe_payment_id', pi.id);
+            }
+            break;
+        }
+
+        case 'setup_intent.succeeded': {
+            const si = event.data.object;
+            console.log(`[Stripe] SetupIntent succeeded: ${si.id}, customer: ${si.customer}`);
+            // Set the payment method as default for the customer
+            if (si.customer && si.payment_method) {
+                try {
+                    await stripe.customers.update(si.customer, {
+                        invoice_settings: { default_payment_method: si.payment_method }
+                    });
+                    console.log(`[Stripe] Set default payment method for ${si.customer}`);
+                } catch (e) {
+                    console.log(`[Stripe] Failed to set default PM: ${e.message}`);
+                }
+            }
+            break;
+        }
+
         default:
             console.log(`[Stripe] Unhandled event: ${event.type}`);
     }
