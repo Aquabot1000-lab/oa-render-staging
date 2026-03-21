@@ -1900,6 +1900,61 @@ async function runFullAnalysis(caseId) {
     submissions[idx].updatedAt = new Date().toISOString();
     await saveProgress();
 
+    // ── Missing Data Detection → Info Request Email ──
+    // If key property data is missing, E&U was skipped. Ask customer for details to unlock deeper analysis.
+    const missingFields = [];
+    if (!propertyData.sqft || propertyData.sqft <= 0) missingFields.push('square footage');
+    if (!propertyData.yearBuilt || propertyData.yearBuilt <= 0) missingFields.push('year built');
+    if (!propertyData.bedrooms) missingFields.push('number of bedrooms');
+    if (!propertyData.bathrooms) missingFields.push('number of bathrooms');
+
+    if (missingFields.length > 0 && sub.email) {
+        console.log(`[Analysis] ${sub.caseId}: Missing data (${missingFields.join(', ')}) — sending info request email`);
+        submissions[idx].missingDataRequested = true;
+        submissions[idx].missingFields = missingFields;
+        await saveProgress();
+
+        const mvSavings = compResults.marketValueAnalysis?.estimatedSavings || compResults.estimatedSavings || 0;
+        const missingList = missingFields.map(f => `• ${f.charAt(0).toUpperCase() + f.slice(1)}`).join('<br>');
+
+        const infoRequestHtml = `
+            <p>Hi ${sub.ownerName},</p>
+            <p>Great news — we've completed an initial analysis of your property at <strong>${sub.propertyAddress}</strong> and found potential savings of <strong>$${mvSavings.toLocaleString()}/year</strong>.</p>
+
+            <div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
+                <p style="margin:0 0 5px;color:#6b7280;">Initial Estimated Savings</p>
+                <p style="margin:0;font-size:32px;font-weight:800;color:#00b894;">$${mvSavings.toLocaleString()}/year</p>
+            </div>
+
+            <p>However, we may be able to find you <strong>even more savings</strong> using an additional analysis method called Equal & Uniform (§42.26). To run this deeper analysis, we need a few details about your home:</p>
+
+            <div style="background:#f0f9ff;border-left:4px solid #0984e3;padding:16px 20px;margin:20px 0;border-radius:4px;">
+                <p style="margin:0;font-weight:700;color:#0984e3;">Please reply with:</p>
+                <p style="margin:8px 0 0;line-height:2;">${missingList}</p>
+                ${!propertyData.sqft ? '<p style="margin:8px 0 0;color:#666;font-size:13px;">Tip: Square footage is usually on your county tax statement or Zillow/Redfin listing.</p>' : ''}
+            </div>
+
+            <p>Just reply to this email with the details and we'll update your analysis right away. This could significantly increase your savings.</p>
+
+            <p>Either way, your current analysis is ready. You can sign your authorization form now to lock in the $${mvSavings.toLocaleString()}/year savings, and we'll update it if you provide additional details:</p>
+
+            <div style="text-align:center;margin:20px 0;">
+                <a href="${getBaseUrl()}/sign/${sub.caseId}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Authorization Form →</a>
+            </div>
+        `;
+
+        try {
+            await sendNotificationEmail(
+                `${sub.ownerName} — We Found $${mvSavings.toLocaleString()}/yr Savings (+ Potential for More)`,
+                infoRequestHtml,
+                sub.email
+            );
+            console.log(`[Analysis] Info request email sent to ${sub.email} for ${sub.caseId}`);
+        } catch(e) {
+            console.error(`[Analysis] Failed to send info request email for ${sub.caseId}:`, e.message);
+        }
+    }
+
     console.log(`[Analysis] Complete for ${sub.caseId}. Savings: $${compResults.estimatedSavings}`);
     return { report, propertyData, compResults, evidencePath };
 }
