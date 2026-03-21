@@ -460,7 +460,8 @@ async function findComparables(subject, caseData) {
         },
 
         // Equal & Uniform analysis details (PSF-based)
-        equalUniformAnalysis: euAnalysis ? {
+        // Only include E&U analysis if subject sqft is valid (otherwise $/sqft is bogus)
+        equalUniformAnalysis: (euAnalysis && subjectHasSqft) ? {
             recommendedValue: euAnalysis.result.recommendedValue,
             reduction: euAnalysis.result.reduction,
             estimatedSavings: euAnalysis.result.estimatedSavings,
