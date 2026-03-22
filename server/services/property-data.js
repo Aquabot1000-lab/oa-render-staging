@@ -268,6 +268,77 @@ const bcadAdapter = {
 
 registerAdapter('bexar', bcadAdapter);
 
+// ===== TARRANT COUNTY (Local Data — 729K+ parcels in memory) =====
+const tarrantData = require('./tarrant-data');
+const tarrantAdapter = {
+    name: 'Tarrant CAD (Local Data)',
+    async searchByAddress(address) {
+        if (!tarrantData.isLoaded()) {
+            console.log('[Tarrant] Data not loaded yet, attempting load...');
+            await tarrantData.loadData();
+        }
+        // Normalize address for search — strip city/state/zip, extract street
+        const streetMatch = (address || '').match(/^[\d]+\s+[^,]+/);
+        const street = streetMatch ? streetMatch[0].toUpperCase().trim() : (address || '').toUpperCase().trim();
+        
+        // Try exact match first
+        let results = tarrantData.searchByAddress(street, 5);
+        
+        // If no results, try fuzzy: strip suffix (Dr/Ln/Ave/St/Ct/Rd/Blvd/Way/Trl/Cir)
+        if (results.length === 0) {
+            const stripped = street.replace(/\s+(DR|LN|AVE|ST|CT|RD|BLVD|WAY|TRL|CIR|PL|LOOP|PKWY|HWY|DRIVE|LANE|AVENUE|STREET|COURT|ROAD|BOULEVARD|TRAIL|CIRCLE|PLACE)\.?$/i, '');
+            if (stripped !== street) {
+                console.log(`[Tarrant] Exact match failed, trying fuzzy without suffix: "${stripped}"`);
+                results = tarrantData.searchByAddress(stripped, 5);
+            }
+        }
+        
+        // Map to expected format
+        return results.map(r => ({
+            accountId: r.accountNumber,
+            address: r.address,
+            assessedValue: r.appraisedValue,
+            landValue: r.landValue,
+            improvementValue: r.improvementValue,
+            sqft: r.sqft,
+            yearBuilt: r.yearBuilt,
+            bedrooms: r.bedrooms,
+            bathrooms: r.bathrooms,
+            hasPool: r.hasPool,
+            propertyClass: r.propertyClass,
+            propertyType: r.propertyClassDesc,
+            legalDescription: r.legalDescription,
+            source: 'tarrant-cad-local'
+        }));
+    },
+    async getPropertyDetails(accountIdOrUrl) {
+        if (!tarrantData.isLoaded()) await tarrantData.loadData();
+        const rec = tarrantData.lookupAccount(accountIdOrUrl);
+        if (!rec) return null;
+        return {
+            source: 'tarrant-cad-local',
+            fetchedAt: new Date().toISOString(),
+            accountId: rec.accountNumber,
+            ownerName: null, // Not in compact data
+            address: rec.address,
+            legalDescription: rec.legalDescription,
+            propertyType: rec.propertyClassDesc,
+            neighborhoodCode: null,
+            sqft: rec.sqft,
+            yearBuilt: rec.yearBuilt,
+            bedrooms: rec.bedrooms,
+            bathrooms: rec.bathrooms,
+            lotSize: null,
+            assessedValue: rec.appraisedValue,
+            landValue: rec.landValue,
+            improvementValue: rec.improvementValue,
+            exemptions: null,
+            valueHistory: null
+        };
+    }
+};
+registerAdapter('tarrant', tarrantAdapter);
+
 // ===== BIS CONSULTANTS E-SEARCH HELPER =====
 // Shared by FBCAD and TCAD — same platform, different base URLs
 function createBISAdapter({ name, code, baseUrl }) {
@@ -634,6 +705,12 @@ function detectCounty(address) {
     if (addr.includes('houston') || addr.includes('harris')) return 'harris';
     if (addr.includes('austin') || addr.includes('travis') || addr.includes('pflugerville') || addr.includes('round rock') || addr.includes('cedar park')) return 'travis';
     if (addr.includes('fort bend') || addr.includes('richmond') || addr.includes('sugar land') || addr.includes('sugarland') || addr.includes('katy') || addr.includes('missouri city') || addr.includes('rosenberg') || addr.includes('stafford') || addr.includes('fulshear')) return 'fort bend';
+    if (addr.includes('fort worth') || addr.includes('arlington') || addr.includes('bedford') || addr.includes('euless') || addr.includes('hurst') || addr.includes('tarrant') || addr.includes('grapevine') || addr.includes('colleyville') || addr.includes('mansfield') || addr.includes('north richland hills') || addr.includes('keller') || addr.includes('southlake') || addr.includes('watauga') || addr.includes('haltom city') || addr.includes('saginaw') || addr.includes('white settlement') || addr.includes('benbrook') || addr.includes('crowley') || addr.includes('forest hill') || addr.includes('kennedale') || addr.includes('lake worth') || addr.includes('river oaks') || addr.includes('westworth village') || addr.includes('azle')) return 'tarrant';
+    if (addr.includes('dallas') || addr.includes('garland') || addr.includes('mesquite') || addr.includes('irving') || addr.includes('richardson') || addr.includes('plano') || addr.includes('carrollton') || addr.includes('farmers branch') || addr.includes('desoto') || addr.includes('duncanville') || addr.includes('cedar hill') || addr.includes('lancaster') || addr.includes('glenn heights') || addr.includes('rowlett') || addr.includes('sachse') || addr.includes('coppell') || addr.includes('grand prairie') || addr.includes('balch springs')) return 'dallas';
+    if (addr.includes('collin') || addr.includes('mckinney') || addr.includes('frisco') || addr.includes('anna') || addr.includes('allen') || addr.includes('prosper') || addr.includes('celina') || addr.includes('wylie') || addr.includes('murphy') || addr.includes('fairview') || addr.includes('princeton') || addr.includes('lucas')) return 'collin';
+    if (addr.includes('denton') || addr.includes('lewisville') || addr.includes('flower mound') || addr.includes('little elm') || addr.includes('the colony') || addr.includes('corinth') || addr.includes('highland village') || addr.includes('argyle') || addr.includes('aubrey') || addr.includes('sanger')) return 'denton';
+    if (addr.includes('forney') || addr.includes('kaufman') || addr.includes('terrell')) return 'kaufman';
+    if (addr.includes('el paso')) return 'el paso';
     return 'bexar'; // Default for San Antonio area
 }
 
@@ -661,8 +738,11 @@ async function fetchPropertyData(caseData) {
     }
 
     // Fallback: build from case data + reasonable estimates
+    // ⚠️ This means the real CAD lookup FAILED — numbers may be inaccurate
     if (!propertyData || !propertyData.assessedValue) {
-        console.log('[PropertyData] Using fallback data from case intake');
+        console.warn(`[PropertyData] ⚠️ FALLBACK — No real CAD data for ${caseData.propertyAddress} (county: ${county}). Flagging for manual review.`);
+        caseData._needsManualReview = true;
+        caseData._reviewReason = `CAD lookup failed for county "${county}" — using intake-provided data. Values may be inaccurate.`;
         const assessedNum = parseInt((caseData.assessedValue || '0').replace(/[^0-9]/g, '')) || 300000;
         propertyData = {
             source: 'intake-fallback',
