@@ -549,6 +549,48 @@ registerAdapter('travis', createBISAdapter({
     baseUrl: 'https://esearch.austincad.org'
 }));
 
+// ===== DALLAS COUNTY (DCAD) — BIS e-search =====
+registerAdapter('dallas', createBISAdapter({
+    name: 'Dallas Central Appraisal District',
+    code: 'DCAD',
+    baseUrl: 'https://esearch.dallascad.org'
+}));
+
+// ===== COLLIN COUNTY (CCAD) — BIS e-search =====
+registerAdapter('collin', createBISAdapter({
+    name: 'Collin Central Appraisal District',
+    code: 'CCAD',
+    baseUrl: 'https://esearch.collincad.org'
+}));
+
+// ===== WILLIAMSON COUNTY (WCAD) — BIS e-search =====
+registerAdapter('williamson', createBISAdapter({
+    name: 'Williamson Central Appraisal District',
+    code: 'WCAD',
+    baseUrl: 'https://esearch.williamsoncad.org'
+}));
+
+// ===== MONTGOMERY COUNTY (MCAD) — BIS e-search =====
+registerAdapter('montgomery', createBISAdapter({
+    name: 'Montgomery Central Appraisal District',
+    code: 'MCAD',
+    baseUrl: 'https://esearch.montgomerycad.org'
+}));
+
+// ===== HUNT COUNTY (HCAD-Hunt) — BIS e-search =====
+registerAdapter('hunt', createBISAdapter({
+    name: 'Hunt County Appraisal District',
+    code: 'HUNT',
+    baseUrl: 'https://esearch.huntcad.org'
+}));
+
+// ===== KAUFMAN COUNTY (KCAD) — BIS e-search =====
+registerAdapter('kaufman', createBISAdapter({
+    name: 'Kaufman County Appraisal District',
+    code: 'KCAD',
+    baseUrl: 'https://esearch.kaufman-cad.org'
+}));
+
 // ===== HARRIS COUNTY (HCAD) =====
 registerAdapter('harris', {
     name: 'Harris County Appraisal District',
@@ -706,11 +748,18 @@ function detectCounty(address) {
     if (addr.includes('austin') || addr.includes('travis') || addr.includes('pflugerville') || addr.includes('round rock') || addr.includes('cedar park')) return 'travis';
     if (addr.includes('fort bend') || addr.includes('richmond') || addr.includes('sugar land') || addr.includes('sugarland') || addr.includes('katy') || addr.includes('missouri city') || addr.includes('rosenberg') || addr.includes('stafford') || addr.includes('fulshear')) return 'fort bend';
     if (addr.includes('fort worth') || addr.includes('arlington') || addr.includes('bedford') || addr.includes('euless') || addr.includes('hurst') || addr.includes('tarrant') || addr.includes('grapevine') || addr.includes('colleyville') || addr.includes('mansfield') || addr.includes('north richland hills') || addr.includes('keller') || addr.includes('southlake') || addr.includes('watauga') || addr.includes('haltom city') || addr.includes('saginaw') || addr.includes('white settlement') || addr.includes('benbrook') || addr.includes('crowley') || addr.includes('forest hill') || addr.includes('kennedale') || addr.includes('lake worth') || addr.includes('river oaks') || addr.includes('westworth village') || addr.includes('azle')) return 'tarrant';
-    if (addr.includes('dallas') || addr.includes('garland') || addr.includes('mesquite') || addr.includes('irving') || addr.includes('richardson') || addr.includes('plano') || addr.includes('carrollton') || addr.includes('farmers branch') || addr.includes('desoto') || addr.includes('duncanville') || addr.includes('cedar hill') || addr.includes('lancaster') || addr.includes('glenn heights') || addr.includes('rowlett') || addr.includes('sachse') || addr.includes('coppell') || addr.includes('grand prairie') || addr.includes('balch springs')) return 'dallas';
-    if (addr.includes('collin') || addr.includes('mckinney') || addr.includes('frisco') || addr.includes('anna') || addr.includes('allen') || addr.includes('prosper') || addr.includes('celina') || addr.includes('wylie') || addr.includes('murphy') || addr.includes('fairview') || addr.includes('princeton') || addr.includes('lucas')) return 'collin';
+    if (addr.includes('collin') || addr.includes('mckinney') || addr.includes('frisco') || addr.includes('plano') || addr.includes('anna') || addr.match(/\ballen\b/) || addr.includes('prosper') || addr.includes('celina') || addr.includes('wylie') || addr.includes('murphy') || addr.includes('fairview') || addr.includes('princeton') || addr.includes('lucas')) return 'collin';
+    if (addr.includes('dallas') || addr.includes('garland') || addr.includes('mesquite') || addr.includes('irving') || addr.includes('richardson') || addr.includes('carrollton') || addr.includes('farmers branch') || addr.includes('desoto') || addr.includes('duncanville') || addr.includes('cedar hill') || addr.includes('lancaster') || addr.includes('glenn heights') || addr.includes('rowlett') || addr.includes('sachse') || addr.includes('coppell') || addr.includes('grand prairie') || addr.includes('balch springs')) return 'dallas';
     if (addr.includes('denton') || addr.includes('lewisville') || addr.includes('flower mound') || addr.includes('little elm') || addr.includes('the colony') || addr.includes('corinth') || addr.includes('highland village') || addr.includes('argyle') || addr.includes('aubrey') || addr.includes('sanger')) return 'denton';
     if (addr.includes('forney') || addr.includes('kaufman') || addr.includes('terrell')) return 'kaufman';
-    if (addr.includes('el paso')) return 'el paso';
+    if (addr.includes('greenville') || addr.includes('hunt') || addr.includes('commerce') || addr.includes('quinlan') || addr.includes('caddo mills') || addr.includes('wolfe city')) return 'hunt';
+    if (addr.includes('williamson') || addr.includes('georgetown') || addr.includes('taylor') || addr.includes('jarrell') || addr.includes('liberty hill') || addr.includes('hutto') || addr.includes('granger') || addr.includes('bartlett') || addr.includes('thrall')) return 'williamson';
+    if (addr.includes('montgomery') || addr.includes('conroe') || addr.includes('the woodlands') || addr.includes('magnolia') || addr.includes('willis') || addr.includes('new caney') || addr.includes('spring') || addr.includes('tomball') || addr.includes('porter') || addr.includes('huntsville') || addr.includes('splendora')) return 'montgomery';
+    if (addr.includes('guadalupe') || addr.includes('seguin') || addr.includes('schertz') || addr.includes('cibolo') || addr.includes('new braunfels') || addr.includes('marion')) return 'guadalupe';
+    if (addr.includes('comal') || addr.includes('bulverde') || addr.includes('canyon lake') || addr.includes('garden ridge') || addr.includes('spring branch')) return 'comal';
+    if (addr.includes('hays') || addr.includes('san marcos') || addr.includes('kyle') || addr.includes('buda') || addr.includes('wimberley') || addr.includes('dripping springs')) return 'hays';
+    if (addr.includes('hidalgo') || addr.includes('mcallen') || addr.includes('edinburg') || addr.includes('pharr') || addr.includes('mission') || addr.includes('weslaco') || addr.includes('donna') || addr.includes('alamo') || addr.includes('mercedes') || addr.includes('san juan')) return 'hidalgo';
+    if (addr.includes('el paso') || addr.includes('canutillo') || addr.includes('horizon city') || addr.includes('socorro') || addr.includes('anthony') || addr.includes('clint')) return 'el paso';
     return 'bexar'; // Default for San Antonio area
 }
 
