@@ -62,15 +62,28 @@ async function getBexarParcel(address) {
         const clean = address.replace(/,?\s*(san antonio|sa|tx|texas|\d{5}(-\d{4})?)/gi, '').trim().toUpperCase();
         const { data } = await axios.get(ARCGIS_BASE, {
             params: {
-                where: `SitusAddress LIKE '%${clean.replace(/'/g, "''")}%'`,
-                outFields: 'PropID,SitusAddress,TotVal,LandVal,ImprVal,YrBlt,GBA,OwnerName,LegalDesc,PropertyType',
+                where: `Situs LIKE '%${clean.replace(/'/g, "''")}%'`,
+                outFields: 'PropID,Situs,TotVal,LandVal,ImprVal,YrBlt,GBA,Owner,LglDesc,PropUse',
                 returnGeometry: false,
                 f: 'json'
             },
             timeout: 15000
         });
         if (data.features && data.features.length > 0) {
-            return data.features[0].attributes;
+            // Map new field names to the old format the rest of the code expects
+            const attrs = data.features[0].attributes;
+            return {
+                PropID: attrs.PropID,
+                SitusAddress: attrs.Situs,
+                TotVal: attrs.TotVal,
+                LandVal: attrs.LandVal,
+                ImprVal: attrs.ImprVal,
+                YrBlt: attrs.YrBlt,
+                GBA: attrs.GBA,
+                OwnerName: attrs.Owner,
+                LegalDesc: attrs.LglDesc,
+                PropertyType: attrs.PropUse
+            };
         }
         return null;
     } catch (err) {
