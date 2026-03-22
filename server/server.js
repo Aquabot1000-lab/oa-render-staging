@@ -105,12 +105,20 @@ app.use('/evidence-packets', express.static(path.join(__dirname, 'evidence-packe
 app.use('/filing-packages', express.static(path.join(__dirname, 'filing-packages')));
 app.use('/generated-forms', express.static(path.join(__dirname, 'generated-forms')));
 app.use('/data/automation-screenshots', express.static(path.join(__dirname, '..', 'data', 'automation-screenshots')));
-app.use('/marketing/social-media/images', express.static(path.join(__dirname, '..', 'marketing', 'social-media', 'images'), { 
+// Serve images with correct MIME types
+const imageStaticOptions = {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
     if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
+    if (filePath.endsWith('.webp')) res.setHeader('Content-Type', 'image/webp');
+    if (filePath.endsWith('.gif')) res.setHeader('Content-Type', 'image/gif');
   }
-}));
+};
+app.use('/marketing/social-media/images', express.static(path.join(__dirname, '..', 'marketing', 'social-media', 'images'), imageStaticOptions));
+app.use('/tiktok', express.static(path.join(__dirname, '..', 'tiktok'), imageStaticOptions));
+app.use('/marketing/tiktok-images', express.static(path.join(__dirname, '..', 'marketing', 'tiktok-images'), imageStaticOptions));
+app.use('/marketing/tiktok-images-v2', express.static(path.join(__dirname, '..', 'marketing', 'tiktok-images-v2'), imageStaticOptions));
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets'), imageStaticOptions));
 // TikTok domain verification (MUST be before express.static)
 app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=KIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
