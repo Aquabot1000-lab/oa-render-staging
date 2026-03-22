@@ -549,12 +549,37 @@ registerAdapter('travis', createBISAdapter({
     baseUrl: 'https://esearch.austincad.org'
 }));
 
-// ===== DALLAS COUNTY (DCAD) — BIS e-search =====
-registerAdapter('dallas', createBISAdapter({
-    name: 'Dallas Central Appraisal District',
-    code: 'DCAD',
-    baseUrl: 'https://esearch.dallascad.org'
-}));
+// ===== DALLAS COUNTY (DCAD) — Local Data (858K parcels) =====
+const { LocalCADData } = require('./local-cad-data');
+const dallasData = new LocalCADData('Dallas', path.join(__dirname, '..', 'data', 'dallas', 'parcels-compact.jsonl.gz'));
+registerAdapter('dallas', {
+    name: 'Dallas CAD (Local Data)',
+    async searchByAddress(address) {
+        if (!dallasData.isLoaded()) await dallasData.loadData();
+        const streetMatch = (address || '').match(/^[\d]+\s+[^,]+/);
+        const street = streetMatch ? streetMatch[0].toUpperCase().trim() : (address || '').toUpperCase().trim();
+        let results = dallasData.searchByAddress(street, 5);
+        return results.map(r => ({
+            accountId: r.accountNumber, address: r.address, assessedValue: r.appraisedValue,
+            landValue: r.landValue, improvementValue: r.improvementValue, sqft: r.sqft,
+            yearBuilt: r.yearBuilt, bedrooms: r.bedrooms, bathrooms: r.bathrooms,
+            hasPool: r.hasPool, propertyClass: r.propertyClass, legalDescription: r.legalDescription,
+            source: 'dallas-cad-local'
+        }));
+    },
+    async getPropertyDetails(accountId) {
+        if (!dallasData.isLoaded()) await dallasData.loadData();
+        const rec = dallasData.lookupAccount(accountId);
+        if (!rec) return null;
+        return {
+            source: 'dallas-cad-local', fetchedAt: new Date().toISOString(),
+            accountId: rec.accountNumber, address: rec.address, propertyType: rec.propertyClass,
+            sqft: rec.sqft, yearBuilt: rec.yearBuilt, assessedValue: rec.appraisedValue,
+            landValue: rec.landValue, improvementValue: rec.improvementValue,
+            legalDescription: rec.legalDescription
+        };
+    }
+});
 
 // ===== COLLIN COUNTY (CCAD) — BIS e-search =====
 registerAdapter('collin', createBISAdapter({
