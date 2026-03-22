@@ -84,10 +84,50 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 .hero-note{font-size:0.8125rem;color:var(--text-secondary)}
 .hero-phone{display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:0.9375rem;text-decoration:none;margin-top:4px;transition:color 0.3s}
 .hero-phone:hover{color:var(--primary)}
+.hero-search-wrap{max-width:720px;margin:0 auto 24px;background:var(--bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:8px;border:1px solid rgba(0,0,0,0.06)}
+.search-tabs{display:flex;gap:8px;margin-bottom:12px;background:var(--bg-alt);border-radius:10px;padding:4px}
+.search-tab{flex:1;background:none;border:none;padding:10px 20px;font-size:0.9375rem;font-weight:600;color:var(--text-secondary);cursor:pointer;border-radius:8px;transition:all 0.3s;font-family:var(--font)}
+.search-tab.active{background:var(--bg);color:var(--primary);box-shadow:var(--shadow-sm)}
+.search-tab:hover:not(.active){color:var(--text)}
+.search-tab-content{display:none}
+.search-tab-content.active{display:block}
+.search-input-wrap{position:relative;display:flex;align-items:center;gap:8px}
+.search-icon{position:absolute;left:16px;pointer-events:none}
+.search-input-wrap input[type="text"]{flex:1;padding:16px 16px 16px 46px;border:1px solid rgba(0,0,0,0.12);border-radius:12px;font-size:1.0625rem;font-family:var(--font);transition:all 0.3s;background:var(--bg)}
+.search-input-wrap input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.12)}
+.hero-search-btn{background:var(--primary);color:#fff;border:none;padding:16px 32px;font-size:1.0625rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:var(--font);transition:all 0.3s;white-space:nowrap}
+.hero-search-btn:hover{background:#5b4bd5;transform:scale(1.02)}
+.parcel-inputs{display:grid;grid-template-columns:140px 1fr 1fr;gap:8px;margin-bottom:12px}
+.parcel-inputs select,.parcel-inputs input{padding:14px 16px;border:1px solid rgba(0,0,0,0.12);border-radius:10px;font-size:0.9375rem;font-family:var(--font);background:var(--bg)}
+.parcel-inputs select:focus,.parcel-inputs input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.12)}
+.hero-search-btn-full{width:100%;background:var(--primary);color:#fff;border:none;padding:16px;font-size:1.0625rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:var(--font);transition:all 0.3s}
+.hero-search-btn-full:hover{background:#5b4bd5;transform:translateY(-1px);box-shadow:var(--shadow-purple)}
+.hero-trust-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;margin-top:20px;padding:16px;background:rgba(108,92,231,0.03);border-radius:12px;border:1px solid rgba(108,92,231,0.08)}
+.hero-trust-bar span{font-size:0.875rem;color:var(--text-secondary);font-weight:500}
+
+/* ===== INVESTOR SECTION ===== */
+.investor-section{background:var(--bg-alt);padding:80px 0}
+.investor-content{display:grid;grid-template-columns:180px 1fr;gap:40px;align-items:center}
+.investor-illustration{display:flex;align-items:center;justify-content:center}
+.investor-text h2{font-size:clamp(1.75rem,3vw,2.25rem);font-weight:700;letter-spacing:-0.03em;margin-bottom:12px;color:var(--text)}
+.investor-text p{font-size:1.0625rem;color:var(--text-secondary);margin-bottom:24px;line-height:1.6}
+.investor-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.investor-card{background:var(--bg);border:1.5px solid rgba(0,0,0,0.08);border-radius:var(--radius);padding:24px 20px;text-align:center;cursor:pointer;transition:all 0.3s;font-family:var(--font)}
+.investor-card:hover{border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-2px)}
+.investor-card-number{font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:-0.02em;margin-bottom:4px}
+.investor-card-label{font-size:0.875rem;color:var(--text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:0.02em}
+
+/* ===== APPROACH CARDS ===== */
+.approach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.approach-card{background:var(--bg);border:1px solid rgba(0,0,0,0.06);border-radius:var(--radius-lg);padding:32px 24px;text-align:center;transition:all 0.3s}
+.approach-card:hover{box-shadow:var(--shadow-lg);border-color:rgba(108,92,231,0.15);transform:translateY(-4px)}
+.approach-icon{margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+.approach-card h3{font-size:1.0625rem;font-weight:600;margin-bottom:10px;color:var(--text);letter-spacing:-0.01em}
+.approach-card p{font-size:0.9375rem;color:var(--text-secondary);line-height:1.6}
 
 /* ===== STATS BAR ===== */
 .stats-bar{padding:80px 0;background:var(--bg-alt);border-top:1px solid rgba(0,0,0,0.04);border-bottom:1px solid rgba(0,0,0,0.04)}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:center}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;text-align:center}
 .stat-number{font-size:clamp(2.5rem,4vw,3.5rem);font-weight:700;letter-spacing:-0.04em;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
 .stat-label{font-size:0.9375rem;color:var(--text-secondary);margin-top:4px;font-weight:400}
 
@@ -237,6 +277,10 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
   .steps-grid{grid-template-columns:repeat(2,1fr)}
   .testimonials-grid{grid-template-columns:1fr 1fr}
   .benefits-grid{gap:32px 40px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .approach-grid{grid-template-columns:1fr 1fr 1fr}
+  .investor-content{grid-template-columns:1fr;text-align:center}
+  .investor-illustration{margin:0 auto}
 }
 @media(max-width:768px){
   .nav{display:none}
@@ -253,11 +297,23 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
   .form-wrap{margin:0 8px;padding:32px 24px}
   .form-row{grid-template-columns:1fr}
   .footer-top{grid-template-columns:1fr;text-align:center}
+  .hero-search-wrap{margin:0 -8px 24px;padding:6px}
+  .search-input-wrap{flex-direction:column}
+  .hero-search-btn{width:100%;padding:14px 24px}
+  .parcel-inputs{grid-template-columns:1fr;gap:10px}
+  .hero-trust-bar{gap:12px;font-size:0.8125rem}
+  .investor-cards{grid-template-columns:1fr;gap:10px}
+  .investor-section{padding:60px 0}
+  .approach-grid{grid-template-columns:1fr;gap:20px}
 }
 @media(max-width:480px){
   .container{padding:0 16px}
   .hero{padding:100px 0 64px}
   .capture-form input,.capture-form select{width:100%}
+  .search-input-wrap input[type="text"]{font-size:1rem;padding:14px 14px 14px 42px}
+  .hero-search-btn{font-size:1rem}
+  .investor-card-number{font-size:1.5rem}
+  .approach-card{padding:24px 16px}
 }
 
 /* Reduced motion */
@@ -305,9 +361,52 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
             <div class="hero-badge fade-in">🏠 Texas, Georgia &amp; Washington Property Tax Appeals — <span>No Upfront Cost</span></div>
             <h1 class="fade-in">Stop Overpaying<br><em>Property Taxes</em></h1>
             <p class="hero-sub fade-in">OverAssessed fights to lower your property tax bill. You pay nothing unless we save you money — fees as low as 20% of your savings.</p>
-            <div class="hero-cta-wrap fade-in">
-                <button class="btn-primary" onclick="scrollToIntake()">Get Your Free Analysis →</button>
-                <span class="hero-note">Takes less than 2 minutes · No commitment</span>
+
+            <!-- Instant Savings Estimator -->
+            <div class="hero-search-wrap fade-in">
+                <div class="search-tabs">
+                    <button class="search-tab active" onclick="switchSearchTab('address')">Address</button>
+                    <button class="search-tab" onclick="switchSearchTab('parcel')">Parcel Number</button>
+                </div>
+
+                <!-- Address Search Tab -->
+                <div id="addressSearchTab" class="search-tab-content active">
+                    <form class="hero-search-form" onsubmit="handleHeroSearch(event)">
+                        <div class="search-input-wrap">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2C7.24 2 5 4.24 5 7C5 10.5 10 16 10 16C10 16 15 10.5 15 7C15 4.24 12.76 2 10 2ZM10 9C8.9 9 8 8.1 8 7C8 5.9 8.9 5 10 5C11.1 5 12 5.9 12 7C12 8.1 11.1 9 10 9Z" fill="#86868b"/></svg>
+                            <input type="text" id="heroAddressInput" placeholder="Enter your property address" required>
+                            <button type="submit" class="hero-search-btn">Check My Savings →</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Parcel Number Search Tab -->
+                <div id="parcelSearchTab" class="search-tab-content">
+                    <form class="hero-search-form" onsubmit="handleHeroSearch(event)">
+                        <div class="parcel-inputs">
+                            <select id="parcelState" required>
+                                <option value="">State *</option>
+                                <option value="TX">Texas</option>
+                                <option value="GA">Georgia</option>
+                                <option value="WA">Washington</option>
+                            </select>
+                            <input type="text" id="parcelCounty" placeholder="County *" required>
+                            <input type="text" id="parcelNumber" placeholder="Parcel Number *" required>
+                        </div>
+                        <button type="submit" class="hero-search-btn-full">Check My Savings →</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Trust Bar -->
+            <div class="hero-trust-bar fade-in">
+                <span>✓ Trusted by Texas, Georgia &amp; Washington homeowners</span>
+                <span>✓ No upfront cost</span>
+                <span>✓ Only pay if you save</span>
+            </div>
+
+            <div class="hero-cta-wrap fade-in" style="margin-top:16px;">
+                <span class="hero-note">Or call us directly:</span>
                 <a href="tel:+18882829165" class="hero-phone">📞 (888) 282-9165</a>
             </div>
         </div>
@@ -318,16 +417,66 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
         <div class="container">
             <div class="stats-grid">
                 <div class="fade-in">
-                    <div class="stat-number" id="savingsCounter">$0</div>
+                    <div class="stat-number" id="savingsCounter">$1,500+</div>
                     <div class="stat-label">Avg. annual savings per homeowner</div>
                 </div>
                 <div class="fade-in fade-in-delay-1">
-                    <div class="stat-number">20%</div>
-                    <div class="stat-label">Of savings in TX — as low as 20%</div>
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Properties analyzed in TX, GA &amp; WA</div>
                 </div>
                 <div class="fade-in fade-in-delay-2">
-                    <div class="stat-number">$0</div>
-                    <div class="stat-label">Upfront cost — pay only if you save</div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">States served — Texas, Georgia, Washington</div>
+                </div>
+                <div class="fade-in fade-in-delay-3">
+                    <div class="stat-number">70%+</div>
+                    <div class="stat-label">Success rate — most protests win</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Real Estate Investor Section -->
+    <section class="investor-section section">
+        <div class="container">
+            <div class="investor-content fade-in">
+                <div class="investor-illustration">
+                    <svg width="180" height="180" viewBox="0 0 180 180" fill="none">
+                        <rect width="180" height="180" rx="20" fill="url(#investorGrad)"/>
+                        <defs><linearGradient id="investorGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:rgba(108,92,231,0.1)"/><stop offset="100%" style="stop-color:rgba(9,132,227,0.1)"/></linearGradient></defs>
+                        <rect x="40" y="50" width="50" height="65" rx="4" fill="none" stroke="#6c5ce7" stroke-width="2"/>
+                        <rect x="44" y="58" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="56" y="58" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="68" y="58" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="44" y="72" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="56" y="72" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="68" y="72" width="8" height="8" rx="1" fill="#6c5ce7" opacity="0.3"/>
+                        <rect x="95" y="40" width="50" height="65" rx="4" fill="none" stroke="#0984e3" stroke-width="2"/>
+                        <rect x="99" y="48" width="8" height="8" rx="1" fill="#0984e3" opacity="0.3"/>
+                        <rect x="111" y="48" width="8" height="8" rx="1" fill="#0984e3" opacity="0.3"/>
+                        <rect x="123" y="48" width="8" height="8" rx="1" fill="#0984e3" opacity="0.3"/>
+                        <path d="M50 125L60 115L70 115L80 125L70 135L60 135L50 125Z" fill="none" stroke="#00b894" stroke-width="2"/>
+                        <circle cx="120" cy="125" r="15" fill="none" stroke="#6c5ce7" stroke-width="2"/>
+                        <path d="M115 125L120 120L125 125L120 130L115 125Z" fill="#6c5ce7" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="investor-text">
+                    <h2>Own Multiple Properties?</h2>
+                    <p>We handle portfolios of any size. Get bulk analysis and maximize savings across all your properties.</p>
+                </div>
+                <div class="investor-cards">
+                    <button class="investor-card fade-in" onclick="handlePortfolioClick('1-4')">
+                        <div class="investor-card-number">1-4</div>
+                        <div class="investor-card-label">Properties</div>
+                    </button>
+                    <button class="investor-card fade-in fade-in-delay-1" onclick="handlePortfolioClick('5-19')">
+                        <div class="investor-card-number">5-19</div>
+                        <div class="investor-card-label">Properties</div>
+                    </button>
+                    <button class="investor-card fade-in fade-in-delay-2" onclick="handlePortfolioClick('20+')">
+                        <div class="investor-card-number">20+</div>
+                        <div class="investor-card-label">Properties</div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -519,6 +668,52 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                     <div class="step-num">4</div>
                     <h3>You Save Money</h3>
                     <p>Sit back while we fight to reduce your property taxes</p>
+                </div>
+            </div>
+
+            <!-- Approaches We Use -->
+            <div class="approach-section">
+                <div class="section-header fade-in" style="margin-top:80px;margin-bottom:48px;">
+                    <h2>Approaches We Consider</h2>
+                    <p>Our tax experts use data-driven methods to develop a strategy that secures the highest savings</p>
+                </div>
+                <div class="approach-grid">
+                    <div class="approach-card fade-in">
+                        <div class="approach-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                <circle cx="24" cy="24" r="20" fill="rgba(108,92,231,0.1)"/>
+                                <path d="M18 28L24 22L30 26" stroke="#6c5ce7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="16" y="28" width="4" height="6" rx="1" fill="#6c5ce7" opacity="0.6"/>
+                                <rect x="22" y="24" width="4" height="10" rx="1" fill="#6c5ce7"/>
+                                <rect x="28" y="26" width="4" height="8" rx="1" fill="#6c5ce7" opacity="0.6"/>
+                            </svg>
+                        </div>
+                        <h3>Sales Comparison Approach</h3>
+                        <p>We analyze recent comparable sales to prove your property is overvalued relative to market data</p>
+                    </div>
+                    <div class="approach-card fade-in fade-in-delay-1">
+                        <div class="approach-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                <circle cx="24" cy="24" r="20" fill="rgba(9,132,227,0.1)"/>
+                                <path d="M24 14V34M16 24H32" stroke="#0984e3" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="24" cy="24" r="9" stroke="#0984e3" stroke-width="2.5" fill="none"/>
+                            </svg>
+                        </div>
+                        <h3>Income Approach</h3>
+                        <p>For rental/commercial properties, we use income data to determine the present worth of future benefits</p>
+                    </div>
+                    <div class="approach-card fade-in fade-in-delay-2">
+                        <div class="approach-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                <circle cx="24" cy="24" r="20" fill="rgba(0,184,148,0.1)"/>
+                                <path d="M14 24L20 30L34 16" stroke="#00b894" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="18" y="12" width="12" height="3" rx="1.5" fill="#00b894" opacity="0.4"/>
+                                <rect x="18" y="33" width="12" height="3" rx="1.5" fill="#00b894" opacity="0.4"/>
+                            </svg>
+                        </div>
+                        <h3>Equity Approach</h3>
+                        <p>We compare your assessment to similar properties to identify and challenge unfair valuations</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -840,6 +1035,71 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
 
     <!-- Inline form handlers (keep all functionality) -->
     <script>
+    // ===== NEW FEATURE HANDLERS =====
+
+    // Switch between Address and Parcel search tabs
+    function switchSearchTab(tab) {
+        const tabs = document.querySelectorAll('.search-tab');
+        const contents = document.querySelectorAll('.search-tab-content');
+
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        if (tab === 'address') {
+            tabs[0].classList.add('active');
+            document.getElementById('addressSearchTab').classList.add('active');
+        } else {
+            tabs[1].classList.add('active');
+            document.getElementById('parcelSearchTab').classList.add('active');
+        }
+    }
+
+    // Handle hero search form submission
+    function handleHeroSearch(e) {
+        e.preventDefault();
+
+        // Get the active tab
+        const addressTab = document.getElementById('addressSearchTab');
+        const isAddressSearch = addressTab.classList.contains('active');
+
+        if (isAddressSearch) {
+            const address = document.getElementById('heroAddressInput').value;
+            // Pre-fill the address in the intake form and scroll to it
+            document.getElementById('propertyAddress').value = address;
+        } else {
+            const state = document.getElementById('parcelState').value;
+            const county = document.getElementById('parcelCounty').value;
+            const parcel = document.getElementById('parcelNumber').value;
+            // Pre-fill intake form with parcel info
+            document.getElementById('stateSelect').value = state;
+            const addressField = document.getElementById('propertyAddress');
+            addressField.value = `Parcel: ${parcel}, ${county} County, ${state}`;
+        }
+
+        // Scroll to intake form
+        scrollToIntake();
+    }
+
+    // Handle portfolio size selection
+    let selectedPortfolioSize = null;
+    function handlePortfolioClick(size) {
+        selectedPortfolioSize = size;
+
+        // Add a hidden field to the form if it doesn't exist
+        let hiddenField = document.getElementById('portfolioSize');
+        if (!hiddenField) {
+            hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.id = 'portfolioSize';
+            hiddenField.name = 'portfolioSize';
+            document.getElementById('intakeForm').appendChild(hiddenField);
+        }
+        hiddenField.value = size;
+
+        // Scroll to intake form
+        scrollToIntake();
+    }
+
     // ===== FORM VALIDATION & AUTO-CORRECTION HELPERS =====
     const V = {
         toTitleCase(s) { return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase()); },
@@ -1013,6 +1273,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
             appraisalDate: document.getElementById('appraisalDate') ? document.getElementById('appraisalDate').value : '',
             state: document.getElementById('stateSelect') ? document.getElementById('stateSelect').value : 'TX',
             notificationPref: document.getElementById('notificationPref') ? document.getElementById('notificationPref').value : 'both',
+            portfolioSize: document.getElementById('portfolioSize') ? document.getElementById('portfolioSize').value : '',
             source: 'website-intake'
         };
 
