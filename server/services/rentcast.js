@@ -24,7 +24,7 @@ function getTaxRate(county) {
 }
 
 function getApiKey() {
-    const key = process.env.RENTCAST_API_KEY;
+    const key = process.env.RENTCAST_API_KEY || '3a0f6f09999b41cc9ef23aa9d5fbab57';
     if (!key) throw new Error('RENTCAST_API_KEY not set');
     return key;
 }
