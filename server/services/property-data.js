@@ -4,6 +4,7 @@
  * Adapter pattern for adding Harris, Travis, etc.
  */
 
+const path = require('path');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
