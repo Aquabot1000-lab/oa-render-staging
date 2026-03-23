@@ -410,23 +410,25 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
         </div>
     </header>
 <!-- LOGIN -->
-<div class="login-screen" id="loginScreen">
+<div class="login-screen" id="loginScreen" style="padding-top: 120px; min-height: 100vh;">
     <div class="login-box">
-        <div class="logo">OverAssessed</div>
-        <p class="subtitle">Client Portal</p>
-        <div class="login-error" id="loginError">Invalid email or case ID</div>
-        <input type="email" id="loginEmail" placeholder="Email address">
-        <input type="text" id="loginCaseId" placeholder="Case ID (e.g. OA-0001)" style="text-transform: uppercase;">
-        <button onclick="doPortalLogin()">Sign In</button>
-        <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">Your case ID was sent to your email after signup.</p>
+        <h2 style="text-align:center;font-size:1.75rem;font-weight:700;margin-bottom:4px;">Client Portal</h2>
+        <p class="subtitle" style="text-align:center;color:var(--text-secondary);margin-bottom:24px;">Log in to track your property tax appeal</p>
+        <div class="login-error" id="loginError" style="display:none; color:#e17055; font-size:0.875rem; text-align:center; margin-bottom:12px;">Invalid email or case ID</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <input type="email" id="loginEmail" placeholder="Email address" style="padding:14px 16px;border:1px solid rgba(0,0,0,0.12);border-radius:10px;font-size:0.9375rem;font-family:var(--font);outline:none;transition:all 0.3s;width:100%;" onfocus="this.style.borderColor='var(--primary)';this.style.boxShadow='0 0 0 3px rgba(108,92,231,0.12)'" onblur="this.style.borderColor='rgba(0,0,0,0.12)';this.style.boxShadow='none'">
+            <input type="text" id="loginCaseId" placeholder="CASE ID (E.G. OA-000)" style="padding:14px 16px;border:1px solid rgba(0,0,0,0.12);border-radius:10px;font-size:0.9375rem;font-family:var(--font);outline:none;text-transform:uppercase;transition:all 0.3s;width:100%;" onfocus="this.style.borderColor='var(--primary)';this.style.boxShadow='0 0 0 3px rgba(108,92,231,0.12)'" onblur="this.style.borderColor='rgba(0,0,0,0.12)';this.style.boxShadow='none'">
+            <button onclick="doPortalLogin()" class="submit-btn" style="width:100%;">Sign In</button>
+        </div>
+        <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); text-align:center;">Your case ID was sent to your email after signup.</p>
     </div>
 </div>
 
 <!-- DASHBOARD -->
-<div class="dashboard" id="dashboard">
-    <div class="portal-header">
-        <h1>OverAssessed <span>Client Portal</span></h1>
-        <button onclick="doLogout()">Sign Out</button>
+<div class="dashboard container" id="dashboard" style="display:none; padding-top: 100px; padding-bottom: 40px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+        <h1 style="font-size:1.75rem; font-weight:700; letter-spacing:-0.03em;">Client Portal</h1>
+        <button onclick="doLogout()" style="background:var(--bg-alt); border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:8px 20px; font-size:0.875rem; font-weight:500; cursor:pointer; font-family:var(--font); transition:all 0.3s;">Sign Out</button>
     </div>
 
     <div class="main">
@@ -481,15 +483,25 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
         </div>
 
         <!-- Upload Notice -->
-        <div class="card">
+        <div class="card" style="margin-top:16px;">
             <h3>📄 Notice of Appraised Value</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Upload your Notice of Appraised Value letter when you receive it. This contains your PIN number needed for filing.</p>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Upload your Notice of Appraised Value letter when you receive it. This contains your PIN number needed for filing.</p>
+            <div style="background:#f0f7ff; border:1px solid #d0e3ff; border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:0.85rem; color:var(--text-secondary);">
+                <strong style="color:var(--text);">📋 What to upload:</strong>
+                <ul style="margin:6px 0 0 16px; list-style:disc; line-height:1.7;">
+                    <li><strong>Notice of Appraised Value</strong> — the letter your county appraisal district mails you (usually mid-April in TX)</li>
+                    <li><strong>Property tax bill</strong> — your most recent annual tax statement</li>
+                    <li><strong>Photos of property issues</strong> — foundation cracks, roof damage, flooding, or any condition that affects value</li>
+                    <li><strong>Recent appraisal or inspection reports</strong> — if you have one from a purchase or refinance</li>
+                </ul>
+                <p style="margin-top:8px; font-style:italic;">Don't have your notice yet? No problem — upload it when it arrives.</p>
+            </div>
             <div id="noticeUploadArea">
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('noticeFile').click()">
-                    <input type="file" id="noticeFile" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadNotice()">
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('noticeFile').click()" style="border:2px dashed rgba(108,92,231,0.3); border-radius:var(--radius-lg); padding:32px; text-align:center; cursor:pointer; transition:all 0.3s; background:var(--bg-alt);">
+                    <input type="file" id="noticeFile" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadNotice()" style="display:none;">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">📎</div>
-                    <div style="font-weight: 600;">Click to upload your Notice</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">PDF, JPG, or PNG (max 10MB)</div>
+                    <div style="font-weight: 600;">Click to upload your documents</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">PDF, JPG, or PNG (max 10MB)</div>
                 </div>
             </div>
             <div id="noticeUploaded" style="display: none;">
