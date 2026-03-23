@@ -640,7 +640,16 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                     </div>
                     <div class="fg"><label for="documents">Upload Supporting Documents (optional)</label>
                         <input type="file" id="documents" name="documents" multiple="" accept=".pdf,.jpg,.jpeg,.png" style="padding:10px;border:2px dashed #e2e8f0;border-radius:var(--radius);cursor:pointer;background:#f8f9ff">
-                        <span style="font-size:.75rem;color:var(--muted)">PDF, JPG, or PNG — up to 10 files</span>
+                        <div id="uploadHints" style="font-size:.8rem;color:var(--text-secondary);margin-top:6px;padding:10px;background:#f0f7ff;border-radius:8px;border:1px solid #d0e3ff">
+                            <strong>What to upload:</strong>
+                            <ul style="margin:4px 0 0 16px;list-style:disc">
+                                <li><strong>Homestead:</strong> Copy of your driver's license or state ID (showing property address)</li>
+                                <li><strong>Over-65:</strong> Copy of driver's license or state ID (showing date of birth)</li>
+                                <li><strong>Disability:</strong> Doctor's statement or Social Security disability determination letter</li>
+                                <li><strong>Veteran:</strong> VA disability rating letter (DD-214 if applicable)</li>
+                            </ul>
+                            <p style="margin-top:4px;font-style:italic">Don't have these handy? No worries — submit now and we'll follow up with what's needed.</p>
+                        </div>
                     </div>
                     <div class="fg"><label for="currentExemptions">Additional Notes</label><textarea id="currentExemptions" placeholder="Anything else we should know..."></textarea></div>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.9rem;padding:12px;background:#f0f7ff;border-radius:var(--radius);border:1px solid #d0e3ff">
