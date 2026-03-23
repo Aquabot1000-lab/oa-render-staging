@@ -848,6 +848,9 @@ async function loadSubmissions() {
             submissions = [];
         }
         renderSubmissionsTable();
+        renderSignatures();
+        renderNotices();
+        if (typeof renderRevenue === 'function') renderRevenue();
     } catch (e) {
         console.error('loadSubmissions error:', e);
         // Show error in UI
