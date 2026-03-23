@@ -359,7 +359,7 @@ function setupConversationRelay(app, httpServer, twilioClient, sgMail) {
             url: `wss://${req.headers.host}/ws/conversation`,
             ttsProvider: 'ElevenLabs',
             voice: ELEVENLABS_VOICE_ID,
-            welcomeGreeting: 'Thank you for calling OverAssessed, property tax protest experts! My name is Sarah. How can I help you today?',
+            welcomeGreeting: 'Thank you for calling OverAssessed! We help Texas homeowners lower their property tax assessments. My name is Sarah — are you looking to protest your property taxes?',
             welcomeGreetingInterruptible: 'speech',
             transcriptionProvider: 'Deepgram',
             speechModel: 'nova-3-general',
@@ -474,7 +474,7 @@ function setupConversationRelay(app, httpServer, twilioClient, sgMail) {
                     state = {
                         messages: [{
                             role: 'assistant',
-                            content: 'Thank you for calling OverAssessed, property tax protest experts! My name is Sarah. How can I help you today?'
+                            content: 'Thank you for calling OverAssessed! We help Texas homeowners lower their property tax assessments. My name is Sarah — are you looking to protest your property taxes?'
                         }],
                         callerInfo: { phone: callerNumber },
                         startTime: Date.now(),
