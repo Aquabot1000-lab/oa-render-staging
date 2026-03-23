@@ -1,6 +1,6 @@
 /**
  * Property Data Fetcher — pulls data from Texas county appraisal district websites.
- * Primary: Bexar County (BCAD) via TrueAutomation
+ * Primary: Bexar County (BCAD) via BIS e-search (esearch.bcad.org)
  * Adapter pattern for adding Harris, Travis, etc.
  */
 
@@ -61,74 +61,138 @@ function getAdapter(county) {
     return countyAdapters[(county || 'bexar').toLowerCase()] || null;
 }
 
-// ===== BEXAR COUNTY (BCAD) — TrueAutomation =====
+// ===== BEXAR COUNTY (BCAD) — BIS e-search (esearch.bcad.org) =====
+// Migrated from TrueAutomation (dead) to BIS platform 2026-03-23
 const bcadAdapter = {
     name: 'Bexar County Appraisal District',
     code: 'BCAD',
-    baseUrl: 'https://bexar.trueautomation.com/clientdb',
+    baseUrl: 'https://esearch.bcad.org',
 
+    // ─── BIS SESSION MANAGEMENT ────────────────────────────────────
+    // The BIS platform requires: (1) session cookies, (2) a search session token,
+    // (3) loading the result page to get a search-token meta tag, then (4) POST for JSON.
+    async _createSession() {
+        const client = axios.create({
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            timeout: 20000
+        });
+
+        // Get session cookies
+        const homeRes = await client.get(this.baseUrl);
+        const cookies = (homeRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+
+        // Get search session token (no reCAPTCHA needed)
+        const tokenRes = await client.get(this.baseUrl + '/search/requestSessionToken', {
+            headers: { Cookie: cookies }
+        });
+        const searchSessionToken = tokenRes.data.searchSessionToken;
+
+        return { client, cookies, searchSessionToken };
+    },
+
+    async _bisSearch(keywords, session) {
+        const { client, cookies, searchSessionToken } = session || await this._createSession();
+
+        // Load the result page to establish search context + get search-token meta
+        const resultPageUrl = `${this.baseUrl}/search/result?keywords=${encodeURIComponent(keywords)}&searchSessionToken=${encodeURIComponent(searchSessionToken)}`;
+        const resultPageRes = await client.get(resultPageUrl, {
+            headers: { Cookie: cookies, Accept: 'text/html' }
+        });
+
+        const $ = cheerio.load(resultPageRes.data);
+        const searchToken = $('meta[name="search-token"]').attr('content');
+
+        // Merge cookies
+        const newCookies = (resultPageRes.headers['set-cookie'] || []).map(c => c.split(';')[0]);
+        const allCookies = [...new Set([...newCookies, ...cookies.split('; ')])].join('; ');
+
+        // POST for JSON results
+        const postData = { page: 1, pageSize: 50, isArb: false, recaptchaToken: '' };
+        if (searchToken) postData.searchToken = searchToken;
+
+        const apiUrl = `${this.baseUrl}/search/SearchResults?keywords=${encodeURIComponent(keywords)}`;
+        const apiRes = await client.post(apiUrl, postData, {
+            headers: {
+                Cookie: allCookies,
+                'Content-Type': 'application/json',
+                Accept: 'application/json, text/javascript, */*; q=0.01',
+                Referer: resultPageUrl
+            }
+        });
+
+        if (apiRes.data && apiRes.data.resultsList) {
+            return { data: apiRes.data, client, cookies: allCookies };
+        }
+        return { data: null, client, cookies: allCookies };
+    },
+
+    // ─── IMPROVEMENT DETAILS (sqft, yearBuilt, etc.) ───────────────
+    async _getImprovements(propertyId, year, client, cookies) {
+        try {
+            const url = `${this.baseUrl}/Property/GetImprovements?propertyId=${propertyId}&year=${year}&hideValue=false`;
+            const res = await client.get(url, { headers: { Cookie: cookies } });
+            if (typeof res.data !== 'string') return {};
+
+            const $ = cheerio.load(res.data);
+            let sqft = 0;
+            let yearBuilt = null;
+
+            // Parse improvement rows: Type | Description | Class CD | Year Built | SQFT
+            $('table tr, tr').each((i, row) => {
+                const cells = $(row).find('td');
+                if (cells.length < 5) return;
+                const type = cells.eq(0).text().trim().toUpperCase();
+                const yrText = cells.eq(3).text().trim();
+                const sqftText = cells.eq(4).text().trim();
+                const yr = parseInt(yrText);
+                const sf = parseInt(sqftText.replace(/,/g, ''));
+
+                // LA = Living Area (main sqft), AG = Attached Garage (exclude from living area)
+                if (type === 'LA' && sf > 0) sqft += sf;
+                if (yr > 1800 && yr < 2100 && (!yearBuilt || yr < yearBuilt)) yearBuilt = yr;
+            });
+
+            return { sqft: sqft || null, yearBuilt };
+        } catch (err) {
+            console.error(`[BCAD] GetImprovements failed for ${propertyId}:`, err.message);
+            return {};
+        }
+    },
+
+    // ─── PUBLIC API ────────────────────────────────────────────────
     async searchByAddress(address) {
         try {
-            // TrueAutomation search
-            const searchUrl = `${this.baseUrl}/PropertySearch.aspx`;
+            const { streetNumber, streetName } = this._parseAddress(address);
+            if (!streetName) return [];
 
-            // First GET to grab viewstate/session
-            const sessionRes = await axios.get(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                timeout: 15000
-            });
+            const currentYear = new Date().getFullYear();
+            let keywords = `StreetName:${streetName} Year:${currentYear}`;
+            if (streetNumber) keywords = `StreetNumber:${streetNumber} ${keywords}`;
 
-            const $ = cheerio.load(sessionRes.data);
-            const viewState = $('input[name="__VIEWSTATE"]').val() || '';
-            const viewStateGen = $('input[name="__VIEWSTATEGENERATOR"]').val() || '';
-            const eventValidation = $('input[name="__EVENTVALIDATION"]').val() || '';
-            const cookies = (sessionRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+            console.log(`[BCAD] BIS search: ${keywords}`);
+            const { data } = await this._bisSearch(keywords);
+            if (!data || !data.resultsList) return [];
 
-            // POST search form
-            const formData = new URLSearchParams();
-            formData.append('__VIEWSTATE', viewState);
-            formData.append('__VIEWSTATEGENERATOR', viewStateGen);
-            formData.append('__EVENTVALIDATION', eventValidation);
-            formData.append('ctl00$ContentPlaceHolder1$TextBox_StreetName', this._extractStreetName(address));
-            formData.append('ctl00$ContentPlaceHolder1$Button_Search', 'Search');
-
-            const searchRes = await axios.post(searchUrl, formData.toString(), {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Cookie': cookies,
-                    'Referer': searchUrl
-                },
-                maxRedirects: 5,
-                timeout: 15000
-            });
-
-            const $results = cheerio.load(searchRes.data);
-            const properties = [];
-
-            // Parse search results table
-            $results('table.SearchResults tr, table#searchResults tr, tr.SearchResults').each((i, row) => {
-                if (i === 0) return; // skip header
-                const cells = $results(row).find('td');
-                if (cells.length >= 3) {
-                    const link = $results(row).find('a');
-                    const href = link.attr('href') || '';
-                    const accountId = link.text().trim() || cells.eq(0).text().trim();
-                    const propAddress = cells.eq(1).text().trim();
-                    const ownerName = cells.eq(2).text().trim();
-
-                    if (accountId) {
-                        properties.push({
-                            accountId,
-                            address: propAddress,
-                            ownerName,
-                            detailUrl: href ? `${this.baseUrl}/${href}` : null
-                        });
-                    }
-                }
-            });
-
-            return properties;
+            console.log(`[BCAD] Found ${data.totalResults} results`);
+            return data.resultsList.map(r => ({
+                accountId: r.propertyId,
+                geoId: r.geoId,
+                address: r.address,
+                ownerName: r.ownerName,
+                propertyType: r.propertyType === 'R' ? 'Single Family Home' : r.propertyType,
+                neighborhoodCode: r.neighborhoodCode,
+                assessedValue: r.appraisedValue,
+                legalDescription: r.legalDescription,
+                subdivision: r.subdivision,
+                detailUrl: r.detailUrl ? `${this.baseUrl}${r.detailUrl}` : null,
+                _bisPropertyId: r.propertyId, // internal ID for improvement lookups
+                _bisYear: currentYear
+            }));
         } catch (error) {
             console.error('[BCAD] Search failed:', error.message);
             return [];
@@ -137,39 +201,52 @@ const bcadAdapter = {
 
     async getPropertyDetails(accountIdOrUrl) {
         try {
-            let url = accountIdOrUrl;
-            if (!url.startsWith('http')) {
-                url = `${this.baseUrl}/Property.aspx?cid=110&prop_id=${accountIdOrUrl}`;
+            // If it's a BIS property ID (numeric), search for it
+            const propertyId = typeof accountIdOrUrl === 'string' && accountIdOrUrl.match(/^\d+$/)
+                ? accountIdOrUrl
+                : (accountIdOrUrl.match(/Id=(\d+)/) || [])[1] || accountIdOrUrl;
+
+            const currentYear = new Date().getFullYear();
+            const session = await this._createSession();
+
+            // Search for this specific property
+            const keywords = `PropertyId:${propertyId} Year:${currentYear}`;
+            const { data, client, cookies } = await this._bisSearch(keywords, session);
+
+            if (!data || !data.resultsList || data.resultsList.length === 0) {
+                console.error(`[BCAD] No results for property ID ${propertyId}`);
+                return null;
             }
 
-            const res = await axios.get(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                timeout: 15000
-            });
+            const r = data.resultsList[0];
 
-            const $ = cheerio.load(res.data);
-            const data = {
+            // Get improvement details (sqft, yearBuilt)
+            const improvements = await this._getImprovements(r.propertyId, currentYear, client, cookies);
+
+            // Estimate land/improvement split from appraisedValue if not available
+            const assessed = r.appraisedValue || 0;
+
+            return {
                 source: 'BCAD',
                 fetchedAt: new Date().toISOString(),
-                accountId: this._getText($, 'Account', 'Prop ID', 'Property ID'),
-                ownerName: this._getText($, 'Owner Name', 'Owner'),
-                address: this._getText($, 'Property Address', 'Address', 'Situs'),
-                legalDescription: this._getText($, 'Legal Description', 'Legal'),
-                propertyType: normalizePropertyType(this._getText($, 'Property Type', 'Type', 'Improvement Type', 'State Category')),
-                neighborhoodCode: this._getText($, 'Neighborhood', 'Nbhd', 'Map ID'),
-                sqft: this._getNumeric($, 'Living Area', 'Square Feet', 'SqFt', 'Total Living Area', 'Heated Area'),
-                yearBuilt: this._getNumeric($, 'Year Built', 'Yr Built', 'Year Blt'),
-                bedrooms: this._getNumeric($, 'Bedrooms', 'Beds'),
-                bathrooms: this._getNumeric($, 'Bathrooms', 'Baths', 'Full Baths'),
-                lotSize: this._getNumeric($, 'Lot Size', 'Land Area', 'Acres', 'Land SqFt'),
-                assessedValue: this._getNumeric($, 'Appraised Value', 'Total Value', 'Market Value', 'Assessed Value'),
-                landValue: this._getNumeric($, 'Land Value', 'Land Appraised'),
-                improvementValue: this._getNumeric($, 'Improvement Value', 'Impr Value', 'Impr Appraised'),
-                exemptions: this._getText($, 'Exemptions', 'Exemption'),
-                valueHistory: this._parseValueHistory($)
+                accountId: r.propertyId,
+                geoId: r.geoId,
+                ownerName: r.ownerName,
+                address: r.address,
+                legalDescription: r.legalDescription,
+                propertyType: normalizePropertyType(r.propertyType === 'R' ? 'Single Family Home' : r.propertyType),
+                neighborhoodCode: r.neighborhoodCode,
+                sqft: improvements.sqft || null,
+                yearBuilt: improvements.yearBuilt || null,
+                bedrooms: null, // BIS doesn't expose bed/bath in search
+                bathrooms: null,
+                lotSize: null,
+                assessedValue: assessed,
+                landValue: null, // Would need separate /Property/GetValues call
+                improvementValue: null,
+                exemptions: null,
+                valueHistory: null
             };
-
-            return data;
         } catch (error) {
             console.error('[BCAD] Detail fetch failed:', error.message);
             return null;
@@ -177,27 +254,78 @@ const bcadAdapter = {
     },
 
     async searchComparables(subject, options = {}) {
-        // Try to search neighborhood for similar properties
         try {
-            const street = this._extractStreetName(subject.address || '');
-            if (!street) return [];
+            console.log(`[BCAD] Searching BIS for comps near: ${subject.address}`);
+            const { streetNumber, streetName } = this._parseAddress(subject.address || '');
+            if (!streetName) return [];
 
-            // Search the same street/area
-            const results = await this.searchByAddress(street);
-            const details = [];
+            const currentYear = new Date().getFullYear();
+            const session = await this._createSession();
 
-            // Fetch details for up to 20 results
-            for (const prop of results.slice(0, 20)) {
-                if (prop.detailUrl) {
-                    const detail = await this.getPropertyDetails(prop.detailUrl);
-                    if (detail && detail.assessedValue) {
-                        details.push(detail);
+            // Strategy 1: Search same street (best neighborhood match)
+            const streetKeywords = `StreetName:${streetName} Year:${currentYear}`;
+            const { data: streetData, client, cookies } = await this._bisSearch(streetKeywords, session);
+            
+            let allResults = [];
+            if (streetData && streetData.resultsList) {
+                allResults = streetData.resultsList.filter(r => 
+                    r.propertyType === 'R' && r.appraisedValue > 20000 &&
+                    r.propertyId !== (subject.accountId || subject._bisPropertyId)
+                );
+                console.log(`[BCAD] Street search: ${allResults.length} residential results`);
+            }
+
+            // Strategy 2: If not enough comps, search by neighborhood code
+            if (allResults.length < 10 && subject.neighborhoodCode) {
+                try {
+                    const nbhdKeywords = `Neighborhood:${subject.neighborhoodCode} Year:${currentYear}`;
+                    const { data: nbhdData } = await this._bisSearch(nbhdKeywords, session);
+                    if (nbhdData && nbhdData.resultsList) {
+                        const existingIds = new Set(allResults.map(r => r.propertyId));
+                        const nbhdResults = nbhdData.resultsList.filter(r =>
+                            r.propertyType === 'R' && r.appraisedValue > 20000 &&
+                            !existingIds.has(r.propertyId) &&
+                            r.propertyId !== (subject.accountId || subject._bisPropertyId)
+                        );
+                        allResults = allResults.concat(nbhdResults);
+                        console.log(`[BCAD] + ${nbhdResults.length} from neighborhood ${subject.neighborhoodCode}`);
                     }
-                    // Be polite to the server
-                    await new Promise(r => setTimeout(r, 500));
+                } catch (err) {
+                    console.log(`[BCAD] Neighborhood search failed: ${err.message}`);
                 }
             }
 
+            // Get improvement details for each comp (sqft + yearBuilt)
+            const details = [];
+            const limit = Math.min(allResults.length, options.limit || 30);
+            for (let i = 0; i < limit; i++) {
+                const r = allResults[i];
+                const improvements = await this._getImprovements(r.propertyId, currentYear, client, cookies);
+                
+                details.push({
+                    source: 'BCAD',
+                    accountId: r.propertyId,
+                    address: r.address,
+                    ownerName: r.ownerName,
+                    propertyType: normalizePropertyType('Single Family Home'),
+                    neighborhoodCode: r.neighborhoodCode,
+                    sqft: improvements.sqft || null,
+                    yearBuilt: improvements.yearBuilt || null,
+                    bedrooms: null,
+                    bathrooms: null,
+                    lotSize: null,
+                    assessedValue: r.appraisedValue,
+                    landValue: null,
+                    improvementValue: null,
+                    legalDescription: r.legalDescription,
+                    subdivision: r.subdivision
+                });
+
+                // Be polite — 200ms between improvement lookups
+                if (i < limit - 1) await new Promise(r => setTimeout(r, 200));
+            }
+
+            console.log(`[BCAD] ✅ Returning ${details.length} real comps with improvement data`);
             return details;
         } catch (error) {
             console.error('[BCAD] Comp search failed:', error.message);
@@ -206,64 +334,16 @@ const bcadAdapter = {
     },
 
     // ===== HELPERS =====
-    _extractStreetName(address) {
-        // "1234 Main St, San Antonio TX 78201" → "Main"
+    _parseAddress(address) {
         const cleaned = (address || '').replace(/,.*$/, '').trim();
         const parts = cleaned.split(/\s+/);
-        // Remove house number (first part if numeric)
-        if (parts.length > 1 && /^\d+$/.test(parts[0])) parts.shift();
-        // Remove suffix (St, Dr, Ln, etc.)
-        const suffixes = ['st', 'street', 'dr', 'drive', 'ln', 'lane', 'ct', 'court', 'blvd', 'ave', 'avenue', 'rd', 'road', 'way', 'pl', 'place', 'cir', 'circle', 'pkwy', 'parkway'];
-        if (parts.length > 1 && suffixes.includes(parts[parts.length - 1].toLowerCase())) parts.pop();
-        return parts.join(' ');
-    },
-
-    _getText($, ...labels) {
-        for (const label of labels) {
-            // Try finding by label text in td, th, span, label
-            const found = $(`td, th, span, label, div`).filter(function () {
-                return $(this).text().trim().toLowerCase().includes(label.toLowerCase());
-            });
-            if (found.length) {
-                const next = found.first().next();
-                const text = next.text().trim();
-                if (text && text !== label) return text;
-                // Try parent's next sibling
-                const parentNext = found.first().parent().next();
-                const pText = parentNext.text().trim();
-                if (pText) return pText;
-            }
+        let streetNumber = '';
+        if (parts.length > 1 && /^\d+$/.test(parts[0])) {
+            streetNumber = parts.shift();
         }
-        return null;
-    },
-
-    _getNumeric($, ...labels) {
-        const text = this._getText($, ...labels);
-        if (!text) return null;
-        const num = parseFloat(text.replace(/[$,\s]/g, ''));
-        return isNaN(num) ? null : num;
-    },
-
-    _parseValueHistory($) {
-        const history = [];
-        // Look for value history table
-        $('table').each((_, table) => {
-            const headerText = $(table).find('th, td').first().text().toLowerCase();
-            if (headerText.includes('year') || headerText.includes('history')) {
-                $(table).find('tr').each((i, row) => {
-                    if (i === 0) return;
-                    const cells = $(row).find('td');
-                    if (cells.length >= 2) {
-                        const year = parseInt(cells.eq(0).text().trim());
-                        const value = parseFloat(cells.eq(1).text().replace(/[$,]/g, ''));
-                        if (year && value) {
-                            history.push({ year, value });
-                        }
-                    }
-                });
-            }
-        });
-        return history.length ? history : null;
+        // Keep the full street name including suffix for BIS
+        const streetName = parts.join(' ');
+        return { streetNumber, streetName };
     }
 };
 
