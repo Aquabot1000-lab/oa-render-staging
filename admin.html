@@ -1845,8 +1845,7 @@ async function viewFiling(id) {
 // Load filings when tab is switched
 const origSwitchTab = window.switchTab || function(){};
 const _origSwitchTab = typeof switchTab === 'function' ? switchTab : null;
-</script>
-<script>
+
 // Patch switchTab to load filings + archived
 const _baseSwitchTab = switchTab;
 window.switchTab = function(tab) {
