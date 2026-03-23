@@ -678,9 +678,25 @@
             <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
                 <select id="filingsCountyFilter" onchange="filterFilings()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;">
                     <option value="">All Counties</option>
-                    <option value="bexar">Bexar</option><option value="harris">Harris</option>
-                    <option value="travis">Travis</option><option value="dallas">Dallas</option>
-                    <option value="tarrant">Tarrant</option><option value="fulton">Fulton</option>
+                    <optgroup label="Texas">
+                    <option value="bexar">Bexar</option><option value="collin">Collin</option>
+                    <option value="comal">Comal</option><option value="dallas">Dallas</option>
+                    <option value="denton">Denton</option><option value="el paso">El Paso</option>
+                    <option value="fort bend">Fort Bend</option><option value="guadalupe">Guadalupe</option>
+                    <option value="harris">Harris</option><option value="hays">Hays</option>
+                    <option value="hidalgo">Hidalgo</option><option value="hunt">Hunt</option>
+                    <option value="kaufman">Kaufman</option><option value="montgomery">Montgomery</option>
+                    <option value="tarrant">Tarrant</option><option value="travis">Travis</option>
+                    <option value="williamson">Williamson</option>
+                    </optgroup>
+                    <optgroup label="Georgia">
+                    <option value="fulton">Fulton</option><option value="dekalb">DeKalb</option>
+                    <option value="cobb">Cobb</option><option value="gwinnett">Gwinnett</option>
+                    </optgroup>
+                    <optgroup label="Washington">
+                    <option value="king">King</option><option value="pierce">Pierce</option>
+                    <option value="snohomish">Snohomish</option><option value="clark">Clark</option>
+                    </optgroup>
                 </select>
                 <select id="filingsStatusFilter" onchange="filterFilings()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;">
                     <option value="">All Statuses</option>
