@@ -131,7 +131,7 @@ async function* streamClaude(messages) {
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'claude-3-5-haiku-latest',
+                model: 'claude-3-5-haiku-20241022',
                 max_tokens: 200,
                 stream: true,
                 system: SYSTEM_PROMPT,
@@ -205,7 +205,7 @@ async function callClaude(messages) {
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'claude-3-5-haiku-latest',
+                model: 'claude-3-5-haiku-20241022',
                 max_tokens: 200,
                 system: SYSTEM_PROMPT,
                 messages: anthropicMessages

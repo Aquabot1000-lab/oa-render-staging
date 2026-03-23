@@ -39,7 +39,7 @@ async function checkAllPendingOutcomes() {
     const { data: appeals, error } = await supabaseAdmin
         .from('appeals')
         .select('*, properties(address, city, state, county, current_assessed_value, property_id_county), clients(name, email)')
-        .in('status', ['hearing_scheduled', 'informal_hearing', 'formal_hearing', 'awaiting_result'])
+        .in('status', ['hearing_scheduled', 'hearing_complete', 'filed'])
         .order('hearing_date', { ascending: true });
 
     if (error) {
