@@ -788,6 +788,13 @@ function showDashboard() {
     loadAll();
 }
 
+// Reload data when tab becomes visible again (prevents stale/blank dashboard)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && token && !isTokenExpired(token)) {
+        loadAll();
+    }
+});
+
 function authHeaders() { return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }; }
 
 // ===== TABS =====
@@ -799,7 +806,7 @@ function switchTab(name) {
 }
 
 // ===== DATA LOADING =====
-async function loadAll() {
+async function loadAll(retryCount = 0) {
     // Show loading state
     const recentBody = document.getElementById('recentBody');
     if (recentBody) recentBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#86868b;">Loading cases...</td></tr>';
@@ -808,6 +815,12 @@ async function loadAll() {
         await Promise.all([loadSubmissions(), loadPipelineStats(), loadFollowUpsDue()]);
     } catch (e) {
         console.error('loadAll error:', e);
+        // Auto-retry up to 3 times with increasing delay (Railway cold starts)
+        if (retryCount < 3) {
+            console.log(`Retrying loadAll (attempt ${retryCount + 2}/4)...`);
+            setTimeout(() => loadAll(retryCount + 1), (retryCount + 1) * 2000);
+            return;
+        }
     }
     
     // Filter out soft-deleted from main list
@@ -822,6 +835,10 @@ async function loadAll() {
     loadMonitoring();
     loadPreRegistrations();
     loadArchived();
+    
+    // Auto-refresh every 5 minutes to keep dashboard current
+    clearTimeout(window._refreshTimer);
+    window._refreshTimer = setTimeout(() => loadAll(), 5 * 60 * 1000);
 }
 
 async function loadPipelineStats() {
