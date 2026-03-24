@@ -7,6 +7,7 @@
 const path = require('path');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { getCountyData, initAllCounties } = require('./local-parcel-data');
 
 // ===== PROPERTY TYPE NORMALIZATION =====
 const PROPERTY_TYPE_MAP = {
@@ -166,6 +167,32 @@ const bcadAdapter = {
 
     // ─── PUBLIC API ────────────────────────────────────────────────
     async searchByAddress(address) {
+        // Try local bulk data first (instant, no network dependency)
+        const localData = getCountyData('bexar');
+        if (localData.isLoaded()) {
+            const localResults = localData.searchByAddress(address);
+            if (localResults.length > 0) {
+                console.log(`[BCAD] Local data hit: ${localResults.length} results for "${address}"`);
+                return localResults.map(r => ({
+                    accountId: r.propertyId || r.accountNumber,
+                    address: r.address,
+                    ownerName: r.ownerName,
+                    propertyType: (r.propertyType || 'R') === 'R' ? 'Single Family Home' : r.propertyType,
+                    neighborhoodCode: r.neighborhoodCode,
+                    assessedValue: r.appraisedValue,
+                    landValue: r.landValue,
+                    improvementValue: r.improvementValue,
+                    legalDescription: r.legalDescription,
+                    sqft: r.sqft,
+                    yearBuilt: r.yearBuilt,
+                    exemptions: r.exemptions,
+                    _source: 'local-bulk'
+                }));
+            }
+            console.log(`[BCAD] Local data miss for "${address}", falling back to BIS`);
+        }
+
+        // Fallback to BIS web scraper
         try {
             const { streetNumber, streetName } = this._parseAddress(address);
             if (!streetName) return [];
@@ -190,7 +217,7 @@ const bcadAdapter = {
                 legalDescription: r.legalDescription,
                 subdivision: r.subdivision,
                 detailUrl: r.detailUrl ? `${this.baseUrl}${r.detailUrl}` : null,
-                _bisPropertyId: r.propertyId, // internal ID for improvement lookups
+                _bisPropertyId: r.propertyId,
                 _bisYear: currentYear
             }));
         } catch (error) {

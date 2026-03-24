@@ -3120,6 +3120,14 @@ async function startServer() {
     }).catch(err => {
         console.error('❌ Tarrant CAD load error:', err.message);
     });
+
+    // Load all other county bulk data (Bexar, Harris, etc.)
+    const { initAllCounties } = require('./services/local-parcel-data');
+    initAllCounties().then(() => {
+        console.log('🏠 All county bulk data loaded');
+    }).catch(err => {
+        console.error('❌ County data load error:', err.message);
+    });
     
 // ===== AI-POWERED PHONE ANSWERING SERVICE =====
 // Conversation state: CallSid -> { messages: [], callerInfo: {}, startTime: Date }
