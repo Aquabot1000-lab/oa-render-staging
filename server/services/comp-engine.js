@@ -18,6 +18,7 @@ const COUNTY_TAX_RATES = {
     'travis': 0.0210,
     'fort bend': 0.0250,
     'tarrant': 0.0240,
+    'hunt': 0.0225,
     'dallas': 0.0230,
     'collin': 0.0220,
     'denton': 0.0230,
@@ -293,7 +294,7 @@ async function findComparables(subject, caseData) {
 
     // Calculate recommended protest value (market value approach)
     let { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
-    const taxRate = COUNTY_TAX_RATES[county] || getTaxRate(county) || 0.025;
+    const taxRate = COUNTY_TAX_RATES[county] || COUNTY_TAX_RATES[county.toLowerCase()] || 0.025;
 
     // Issue 1 fix: If MV recommended > assessed, property is fairly valued — cap at assessed (0% reduction)
     if (mvRecommendedValue > subject.assessedValue) {
