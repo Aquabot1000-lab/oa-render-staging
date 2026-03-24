@@ -3,6 +3,8 @@ const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 const { generateForm, COUNTY_PORTALS } = require('../services/form-generator');
 const { sendFilingNotification } = require('../services/notifications');
+const { fetchPropertyData } = require('../services/property-data');
+const { findComparables } = require('../services/comp-engine');
 
 // GET /api/filings/stats — must be before /:id
 router.get('/stats', async (req, res) => {
@@ -260,22 +262,29 @@ router.post('/:id/generate-packet', async (req, res) => {
             return res.json({ success: true, url: filing.appeals.evidence_packet_path, source: 'appeal' });
         }
 
-        // Otherwise try to run analysis via RentCast
-        const { runRentCastAnalysis } = require('../services/rentcast');
-        const { generateEvidencePacket } = require('../services/evidence-generator');
+        // Fetch property data if not fully available
+        let subjectProperty = filing.properties;
+        // Check if essential data for comp engine is missing
+        if (!subjectProperty.sqft || !subjectProperty.assessedValue || !subjectProperty.propertyType) {
+             console.log(`[Filing] Fetching property data for ${address}`);
+             const fetchedProperty = await fetchPropertyData(address, county);
+             subjectProperty = { ...subjectProperty, ...fetchedProperty };
+             if (!subjectProperty.address) subjectProperty.address = address; // Ensure address is present
+        }
 
-        const address = filing.properties?.address;
-        if (!address) return res.status(400).json({ error: 'No property address' });
+        // Run the comp engine analysis
+        console.log(`[Filing] Running comp engine for ${subjectProperty.address || address}`);
+        const analysisResult = await findComparables(subjectProperty, { county: county });
 
-        const analysis = await runRentCastAnalysis(address);
+        // Format for evidence generator
         const sub = {
             caseId: filing.appeals?.case_id || filing.id.slice(0, 8),
-            propertyAddress: address,
+            propertyAddress: subjectProperty.address || address, // Use updated address if fetched
             ownerName: filing.clients?.name || 'Owner',
             state: filing.state || 'TX'
         };
 
-        const evidencePath = await generateEvidencePacket(sub, analysis.propertyData || {}, analysis.compResults || {});
+        const evidencePath = await generateEvidencePacket(sub, subjectProperty, analysisResult);
 
         await supabaseAdmin.from('filings').update({
             evidence_packet_url: evidencePath

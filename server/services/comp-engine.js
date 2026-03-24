@@ -8,7 +8,7 @@
 
 const { fetchPropertyData, getAdapter, detectCounty, normalizePropertyType } = require('./property-data');
 const { runEUAnalysis } = require('./eu-analysis');
-const { getTaxRate } = require('./rentcast');
+
 const tarrantData = require('./tarrant-data');
 
 // County-specific tax rates (also available via rentcast.getTaxRate)
