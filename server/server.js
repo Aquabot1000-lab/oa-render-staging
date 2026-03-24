@@ -212,18 +212,76 @@ app.post('/api/estimate', async (req, res) => {
             });
         }
 
-        // Find comparables and calculate recommended value
-        let analysis;
-        try {
-            analysis = await findComparables(propertyData, caseData);
-        } catch (error) {
-            console.error('[Estimator] Comp analysis failed:', error.message);
-            return res.json({
-                error: 'We encountered an issue analyzing comparable properties. Please try again or contact us for help.'
-            });
+        // Fast-path for local bulk data: use quick E&U estimate without full comp engine
+        // This avoids BIS network calls for comps and returns instantly
+        const { getCountyData: getLocalData } = require('./services/local-parcel-data');
+        const localCountyData = getLocalData(caseData.county || 'bexar');
+        
+        let analysis = null;
+        if (propertyData.source === 'local-bulk' && localCountyData.isLoaded()) {
+            // Quick E&U analysis using local comps
+            const targetRecord = localCountyData.searchByAddress(requestData.address || '')[0];
+            if (targetRecord) {
+                const comps = localCountyData.findComps(targetRecord, { maxComps: 10, maxValueDiff: 0.4 });
+                if (comps.length >= 3) {
+                    // Calculate median comp value per sqft for E&U
+                    const compValues = comps
+                        .filter(c => c.appraisedValue > 0)
+                        .map(c => c.appraisedValue)
+                        .sort((a, b) => a - b);
+                    const medianValue = compValues[Math.floor(compValues.length / 2)];
+                    const recommendedValue = Math.min(propertyData.assessedValue, medianValue);
+                    
+                    analysis = {
+                        recommendedValue,
+                        comps: comps.slice(0, 5),
+                        effectiveTaxRate: 0.023,
+                        euAnalysis: { valid: comps.length >= 5 }
+                    };
+                    console.log(`[Estimator] Quick local analysis: ${comps.length} comps, median ${medianValue}, recommended ${recommendedValue}`);
+                }
+            }
+        }
+        
+        // Full comp engine as fallback
+        if (!analysis) {
+            try {
+                analysis = await findComparables(propertyData, caseData);
+            } catch (error) {
+                console.error('[Estimator] Comp analysis failed:', error.message);
+                // If local data available, return a conservative estimate
+                if (propertyData.source === 'local-bulk') {
+                    const conservativeReduction = Math.round(propertyData.assessedValue * 0.08);
+                    return res.json({
+                        currentAssessed: propertyData.assessedValue,
+                        recommendedValue: propertyData.assessedValue - conservativeReduction,
+                        estimatedReduction: conservativeReduction,
+                        estimatedSavings: Math.round(conservativeReduction * 0.023),
+                        taxRate: 0.023,
+                        compsFound: 0,
+                        strategy: 'Preliminary Estimate'
+                    });
+                }
+                return res.json({
+                    error: 'We encountered an issue analyzing comparable properties. Please try again or contact us for help.'
+                });
+            }
         }
 
         if (!analysis || !analysis.recommendedValue) {
+            // Conservative estimate if comps failed but we have property data
+            if (propertyData.assessedValue > 0) {
+                const conservativeReduction = Math.round(propertyData.assessedValue * 0.08);
+                return res.json({
+                    currentAssessed: propertyData.assessedValue,
+                    recommendedValue: propertyData.assessedValue - conservativeReduction,
+                    estimatedReduction: conservativeReduction,
+                    estimatedSavings: Math.round(conservativeReduction * 0.023),
+                    taxRate: 0.023,
+                    compsFound: 0,
+                    strategy: 'Preliminary Estimate'
+                });
+            }
             return res.json({
                 error: 'Unable to calculate a recommended value at this time. Our team can help - please reach out!'
             });
