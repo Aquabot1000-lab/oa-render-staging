@@ -134,6 +134,114 @@ app.get('/tiktokLoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=LoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch\n');
 });
 
+// ===== INSTANT SAVINGS ESTIMATOR =====
+// Simple rate limiter for /api/estimate (max 10 requests per hour per IP)
+const estimateRateLimiter = new Map();
+const ESTIMATE_RATE_LIMIT = 10;
+const ESTIMATE_RATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+app.post('/api/estimate', async (req, res) => {
+    const clientIp = req.ip || req.connection.remoteAddress;
+
+    // Rate limiting
+    const now = Date.now();
+    if (!estimateRateLimiter.has(clientIp)) {
+        estimateRateLimiter.set(clientIp, []);
+    }
+    const timestamps = estimateRateLimiter.get(clientIp).filter(t => now - t < ESTIMATE_RATE_WINDOW);
+    if (timestamps.length >= ESTIMATE_RATE_LIMIT) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    timestamps.push(now);
+    estimateRateLimiter.set(clientIp, timestamps);
+
+    try {
+        const { address, state, county, parcelNumber } = req.body;
+
+        if (!state || !county) {
+            return res.status(400).json({ error: 'State and county are required.' });
+        }
+
+        if (!address && !parcelNumber) {
+            return res.status(400).json({ error: 'Either address or parcel number is required.' });
+        }
+
+        // Build a lightweight case data object
+        const caseData = {
+            propertyAddress: address || `Parcel ${parcelNumber}`,
+            state: state,
+            county: county,
+            parcelNumber: parcelNumber || null
+        };
+
+        console.log(`[Estimator] Processing request: ${address || parcelNumber}, ${county}, ${state}`);
+
+        // Fetch property data
+        let propertyData;
+        try {
+            propertyData = await fetchPropertyData(caseData);
+        } catch (error) {
+            console.error('[Estimator] Property data fetch failed:', error.message);
+            return res.json({
+                error: 'We couldn\'t find property data for this address. Please verify the information and try again, or contact us for assistance.'
+            });
+        }
+
+        if (!propertyData || !propertyData.assessedValue) {
+            return res.json({
+                error: 'Property data is incomplete. Please verify your address or parcel number and try again.'
+            });
+        }
+
+        // Find comparables and calculate recommended value
+        let analysis;
+        try {
+            analysis = await findComparables(propertyData, caseData);
+        } catch (error) {
+            console.error('[Estimator] Comp analysis failed:', error.message);
+            return res.json({
+                error: 'We encountered an issue analyzing comparable properties. Please try again or contact us for help.'
+            });
+        }
+
+        if (!analysis || !analysis.recommendedValue) {
+            return res.json({
+                error: 'Unable to calculate a recommended value at this time. Our team can help - please reach out!'
+            });
+        }
+
+        // Calculate savings
+        const currentAssessed = propertyData.assessedValue;
+        const recommendedValue = analysis.recommendedValue;
+        const reduction = Math.max(0, currentAssessed - recommendedValue);
+        const taxRate = analysis.effectiveTaxRate || 0.023; // Default ~2.3%
+        const estimatedSavings = Math.round(reduction * taxRate);
+
+        // Determine strategy
+        let strategy = 'Market Value Analysis';
+        if (analysis.euAnalysis && analysis.euAnalysis.valid) {
+            strategy = 'Equal & Uniform Analysis';
+        }
+
+        // Return results
+        return res.json({
+            currentAssessed,
+            recommendedValue,
+            estimatedReduction: reduction,
+            estimatedSavings,
+            taxRate,
+            compsFound: analysis.comps ? analysis.comps.length : 0,
+            strategy
+        });
+
+    } catch (error) {
+        console.error('[Estimator] Unexpected error:', error);
+        return res.status(500).json({
+            error: 'An unexpected error occurred. Please try again or contact us for assistance.'
+        });
+    }
+});
+
 app.use(express.static(path.join(__dirname, '..')));
 
 // File paths
