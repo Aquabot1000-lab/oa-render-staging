@@ -2266,10 +2266,9 @@ app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
     try {
         const result = await runFullAnalysis(req.params.id);
 
-        // Email client
+        // Email client (only if form NOT already signed — avoid confusing re-sign prompts)
         const sub = await findSubmission(req.params.id);
-        if (sub) {
-            const portalUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/portal` : 'https://overassessed.ai/portal';
+        if (sub && !sub.signature && !sub.fee_agreement_signed) {
             sendClientEmail(sub.email, `Your Analysis is Ready — ${sub.caseId}`,
                 brandedEmailWrapper('Your Analysis is Ready! 📊', `Case ${sub.caseId}`, `
                     <p>Hi ${sub.ownerName},</p>
@@ -2284,6 +2283,8 @@ app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
                     </div>
                 `)
             );
+        } else if (sub) {
+            console.log(`[Analysis] Skipping auto-email for ${sub.caseId} — form already signed`);
         }
 
         res.json({ success: true, estimatedSavings: result.compResults.estimatedSavings, report: result.report });
