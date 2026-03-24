@@ -177,15 +177,25 @@ app.post('/api/estimate', async (req, res) => {
 
         console.log(`[Estimator] Processing request: ${address || parcelNumber}, ${county}, ${state}`);
 
-        // Fetch property data
+        // Fetch property data (with retry for timeout-prone CAD lookups)
         let propertyData;
-        try {
-            propertyData = await fetchPropertyData(caseData);
-        } catch (error) {
-            console.error('[Estimator] Property data fetch failed:', error.message);
-            return res.json({
-                error: 'We couldn\'t find property data for this address. Please verify the information and try again, or contact us for assistance.'
-            });
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                propertyData = await fetchPropertyData(caseData);
+                if (propertyData && propertyData.source !== 'intake-fallback') break; // Got real data
+                if (attempt < 2) {
+                    console.log(`[Estimator] Attempt ${attempt} got fallback, retrying...`);
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            } catch (error) {
+                console.error(`[Estimator] Property data fetch failed (attempt ${attempt}):`, error.message);
+                if (attempt >= 2) {
+                    return res.json({
+                        error: 'We couldn\'t find property data for this address. Please verify the information and try again, or contact us for assistance.'
+                    });
+                }
+                await new Promise(r => setTimeout(r, 2000));
+            }
         }
 
         if (!propertyData || !propertyData.assessedValue) {
