@@ -194,6 +194,14 @@ app.post('/api/estimate', async (req, res) => {
             });
         }
 
+        // Reject fallback/estimated data for the public estimator — only show real CAD values
+        if (propertyData.source === 'intake-fallback') {
+            console.warn('[Estimator] Rejecting fallback data — CAD lookup timed out or failed');
+            return res.json({
+                error: 'Our property lookup is taking longer than expected. Please try again in a moment, or contact us for a free personalized analysis.'
+            });
+        }
+
         // Find comparables and calculate recommended value
         let analysis;
         try {

@@ -79,7 +79,7 @@ const bcadAdapter = {
                 'Accept-Language': 'en-US,en;q=0.9',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            timeout: 20000
+            timeout: 45000
         });
 
         // Get session cookies
@@ -460,7 +460,7 @@ function createBISAdapter({ name, code, baseUrl }) {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                         'Accept': 'text/html,application/xhtml+xml'
                     },
-                    timeout: 20000
+                    timeout: 45000
                 });
 
                 const $ = cheerio.load(res.data);
@@ -517,7 +517,7 @@ function createBISAdapter({ name, code, baseUrl }) {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                         'Accept': 'text/html,application/xhtml+xml'
                     },
-                    timeout: 20000
+                    timeout: 45000
                 });
 
                 const $ = cheerio.load(res.data);
@@ -730,7 +730,7 @@ registerAdapter('harris', {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': 'text/html,application/xhtml+xml'
                 },
-                timeout: 20000,
+                timeout: 45000,
                 maxRedirects: 5
             });
 
@@ -781,7 +781,7 @@ registerAdapter('harris', {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': 'text/html,application/xhtml+xml'
                 },
-                timeout: 20000,
+                timeout: 45000,
                 maxRedirects: 5
             });
 
