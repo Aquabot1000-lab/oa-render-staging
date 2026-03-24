@@ -910,10 +910,33 @@ async function fetchPropertyData(caseData) {
     let propertyData = null;
     try {
         const results = await adapter.searchByAddress(caseData.propertyAddress);
-        if (results.length > 0 && results[0].detailUrl) {
-            propertyData = await adapter.getPropertyDetails(results[0].detailUrl);
-        } else if (results.length > 0 && results[0].accountId) {
-            propertyData = await adapter.getPropertyDetails(results[0].accountId);
+        if (results.length > 0) {
+            const result = results[0];
+            // If result came from local bulk data, use it directly (no network call needed)
+            if (result._source === 'local-bulk' && result.assessedValue) {
+                console.log(`[PropertyData] Using local bulk data for ${caseData.propertyAddress}`);
+                propertyData = {
+                    source: 'local-bulk',
+                    fetchedAt: new Date().toISOString(),
+                    accountId: result.accountId,
+                    ownerName: result.ownerName,
+                    address: result.address,
+                    legalDescription: result.legalDescription,
+                    propertyType: normalizePropertyType(result.propertyType) || 'Single Family Home',
+                    neighborhoodCode: result.neighborhoodCode,
+                    sqft: result.sqft ? parseInt(result.sqft) : null,
+                    yearBuilt: result.yearBuilt ? parseInt(result.yearBuilt) : null,
+                    assessedValue: result.assessedValue,
+                    landValue: result.landValue || Math.round(result.assessedValue * 0.25),
+                    improvementValue: result.improvementValue || Math.round(result.assessedValue * 0.75),
+                    exemptions: result.exemptions,
+                    valueHistory: _generateEstimatedHistory(result.assessedValue)
+                };
+            } else if (result.detailUrl) {
+                propertyData = await adapter.getPropertyDetails(result.detailUrl);
+            } else if (result.accountId) {
+                propertyData = await adapter.getPropertyDetails(result.accountId);
+            }
         }
     } catch (err) {
         console.error(`[PropertyData] Scrape failed: ${err.message}`);
