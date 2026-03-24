@@ -38,6 +38,7 @@ const referralsRouter = require('./routes/referrals');
 const filingsRouter = require('./routes/filings');
 const stripeRouter = require('./routes/stripe');
 const emailNurtureRouter = require('./routes/email-nurture');
+const uriCommissionsRouter = require('./routes/uri-commissions');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
 // Twilio setup
@@ -908,6 +909,7 @@ if (isSupabaseEnabled()) {
     app.use('/api/db/exemptions', authenticateToken, exemptionsRouter);
     app.use('/api/db/referrals', authenticateToken, referralsRouter);
     app.use('/api/filings', authenticateToken, filingsRouter);
+    app.use('/api/admin/uri-commissions', authenticateToken, uriCommissionsRouter);
 } else {
     console.log('⚠️  Supabase not configured — /api/db/* routes disabled');
 }

@@ -217,6 +217,7 @@
             <button class="tab" onclick="switchTab('signatures')">Signatures</button>
             <button class="tab" onclick="switchTab('notices')">Notices</button>
             <button class="tab" onclick="switchTab('revenue')">Revenue</button>
+            <button class="tab" onclick="switchTab('uri-commissions')">Uri Commissions</button>
             <button class="tab" onclick="switchTab('exemptions')">Exemptions</button>
             <button class="tab" onclick="switchTab('referrals')">Referrals</button>
             <button class="tab" onclick="switchTab('monitoring')">Monitoring</button>
@@ -456,6 +457,49 @@
                 </table>
             </div>
         </div>
+
+        <!-- URI COMMISSIONS TAB -->
+        <div class="tab-content" id="tab-uri-commissions">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Total TX Billing</div><div class="kpi-value purple" id="uriTotalBilled">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Total Commission Owed</div><div class="kpi-value" id="uriTotalCommission">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Paid to Date</div><div class="kpi-value green" id="uriTotalPaid">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Outstanding Balance</div><div class="kpi-value" style="color:#e17055;" id="uriOutstanding">$0</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Uri License Commissions (10% TX Billing)</h2>
+                    <div class="filter-bar">
+                        <select id="uriStatusFilter" onchange="loadUriCommissions()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="accrued">Accrued</option>
+                            <option value="paid">Paid</option>
+                            <option value="waived">Waived</option>
+                        </select>
+                        <button class="btn btn-purple" onclick="showAddCommissionModal()">+ Add Commission</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportUriCommissions()">Export CSV</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Case #</th>
+                            <th>Client</th>
+                            <th>Property</th>
+                            <th>Billing Amount</th>
+                            <th>Commission (10%)</th>
+                            <th>Status</th>
+                            <th>Billing Date</th>
+                            <th>Paid Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uriCommissionsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- ANALYSIS TAB -->
         <div class="tab-content" id="tab-analysis">
             <div class="panel" style="margin-bottom:1.5rem;">
@@ -731,6 +775,75 @@
             </div>
         </div>
 
+    <!-- Uri Commission Modal -->
+    <div class="detail-overlay" id="uriCommissionOverlay" onclick="closeUriCommissionModal()"></div>
+    <div class="detail-panel" id="uriCommissionModal" style="display:none;">
+        <h2>
+            <span id="uriModalTitle">Add Commission Entry</span>
+            <button class="close-btn" onclick="closeUriCommissionModal()">&times;</button>
+        </h2>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Client Name *</label>
+                <input type="text" id="uriClientName" placeholder="John Doe" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Property Address</label>
+                <input type="text" id="uriPropertyAddress" placeholder="123 Main St, Austin, TX" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Case Number</label>
+                <input type="text" id="uriCaseNumber" placeholder="OA-2026-001" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Billing Amount ($) *</label>
+                <input type="number" id="uriBillingAmount" placeholder="1000.00" step="0.01" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Billing Date</label>
+                <input type="date" id="uriBillingDate" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Notes</label>
+                <textarea id="uriNotes" placeholder="Optional notes..." style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;min-height:80px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <button class="btn btn-purple" onclick="saveUriCommission()" style="padding:0.75rem;width:100%;font-size:1rem;">Save Commission</button>
+        </div>
+    </div>
+
+    <!-- Mark as Paid Modal -->
+    <div class="detail-overlay" id="uriPaidOverlay" onclick="closeUriPaidModal()"></div>
+    <div class="detail-panel" id="uriPaidModal" style="display:none;">
+        <h2>
+            <span>Mark as Paid</span>
+            <button class="close-btn" onclick="closeUriPaidModal()">&times;</button>
+        </h2>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+            <input type="hidden" id="uriPaidCommissionId">
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Payment Date</label>
+                <input type="date" id="uriPaidDate" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Payment Method</label>
+                <select id="uriPaymentMethod" style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+                    <option value="">Select method...</option>
+                    <option value="check">Check</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="wire">Wire Transfer</option>
+                    <option value="ach">ACH</option>
+                    <option value="cash">Cash</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.25rem;">Payment Reference</label>
+                <input type="text" id="uriPaymentReference" placeholder="Check #, Transaction ID, etc." style="width:100%;padding:0.5rem;border:2px solid var(--gray-medium);border-radius:6px;font-size:0.9rem;font-family:inherit;">
+            </div>
+            <button class="btn btn-green" onclick="markUriPaid()" style="padding:0.75rem;width:100%;font-size:1rem;">Mark as Paid</button>
+        </div>
+    </div>
+
 <script>
 let token = localStorage.getItem('oa_token');
 let currentUser = null;
@@ -803,6 +916,9 @@ function switchTab(name) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     event.target.classList.add('active');
     document.getElementById('tab-' + name).classList.add('active');
+
+    // Load data for specific tabs
+    if (name === 'uri-commissions') loadUriCommissions();
 }
 
 // ===== DATA LOADING =====
@@ -1966,6 +2082,233 @@ async function saveFollowUp(submissionId) {
         alert('Follow-up saved!');
         loadFollowUpsDue();
     } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ==================== URI COMMISSIONS ====================
+async function loadUriCommissions() {
+    try {
+        const statusFilter = document.getElementById('uriStatusFilter')?.value || '';
+        const url = '/api/admin/uri-commissions' + (statusFilter ? `?status=${statusFilter}` : '');
+        const res = await fetch(url, { headers: authHeaders() });
+        if (!res.ok) throw new Error('Failed to load commissions');
+        const commissions = await res.json();
+
+        // Load summary
+        const summaryRes = await fetch('/api/admin/uri-commissions/summary', { headers: authHeaders() });
+        if (summaryRes.ok) {
+            const summary = await summaryRes.json();
+            document.getElementById('uriTotalBilled').textContent = '$' + (summary.total_billed || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('uriTotalCommission').textContent = '$' + (summary.total_commission || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('uriTotalPaid').textContent = '$' + (summary.total_paid || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('uriOutstanding').textContent = '$' + (summary.total_outstanding || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        // Render table
+        const tbody = document.getElementById('uriCommissionsBody');
+        if (!commissions.length) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-msg">No commission entries yet</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = commissions.map(c => {
+            const billingAmount = parseFloat(c.billing_amount) || 0;
+            const commissionAmount = parseFloat(c.commission_amount) || 0;
+            const statusColor = {
+                pending: '#ebf8ff',
+                accrued: '#fef3c7',
+                paid: '#c6f6d5',
+                waived: '#e2e8f0'
+            }[c.status] || '#f7fafc';
+            const statusTextColor = {
+                pending: '#2b6cb0',
+                accrued: '#92400e',
+                paid: '#276749',
+                waived: '#4a5568'
+            }[c.status] || '#4a5568';
+
+            return `
+                <tr>
+                    <td>${c.case_number || '-'}</td>
+                    <td>${c.client_name}</td>
+                    <td>${c.property_address || '-'}</td>
+                    <td>$${billingAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="font-weight:700;">$${commissionAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td><span style="background:${statusColor};color:${statusTextColor};padding:0.2rem 0.6rem;border-radius:20px;font-size:0.7rem;font-weight:700;text-transform:uppercase;">${c.status}</span></td>
+                    <td>${c.billing_date ? new Date(c.billing_date).toLocaleDateString() : '-'}</td>
+                    <td>${c.paid_date ? new Date(c.paid_date).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <div class="btn-row">
+                            ${c.status !== 'paid' ? `<button class="btn btn-green btn-sm" onclick="showMarkPaidModal('${c.id}')">Mark Paid</button>` : ''}
+                            <button class="btn btn-outline btn-sm" onclick="editUriCommission('${c.id}')">Edit</button>
+                            <button class="btn btn-outline btn-sm" style="color:#e17055;border-color:#e17055;" onclick="deleteUriCommission('${c.id}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Uri Commissions load error:', e);
+        document.getElementById('uriCommissionsBody').innerHTML = '<tr><td colspan="9" class="empty-msg" style="color:var(--red);">Error loading commissions</td></tr>';
+    }
+}
+
+function showAddCommissionModal() {
+    document.getElementById('uriModalTitle').textContent = 'Add Commission Entry';
+    document.getElementById('uriClientName').value = '';
+    document.getElementById('uriPropertyAddress').value = '';
+    document.getElementById('uriCaseNumber').value = '';
+    document.getElementById('uriBillingAmount').value = '';
+    document.getElementById('uriBillingDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('uriNotes').value = '';
+    document.getElementById('uriCommissionModal').style.display = 'block';
+    document.getElementById('uriCommissionOverlay').style.display = 'block';
+}
+
+function closeUriCommissionModal() {
+    document.getElementById('uriCommissionModal').style.display = 'none';
+    document.getElementById('uriCommissionOverlay').style.display = 'none';
+}
+
+async function saveUriCommission() {
+    const clientName = document.getElementById('uriClientName').value.trim();
+    const billingAmount = parseFloat(document.getElementById('uriBillingAmount').value);
+
+    if (!clientName || !billingAmount) {
+        alert('Client name and billing amount are required');
+        return;
+    }
+
+    try {
+        const data = {
+            client_name: clientName,
+            property_address: document.getElementById('uriPropertyAddress').value.trim() || null,
+            case_number: document.getElementById('uriCaseNumber').value.trim() || null,
+            billing_amount: billingAmount,
+            billing_date: document.getElementById('uriBillingDate').value || new Date().toISOString().split('T')[0],
+            notes: document.getElementById('uriNotes').value.trim() || null,
+            state: 'TX'
+        };
+
+        const res = await fetch('/api/admin/uri-commissions', {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) throw new Error('Failed to save commission');
+
+        alert('Commission entry created!');
+        closeUriCommissionModal();
+        loadUriCommissions();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function showMarkPaidModal(commissionId) {
+    document.getElementById('uriPaidCommissionId').value = commissionId;
+    document.getElementById('uriPaidDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('uriPaymentMethod').value = '';
+    document.getElementById('uriPaymentReference').value = '';
+    document.getElementById('uriPaidModal').style.display = 'block';
+    document.getElementById('uriPaidOverlay').style.display = 'block';
+}
+
+function closeUriPaidModal() {
+    document.getElementById('uriPaidModal').style.display = 'none';
+    document.getElementById('uriPaidOverlay').style.display = 'none';
+}
+
+async function markUriPaid() {
+    const commissionId = document.getElementById('uriPaidCommissionId').value;
+    const paidDate = document.getElementById('uriPaidDate').value;
+    const paymentMethod = document.getElementById('uriPaymentMethod').value;
+    const paymentReference = document.getElementById('uriPaymentReference').value;
+
+    if (!paidDate) {
+        alert('Payment date is required');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/admin/uri-commissions/${commissionId}`, {
+            method: 'PUT',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status: 'paid',
+                paid_date: paidDate,
+                payment_method: paymentMethod || null,
+                payment_reference: paymentReference || null
+            })
+        });
+
+        if (!res.ok) throw new Error('Failed to mark as paid');
+
+        alert('Marked as paid!');
+        closeUriPaidModal();
+        loadUriCommissions();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function deleteUriCommission(id) {
+    if (!confirm('Are you sure you want to delete this commission entry?')) return;
+
+    try {
+        const res = await fetch(`/api/admin/uri-commissions/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+
+        if (!res.ok) throw new Error('Failed to delete');
+
+        alert('Deleted!');
+        loadUriCommissions();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function editUriCommission(id) {
+    alert('Edit functionality - fetch commission data and populate modal (not implemented in this version)');
+}
+
+function exportUriCommissions() {
+    const statusFilter = document.getElementById('uriStatusFilter')?.value || '';
+    const url = '/api/admin/uri-commissions' + (statusFilter ? `?status=${statusFilter}` : '');
+
+    fetch(url, { headers: authHeaders() })
+        .then(res => res.json())
+        .then(commissions => {
+            const csv = [
+                ['Case #', 'Client', 'Property', 'State', 'Billing Amount', 'Commission Rate', 'Commission Amount', 'Status', 'Billing Date', 'Paid Date', 'Payment Method', 'Payment Reference', 'Notes'].join(','),
+                ...commissions.map(c => [
+                    c.case_number || '',
+                    c.client_name,
+                    c.property_address || '',
+                    c.state,
+                    c.billing_amount,
+                    c.commission_rate,
+                    c.commission_amount,
+                    c.status,
+                    c.billing_date || '',
+                    c.paid_date || '',
+                    c.payment_method || '',
+                    c.payment_reference || '',
+                    (c.notes || '').replace(/,/g, ';')
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `uri-commissions-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        })
+        .catch(e => alert('Export error: ' + e.message));
 }
 </script>
 </body>

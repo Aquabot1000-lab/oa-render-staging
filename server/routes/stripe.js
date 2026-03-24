@@ -227,6 +227,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                         .update({ payment_status: 'paid' })
                         .eq('id', session.metadata.appeal_id);
                 }
+
+                // Auto-create Uri commission entry if TX client
+                if (session.metadata?.client_id) {
+                    await createUriCommissionIfTX(session.metadata.client_id, session.amount_total / 100);
+                }
             }
             break;
         }
@@ -246,6 +251,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                         .from('appeals')
                         .update({ payment_status: 'paid' })
                         .eq('id', invoice.metadata.appeal_id);
+                }
+
+                // Auto-create Uri commission entry if TX client
+                if (invoice.metadata?.client_id) {
+                    await createUriCommissionIfTX(invoice.metadata.client_id, invoice.amount_paid / 100);
                 }
             }
             break;
@@ -273,6 +283,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                     .from('payments')
                     .update({ status: 'paid' })
                     .eq('stripe_payment_id', pi.id);
+
+                // Auto-create Uri commission entry if TX client
+                await createUriCommissionIfTX(pi.metadata.client_id, pi.amount / 100);
             }
             break;
         }
@@ -486,6 +499,80 @@ async function chargeSavedCard(clientId, appealId, amount, description) {
         // Card declined or authentication required — fall back to invoice
         console.log(`[Stripe] Auto-charge failed for ${client.email}: ${err.message} — will send invoice instead`);
         return null;
+    }
+}
+
+/**
+ * Auto-create Uri commission entry if client is in Texas.
+ * Tyler owes Uri 10% of ALL billing to TX customers.
+ */
+async function createUriCommissionIfTX(clientId, billingAmount) {
+    if (!isSupabaseEnabled()) return;
+
+    try {
+        // Get client info
+        const { data: client, error } = await supabaseAdmin
+            .from('clients')
+            .select('id, name, email, state')
+            .eq('id', clientId)
+            .single();
+
+        if (error || !client) {
+            console.log(`[Uri Commission] Client not found: ${clientId}`);
+            return;
+        }
+
+        // Only create commission for TX clients
+        if (client.state?.toUpperCase() !== 'TX') {
+            return;
+        }
+
+        // Get property info if available
+        const { data: properties } = await supabaseAdmin
+            .from('properties')
+            .select('id, address')
+            .eq('client_id', clientId)
+            .limit(1);
+
+        const property = properties?.[0];
+
+        // Check if commission entry already exists for this client/amount/date
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabaseAdmin
+            .from('uri_commissions')
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('billing_amount', billingAmount)
+            .eq('billing_date', today)
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            console.log(`[Uri Commission] Entry already exists for ${client.name} ($${billingAmount})`);
+            return;
+        }
+
+        // Create commission entry
+        const { data: commission, error: insertError } = await supabaseAdmin
+            .from('uri_commissions')
+            .insert({
+                client_id: clientId,
+                property_id: property?.id || null,
+                client_name: client.name,
+                property_address: property?.address || null,
+                state: 'TX',
+                billing_amount: billingAmount,
+                status: 'accrued',
+                billing_date: today,
+                notes: 'Auto-created from Stripe payment'
+            })
+            .select()
+            .single();
+
+        if (insertError) throw insertError;
+
+        console.log(`[Uri Commission] ✅ Created entry: ${client.name}, $${billingAmount} billed, $${(billingAmount * 0.1).toFixed(2)} commission`);
+    } catch (err) {
+        console.error(`[Uri Commission] Error creating entry:`, err.message);
     }
 }
 
