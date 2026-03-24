@@ -17,6 +17,11 @@ const DATA_FILES = [
         county: 'dallas', 
         url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597834',
         file: 'parcels-compact.jsonl.gz'
+    },
+    {
+        county: 'williamson',
+        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380690685',
+        file: 'parcels-compact.jsonl.gz'
     }
 ];
 
