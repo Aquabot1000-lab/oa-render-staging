@@ -10,12 +10,12 @@ const path = require('path');
 const DATA_FILES = [
     {
         county: 'bexar',
-        url: 'https://github.com/Aquabot1000-lab/overassessed-ai/releases/download/data-v1/bexar-parcels.jsonl.gz',
+        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597833',
         file: 'parcels-compact.jsonl.gz'
     },
     {
         county: 'dallas', 
-        url: 'https://github.com/Aquabot1000-lab/overassessed-ai/releases/download/data-v1/dallas-parcels.jsonl.gz',
+        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597834',
         file: 'parcels-compact.jsonl.gz'
     }
 ];
@@ -23,8 +23,11 @@ const DATA_FILES = [
 function download(url, dest) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);
+        const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
         const request = (reqUrl) => {
-            https.get(reqUrl, { headers: { 'User-Agent': 'OverAssessed-Server' } }, (res) => {
+            const headers = { 'User-Agent': 'OverAssessed-Server', 'Accept': 'application/octet-stream' };
+            if (ghToken) headers['Authorization'] = `token ${ghToken}`;
+            https.get(reqUrl, { headers }, (res) => {
                 // Follow redirects (GitHub releases redirect to S3)
                 if (res.statusCode === 301 || res.statusCode === 302) {
                     return request(res.headers.location);
