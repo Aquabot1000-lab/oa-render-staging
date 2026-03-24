@@ -3109,6 +3109,14 @@ app.use((err, req, res, next) => {
 async function startServer() {
     await initializeDataFiles();
 
+    // Download county data files if not present (Railway deployment)
+    try {
+        const { downloadAll } = require('./scripts/download-data');
+        if (typeof downloadAll === 'function') await downloadAll();
+    } catch (e) {
+        console.log('[DataDownloader] Skipped:', e.message);
+    }
+
     // Load Tarrant County real property data (async, non-blocking)
     tarrantData.loadData().then(loaded => {
         if (loaded) {
