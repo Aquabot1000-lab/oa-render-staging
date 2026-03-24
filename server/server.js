@@ -220,7 +220,7 @@ app.post('/api/estimate', async (req, res) => {
         let analysis = null;
         if (propertyData.source === 'local-bulk' && localCountyData.isLoaded()) {
             // Quick E&U analysis using local comps
-            const targetRecord = localCountyData.searchByAddress(requestData.address || '')[0];
+            const targetRecord = localCountyData.searchByAddress(address || parcelNumber || '')[0];
             if (targetRecord) {
                 const comps = localCountyData.findComps(targetRecord, { maxComps: 10, maxValueDiff: 0.4 });
                 if (comps.length >= 3) {
