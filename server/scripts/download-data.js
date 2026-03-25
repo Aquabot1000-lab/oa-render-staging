@@ -8,21 +8,12 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_FILES = [
-    {
-        county: 'bexar',
-        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597833',
-        file: 'parcels-compact.jsonl.gz'
-    },
-    {
-        county: 'dallas', 
-        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597834',
-        file: 'parcels-compact.jsonl.gz'
-    },
-    {
-        county: 'williamson',
-        url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380690685',
-        file: 'parcels-compact.jsonl.gz'
-    }
+    { county: 'bexar', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597833', file: 'parcels-compact.jsonl.gz' },
+    { county: 'dallas', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380597834', file: 'parcels-compact.jsonl.gz' },
+    { county: 'williamson', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380690685', file: 'parcels-compact.jsonl.gz' },
+    { county: 'denton', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380917430', file: 'parcels-compact.jsonl.gz' },
+    { county: 'fulton', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380917312', file: 'parcels-compact.jsonl.gz' },
+    { county: 'king', url: 'https://api.github.com/repos/Aquabot1000-lab/overassessed-ai/releases/assets/380917401', file: 'parcels-compact.jsonl.gz' },
 ];
 
 function download(url, dest) {
