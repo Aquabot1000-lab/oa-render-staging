@@ -505,8 +505,16 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                 </div>
             </div>
             <div id="noticeUploaded" style="display: none;">
-                <div class="signed-badge" style="background: #c6f6d5;">✓ Notice Uploaded</div>
-                <a id="noticeLink" href="#" target="_blank" style="display: block; margin-top: 0.75rem; color: var(--purple); font-weight: 600;">View Uploaded Notice</a>
+                <div class="signed-badge" style="background: #c6f6d5;">✓ Document Uploaded</div>
+                <div id="uploadedFilesList" style="margin-top: 0.75rem;"></div>
+                <div id="uploadMoreArea" style="margin-top: 12px;">
+                    <div class="upload-area" onclick="document.getElementById('additionalFile').click()" style="border:2px dashed rgba(108,92,231,0.3); border-radius:var(--radius-lg); padding:20px; text-align:center; cursor:pointer; transition:all 0.3s; background:var(--bg-alt);">
+                        <input type="file" id="additionalFile" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadAdditionalDoc()" style="display:none;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">➕</div>
+                        <div style="font-weight: 600; font-size: 0.9rem;">Upload Another Document</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">1098, tax statements, photos, appraisals, etc.</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -741,6 +749,8 @@ async function loadFilingStatus(caseInfo) {
     }
 }
 
+const uploadedFiles = [];
+
 async function uploadNotice() {
     const file = document.getElementById('noticeFile').files[0];
     if (!file) return;
@@ -760,13 +770,56 @@ async function uploadNotice() {
         if (!res.ok) throw new Error(data.error);
 
         caseData.noticeOfValue = data.filePath;
+        uploadedFiles.push({ name: file.name, path: data.filePath });
         document.getElementById('noticeUploadArea').style.display = 'none';
         document.getElementById('noticeUploaded').style.display = 'block';
-        document.getElementById('noticeLink').href = data.filePath;
+        renderUploadedFiles();
     } catch (e) {
         uploadArea.innerHTML = '<div style="color: var(--red);">Upload failed — please try again</div>';
         setTimeout(() => location.reload(), 2000);
     }
+}
+
+async function uploadAdditionalDoc() {
+    const file = document.getElementById('additionalFile').files[0];
+    if (!file) return;
+
+    const uploadMoreArea = document.getElementById('uploadMoreArea');
+    const origHTML = uploadMoreArea.innerHTML;
+    uploadMoreArea.innerHTML = '<div style="text-align:center; padding:20px; font-size:1rem;">⏳ Uploading...</div>';
+
+    const formData = new FormData();
+    formData.append('notice', file);
+
+    try {
+        const res = await fetch(`/api/upload-notice/${caseData.caseId}`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        uploadedFiles.push({ name: file.name, path: data.filePath });
+        renderUploadedFiles();
+        // Restore upload button for more files
+        uploadMoreArea.innerHTML = origHTML;
+        // Re-attach the input since innerHTML was replaced
+        document.getElementById('additionalFile').value = '';
+    } catch (e) {
+        uploadMoreArea.innerHTML = '<div style="color: var(--red); padding:20px; text-align:center;">Upload failed — please try again</div>';
+        setTimeout(() => { uploadMoreArea.innerHTML = origHTML; }, 2000);
+    }
+}
+
+function renderUploadedFiles() {
+    const list = document.getElementById('uploadedFilesList');
+    list.innerHTML = uploadedFiles.map((f, i) => 
+        '<div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--bg-alt); border-radius:8px; margin-bottom:6px;">' +
+        '<span style="font-size:1.1rem;">📄</span>' +
+        '<a href="' + f.path + '" target="_blank" style="color:var(--purple); font-weight:600; font-size:0.9rem; flex:1;">' + f.name + '</a>' +
+        '<span style="color:var(--green); font-size:0.85rem;">✓ Uploaded</span>' +
+        '</div>'
+    ).join('');
 }
 </script>
 
