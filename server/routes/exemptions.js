@@ -55,8 +55,13 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /api/db/exemptions/:id
-router.get('/:id', async (req, res) => {
+// GET /api/db/exemptions/:id (skip non-UUID paths like /intake)
+router.get('/:id', (req, res, next) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    next();
+}, async (req, res) => {
     if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
     try {
         const { data, error } = await supabaseAdmin

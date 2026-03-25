@@ -716,7 +716,8 @@ async function sendNotificationEmail(subject, html, toEmail) {
             from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com', name: 'OverAssessed' },
             replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
             subject,
-            html
+            html,
+            trackingSettings: { clickTracking: { enable: false }, openTracking: { enable: false } }
         });
         console.log('Email sent to', to);
     } catch (error) {
