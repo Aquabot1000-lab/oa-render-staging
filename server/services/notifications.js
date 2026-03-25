@@ -149,10 +149,39 @@ const GA_COUNTIES = [
     'Bibb', 'Chatham', 'Richmond', 'Muscogee', 'Columbia', 'Houston'
 ];
 
-function detectState(source, county) {
-    if (source && source.toLowerCase().includes('ga')) return 'GA';
-    if (source && source.toLowerCase().includes('georgia')) return 'GA';
-    if (county && GA_COUNTIES.some(c => c.toLowerCase() === (county || '').toLowerCase())) return 'GA';
+const WA_COUNTIES = [
+    'King', 'Pierce', 'Snohomish', 'Clark', 'Spokane', 'Thurston',
+    'Kitsap', 'Whatcom', 'Benton', 'Yakima', 'Skagit', 'Island',
+    'Cowlitz', 'Grant', 'Lewis', 'Mason', 'Grays Harbor', 'Clallam',
+    'Walla Walla', 'Chelan', 'Franklin', 'San Juan', 'Jefferson'
+];
+
+function detectState(source, county, explicitState, address) {
+    // 1. Explicit state from form always wins
+    if (explicitState && ['TX', 'GA', 'WA'].includes(explicitState.toUpperCase())) {
+        return explicitState.toUpperCase();
+    }
+    // 2. Detect from source string
+    if (source) {
+        const s = source.toLowerCase();
+        if (s.includes('ga') || s.includes('georgia')) return 'GA';
+        if (s.includes('wa') || s.includes('washington')) return 'WA';
+    }
+    // 3. Detect from county name
+    if (county) {
+        const c = (county || '').toLowerCase();
+        if (GA_COUNTIES.some(gc => gc.toLowerCase() === c)) return 'GA';
+        if (WA_COUNTIES.some(wc => wc.toLowerCase() === c)) return 'WA';
+    }
+    // 4. Detect from address
+    if (address) {
+        const a = address.toLowerCase();
+        // GA patterns
+        if (/, ga\b|georgia/i.test(a) || /atlanta|fulton|dekalb|gwinnett|cobb/i.test(a)) return 'GA';
+        // WA patterns
+        if (/, wa\b|washington/i.test(a) || /seattle|king county|snohomish|pierce|spokane/i.test(a)) return 'WA';
+    }
+    // 5. Default TX only as absolute last resort
     return 'TX';
 }
 
@@ -334,6 +363,7 @@ async function sendFilingNotification(toEmail, stage, vars = {}) {
 module.exports = {
     STAGE_MESSAGES,
     GA_COUNTIES,
+    WA_COUNTIES,
     detectState,
     fillTemplate,
     getTemplateVars,

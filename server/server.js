@@ -1596,7 +1596,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         }
 
         const caseId = await getNextCaseId();
-        const state = detectState(source, county);
+        const state = detectState(source, county, req.body.state, propertyAddress);
 
         const submission = {
             id: uuidv4(),
@@ -1775,7 +1775,7 @@ app.post('/api/commercial-intake', async (req, res) => {
         }
 
         const leadId = uuidv4();
-        const state = detectState('commercial', null);
+        const state = detectState('commercial', req.body.county, req.body.state, req.body.propertyAddress);
         const caseId = await getNextCaseId();
 
         // Save to submissions table with source='commercial'
