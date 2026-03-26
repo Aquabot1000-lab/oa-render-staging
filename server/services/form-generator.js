@@ -13,7 +13,7 @@ const AGENT_INFO = {
     name: 'OverAssessed, LLC',
     address: '6002 Camp Bullis, Suite 208',
     city: 'San Antonio, TX 78257',
-    phone: '(210) 760-7236',
+    phone: '(888) 282-9165',
     email: 'info@overassessed.ai'
 };
 

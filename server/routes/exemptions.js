@@ -156,7 +156,7 @@ async function sendExemptionStatusNotification(status, client, exType, addr, ext
                     <p style="margin:8px 0 0;">${extras?.docsNeededNote || 'Please provide your ID, proof of residency, and any supporting documentation.'}</p>
                 </div>
                 <p>You can reply to this email with your documents attached, or upload them at our website.</p>
-                <p>Questions? Call us at (210) 760-7236.</p>
+                <p>Questions? Call us at (888) 282-9165.</p>
             `)
         },
         'filed': {
@@ -194,7 +194,7 @@ async function sendExemptionStatusNotification(status, client, exType, addr, ext
                 <p>Hi ${client.name},</p>
                 <p>Unfortunately, your <strong>${exType}</strong> exemption application for <strong>${addr}</strong> was not approved by the appraisal district.</p>
                 <p>Don't worry — our team will review the denial and contact you about potential next steps, including appeal options.</p>
-                <p>Questions? Call us at (210) 760-7236.</p>
+                <p>Questions? Call us at (888) 282-9165.</p>
             `)
         }
     };
@@ -252,7 +252,7 @@ function buildExemptionEmail(title, subtitle, bodyHtml) {
         </div>
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px; opacity: 0.8;">
             OverAssessed, LLC — San Antonio, Texas<br>
-            Questions? Reply to this email or call (210) 760-7236
+            Questions? Reply to this email or call (888) 282-9165
         </div>
     </div>`;
 }

@@ -769,7 +769,7 @@ function brandedEmailWrapper(title, subtitle, bodyHtml) {
         </div>
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px; opacity: 0.8;">
             OverAssessed, LLC — San Antonio, Texas<br>
-            Questions? Reply to this email or call (210) 760-7236
+            Questions? Reply to this email or call (888) 282-9165
         </div>
     </div>`;
 }
@@ -927,7 +927,7 @@ async function runDripCheck() {
                         <div style="text-align:center;margin:25px 0;">
                             <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Before It's Too Late →</a>
                         </div>
-                        <p>If you have any questions or concerns, please reply to this email or call us at (210) 760-7236.</p>
+                        <p>If you have any questions or concerns, please reply to this email or call us at (888) 282-9165.</p>
                     `)
                 );
                 // Alert Tyler to call them

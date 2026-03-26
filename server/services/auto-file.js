@@ -47,7 +47,7 @@ async function prepareFilingPackage(caseData, propertyData, compResults) {
             ],
             agentName: 'OverAssessed, LLC',
             agentAddress: 'San Antonio, TX',
-            agentPhone: '(210) 760-7236',
+            agentPhone: '(888) 282-9165',
             currentValue: propertyData.assessedValue,
             requestedValue: compResults.recommendedValue,
             supportingEvidence: 'Comparable sales analysis attached'
@@ -412,7 +412,7 @@ async function fileFBCADProtest(client) {
             accountNumber: client.accountId || '',
             propertyAddress: client.propertyAddress,
             agentName: 'OverAssessed, LLC',
-            agentPhone: '(210) 760-7236',
+            agentPhone: '(888) 282-9165',
         };
 
         // Try to fill fields by name/id matching
