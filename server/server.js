@@ -28,6 +28,7 @@ const PORT = process.env.PORT || 3002;
 
 // Supabase routes (new database layer — runs alongside existing file-based routes)
 const { isSupabaseEnabled, supabaseAdmin } = require('./lib/supabase');
+const { normalizeAddress, normalizeStreet, addressesMatch } = require('./lib/normalize-address');
 const clientsRouter = require('./routes/clients');
 const propertiesRouter = require('./routes/properties');
 const appealsRouter = require('./routes/appeals');
@@ -1492,12 +1493,7 @@ app.get('/api/intake/check-duplicate', async (req, res) => {
         const { email, address } = req.query;
         if (!email && !address) return res.json({ duplicate: false });
 
-        const normalizeAddress = (addr) => (addr || '').trim().toLowerCase().replace(/\s+/g, ' ')
-            .replace(/\b(street|st\.?)\b/gi, 'st').replace(/\b(avenue|ave\.?)\b/gi, 'ave')
-            .replace(/\b(drive|dr\.?)\b/gi, 'dr').replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
-            .replace(/\b(road|rd\.?)\b/gi, 'rd').replace(/\b(lane|ln\.?)\b/gi, 'ln')
-            .replace(/\b(court|ct\.?)\b/gi, 'ct').replace(/\b(circle|cir\.?)\b/gi, 'cir')
-            .replace(/[.,]/g, '');
+        // The imported normalizeAddress function handles normalization.
 
         let matches = [];
         if (email) {
@@ -1509,11 +1505,7 @@ app.get('/api/intake/check-duplicate', async (req, res) => {
         }
 
         if (matches.length > 0 && address) {
-            const normAddr = normalizeAddress(address);
-            const addrMatch = matches.find(m => {
-                const existing = normalizeAddress(m.property_address);
-                return existing === normAddr || existing.includes(normAddr) || normAddr.includes(existing);
-            });
+            const addrMatch = matches.find(m => addressesMatch(address, m.property_address));
             if (addrMatch) {
                 return res.json({ duplicate: true, caseId: addrMatch.case_id, message: "It looks like you've already submitted this property. Check your email for updates!" });
             }
@@ -1527,10 +1519,7 @@ app.get('/api/intake/check-duplicate', async (req, res) => {
             if (normAddr.length > 10) {
                 const { data } = await supabaseAdmin.from('submissions').select('case_id, property_address, email');
                 if (data) {
-                    const addrMatch = data.find(m => {
-                        const existing = normalizeAddress(m.property_address);
-                        return existing === normAddr || existing.includes(normAddr) || normAddr.includes(existing);
-                    });
+                    const addrMatch = data.find(m => addressesMatch(address, m.property_address));
                     if (addrMatch) {
                         return res.json({ duplicate: true, caseId: addrMatch.case_id, message: "It looks like this property has already been submitted. Check your email for updates!" });
                     }
@@ -1559,16 +1548,6 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         if (isSupabaseEnabled()) {
             try {
                 const normalizedEmail = email.trim().toLowerCase();
-                const normalizedAddress = propertyAddress.trim().toLowerCase().replace(/\s+/g, ' ')
-                    .replace(/\b(street|st\.?)\b/gi, 'st')
-                    .replace(/\b(avenue|ave\.?)\b/gi, 'ave')
-                    .replace(/\b(drive|dr\.?)\b/gi, 'dr')
-                    .replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
-                    .replace(/\b(road|rd\.?)\b/gi, 'rd')
-                    .replace(/\b(lane|ln\.?)\b/gi, 'ln')
-                    .replace(/\b(court|ct\.?)\b/gi, 'ct')
-                    .replace(/\b(circle|cir\.?)\b/gi, 'cir')
-                    .replace(/[.,]/g, '');
 
                 // Check by email
                 const { data: emailMatches } = await supabaseAdmin
@@ -1578,19 +1557,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
 
                 if (emailMatches && emailMatches.length > 0) {
                     // Check if any existing submission has a similar address
-                    const addressMatch = emailMatches.find(m => {
-                        const existingAddr = (m.property_address || '').trim().toLowerCase().replace(/\s+/g, ' ')
-                            .replace(/\b(street|st\.?)\b/gi, 'st')
-                            .replace(/\b(avenue|ave\.?)\b/gi, 'ave')
-                            .replace(/\b(drive|dr\.?)\b/gi, 'dr')
-                            .replace(/\b(boulevard|blvd\.?)\b/gi, 'blvd')
-                            .replace(/\b(road|rd\.?)\b/gi, 'rd')
-                            .replace(/\b(lane|ln\.?)\b/gi, 'ln')
-                            .replace(/\b(court|ct\.?)\b/gi, 'ct')
-                            .replace(/\b(circle|cir\.?)\b/gi, 'cir')
-                            .replace(/[.,]/g, '');
-                        return existingAddr === normalizedAddress || existingAddr.includes(normalizedAddress) || normalizedAddress.includes(existingAddr);
-                    });
+                    const addressMatch = emailMatches.find(m => addressesMatch(propertyAddress, m.property_address));
 
                     if (addressMatch) {
                         console.log(`[Intake] Duplicate detected — email: ${normalizedEmail}, existing case: ${addressMatch.case_id}`);
