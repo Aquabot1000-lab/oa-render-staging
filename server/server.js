@@ -2587,9 +2587,13 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         const statuses = ['New', 'Analysis Complete', 'Form Signed', 'Protest Filed', 'Hearing Scheduled', 'Resolved'];
         const pipeline = {};
         statuses.forEach(s => pipeline[s] = 0);
-        // Count legacy statuses too
+        // Count statuses — normalize "Signed" → "Form Signed" for pipeline
+        const statusMap = { 'Signed': 'Form Signed', 'New Submission': 'New' };
         submissions.forEach(s => {
-            if (pipeline[s.status] !== undefined) {
+            const mapped = statusMap[s.status] || s.status;
+            if (pipeline[mapped] !== undefined) {
+                pipeline[mapped]++;
+            } else if (pipeline[s.status] !== undefined) {
                 pipeline[s.status]++;
             } else {
                 pipeline[s.status] = (pipeline[s.status] || 0) + 1;
