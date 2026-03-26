@@ -156,9 +156,21 @@ const WA_COUNTIES = [
     'Walla Walla', 'Chelan', 'Franklin', 'San Juan', 'Jefferson'
 ];
 
+const AZ_COUNTIES = [
+    'Maricopa', 'Pima', 'Pinal', 'Yavapai', 'Coconino', 'Mohave',
+    'Yuma', 'Cochise', 'Navajo', 'Apache', 'Gila', 'Graham',
+    'Santa Cruz', 'La Paz', 'Greenlee'
+];
+
+const CO_COUNTIES = [
+    'Denver', 'El Paso', 'Arapahoe', 'Jefferson', 'Adams', 'Douglas',
+    'Larimer', 'Boulder', 'Weld', 'Mesa', 'Pueblo', 'Broomfield',
+    'Eagle', 'Pitkin', 'Summit', 'Garfield', 'Routt', 'San Miguel'
+];
+
 function detectState(source, county, explicitState, address) {
     // 1. Explicit state from form always wins
-    if (explicitState && ['TX', 'GA', 'WA'].includes(explicitState.toUpperCase())) {
+    if (explicitState && ['TX', 'GA', 'WA', 'AZ', 'CO'].includes(explicitState.toUpperCase())) {
         return explicitState.toUpperCase();
     }
     // 2. Detect from source string
@@ -166,12 +178,16 @@ function detectState(source, county, explicitState, address) {
         const s = source.toLowerCase();
         if (s.includes('ga') || s.includes('georgia')) return 'GA';
         if (s.includes('wa') || s.includes('washington')) return 'WA';
+        if (s.includes('az') || s.includes('arizona')) return 'AZ';
+        if (s.includes('co') || s.includes('colorado')) return 'CO';
     }
     // 3. Detect from county name
     if (county) {
         const c = (county || '').toLowerCase();
         if (GA_COUNTIES.some(gc => gc.toLowerCase() === c)) return 'GA';
         if (WA_COUNTIES.some(wc => wc.toLowerCase() === c)) return 'WA';
+        if (AZ_COUNTIES.some(ac => ac.toLowerCase() === c)) return 'AZ';
+        if (CO_COUNTIES.some(cc => cc.toLowerCase() === c)) return 'CO';
     }
     // 4. Detect from address
     if (address) {
@@ -180,6 +196,10 @@ function detectState(source, county, explicitState, address) {
         if (/, ga\b|georgia/i.test(a) || /atlanta|fulton|dekalb|gwinnett|cobb/i.test(a)) return 'GA';
         // WA patterns
         if (/, wa\b|washington/i.test(a) || /seattle|king county|snohomish|pierce|spokane/i.test(a)) return 'WA';
+        // AZ patterns
+        if (/, az\b|arizona/i.test(a) || /phoenix|scottsdale|mesa|tempe|chandler|maricopa/i.test(a)) return 'AZ';
+        // CO patterns
+        if (/, co\b|colorado/i.test(a) || /denver|boulder|colorado springs|aurora|fort collins/i.test(a)) return 'CO';
     }
     // 5. Default TX only as absolute last resort
     return 'TX';
@@ -364,6 +384,8 @@ module.exports = {
     STAGE_MESSAGES,
     GA_COUNTIES,
     WA_COUNTIES,
+    AZ_COUNTIES,
+    CO_COUNTIES,
     detectState,
     fillTemplate,
     getTemplateVars,
