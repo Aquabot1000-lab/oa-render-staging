@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 3002;
 // Supabase routes (new database layer — runs alongside existing file-based routes)
 const { isSupabaseEnabled, supabaseAdmin } = require('./lib/supabase');
 const { normalizeAddress, normalizeStreet, addressesMatch } = require('./lib/normalize-address');
+const { validateIntakeFields } = require('./lib/validate-input');
 const clientsRouter = require('./routes/clients');
 const propertiesRouter = require('./routes/properties');
 const appealsRouter = require('./routes/appeals');
@@ -1544,6 +1545,21 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // === Input validation & auto-correction ===
+        const validation = validateIntakeFields(req.body);
+        if (!validation.valid) {
+            console.log(`[Intake] Validation failed: ${validation.errors.join(', ')}`);
+            return res.status(400).json({ error: validation.errors.join('. '), validationErrors: validation.errors });
+        }
+        if (validation.warnings.length > 0) {
+            console.log(`[Intake] Validation warnings: ${validation.warnings.join(', ')}`);
+        }
+        // Override with corrected values
+        const correctedPhone = validation.corrected.phone || phone;
+        const correctedEmail = validation.corrected.email || email;
+        const correctedName = validation.corrected.ownerName || ownerName;
+        const correctedAddress = validation.corrected.propertyAddress || propertyAddress;
+
         // === Duplicate detection ===
         if (isSupabaseEnabled()) {
             try {
@@ -1579,11 +1595,11 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         const submission = {
             id: uuidv4(),
             caseId,
-            propertyAddress,
+            propertyAddress: correctedAddress,
             propertyType,
-            ownerName,
-            phone,
-            email,
+            ownerName: correctedName,
+            phone: correctedPhone,
+            email: correctedEmail,
             assessedValue: assessedValue || null,
             state,
             county: county || null,

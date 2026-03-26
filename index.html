@@ -1441,9 +1441,18 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
             let e = email.trim().toLowerCase();
             e = e.replace(/gmial\.com/g, 'gmail.com').replace(/gmai\.com/g, 'gmail.com')
                  .replace(/gamil\.com/g, 'gmail.com').replace(/gnail\.com/g, 'gmail.com')
+                 .replace(/gmal\.com/g, 'gmail.com').replace(/gmaill\.com/g, 'gmail.com')
+                 .replace(/gmail\.co$/g, 'gmail.com').replace(/gmail\.cm$/g, 'gmail.com')
                  .replace(/yaho\.com/g, 'yahoo.com').replace(/yahooo\.com/g, 'yahoo.com')
+                 .replace(/yahoo\.co$/g, 'yahoo.com').replace(/yhoo\.com/g, 'yahoo.com')
                  .replace(/hotmial\.com/g, 'hotmail.com').replace(/hotmal\.com/g, 'hotmail.com')
-                 .replace(/aol\.con/g, 'aol.com').replace(/\.comm$/g, '.com').replace(/\.coom$/g, '.com');
+                 .replace(/hotamil\.com/g, 'hotmail.com').replace(/hotmail\.co$/g, 'hotmail.com')
+                 .replace(/outlok\.com/g, 'outlook.com').replace(/outloo\.com/g, 'outlook.com')
+                 .replace(/outlook\.co$/g, 'outlook.com')
+                 .replace(/icloud\.co$/g, 'icloud.com').replace(/icoud\.com/g, 'icloud.com')
+                 .replace(/aol\.con/g, 'aol.com').replace(/aol\.co$/g, 'aol.com')
+                 .replace(/\.con$/g, '.com').replace(/\.cmo$/g, '.com').replace(/\.vom$/g, '.com')
+                 .replace(/\.comm$/g, '.com').replace(/\.coom$/g, '.com').replace(/\.ocm$/g, '.com');
             return e;
         },
         checkEmailSuspicious(email) {
