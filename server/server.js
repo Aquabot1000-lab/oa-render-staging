@@ -3099,6 +3099,62 @@ app.get('/lp/clark-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'clark-county.html'));
 });
 
+// Colorado landing pages
+app.get('/colorado', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+});
+app.get('/lp/colorado', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+});
+app.get('/lp/pitkin-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pitkin-county.html'));
+});
+app.get('/pitkin-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pitkin-county.html'));
+});
+app.get('/lp/eagle-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'eagle-county.html'));
+});
+app.get('/eagle-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'eagle-county.html'));
+});
+app.get('/lp/summit-county-co', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'summit-county-co.html'));
+});
+app.get('/summit-county-co', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'summit-county-co.html'));
+});
+app.get('/lp/routt-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'routt-county.html'));
+});
+app.get('/routt-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'routt-county.html'));
+});
+app.get('/lp/gunnison-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'gunnison-county.html'));
+});
+app.get('/gunnison-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'gunnison-county.html'));
+});
+app.get('/lp/san-miguel-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'san-miguel-county.html'));
+});
+app.get('/san-miguel-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'san-miguel-county.html'));
+});
+app.get('/lp/grand-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'grand-county.html'));
+});
+app.get('/grand-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'grand-county.html'));
+});
+app.get('/lp/la-plata-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'la-plata-county.html'));
+});
+app.get('/la-plata-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'la-plata-county.html'));
+});
+
 app.get('/san-antonio', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'san-antonio.html'));
 });
