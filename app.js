@@ -101,7 +101,7 @@ function initSavingsCounter() {
         entries.forEach(entry => {
             if (entry.isIntersecting && !started) {
                 started = true;
-                animateCounter(counter, 2847, 2000);
+                animateCounter(counter, 1700, 2000);
             }
         });
     }, { threshold: 0.3 });
