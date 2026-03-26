@@ -26,7 +26,7 @@ async function autoInvoiceClient(appeal) {
 
     // Determine fee percentage based on state
     const state = (appeal.state || 'TX').toUpperCase();
-    const feePercent = appeal.our_fee_percent || (state === 'TX' ? 20 : state === 'GA' ? 25 : 20);
+    const feePercent = appeal.our_fee_percent || (state === 'OH' ? 30 : 25);
     const feeAmount = Math.round(savingsAmount * (feePercent / 100) * 100) / 100;
 
     if (feeAmount < 1) {
@@ -253,7 +253,8 @@ router.post('/', async (req, res) => {
         if (caseErr) throw caseErr;
         const caseId = caseIdRow;
 
-        // 4. Create appeal
+        // 4. Create appeal (fee: OH=30%, all others=25%; existing clients keep their signed rate)
+        const defaultFeePercent = appealState === 'OH' ? 30 : 25;
         const { data: appeal, error: appealErr } = await supabaseAdmin
             .from('appeals')
             .insert({
@@ -263,6 +264,7 @@ router.post('/', async (req, res) => {
                 state: appealState,
                 county,
                 status: 'intake',
+                our_fee_percent: defaultFeePercent,
                 source: source || 'website',
                 utm_data: utm_data || null
             })

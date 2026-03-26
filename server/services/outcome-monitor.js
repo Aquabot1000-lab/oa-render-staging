@@ -109,7 +109,7 @@ async function checkAllPendingOutcomes() {
                 if (savings > 0) {
                     // WON — value was reduced
                     const state = (appeal.state || 'TX').toUpperCase();
-                    const feePercent = appeal.our_fee_percent || (state === 'TX' ? 20 : state === 'GA' ? 25 : 20);
+                    const feePercent = appeal.our_fee_percent || (state === 'OH' ? 30 : 25);
                     const taxRate = await getEstimatedTaxRate(county, state) || 0.025; // default 2.5%
                     const annualSavings = Math.round(savings * taxRate * 100) / 100;
                     
