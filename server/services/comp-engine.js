@@ -286,9 +286,26 @@ async function findComparables(subject, caseData) {
     // Check manual review needed
     let needsManualReview = false;
     let reviewReason = null;
+    let unreliableData = false;
+
+    // Flag 1: No real assessed value — used default or intake estimate
+    if (!subject.assessedValue || subject.assessedValue === 300000) {
+        needsManualReview = true;
+        unreliableData = true;
+        reviewReason = `No verified assessed value found — analysis based on estimated/default value. Need client's Notice of Appraised Value for accurate numbers.`;
+        console.log(`[CompEngine] ⚠️ UNRELIABLE DATA: No real assessed value for ${subject.address}`);
+    }
+    // Flag 2: Business Personal Property detected (not real property)
+    if (subject.propertyType && /personal property|bpp|tangible commercial/i.test(subject.propertyType)) {
+        needsManualReview = true;
+        unreliableData = true;
+        reviewReason = `Property classified as Business Personal Property (BPP), not real property. Need to verify if client owns the building or just the business assets.`;
+        console.log(`[CompEngine] ⚠️ BPP DETECTED: ${subject.address} — ${subject.propertyType}`);
+    }
+    // Flag 3: Insufficient comps
     if (scored.length < 3) {
         needsManualReview = true;
-        reviewReason = `Only ${scored.length} comparable(s) found after property type filtering (${subjectCategory || 'unknown'}). Insufficient comps for automated analysis.`;
+        reviewReason = (reviewReason ? reviewReason + ' Also: ' : '') + `Only ${scored.length} comparable(s) found after property type filtering (${subjectCategory || 'unknown'}). Insufficient comps for automated analysis.`;
         console.log(`[CompEngine] ⚠️ MANUAL REVIEW NEEDED: ${reviewReason}`);
     }
 
@@ -487,6 +504,9 @@ async function findComparables(subject, caseData) {
     if (needsManualReview) {
         result.needsManualReview = true;
         result.reviewReason = reviewReason;
+    }
+    if (unreliableData) {
+        result.unreliableData = true;
     }
 
     // Backward compat: if E&U won, include market value fallback
@@ -721,7 +741,7 @@ function calculateRecommendedValue(subject, comps) {
  */
 function generateSyntheticComps(subject, count) {
     const comps = [];
-    const base = subject.assessedValue || 300000;
+    const base = subject.assessedValue || 300000; // WARNING: if assessedValue is missing, synthetics are unreliable
     const sqft = subject.sqft || estimateSqft(base);
     const yearBuilt = subject.yearBuilt || 2005;
     const lotSize = subject.lotSize || 7500;

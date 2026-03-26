@@ -807,7 +807,16 @@ function buildStatusEmail(sub, newStatus, extras) {
         'Analysis Complete': {
             title: 'Your Analysis is Ready! 📊',
             subtitle: `Case ${sub.caseId}`,
-            body: `<p>Hi ${sub.ownerName},</p>
+            body: sub.needsManualReview && sub.unreliableData
+                ? `<p>Hi ${sub.ownerName},</p>
+                <p>We've begun our analysis for your property at <strong>${sub.propertyAddress}</strong>.</p>
+                <p>To finalize your savings estimate and provide accurate numbers, we need your <strong>Notice of Appraised Value</strong> from your county appraisal district. This document contains the exact assessed value we'll be protesting.</p>
+                <p>When you receive it (typically mid-April for TX), please forward it to us or upload it to your portal:</p>
+                <div style="text-align:center;margin:20px 0;">
+                    <a href="${getBaseUrl()}/portal" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Upload Your Notice</a>
+                </div>
+                <p>Once we have your official assessed value, we'll provide a precise savings projection based on comparable properties in your area.</p>`
+                : `<p>Hi ${sub.ownerName},</p>
                 <p>Great news — our team has completed the analysis for your property at <strong>${sub.propertyAddress}</strong>.</p>
                 ${sub.estimatedSavings ? `<div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
                     <p style="margin:0 0 5px;color:#6b7280;">Estimated Annual Tax Savings</p>
@@ -817,7 +826,9 @@ function buildStatusEmail(sub, newStatus, extras) {
                 <div style="text-align:center;margin:20px 0;">
                     <a href="${getBaseUrl()}/sign/${sub.caseId}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Authorization & View Report</a>
                 </div>`,
-            sms: `OverAssessed: Your analysis is ready${sub.estimatedSavings ? ` — estimated savings: $${sub.estimatedSavings.toLocaleString()}/yr` : ''}! Sign your authorization form to proceed: ${getBaseUrl()}/sign/${sub.caseId}`
+            sms: sub.needsManualReview && sub.unreliableData
+                ? `OverAssessed: We've started analyzing your property. To get your final savings estimate, please upload your Notice of Appraised Value at ${getBaseUrl()}/portal`
+                : `OverAssessed: Your analysis is ready${sub.estimatedSavings ? ` — estimated savings: $${sub.estimatedSavings.toLocaleString()}/yr` : ''}! Sign your authorization form to proceed: ${getBaseUrl()}/sign/${sub.caseId}`
         },
         'Protest Filed': {
             title: 'Your Protest Has Been Filed! 📤',
@@ -2088,6 +2099,9 @@ async function runFullAnalysis(caseId) {
     if (compResults.needsManualReview) {
         submissions[idx].needsManualReview = true;
         submissions[idx].reviewReason = compResults.reviewReason;
+    }
+    if (compResults.unreliableData) {
+        submissions[idx].unreliableData = true;
     }
     if (submissions[idx].status === 'New') {
         submissions[idx].status = 'Analysis Complete';
