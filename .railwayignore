@@ -2,7 +2,9 @@ server/node_modules
 server/package-lock.json
 .env
 server/.env
-/data/
+data/
+server/data/
+**/data/
 business/
 node_modules/
 test-runs/
@@ -12,3 +14,12 @@ marketing/google-ads/
 marketing/facebook-ads/
 marketing/email-nurture/
 marketing/review-profiles/
+**/*.txt
+**/*.TXT
+**/*.zip
+**/*.xlsx
+**/*.mdb
+**/*.dbf
+**/*.cpg
+**/*.jsonl
+**/*.pdf

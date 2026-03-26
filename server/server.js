@@ -2019,14 +2019,41 @@ async function runFullAnalysis(caseId) {
     submissions[idx].propertyData = propertyData;
     await saveProgress();
 
-    // Step 2: Find comparables
+    // Step 2: Check if we have real assessed value — never use synthetic/default data
+    const assessedNum = propertyData.assessedValue || parseInt((sub.assessedValue || '0').replace(/[^0-9]/g, '')) || 0;
+    const hasRealValue = assessedNum > 0 && propertyData.source !== 'intake-fallback';
+
+    if (!hasRealValue) {
+        console.warn(`[Analysis] No real assessed value for ${sub.caseId} — skipping analysis. Source: ${propertyData.source}, value: ${assessedNum}`);
+        submissions[idx].unreliableData = true;
+        submissions[idx].needsManualReview = true;
+        submissions[idx].reviewReason = 'No real assessed value available — county lookup failed or returned fallback data. Waiting for client to upload their notice of appraised value.';
+        submissions[idx].status = 'Analysis Complete';
+        submissions[idx].analysisStatus = 'Awaiting Notice Upload';
+        submissions[idx].updatedAt = new Date().toISOString();
+        await saveProgress();
+
+        // Send "upload your notice" email instead of fake analysis
+        if (sub.email) {
+            const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
+            sendStageNotification(sub, 'awaiting_notice', {}, notifyFns);
+        }
+
+        // Still notify Tyler about the lead
+        const { sms, html } = buildNotificationContent(sub);
+        sendNotificationSMS(`[NOTICE NEEDED] ${sms}`);
+
+        return submissions[idx];
+    }
+
+    // Step 2b: Find comparables (only with real data)
     console.log(`[Analysis] Step 2: Finding comparable properties...`);
     const compResults = await findComparables(propertyData, sub);
     submissions[idx].compResults = compResults;
     submissions[idx].analysisStatus = 'Comps Found';
     await saveProgress();
 
-    // Step 3: Generate evidence packet
+    // Step 3: Generate evidence packet (only with real data)
     console.log(`[Analysis] Step 3: Generating evidence packet...`);
     const evidencePath = await generateEvidencePacket(sub, propertyData, compResults);
     submissions[idx].evidencePacketPath = evidencePath;
@@ -2034,7 +2061,7 @@ async function runFullAnalysis(caseId) {
     await saveProgress();
 
     // Step 4: Build analysis report
-    const assessedNum = propertyData.assessedValue || parseInt((sub.assessedValue || '0').replace(/[^0-9]/g, '')) || 300000;
+    // assessedNum already validated above — guaranteed to be real
     const report = {
         generatedAt: new Date().toISOString(),
         propertyAddress: sub.propertyAddress,
