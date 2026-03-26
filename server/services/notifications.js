@@ -59,7 +59,7 @@ const STAGE_MESSAGES = {
         },
         invoice_sent: {
             subject: 'Invoice for Tax Savings Services',
-            sms: '📄 Your invoice for {{invoiceAmount}} (20% of {{savings}} savings) is ready: {{invoiceUrl}}',
+            sms: '📄 Your invoice for {{invoiceAmount}} (25% of {{savings}} savings) is ready: {{invoiceUrl}}',
             email_title: 'Your Invoice is Ready 📄',
             email_subtitle: 'Case {{caseId}}'
         },

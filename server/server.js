@@ -1641,7 +1641,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                     .single();
 
                 if (referral) {
-                    const discountedRate = (submission.state === 'GA') ? 0.20 : 0.15;
+                    const discountedRate = 0.20; // Referral discount: 20% vs standard 25%
                     submission.referralCode = ref;
                     submission.discountedRate = discountedRate;
                     submission.referralId = referral.id;
@@ -1879,13 +1879,13 @@ app.post('/api/sign/:id', async (req, res) => {
             };
 
             // Fee Agreement Signature
-            const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
+            const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
             submissions[idx].feeAgreementSignature = {
                 fullName: feeAgreementName,
                 authorized: true,
                 signedAt: new Date().toISOString(),
                 ipAddress: req.ip,
-                applicableRate: feeRates[state] || '20%',
+                applicableRate: feeRates[state] || '25%',
                 state: state
             };
             submissions[idx].fee_agreement_signed = true;
@@ -1901,8 +1901,8 @@ app.post('/api/sign/:id', async (req, res) => {
 
         const state = sub.state || 'TX';
         const formName = state === 'GA' ? 'Service Agreement & Letter of Authorization' : 'Form 50-162';
-        const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
-        const feeRate = feeRates[state] || '20%';
+        const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
+        const feeRate = feeRates[state] || '25%';
 
         // Notify Tyler
         sendNotificationEmail(
@@ -2601,7 +2601,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         });
 
         const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0);
-        const totalFees = Math.round(totalEstimatedSavings * 0.20);
+        const totalFees = Math.round(totalEstimatedSavings * 0.25);
         const signed = submissions.filter(s => s.signature).length;
         const notices = submissions.filter(s => s.noticeOfValue).length;
 
