@@ -14,8 +14,10 @@ marketing/google-ads/
 marketing/facebook-ads/
 marketing/email-nurture/
 marketing/review-profiles/
-**/*.txt
-**/*.TXT
+data/**/*.txt
+data/**/*.TXT
+server/data/**/*.txt
+server/data/**/*.TXT
 **/*.zip
 **/*.xlsx
 **/*.mdb
