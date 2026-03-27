@@ -321,7 +321,7 @@ app.post('/api/estimate', async (req, res) => {
     }
 });
 
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..'), { index: false }));
 
 // File paths
 const DATA_DIR = path.join(__dirname, 'data');
@@ -3034,11 +3034,11 @@ app.get('/ohio', (req, res) => {
 });
 
 app.get('/arizona', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'arizona.html'));
+    res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
 });
 
 app.get('/colorado', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'colorado.html'));
+    res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
 });
 
 app.get('/commercial', (req, res) => {
