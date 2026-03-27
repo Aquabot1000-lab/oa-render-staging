@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Received — OverAssessed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5ce7;
+            --blue: #0984e3;
+            --gradient: linear-gradient(135deg, #6c5ce7, #0984e3);
+            --text-dark: #2d3436;
+            --text-muted: #6b7280;
+            --bg-tint: #f8f9ff;
+            --white: #ffffff;
+            --green: #00b894;
+            --radius: 8px;
+            --radius-lg: 16px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-tint);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--gradient);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+
+        /* Content */
+        .container {
+            flex: 1;
+            max-width: 700px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .success-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 3rem 2.5rem;
+            text-align: center;
+        }
+
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .info-box {
+            background: var(--bg-tint);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .info-value {
+            color: var(--text-muted);
+        }
+
+        .highlight {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            color: #856404;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.5rem; }
+            .container { margin: 2rem auto; }
+            .success-card { padding: 2rem 1.5rem; }
+            h2 { font-size: 1.5rem; }
+            .checkmark { width: 70px; height: 70px; font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>OverAssessed</h1>
+        <p>Property Tax Protest Experts</p>
+    </div>
+
+    <div class="container">
+        <div class="success-card">
+            <div class="checkmark">✓</div>
+            <h2>Payment Received!</h2>
+            <p class="message">
+                Your <strong>$79 initiation fee</strong> has been successfully processed.
+                Our team will begin analyzing your property and preparing your protest case.
+            </p>
+
+            <div class="info-box" id="detailsBox" style="display: none;">
+                <div class="info-row">
+                    <span class="info-label">Submission ID:</span>
+                    <span class="info-value" id="submissionId">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Session ID:</span>
+                    <span class="info-value" id="sessionId">—</span>
+                </div>
+            </div>
+
+            <div class="highlight">
+                💰 <strong>This fee is credited toward your final contingency fee.</strong>
+                You only pay the difference if we successfully save you money on your property taxes.
+            </div>
+
+            <p class="message" style="font-size: 0.95rem; margin-bottom: 2rem;">
+                <strong>What happens next?</strong><br>
+                1. We'll analyze your property's assessed value against comparable properties<br>
+                2. Our team will prepare comprehensive evidence for your protest<br>
+                3. You'll receive updates via email and SMS as we progress<br>
+                4. We'll handle all filings and hearings on your behalf
+            </p>
+
+            <a href="/portal.html" class="btn btn-primary">Go to Client Portal</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Questions? Email <a href="mailto:tyler@overassessed.ai" style="color: var(--purple); text-decoration: none;">tyler@overassessed.ai</a> or call (512) 910-1128</p>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const submissionId = urlParams.get('submission_id');
+        const sessionId = urlParams.get('session_id');
+
+        // Display details if available
+        if (submissionId || sessionId) {
+            const detailsBox = document.getElementById('detailsBox');
+            detailsBox.style.display = 'block';
+
+            if (submissionId) {
+                document.getElementById('submissionId').textContent = submissionId;
+            }
+            if (sessionId) {
+                document.getElementById('sessionId').textContent = sessionId;
+            }
+        }
+    </script>
+</body>
+</html>

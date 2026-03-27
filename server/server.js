@@ -1701,6 +1701,63 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         const welcomeHtml = buildWelcomeEmail(submission);
         sendClientEmail(email, `Welcome to OverAssessed — Case ${caseId}`, welcomeHtml);
 
+        // Initiation Fee: Create Stripe checkout for $79 initiation fee
+        // The fee is credited toward the final contingency fee
+        let checkoutUrl = null;
+        try {
+            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+            // Get the initiation fee price ID from the stripe module
+            // We'll call the checkout endpoint logic directly here
+            const stripeModule = require('./routes/stripe');
+
+            // Create checkout session directly
+            const products = await stripe.products.search({
+                query: "name:'OverAssessed Initiation Fee'",
+                limit: 1
+            });
+
+            if (products.data.length > 0) {
+                const product = products.data[0];
+                const prices = await stripe.prices.list({
+                    product: product.id,
+                    active: true,
+                    limit: 1
+                });
+
+                if (prices.data.length > 0) {
+                    const priceId = prices.data[0].id;
+                    const baseUrl = process.env.APP_URL || 'https://disciplined-alignment-production.up.railway.app';
+
+                    const session = await stripe.checkout.sessions.create({
+                        payment_method_types: ['card'],
+                        line_items: [{
+                            price: priceId,
+                            quantity: 1
+                        }],
+                        mode: 'payment',
+                        customer_email: correctedEmail,
+                        success_url: `${baseUrl}/payment-success.html?session_id={CHECKOUT_SESSION_ID}&submission_id=${submission.id}`,
+                        cancel_url: `${baseUrl}/payment-cancel.html?submission_id=${submission.id}`,
+                        metadata: {
+                            submission_id: submission.id,
+                            client_name: correctedName,
+                            property_address: correctedAddress,
+                            state: state || '',
+                            county: county || '',
+                            fee_type: 'initiation',
+                            source: 'overassessed.ai'
+                        }
+                    });
+
+                    checkoutUrl = session.url;
+                    console.log(`[Intake] Stripe checkout created for ${caseId}: ${checkoutUrl}`);
+                }
+            }
+        } catch (stripeErr) {
+            console.error('[Intake] Failed to create Stripe checkout:', stripeErr.message);
+        }
+
         // Auto-trigger full analysis pipeline (async, don't block response)
         setTimeout(async () => {
             try {
@@ -1728,7 +1785,14 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             }
         }, 2000);
 
-        res.json({ success: true, message: 'Submitted successfully', id: submission.id, caseId });
+        res.json({
+            success: true,
+            message: 'Submitted successfully',
+            id: submission.id,
+            caseId,
+            checkout_url: checkoutUrl,
+            requires_payment: true
+        });
     } catch (error) {
         console.error('Intake error:', error);
         res.status(500).json({ error: 'Failed to process submission' });
@@ -3781,7 +3845,7 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
 // ===== END TWILIO VOICE =====
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
         console.log(`🚀 OverAssessed running on port ${PORT}`);
         console.log(`📱 SMS: ${twilioClient ? 'Enabled' : 'Disabled'}`);
         console.log(`📧 Email: ${process.env.SENDGRID_API_KEY ? 'Enabled' : 'Disabled'}`);
@@ -3789,6 +3853,12 @@ app.listen(PORT, () => {
         console.log(`🔄 Drip sequence: checking every hour`);
         console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? 'Enabled (auto-invoice)' : 'Disabled'}`);
         console.log(`🔍 Outcome monitor: checking every 6 hours`);
+
+        // Initialize Stripe initiation fee product
+        if (process.env.STRIPE_SECRET_KEY && stripeRouter.initializeInitiationFeeProduct) {
+            await stripeRouter.initializeInitiationFeeProduct();
+            console.log(`💰 Initiation fee ($79) product initialized`);
+        }
     });
 
     // Run drip check every hour

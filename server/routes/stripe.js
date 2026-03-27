@@ -1,9 +1,125 @@
+// Initiation Fee: $79 one-time, credited toward contingency fee
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 
 // Initialize Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// ============================================================
+// INITIATION FEE PRODUCT & PRICE
+// Stored in memory after initialization
+// ============================================================
+let initiationFeePriceId = null;
+
+/**
+ * Initialize Stripe Product and Price for $79 initiation fee
+ * Called on server startup
+ */
+async function initializeInitiationFeeProduct() {
+    try {
+        // Check if product already exists
+        const products = await stripe.products.search({
+            query: "name:'OverAssessed Initiation Fee'"
+        });
+
+        let product;
+        if (products.data.length > 0) {
+            product = products.data[0];
+            console.log('[Stripe] Found existing initiation fee product:', product.id);
+        } else {
+            // Create product
+            product = await stripe.products.create({
+                name: 'OverAssessed Initiation Fee',
+                description: 'Property tax protest initiation fee — credited toward your contingency fee upon successful appeal',
+                metadata: {
+                    fee_type: 'initiation',
+                    creditable: 'true'
+                }
+            });
+            console.log('[Stripe] Created initiation fee product:', product.id);
+        }
+
+        // Get or create $79 price
+        const prices = await stripe.prices.list({
+            product: product.id,
+            active: true,
+            limit: 1
+        });
+
+        if (prices.data.length > 0) {
+            initiationFeePriceId = prices.data[0].id;
+            console.log('[Stripe] Using existing price:', initiationFeePriceId);
+        } else {
+            const price = await stripe.prices.create({
+                product: product.id,
+                unit_amount: 7900, // $79.00
+                currency: 'usd',
+                metadata: {
+                    fee_type: 'initiation'
+                }
+            });
+            initiationFeePriceId = price.id;
+            console.log('[Stripe] Created $79 price:', initiationFeePriceId);
+        }
+    } catch (err) {
+        console.error('[Stripe] Failed to initialize initiation fee product:', err.message);
+    }
+}
+
+// Export for server.js to call on startup
+router.initializeInitiationFeeProduct = initializeInitiationFeeProduct;
+
+// ============================================================
+// POST /api/stripe/initiation-checkout
+// Creates a Stripe Checkout Session for $79 initiation fee
+// Body: { submission_id, client_name, client_email, property_address, state, county }
+// ============================================================
+router.post('/initiation-checkout', async (req, res) => {
+    try {
+        const { submission_id, client_name, client_email, property_address, state, county } = req.body;
+
+        if (!submission_id || !client_email || !client_name || !property_address) {
+            return res.status(400).json({ error: 'submission_id, client_email, client_name, and property_address required' });
+        }
+
+        if (!initiationFeePriceId) {
+            return res.status(503).json({ error: 'Initiation fee product not initialized' });
+        }
+
+        const baseUrl = process.env.APP_URL || 'https://disciplined-alignment-production.up.railway.app';
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price: initiationFeePriceId,
+                quantity: 1
+            }],
+            mode: 'payment',
+            customer_email: client_email,
+            success_url: `${baseUrl}/payment-success.html?session_id={CHECKOUT_SESSION_ID}&submission_id=${submission_id}`,
+            cancel_url: `${baseUrl}/payment-cancel.html?submission_id=${submission_id}`,
+            metadata: {
+                submission_id,
+                client_name,
+                property_address,
+                state: state || '',
+                county: county || '',
+                fee_type: 'initiation',
+                source: 'overassessed.ai'
+            }
+        });
+
+        res.json({
+            success: true,
+            checkout_url: session.url,
+            session_id: session.id
+        });
+    } catch (err) {
+        console.error('[Stripe] Initiation checkout error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ============================================================
 // POST /api/stripe/create-invoice
@@ -214,23 +330,96 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             console.log(`[Stripe] Checkout completed: ${session.id}, amount: ${session.amount_total / 100}`);
 
             if (isSupabaseEnabled()) {
-                // Update payment status
-                await supabaseAdmin
-                    .from('payments')
-                    .update({ status: 'paid', stripe_payment_id: session.payment_intent })
-                    .eq('stripe_payment_id', session.id);
+                // Handle initiation fee payments
+                if (session.metadata?.fee_type === 'initiation') {
+                    const submissionId = session.metadata.submission_id;
+                    console.log(`[Stripe] Initiation fee paid for submission ${submissionId}`);
 
-                // Update appeal payment status if linked
-                if (session.metadata?.appeal_id) {
+                    // Update submission record
                     await supabaseAdmin
-                        .from('appeals')
-                        .update({ payment_status: 'paid' })
-                        .eq('id', session.metadata.appeal_id);
-                }
+                        .from('submissions')
+                        .update({
+                            initiation_paid: true,
+                            initiation_payment_id: session.payment_intent,
+                            initiation_paid_at: new Date().toISOString()
+                        })
+                        .eq('id', submissionId);
 
-                // Auto-create Uri commission entry if TX client
-                if (session.metadata?.client_id) {
-                    await createUriCommissionIfTX(session.metadata.client_id, session.amount_total / 100);
+                    // Get submission details for notification
+                    const { data: submission } = await supabaseAdmin
+                        .from('submissions')
+                        .select('case_id, owner_name, property_address, state, county')
+                        .eq('id', submissionId)
+                        .single();
+
+                    const clientName = submission?.owner_name || session.metadata.client_name || 'Unknown';
+                    const propertyAddress = submission?.property_address || session.metadata.property_address || 'Unknown';
+                    const caseId = submission?.case_id || 'Unknown';
+
+                    console.log(`[Stripe] ✅ Initiation fee received: ${clientName} - ${propertyAddress} - $79`);
+
+                    // Send Twilio SMS notification to Tyler (if configured)
+                    if (process.env.TWILIO_ACCOUNT_SID && process.env.NOTIFY_PHONE) {
+                        try {
+                            const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                            await twilio.messages.create({
+                                body: `💰 Initiation Fee Paid!\nCase: ${caseId}\nClient: ${clientName}\nProperty: ${propertyAddress}\nAmount: $79`,
+                                from: process.env.TWILIO_PHONE_NUMBER,
+                                to: process.env.NOTIFY_PHONE
+                            });
+                        } catch (twilioErr) {
+                            console.error('[Stripe] Twilio notification failed:', twilioErr.message);
+                        }
+                    }
+
+                    // Send email notification to Tyler (if configured)
+                    if (process.env.SENDGRID_API_KEY && process.env.NOTIFY_EMAIL) {
+                        try {
+                            const sgMail = require('@sendgrid/mail');
+                            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                            await sgMail.send({
+                                to: process.env.NOTIFY_EMAIL,
+                                from: process.env.SENDGRID_FROM_EMAIL || 'noreply@overassessed.ai',
+                                subject: `💰 Initiation Fee Paid — ${caseId} ${clientName}`,
+                                html: `
+                                    <h2>💰 Initiation Fee Payment Received</h2>
+                                    <p><strong>Case ID:</strong> ${caseId}</p>
+                                    <p><strong>Client:</strong> ${clientName}</p>
+                                    <p><strong>Property:</strong> ${propertyAddress}</p>
+                                    <p><strong>State/County:</strong> ${submission?.state || 'N/A'} / ${submission?.county || 'N/A'}</p>
+                                    <p><strong>Amount:</strong> $79.00</p>
+                                    <p><strong>Payment ID:</strong> ${session.payment_intent}</p>
+                                    <hr>
+                                    <p style="color: #666; font-size: 0.9em;">
+                                        This fee is credited toward the final contingency fee upon successful appeal.
+                                        The client's case is now ready for analysis and filing.
+                                    </p>
+                                `
+                            });
+                        } catch (emailErr) {
+                            console.error('[Stripe] Email notification failed:', emailErr.message);
+                        }
+                    }
+                } else {
+                    // Handle regular appeal payments
+                    // Update payment status
+                    await supabaseAdmin
+                        .from('payments')
+                        .update({ status: 'paid', stripe_payment_id: session.payment_intent })
+                        .eq('stripe_payment_id', session.id);
+
+                    // Update appeal payment status if linked
+                    if (session.metadata?.appeal_id) {
+                        await supabaseAdmin
+                            .from('appeals')
+                            .update({ payment_status: 'paid' })
+                            .eq('id', session.metadata.appeal_id);
+                    }
+
+                    // Auto-create Uri commission entry if TX client
+                    if (session.metadata?.client_id) {
+                        await createUriCommissionIfTX(session.metadata.client_id, session.amount_total / 100);
+                    }
                 }
             }
             break;
@@ -578,3 +767,4 @@ async function createUriCommissionIfTX(clientId, billingAmount) {
 
 module.exports = router;
 module.exports.chargeSavedCard = chargeSavedCard;
+module.exports.initializeInitiationFeeProduct = initializeInitiationFeeProduct;

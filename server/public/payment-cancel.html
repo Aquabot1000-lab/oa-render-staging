@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Not Completed — OverAssessed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5ce7;
+            --blue: #0984e3;
+            --gradient: linear-gradient(135deg, #6c5ce7, #0984e3);
+            --text-dark: #2d3436;
+            --text-muted: #6b7280;
+            --bg-tint: #f8f9ff;
+            --white: #ffffff;
+            --orange: #fd7e14;
+            --red: #e17055;
+            --radius: 8px;
+            --radius-lg: 16px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-tint);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--gradient);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+
+        /* Content */
+        .container {
+            flex: 1;
+            max-width: 700px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .cancel-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 3rem 2.5rem;
+            text-align: center;
+        }
+
+        .alert-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: var(--orange);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .highlight {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            color: #0c5460;
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .highlight strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--purple);
+            border: 2px solid var(--purple);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-tint);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .info-box {
+            background: var(--bg-tint);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .info-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-box li {
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--purple);
+            font-weight: bold;
+        }
+
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.5rem; }
+            .container { margin: 2rem auto; }
+            .cancel-card { padding: 2rem 1.5rem; }
+            h2 { font-size: 1.5rem; }
+            .alert-icon { width: 70px; height: 70px; font-size: 2.5rem; }
+            .buttons { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>OverAssessed</h1>
+        <p>Property Tax Protest Experts</p>
+    </div>
+
+    <div class="container">
+        <div class="cancel-card">
+            <div class="alert-icon">!</div>
+            <h2>Payment Not Completed</h2>
+            <p class="message">
+                Your property tax protest signup requires a <strong>$79 initiation fee</strong> to begin.
+                This fee is credited toward your final contingency fee — you only pay the difference if we save you money.
+            </p>
+
+            <div class="highlight">
+                <strong>💰 How the Initiation Fee Works:</strong>
+                The $79 fee covers our initial analysis and case preparation. If we successfully reduce your property taxes, this amount is credited toward your contingency fee (typically 25% of your tax savings). You only pay the difference.
+            </div>
+
+            <div class="info-box">
+                <h3>What the $79 includes:</h3>
+                <ul>
+                    <li>Comprehensive property valuation analysis</li>
+                    <li>Comparable property research (comp selection)</li>
+                    <li>Evidence packet preparation</li>
+                    <li>Professional filing with your county</li>
+                    <li>Hearing representation (if needed)</li>
+                </ul>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="retryPayment()">Complete Payment</button>
+                <a href="mailto:tyler@overassessed.ai" class="btn btn-secondary">Contact Us</a>
+            </div>
+
+            <p class="message" style="font-size: 0.9rem; color: var(--text-muted);">
+                Questions about the fee? We're happy to explain how our pricing works and why the initiation fee is credited toward your final fee.
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Email <a href="mailto:tyler@overassessed.ai" style="color: var(--purple); text-decoration: none;">tyler@overassessed.ai</a> or call (512) 910-1128</p>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const submissionId = urlParams.get('submission_id');
+
+        function retryPayment() {
+            if (submissionId) {
+                // Create a new checkout session
+                fetch('/api/stripe/initiation-checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        submission_id: submissionId,
+                        client_name: 'Client', // We'll need to fetch this data if needed
+                        client_email: '', // These will be filled from the original submission
+                        property_address: ''
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.checkout_url) {
+                        window.location.href = data.checkout_url;
+                    } else {
+                        alert('Unable to create checkout session. Please contact support.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Checkout error:', err);
+                    alert('Unable to create checkout session. Please contact support.');
+                });
+            } else {
+                // No submission ID - redirect to home page
+                alert('Session expired. Please submit your property information again.');
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>
