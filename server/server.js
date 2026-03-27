@@ -3138,6 +3138,44 @@ app.get('/la-plata-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'la-plata-county.html'));
 });
 
+// Arizona landing pages
+app.get('/arizona', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+});
+app.get('/lp/arizona', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+});
+app.get('/lp/maricopa-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'maricopa-county.html'));
+});
+app.get('/maricopa-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'maricopa-county.html'));
+});
+app.get('/lp/pima-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pima-county.html'));
+});
+app.get('/pima-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pima-county.html'));
+});
+app.get('/lp/pinal-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pinal-county.html'));
+});
+app.get('/pinal-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'pinal-county.html'));
+});
+app.get('/lp/coconino-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'coconino-county.html'));
+});
+app.get('/coconino-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'coconino-county.html'));
+});
+app.get('/lp/yavapai-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'yavapai-county.html'));
+});
+app.get('/yavapai-county', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'yavapai-county.html'));
+});
+
 app.get('/san-antonio', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'san-antonio.html'));
 });
