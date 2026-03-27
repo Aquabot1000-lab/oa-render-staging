@@ -3032,6 +3032,9 @@ app.get('/georgia', (req, res) => {
 app.get('/ohio', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
 });
+app.get('/lp/ohio', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
+});
 
 app.get('/arizona', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));

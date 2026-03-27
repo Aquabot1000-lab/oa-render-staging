@@ -25,3 +25,4 @@ server/data/**/*.TXT
 **/*.cpg
 **/*.jsonl
 **/*.pdf
+ohio-docs/
