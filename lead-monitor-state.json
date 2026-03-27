@@ -1,5 +1,5 @@
 {
-  "lastCheckedAt": "2026-03-26T22:40:00.000Z",
+  "lastCheckedAt": "2026-03-27T01:27:00.000Z",
   "processedCaseIds": [
     "OA-0001",
     "OA-0002",
@@ -33,7 +33,9 @@
     "OA-0033",
     "OA-0034",
     "OA-0035",
-    "OA-0036"
+    "OA-0036",
+    "OA-0037",
+    "OA-0038"
   ],
   "queryTable": "submissions"
 }

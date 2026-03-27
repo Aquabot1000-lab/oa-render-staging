@@ -2016,15 +2016,13 @@ async function runFullAnalysis(caseId) {
         submissions[idx].updatedAt = new Date().toISOString();
         await saveProgress();
 
-        // Send "upload your notice" email instead of fake analysis
-        if (sub.email) {
-            const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
-            sendStageNotification(sub, 'awaiting_notice', {}, notifyFns);
-        }
+        // DO NOT send any client email when analysis is flagged/unreliable
+        // Standing rule: No client emails until analysis is confirmed correct with no flags
+        console.log(`[Analysis] Holding all client emails for ${sub.caseId} — unreliable data, needs manual review`);
 
-        // Still notify Tyler about the lead
+        // Still notify Tyler about the lead (internal only)
         const { sms, html } = buildNotificationContent(sub);
-        sendNotificationSMS(`[NOTICE NEEDED] ${sms}`);
+        sendNotificationSMS(`[NEEDS REVIEW - NO EMAIL SENT] ${sms}`);
 
         return submissions[idx];
     }
@@ -2367,26 +2365,11 @@ app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
     try {
         const result = await runFullAnalysis(req.params.id);
 
-        // Email client (only if form NOT already signed — avoid confusing re-sign prompts)
+        // STANDING RULE: No client emails until analysis is manually reviewed and confirmed correct
+        // All emails require Tyler's approval — no auto-sends on analysis completion
         const sub = await findSubmission(req.params.id);
-        if (sub && !sub.signature && !sub.fee_agreement_signed) {
-            sendClientEmail(sub.email, `Your Analysis is Ready — ${sub.caseId}`,
-                brandedEmailWrapper('Your Analysis is Ready! 📊', `Case ${sub.caseId}`, `
-                    <p>Hi ${sub.ownerName},</p>
-                    <p>Great news — we've completed the analysis for your property at <strong>${sub.propertyAddress}</strong>.</p>
-                    <div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
-                        <p style="margin:0 0 5px;color:#6b7280;">Estimated Annual Tax Savings</p>
-                        <p style="margin:0;font-size:32px;font-weight:800;color:#00b894;">$${result.compResults.estimatedSavings.toLocaleString()}</p>
-                    </div>
-                    <p>Log into your portal to view the full report and sign the authorization form:</p>
-                    <div style="text-align:center;margin:20px 0;">
-                        <a href="${getBaseUrl()}/sign/${sub.caseId}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">View Your Report →</a>
-                    </div>
-                `)
-            );
-        } else if (sub) {
-            console.log(`[Analysis] Skipping auto-email for ${sub.caseId} — form already signed`);
-        }
+        const hasFlags = result.unreliableData || (result.compResults && result.compResults.unreliableData);
+        console.log(`[Analysis] ${sub?.caseId || req.params.id} — analysis complete. Unreliable: ${hasFlags}. Holding all client emails for manual review.`);
 
         res.json({ success: true, estimatedSavings: result.compResults.estimatedSavings, report: result.report });
     } catch (error) {
