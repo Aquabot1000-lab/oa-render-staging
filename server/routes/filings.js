@@ -286,8 +286,10 @@ router.post('/:id/generate-packet', async (req, res) => {
 
         const evidencePath = await generateEvidencePacket(sub, subjectProperty, analysisResult);
 
+        // After evidence packet is ready, move to approval queue
         await supabaseAdmin.from('filings').update({
-            evidence_packet_url: evidencePath
+            evidence_packet_url: evidencePath,
+            status: 'queued_for_approval'
         }).eq('id', req.params.id);
 
         res.json({ success: true, url: evidencePath, source: 'generated' });
@@ -430,6 +432,196 @@ router.get('/:id/automation-log', async (req, res) => {
             screenshots
         });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/filings/approval-queue — returns all filings queued for approval
+router.get('/approval-queue', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('filings')
+            .select(`
+                *,
+                clients(name, email, phone),
+                properties(address, city, state, county, current_assessed_value),
+                appeals(case_id, estimated_savings, analysis_report)
+            `)
+            .eq('status', 'queued_for_approval')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        // Calculate days until deadline and add urgency flag
+        const now = new Date();
+        const enrichedData = (data || []).map(filing => {
+            let daysUntilDeadline = null;
+            let isUrgent = false;
+
+            if (filing.deadline_date) {
+                const deadline = new Date(filing.deadline_date);
+                const diffTime = deadline - now;
+                daysUntilDeadline = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                isUrgent = daysUntilDeadline <= 7 && daysUntilDeadline > 0;
+            }
+
+            return {
+                ...filing,
+                daysUntilDeadline,
+                isUrgent
+            };
+        });
+
+        // Sort by urgency (urgent first, then by days remaining)
+        enrichedData.sort((a, b) => {
+            if (a.isUrgent && !b.isUrgent) return -1;
+            if (!a.isUrgent && b.isUrgent) return 1;
+            if (a.daysUntilDeadline !== null && b.daysUntilDeadline !== null) {
+                return a.daysUntilDeadline - b.daysUntilDeadline;
+            }
+            return 0;
+        });
+
+        res.json(enrichedData);
+    } catch (err) {
+        console.error('[Filings] Approval queue error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/filings/:id/approve — approve a filing
+router.patch('/:id/approve', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { approved_by } = req.body;
+
+        const { data, error } = await supabaseAdmin
+            .from('filings')
+            .update({
+                status: 'approved',
+                approved_by: approved_by || 'admin',
+                approved_at: new Date().toISOString()
+            })
+            .eq('id', req.params.id)
+            .eq('status', 'queued_for_approval')
+            .select('*, clients(name, email), properties(address)')
+            .single();
+
+        if (error) throw error;
+        if (!data) {
+            return res.status(404).json({ error: 'Filing not found or not in queued_for_approval status' });
+        }
+
+        res.json(data);
+    } catch (err) {
+        console.error('[Filings] Approve error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/filings/:id/reject — reject a filing
+router.patch('/:id/reject', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { rejection_reason, rejected_by } = req.body;
+
+        if (!rejection_reason) {
+            return res.status(400).json({ error: 'rejection_reason is required' });
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('filings')
+            .update({
+                status: 'rejected',
+                rejection_reason,
+                rejected_by: rejected_by || 'admin',
+                rejected_at: new Date().toISOString()
+            })
+            .eq('id', req.params.id)
+            .eq('status', 'queued_for_approval')
+            .select('*, clients(name, email), properties(address)')
+            .single();
+
+        if (error) throw error;
+        if (!data) {
+            return res.status(404).json({ error: 'Filing not found or not in queued_for_approval status' });
+        }
+
+        res.json(data);
+    } catch (err) {
+        console.error('[Filings] Reject error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/filings/dashboard — filing stats and deadline alerts
+router.get('/dashboard', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('filings')
+            .select('id, status, state, county, deadline_date, created_at, savings');
+
+        if (error) throw error;
+
+        // Stats by state
+        const byState = {};
+        const byCounty = {};
+        const byStatus = {};
+        let totalSavings = 0;
+
+        const now = new Date();
+        const deadlineAlerts = [];
+
+        for (const filing of data || []) {
+            // State stats
+            const state = filing.state || 'Unknown';
+            byState[state] = (byState[state] || 0) + 1;
+
+            // County stats
+            const county = filing.county || 'Unknown';
+            byCounty[county] = (byCounty[county] || 0) + 1;
+
+            // Status stats
+            const status = filing.status || 'Unknown';
+            byStatus[status] = (byStatus[status] || 0) + 1;
+
+            // Savings
+            totalSavings += parseFloat(filing.savings) || 0;
+
+            // Deadline alerts (within 7 days, not approved)
+            if (filing.deadline_date && filing.status !== 'approved' && filing.status !== 'filed') {
+                const deadline = new Date(filing.deadline_date);
+                const diffTime = deadline - now;
+                const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (daysRemaining <= 7 && daysRemaining > 0) {
+                    deadlineAlerts.push({
+                        filing_id: filing.id,
+                        status: filing.status,
+                        state: filing.state,
+                        county: filing.county,
+                        deadline_date: filing.deadline_date,
+                        daysRemaining
+                    });
+                }
+            }
+        }
+
+        // Sort alerts by days remaining
+        deadlineAlerts.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+        res.json({
+            totalFilings: data.length,
+            byState,
+            byCounty,
+            byStatus,
+            totalSavings,
+            deadlineAlerts
+        });
+    } catch (err) {
+        console.error('[Filings] Dashboard error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

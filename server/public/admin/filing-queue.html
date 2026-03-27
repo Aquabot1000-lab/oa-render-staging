@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filing Approval Queue — OverAssessed Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5ce7;
+            --blue: #0984e3;
+            --gradient: linear-gradient(135deg, #6c5ce7, #0984e3);
+            --text-dark: #2d3436;
+            --text-muted: #6b7280;
+            --bg-tint: #f8f9ff;
+            --white: #ffffff;
+            --green: #00b894;
+            --red: #e17055;
+            --orange: #fd7e14;
+            --gray-light: #f7fafc;
+            --gray-medium: #e2e8f0;
+            --gray-dark: #4a5568;
+            --radius: 8px;
+            --radius-lg: 16px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-tint);
+            color: var(--text-dark);
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: var(--gradient);
+            color: white;
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .topbar h1 { font-size: 1.2rem; font-weight: 800; }
+        .topbar .back-link {
+            color: white;
+            text-decoration: none;
+            opacity: 0.85;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .topbar .back-link:hover { opacity: 1; }
+
+        /* Main Container */
+        .main { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: linear-gradient(135deg, #fd7e14, #e17055);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+        .alert-banner.show { display: block; }
+        .alert-banner h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+        .alert-banner p { font-size: 0.85rem; opacity: 0.95; }
+        .alert-banner .alert-count {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.25rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border-top: 3px solid var(--purple);
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--purple);
+        }
+
+        /* Queue Panel */
+        .panel {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-medium);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h2 { font-size: 1.1rem; font-weight: 700; }
+        .refresh-btn {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+        }
+
+        /* Queue Table */
+        .queue-table { width: 100%; border-collapse: collapse; }
+        .queue-table thead th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tint);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--gray-medium);
+        }
+        .queue-table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-light);
+            font-size: 0.85rem;
+        }
+        .queue-table tbody tr:hover {
+            background: rgba(108,92,231,0.03);
+        }
+        .queue-table tbody tr.urgent {
+            background: rgba(253,126,20,0.05);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .badge-urgent { background: #fed7d7; color: #9b2c2c; }
+        .badge-soon { background: #fef3c7; color: #92400e; }
+        .badge-normal { background: #e0f2fe; color: #0369a1; }
+
+        /* County Tag */
+        .county-tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            background: var(--gray-light);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-dark);
+        }
+
+        /* Action Buttons */
+        .action-btns { display: flex; gap: 0.5rem; }
+        .btn {
+            padding: 0.4rem 0.85rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-approve {
+            background: var(--green);
+            color: white;
+        }
+        .btn-approve:hover {
+            background: #00a884;
+            box-shadow: 0 4px 12px rgba(0,184,148,0.3);
+        }
+        .btn-reject {
+            background: var(--red);
+            color: white;
+        }
+        .btn-reject:hover {
+            background: #d65843;
+            box-shadow: 0 4px 12px rgba(225,112,85,0.3);
+        }
+        .btn-view {
+            background: var(--gray-light);
+            color: var(--gray-dark);
+        }
+        .btn-view:hover {
+            background: var(--gray-medium);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .modal h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+        .modal label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .modal textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-medium);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+        .modal textarea:focus {
+            outline: none;
+            border-color: var(--purple);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            justify-content: flex-end;
+        }
+        .btn-cancel {
+            background: var(--gray-light);
+            color: var(--gray-dark);
+        }
+        .btn-cancel:hover { background: var(--gray-medium); }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+        .empty-state h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--gray-light);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .queue-table { font-size: 0.8rem; }
+            .queue-table td, .queue-table th { padding: 0.5rem; }
+            .action-btns { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <h1>📋 Filing Approval Queue</h1>
+        <a href="/admin.html" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner">
+            <h3>⚠️ Urgent Filings Require Attention</h3>
+            <p>The following filings have deadlines within 7 days and need immediate approval:</p>
+            <div class="alert-count" id="alertCount">0</div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">Pending Approval</div>
+                <div class="value" id="statPending">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Urgent (≤7 days)</div>
+                <div class="value" id="statUrgent" style="color: var(--red);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Value at Risk</div>
+                <div class="value" id="statValue" style="color: var(--green);">$0</div>
+            </div>
+        </div>
+
+        <!-- Queue Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Approval Queue</h2>
+                <button class="refresh-btn" onclick="loadQueue()">🔄 Refresh</button>
+            </div>
+            <div id="queueContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading queue...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal">
+            <h3>Reject Filing</h3>
+            <label for="rejectReason">Rejection Reason:</label>
+            <textarea id="rejectReason" placeholder="Explain why this filing is being rejected..."></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-reject" onclick="confirmReject()">Reject Filing</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRejectId = null;
+        let queueData = [];
+
+        // Load approval queue on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQueue();
+        });
+
+        async function loadQueue() {
+            const container = document.getElementById('queueContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading queue...</p></div>';
+
+            try {
+                const response = await fetch('/api/filings/approval-queue');
+                if (!response.ok) throw new Error('Failed to fetch queue');
+
+                const data = await response.json();
+                queueData = data;
+
+                renderQueue(data);
+                updateStats(data);
+            } catch (err) {
+                console.error('Load queue error:', err);
+                container.innerHTML = `<div class="empty-state"><p style="color: var(--red);">Error loading queue: ${err.message}</p></div>`;
+            }
+        }
+
+        function renderQueue(filings) {
+            const container = document.getElementById('queueContainer');
+
+            if (filings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3>All Clear!</h3>
+                        <p>No filings are currently waiting for approval.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const rows = filings.map(f => {
+                const caseId = f.appeals?.case_id || f.id.slice(0, 8);
+                const clientName = f.clients?.name || 'Unknown';
+                const address = f.properties?.address || 'N/A';
+                const county = (f.county || 'Unknown').charAt(0).toUpperCase() + (f.county || 'unknown').slice(1);
+                const state = f.state || 'TX';
+                const filingMethod = f.filing_method || 'online';
+                const estimatedSavings = f.appeals?.estimated_savings || f.savings || 0;
+                const formattedSavings = estimatedSavings ? `$${Number(estimatedSavings).toLocaleString()}` : 'TBD';
+
+                let deadlineText = 'No deadline set';
+                let deadlineBadge = '<span class="badge badge-normal">Normal</span>';
+                let rowClass = '';
+
+                if (f.daysUntilDeadline !== null) {
+                    if (f.daysUntilDeadline <= 0) {
+                        deadlineText = 'OVERDUE';
+                        deadlineBadge = '<span class="badge badge-urgent">OVERDUE</span>';
+                        rowClass = 'urgent';
+                    } else if (f.daysUntilDeadline <= 3) {
+                        deadlineText = `${f.daysUntilDeadline} days`;
+                        deadlineBadge = '<span class="badge badge-urgent">URGENT</span>';
+                        rowClass = 'urgent';
+                    } else if (f.daysUntilDeadline <= 7) {
+                        deadlineText = `${f.daysUntilDeadline} days`;
+                        deadlineBadge = '<span class="badge badge-soon">Soon</span>';
+                    } else {
+                        deadlineText = `${f.daysUntilDeadline} days`;
+                        deadlineBadge = '<span class="badge badge-normal">Normal</span>';
+                    }
+                }
+
+                return `
+                    <tr class="${rowClass}">
+                        <td><strong>${caseId}</strong></td>
+                        <td>${clientName}</td>
+                        <td>${address}</td>
+                        <td><span class="county-tag">${county}, ${state}</span></td>
+                        <td style="text-transform: capitalize;">${filingMethod}</td>
+                        <td>${deadlineBadge}<br><small style="color: var(--text-muted);">${deadlineText}</small></td>
+                        <td><strong style="color: var(--green);">${formattedSavings}</strong></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-approve" onclick="approveFiling('${f.id}')">✓ Approve</button>
+                                <button class="btn btn-reject" onclick="openRejectModal('${f.id}')">✗ Reject</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="queue-table">
+                    <thead>
+                        <tr>
+                            <th>Case ID</th>
+                            <th>Client</th>
+                            <th>Property Address</th>
+                            <th>County</th>
+                            <th>Method</th>
+                            <th>Deadline</th>
+                            <th>Est. Savings</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateStats(filings) {
+            const totalPending = filings.length;
+            const urgentCount = filings.filter(f => f.isUrgent).length;
+            const totalValue = filings.reduce((sum, f) => {
+                const savings = f.appeals?.estimated_savings || f.savings || 0;
+                return sum + Number(savings);
+            }, 0);
+
+            document.getElementById('statPending').textContent = totalPending;
+            document.getElementById('statUrgent').textContent = urgentCount;
+            document.getElementById('statValue').textContent = `$${totalValue.toLocaleString()}`;
+
+            // Show/hide alert banner
+            const alertBanner = document.getElementById('alertBanner');
+            const alertCount = document.getElementById('alertCount');
+            if (urgentCount > 0) {
+                alertBanner.classList.add('show');
+                alertCount.textContent = urgentCount;
+            } else {
+                alertBanner.classList.remove('show');
+            }
+        }
+
+        async function approveFiling(filingId) {
+            if (!confirm('Are you sure you want to approve this filing?')) return;
+
+            try {
+                const response = await fetch(`/api/filings/${filingId}/approve`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved_by: 'admin' })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Approval failed');
+                }
+
+                alert('✓ Filing approved successfully!');
+                loadQueue();
+            } catch (err) {
+                console.error('Approve error:', err);
+                alert(`Error: ${err.message}`);
+            }
+        }
+
+        function openRejectModal(filingId) {
+            currentRejectId = filingId;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').classList.add('show');
+        }
+
+        function closeRejectModal() {
+            currentRejectId = null;
+            document.getElementById('rejectModal').classList.remove('show');
+        }
+
+        async function confirmReject() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                alert('Please provide a rejection reason.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/filings/${currentRejectId}/reject`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rejection_reason: reason,
+                        rejected_by: 'admin'
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Rejection failed');
+                }
+
+                alert('Filing rejected.');
+                closeRejectModal();
+                loadQueue();
+            } catch (err) {
+                console.error('Reject error:', err);
+                alert(`Error: ${err.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
