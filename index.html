@@ -826,6 +826,15 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                             <span style="color:var(--text-secondary);font-size:0.875rem;">Card skipped — we'll invoice you if your protest wins.</span>
                             <button type="button" onclick="toggleCardSection()" style="background:none;border:none;color:var(--primary);font-size:0.8rem;font-weight:600;cursor:pointer;margin-left:8px;font-family:var(--font);">Add card</button>
                         </div>
+                        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+                            <div style="flex:1;height:1px;background:rgba(0,0,0,0.1);"></div>
+                            <span style="color:var(--text-secondary);font-size:0.75rem;font-weight:600;">OR</span>
+                            <div style="flex:1;height:1px;background:rgba(0,0,0,0.1);"></div>
+                        </div>
+                        <button type="button" id="btcPayBtn" onclick="handleBitcoinPayment()" style="width:100%;margin-top:8px;padding:12px 24px;background:#F7931A;color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.2s;">
+                            <span style="font-size:1.1em;">₿</span> Pay $79 with Bitcoin
+                        </button>
+                        <p style="font-size:0.7rem;color:var(--text-secondary);text-align:center;margin-top:4px;">BTC payment via Coinbase Commerce — 1% fee</p>
                     </div>
                     <button type="submit" class="submit-btn" id="submitBtn">
                         <div class="spinner" id="submitSpinner"></div>
@@ -1790,6 +1799,46 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
         document.getElementById('card-element-wrapper').style.display = cardSkipped ? 'none' : 'block';
         document.getElementById('card-skipped').style.display = cardSkipped ? 'block' : 'none';
         document.getElementById('skipCardBtn').style.display = cardSkipped ? 'none' : 'inline';
+    }
+
+    async function handleBitcoinPayment() {
+        const btn = document.getElementById('btcPayBtn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<span style="font-size:1.1em;">₿</span> Creating charge...';
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        try {
+            const nameEl = document.getElementById('ownerName') || document.getElementById('name');
+            const emailEl = document.getElementById('email');
+            const addrEl = document.getElementById('address') || document.getElementById('propertyAddress');
+            const clientName = nameEl ? nameEl.value.trim() : '';
+            const clientEmail = emailEl ? emailEl.value.trim() : '';
+            const propertyAddress = addrEl ? addrEl.value.trim() : '';
+            if (!clientName || !clientEmail) {
+                alert('Please fill in your name and email above before paying with Bitcoin.');
+                btn.innerHTML = origText; btn.disabled = false; btn.style.opacity = '1';
+                return;
+            }
+            const res = await fetch('/api/coinbase/create-charge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    client_name: clientName,
+                    client_email: clientEmail,
+                    property_address: propertyAddress
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.hosted_url) {
+                window.location.href = data.hosted_url;
+            } else {
+                alert('Error creating Bitcoin payment: ' + (data.error || 'Unknown error'));
+                btn.innerHTML = origText; btn.disabled = false; btn.style.opacity = '1';
+            }
+        } catch (err) {
+            alert('Bitcoin payment error: ' + err.message);
+            btn.innerHTML = origText; btn.disabled = false; btn.style.opacity = '1';
+        }
     }
     </script>
 
