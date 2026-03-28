@@ -517,8 +517,8 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
             </div>
 
             <div class="auth-checkbox" id="authCheckbox" onclick="toggleAuth()">
-                <input type="checkbox" id="authorizeCheck">
-                <label for="authorizeCheck" id="authLabel">I authorize OverAssessed, LLC to act as my agent for property tax matters related to the above-referenced property. I understand that this authorization allows them to file protests and represent me before the appraisal district.</label>
+                <input type="checkbox" id="authorizeCheck" onclick="event.stopPropagation()">
+                <label id="authLabel" onclick="event.stopPropagation(); toggleAuth();">I authorize OverAssessed, LLC to act as my agent for property tax matters related to the above-referenced property. I understand that this authorization allows them to file protests and represent me before the appraisal district.</label>
             </div>
 
             <div class="sig-section">
@@ -575,8 +575,8 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
             </div>
 
             <div class="auth-checkbox" id="feeAuthCheckbox" onclick="toggleFeeAuth()">
-                <input type="checkbox" id="feeAuthorizeCheck">
-                <label for="feeAuthorizeCheck">I have read and agree to the Contingency Fee Agreement above. I understand the fee structure and payment terms.</label>
+                <input type="checkbox" id="feeAuthorizeCheck" onclick="event.stopPropagation()">
+                <label onclick="event.stopPropagation(); toggleFeeAuth();">I have read and agree to the Contingency Fee Agreement above. I understand the fee structure and payment terms.</label>
             </div>
 
             <div class="sig-section">
