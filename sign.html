@@ -611,7 +611,7 @@
 
                 // Requirement 2 & 4: Display property info and fee summary
                 elements.ownerName.textContent = data.ownerName || 'N/A';
-                elements.propertyAddress.textContent = data.address || 'N/A';
+                elements.propertyAddress.textContent = data.propertyAddress || data.address || 'N/A';
                 elements.caseIdDisplay.textContent = data.caseId || caseId;
                 const state = data.state || '';
                 elements.propertyState.textContent = state.toUpperCase();
@@ -620,7 +620,7 @@
                 elements.feeSummary.textContent = feeRateText;
 
                 // Populate legal text placeholders
-                elements.legalAddress.textContent = data.address || 'N/A';
+                elements.legalAddress.textContent = data.propertyAddress || data.address || 'N/A';
                 elements.legalState.textContent = state.toUpperCase();
                 elements.legalFeeRate.textContent = feeRateText;
 
