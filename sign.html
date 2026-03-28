@@ -541,7 +541,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 
                     <h4 style="margin-top: 1.5rem;">FEE STRUCTURE</h4>
                     <ul style="margin: 0.75rem 0 0.75rem 1.5rem;" id="feeStructureList">
-                        <li id="feeRateTX"><strong>Texas properties:</strong> 20% of verified first-year tax savings</li>
+                        <li id="feeRateTX"><strong>Texas properties:</strong> 25% of verified first-year tax savings</li>
                         <li id="feeRateGA"><strong>Georgia properties:</strong> 25% of verified first-year tax savings</li>
                         <li id="feeRateWA"><strong>Washington properties:</strong> 25% of verified first-year tax savings</li>
                         <li>Referred clients may qualify for a discounted rate</li>
@@ -549,7 +549,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 
                     <div id="feeHighlight" style="background: linear-gradient(135deg, rgba(108,92,231,0.08), rgba(9,132,227,0.08)); border: 1px solid rgba(108,92,231,0.2); border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
                         <span style="font-size: 0.875rem; color: var(--text-secondary);">Your applicable rate:</span>
-                        <div style="font-size: 1.75rem; font-weight: 700; color: var(--primary); margin-top: 4px;" id="feeRateDisplay">20%</div>
+                        <div style="font-size: 1.75rem; font-weight: 700; color: var(--primary); margin-top: 4px;" id="feeRateDisplay">25%</div>
                         <span style="font-size: 0.8125rem; color: var(--text-secondary);">of verified first-year tax savings</span>
                     </div>
 
@@ -599,7 +599,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
         <a href="/portal" style="color: var(--purple); font-weight: 700; text-decoration: none;">← Back to Portal</a>
     </div>
 
-    <div class="success-screen" id="successScreen">
+    <div class="success-screen" id="successScreen" style="display: none;">
         <div class="icon">🎉</div>
         <h2>All Agreements Signed!</h2>
         <p id="successMsg">Your authorization form and contingency fee agreement have been signed and recorded. We're now authorized to handle your property tax case on your behalf.</p>
@@ -654,8 +654,8 @@ async function loadSigningData() {
         document.getElementById('feePropAddress').textContent = data.propertyAddress;
 
         // Highlight applicable fee rate
-        const feeRates = { TX: '20%', GA: '25%', WA: '25%' };
-        document.getElementById('feeRateDisplay').textContent = feeRates[state] || '20%';
+        const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%', OH: '30%' };
+        document.getElementById('feeRateDisplay').textContent = feeRates[state] || '25%';
         // Bold the applicable state rate
         const rateIds = { TX: 'feeRateTX', GA: 'feeRateGA', WA: 'feeRateWA' };
         if (rateIds[state]) {
