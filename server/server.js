@@ -2941,6 +2941,20 @@ app.get('/portal', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'portal.html'));
 });
 
+// Portal deep link with UUID token — look up case ID and redirect to sign page
+app.get('/portal/:token', async (req, res) => {
+    try {
+        const { data } = await supabase.from('submissions').select('case_id').eq('id', req.params.token).single();
+        if (data && data.case_id) {
+            return res.redirect(`/sign/${data.case_id}`);
+        }
+    } catch (e) {
+        console.error('[Portal Token] Lookup failed:', e.message);
+    }
+    // Fallback to portal login page
+    res.redirect('/portal');
+});
+
 app.get('/sign/:id', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'sign.html'));
 });
