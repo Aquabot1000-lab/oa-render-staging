@@ -460,6 +460,12 @@
 
         // --- Utility Functions ---
         function getCaseIdFromUrl() {
+            // URL format: /sign/OA-0013
+            const parts = window.location.pathname.split('/sign/');
+            if (parts.length > 1 && parts[1]) {
+                return decodeURIComponent(parts[1]).replace(/\/$/, '');
+            }
+            // Fallback: check query params
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('caseId');
         }
