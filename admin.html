@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>OverAssessed — Admin Dashboard</title>
+    <title>OverAssessed - Admin Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -864,7 +864,7 @@ function isTokenExpired(tok) {
 if (token && !isTokenExpired(token)) {
     showDashboard();
 } else if (token) {
-    // Token expired — clean up and show login
+    // Token expired - clean up and show login
     localStorage.removeItem('oa_token');
     token = null;
 }
@@ -1023,7 +1023,7 @@ function renderOverview() {
     const recent = submissions.slice(0, 10);
     document.getElementById('recentBody').innerHTML = recent.map(s => `
         <tr onclick="openDetail('${s.id}')">
-            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td><strong>${esc(s.caseId || '-')}</strong></td>
             <td>${new Date(s.createdAt).toLocaleDateString()}</td>
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 30)}</td>
@@ -1049,16 +1049,16 @@ function renderSubmissionsTable() {
     tbody.innerHTML = filtered.map(s => `
         <tr onclick="openDetail('${s.id}')">
             <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="${s.id}" onchange="updateBulk()" ${selectedIds.has(s.id) ? 'checked' : ''}></td>
-            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td><strong>${esc(s.caseId || '-')}</strong></td>
             <td>${new Date(s.createdAt).toLocaleDateString()}</td>
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
             <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
-            <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '—'}</td>
+            <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '-'}</td>
             <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
-            <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '—')}</td>
+            <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '-')}</td>
             <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
-            <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '—'}</td>
+            <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '-'}</td>
         </tr>
     `).join('');
 }
@@ -1087,7 +1087,7 @@ function renderNotices() {
             <td><strong>${esc(s.caseId)}</strong></td>
             <td>${esc(s.ownerName)}</td>
             <td><a href="${s.noticeOfValue}" target="_blank" onclick="event.stopPropagation()">📄 View</a></td>
-            <td>${s.pin || '—'}</td>
+            <td>${s.pin || '-'}</td>
             <td>${esc(s.propertyAddress).substring(0, 30)}</td>
         </tr>
     `).join('');
@@ -1108,7 +1108,7 @@ function renderRevenue() {
     document.getElementById('revenueBody').innerHTML = withSavings.map(s => {
         const sav = s.estimatedSavings || s.savings || 0;
         return `<tr onclick="openDetail('${s.id}')">
-            <td><strong>${esc(s.caseId || '—')}</strong></td>
+            <td><strong>${esc(s.caseId || '-')}</strong></td>
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
             <td style="color:var(--green);font-weight:700;">$${sav.toLocaleString()}</td>
@@ -1183,12 +1183,12 @@ function openDetail(id) {
     currentId = id;
 
     document.getElementById('detailName').textContent = s.ownerName;
-    document.getElementById('detailCaseId').textContent = s.caseId || '—';
+    document.getElementById('detailCaseId').textContent = s.caseId || '-';
     document.getElementById('detailCaseBadge').className = `status-badge status-${(s.status||'New').replace(/\s/g,'-')}`;
     document.getElementById('detailCaseBadge').textContent = s.status;
     document.getElementById('detailAddress').textContent = s.propertyAddress;
     document.getElementById('detailType').textContent = s.propertyType;
-    document.getElementById('detailValue').textContent = s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '—';
+    document.getElementById('detailValue').textContent = s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '-';
     document.getElementById('detailEmail').innerHTML = `<a href="mailto:${esc(s.email)}">${esc(s.email)}</a>`;
     document.getElementById('detailPhone').innerHTML = `<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>`;
     document.getElementById('detailDate').textContent = new Date(s.createdAt).toLocaleString();
@@ -1221,9 +1221,9 @@ function openDetail(id) {
         document.getElementById('detailFeeSigned').style.display = 'block';
         document.getElementById('detailFeeUnsigned').style.display = 'none';
         const feeSig = s.feeAgreementSignature || {};
-        document.getElementById('detailFeeSigName').textContent = feeSig.fullName || s.ownerName || '—';
-        document.getElementById('detailFeeSigDate').textContent = feeSig.signedAt ? new Date(feeSig.signedAt).toLocaleString() : (s.fee_agreement_signed_at ? new Date(s.fee_agreement_signed_at).toLocaleString() : '—');
-        document.getElementById('detailFeeRate').textContent = feeSig.applicableRate || '—';
+        document.getElementById('detailFeeSigName').textContent = feeSig.fullName || s.ownerName || '-';
+        document.getElementById('detailFeeSigDate').textContent = feeSig.signedAt ? new Date(feeSig.signedAt).toLocaleString() : (s.fee_agreement_signed_at ? new Date(s.fee_agreement_signed_at).toLocaleString() : '-');
+        document.getElementById('detailFeeRate').textContent = feeSig.applicableRate || '-';
     } else {
         document.getElementById('detailFeeSigned').style.display = 'none';
         document.getElementById('detailFeeUnsigned').style.display = 'block';
@@ -1236,9 +1236,9 @@ function openDetail(id) {
         // Use primary recommended value from compResults (respects E&U sqft guard)
         const recVal = s.compResults?.recommendedValue || s.analysisReport?.estimatedMarketValue;
         const reduction = s.compResults?.reduction || s.analysisReport?.estimatedReduction;
-        document.getElementById('detailMarketVal').textContent = recVal ? '$' + recVal.toLocaleString() : '—';
-        document.getElementById('detailReduction').textContent = reduction ? '$' + reduction.toLocaleString() : '—';
-        document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + Number(s.estimatedSavings).toLocaleString() + '/yr' : '—';
+        document.getElementById('detailMarketVal').textContent = recVal ? '$' + recVal.toLocaleString() : '-';
+        document.getElementById('detailReduction').textContent = reduction ? '$' + reduction.toLocaleString() : '-';
+        document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + Number(s.estimatedSavings).toLocaleString() + '/yr' : '-';
     } else { document.getElementById('detailAnalysisSection').style.display = 'none'; }
 
     // Comps
@@ -1259,7 +1259,7 @@ function openDetail(id) {
 
     // Notes
     const notesHtml = (s.notes || []).slice().reverse().map(n =>
-        `<div class="note-item">${esc(n.text)}<div class="note-meta">${n.author} — ${new Date(n.createdAt).toLocaleString()}</div></div>`
+        `<div class="note-item">${esc(n.text)}<div class="note-meta">${n.author} - ${new Date(n.createdAt).toLocaleString()}</div></div>`
     ).join('') || '<div class="empty-msg">No notes yet.</div>';
     document.getElementById('detailNotes').innerHTML = notesHtml;
 
@@ -1275,7 +1275,7 @@ function openDetail(id) {
     if (s.stripeCustomerId) {
         cardStatusEl.innerHTML = '<span style="color:var(--green);">💳 Card on file</span> (Stripe: ' + s.stripeCustomerId.slice(0,12) + '...)';
     } else {
-        cardStatusEl.innerHTML = '<span style="color:var(--text-muted);">No card on file — will send invoice</span>';
+        cardStatusEl.innerHTML = '<span style="color:var(--text-muted);">No card on file - will send invoice</span>';
     }
 
     document.getElementById('detailOverlay').style.display = 'block';
@@ -1338,7 +1338,7 @@ async function confirmSavingsAndCharge() {
         if (res.ok && data.success) {
             resultEl.style.color = 'var(--green)';
             if (data.method === 'auto_charge') {
-                resultEl.textContent = `✅ Auto-charged $${fee.toFixed(2)} — Receipt sent to ${data.email}`;
+                resultEl.textContent = `✅ Auto-charged $${fee.toFixed(2)} - Receipt sent to ${data.email}`;
             } else {
                 resultEl.textContent = `📧 Invoice sent for $${fee.toFixed(2)} to ${data.email}`;
             }
@@ -1501,13 +1501,13 @@ function renderExemptions() {
     }
 
     tbody.innerHTML = filtered.map(e => {
-        const exType = e.exemption_type || e.exemptionType || '—';
+        const exType = e.exemption_type || e.exemptionType || '-';
         return `
         <tr onclick="openExemptionDetail('${e.id}')">
-            <td>${esc(e.clientName || e.ownerName || '—')}</td>
-            <td>${esc(e.email || '—')}</td>
+            <td>${esc(e.clientName || e.ownerName || '-')}</td>
+            <td>${esc(e.email || '-')}</td>
             <td>${esc((e.propertyAddress || '').substring(0, 25))}</td>
-            <td class="hide-mobile">${esc(e.state || '—')}</td>
+            <td class="hide-mobile">${esc(e.state || '-')}</td>
             <td>${esc(exType)}</td>
             <td>${exStatusBadge(e.status)}</td>
             <td class="hide-mobile" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(parseExNotes(e.notes))}</td>
@@ -1532,14 +1532,14 @@ function openExemptionDetail(id) {
     const e = exemptions.find(x => x.id === id);
     if (!e) return;
     currentExId = id;
-    document.getElementById('exDetailName').textContent = e.clientName || e.ownerName || '—';
+    document.getElementById('exDetailName').textContent = e.clientName || e.ownerName || '-';
     document.getElementById('exDetailBadge').className = `status-badge status-${e.status || 'received'}`;
     document.getElementById('exDetailBadge').textContent = e.status || 'received';
-    document.getElementById('exDetailAddress').textContent = e.propertyAddress || '—';
-    document.getElementById('exDetailType').textContent = e.exemption_type || e.exemptionType || '—';
-    document.getElementById('exDetailEmail').innerHTML = e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : '—';
-    document.getElementById('exDetailPhone').innerHTML = e.phone ? `<a href="tel:${esc(e.phone)}">${esc(e.phone)}</a>` : '—';
-    document.getElementById('exDetailState').textContent = e.state || '—';
+    document.getElementById('exDetailAddress').textContent = e.propertyAddress || '-';
+    document.getElementById('exDetailType').textContent = e.exemption_type || e.exemptionType || '-';
+    document.getElementById('exDetailEmail').innerHTML = e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : '-';
+    document.getElementById('exDetailPhone').innerHTML = e.phone ? `<a href="tel:${esc(e.phone)}">${esc(e.phone)}</a>` : '-';
+    document.getElementById('exDetailState').textContent = e.state || '-';
     document.getElementById('exDetailStatus').value = e.status || 'received';
     document.getElementById('exDetailSavings').value = e.estimatedSavings || '';
     // Parse notes
@@ -1631,14 +1631,14 @@ function renderReferrals() {
 
     tbody.innerHTML = referrals.map(r => `
         <tr>
-            <td><strong>${esc(r.referralCode || '—')}</strong></td>
-            <td>${esc(r.referrerName || r.referrer || '—')}</td>
-            <td>${esc(r.referredEmail || '—')}</td>
-            <td class="hide-mobile">${esc(r.referredName || '—')}</td>
+            <td><strong>${esc(r.referralCode || '-')}</strong></td>
+            <td>${esc(r.referrerName || r.referrer || '-')}</td>
+            <td>${esc(r.referredEmail || '-')}</td>
+            <td class="hide-mobile">${esc(r.referredName || '-')}</td>
             <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-            <td class="hide-mobile">${r.rewardAmount ? '$' + r.rewardAmount.toLocaleString() : '—'}</td>
+            <td class="hide-mobile">${r.rewardAmount ? '$' + r.rewardAmount.toLocaleString() : '-'}</td>
             <td class="hide-mobile">${r.rewardPaid ? '✅ Yes' : '❌ No'}</td>
-            <td>${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'}</td>
+            <td>${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-'}</td>
             <td>
                 ${!r.rewardPaid && r.rewardAmount ? `<button class="btn btn-green btn-sm" onclick="markRewardPaid('${r.id}')">Pay Reward</button>` : ''}
             </td>
@@ -1697,16 +1697,16 @@ function renderMonitoring() {
     document.getElementById('monKpiSavings').textContent = '$' + savings.toLocaleString();
 
     tbody.innerHTML = monitoredProperties.map(m => {
-        const change = m.previousValue && m.newValue ? (((m.newValue - m.previousValue) / m.previousValue) * 100).toFixed(1) : '—';
+        const change = m.previousValue && m.newValue ? (((m.newValue - m.previousValue) / m.previousValue) * 100).toFixed(1) : '-';
         const badgeClass = m.status === 'value_increased' ? 'status-value_increased' : m.status === 'auto_filed' ? 'status-auto_filed' : m.status === 'resolved' ? 'status-resolved_mon' : 'status-monitoring';
         return `<tr>
-            <td>${esc(m.clientName || m.ownerName || '—')}</td>
+            <td>${esc(m.clientName || m.ownerName || '-')}</td>
             <td>${esc((m.propertyAddress || '').substring(0, 25))}</td>
-            <td class="hide-mobile">${m.lastTaxYear || '—'}</td>
-            <td class="hide-mobile">${m.previousValue ? '$' + m.previousValue.toLocaleString() : '—'}</td>
-            <td class="hide-mobile">${m.newValue ? '$' + m.newValue.toLocaleString() : '—'}</td>
-            <td>${change !== '—' ? change + '%' : '—'}</td>
-            <td class="hide-mobile">${m.autoFiled ? '✅' : '—'}</td>
+            <td class="hide-mobile">${m.lastTaxYear || '-'}</td>
+            <td class="hide-mobile">${m.previousValue ? '$' + m.previousValue.toLocaleString() : '-'}</td>
+            <td class="hide-mobile">${m.newValue ? '$' + m.newValue.toLocaleString() : '-'}</td>
+            <td>${change !== '-' ? change + '%' : '-'}</td>
+            <td class="hide-mobile">${m.autoFiled ? '✅' : '-'}</td>
             <td><span class="status-badge ${badgeClass}">${m.status || 'monitoring'}</span></td>
         </tr>`;
     }).join('');
@@ -1775,9 +1775,9 @@ function renderAnalysis(d) {
     `;
     const comps = rc.comparables || [];
     document.getElementById('analysisCompsBody').innerHTML = comps.map(c => `<tr>
-        <td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft || '—'}</td><td>${c.yearBuilt || '—'}</td>
-        <td>${(c.bedrooms||'?')}/${(c.bathrooms||'?')}</td><td>${c.correlation != null ? (c.correlation*100).toFixed(0)+'%' : '—'}</td>
-        <td>${c.distance != null ? c.distance.toFixed(1)+' mi' : '—'}</td>
+        <td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft || '-'}</td><td>${c.yearBuilt || '-'}</td>
+        <td>${(c.bedrooms||'?')}/${(c.bathrooms||'?')}</td><td>${c.correlation != null ? (c.correlation*100).toFixed(0)+'%' : '-'}</td>
+        <td>${c.distance != null ? c.distance.toFixed(1)+' mi' : '-'}</td>
     </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No comparables returned</td></tr>';
 }
 // ─── FILINGS TAB ─────────────────────────────────────────────
@@ -1800,7 +1800,7 @@ async function loadFilings() {
 
 function renderFilings() {
     const s = filingsStats;
-    const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '—';
+    const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '-';
     const filedThisWeek = filingsData.filter(f => {
         if (!f.filing_date) return false;
         const d = new Date(f.filing_date);
@@ -1822,13 +1822,13 @@ function renderFilings() {
     if (status) filtered = filtered.filter(f => f.status === status);
 
     document.getElementById('filingsBody').innerHTML = filtered.map(f => `<tr>
-        <td>${f.clients?.name || '—'}</td>
-        <td>${f.properties?.address || '—'}</td>
+        <td>${f.clients?.name || '-'}</td>
+        <td>${f.properties?.address || '-'}</td>
         <td>${(f.county || '').toUpperCase()}</td>
         <td><span class="badge badge-${f.status === 'filed' ? 'green' : f.status === 'settled' ? 'blue' : f.status?.includes('fail') ? 'red' : 'amber'}">${f.status || 'draft'}</span></td>
-        <td>${f.filing_date ? new Date(f.filing_date).toLocaleDateString() : '—'}</td>
-        <td>${f.hearing_date ? new Date(f.hearing_date).toLocaleDateString() : '—'}</td>
-        <td>${f.savings ? fmt(f.savings) : '—'}</td>
+        <td>${f.filing_date ? new Date(f.filing_date).toLocaleDateString() : '-'}</td>
+        <td>${f.hearing_date ? new Date(f.hearing_date).toLocaleDateString() : '-'}</td>
+        <td>${f.savings ? fmt(f.savings) : '-'}</td>
         <td>
             <button onclick="viewFiling('${f.id}')" style="padding:4px 8px;font-size:0.75rem;border:1px solid #ddd;border-radius:4px;cursor:pointer;background:white;">View</button>
             <button onclick="autoFileFiling('${f.id}')" style="padding:4px 8px;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer;background:var(--gradient);color:white;">Auto-File</button>
@@ -1891,7 +1891,7 @@ async function viewFiling(id) {
         const filing = await filingRes.json();
         const logData = await logRes.json();
 
-        const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '—';
+        const fmt = v => v != null ? '$' + Number(v).toLocaleString() : '-';
         const statuses = ['draft','form_generated','form_signed','filed','hearing_scheduled','hearing_complete','settled','closed'];
         const currentIdx = statuses.indexOf(filing.status) || 0;
         const progressBar = statuses.map((s, i) => `<span style="padding:4px 8px;border-radius:12px;font-size:0.7rem;${i <= currentIdx ? 'background:var(--purple);color:white;' : 'background:#eee;color:#999;'}">${s.replace(/_/g,' ')}</span>`).join(' → ');
@@ -1911,17 +1911,17 @@ async function viewFiling(id) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                 <div class="panel" style="padding:1rem;">
                     <h4 style="margin:0 0 0.5rem;">Property Info</h4>
-                    <p><strong>Client:</strong> ${filing.clients?.name || '—'}<br>
-                    <strong>Address:</strong> ${filing.properties?.address || '—'}<br>
+                    <p><strong>Client:</strong> ${filing.clients?.name || '-'}<br>
+                    <strong>Address:</strong> ${filing.properties?.address || '-'}<br>
                     <strong>County:</strong> ${(filing.county||'').toUpperCase()} (${filing.state})<br>
-                    <strong>Account ID:</strong> ${filing.portal_account_id || '—'}</p>
+                    <strong>Account ID:</strong> ${filing.portal_account_id || '-'}</p>
                 </div>
                 <div class="panel" style="padding:1rem;">
                     <h4 style="margin:0 0 0.5rem;">Values</h4>
                     <p><strong>Original:</strong> ${fmt(filing.original_value)}<br>
                     <strong>Final:</strong> ${fmt(filing.final_value)}<br>
                     <strong>Savings:</strong> ${fmt(filing.savings)}<br>
-                    <strong>Settlement:</strong> ${filing.settlement_offer ? fmt(filing.settlement_offer) + (filing.settlement_accepted ? ' ✅' : ' ⏳') : '—'}</p>
+                    <strong>Settlement:</strong> ${filing.settlement_offer ? fmt(filing.settlement_offer) + (filing.settlement_accepted ? ' ✅' : ' ⏳') : '-'}</p>
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
@@ -1937,9 +1937,9 @@ async function viewFiling(id) {
                 </div>
                 <div class="panel" style="padding:1rem;">
                     <h4 style="margin:0 0 0.5rem;">Hearing</h4>
-                    <p><strong>Date:</strong> ${filing.hearing_date ? new Date(filing.hearing_date).toLocaleDateString() : '—'}<br>
-                    <strong>Type:</strong> ${filing.hearing_type || '—'}<br>
-                    <strong>Format:</strong> ${filing.hearing_format || '—'}</p>
+                    <p><strong>Date:</strong> ${filing.hearing_date ? new Date(filing.hearing_date).toLocaleDateString() : '-'}<br>
+                    <strong>Type:</strong> ${filing.hearing_type || '-'}<br>
+                    <strong>Format:</strong> ${filing.hearing_format || '-'}</p>
                 </div>
             </div>
             <div class="panel" style="padding:1rem;margin-bottom:1rem;">
@@ -1948,7 +1948,7 @@ async function viewFiling(id) {
                     <button onclick="autoFileFiling('${id}')" style="padding:6px 12px;border:none;border-radius:6px;background:var(--gradient);color:white;cursor:pointer;font-size:0.8rem;">Auto-File with County</button>
                     <button onclick="fetch('${API}/api/filings/${id}/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>r.json()).then(d=>alert(d.message||d.error))" style="padding:6px 12px;border:none;border-radius:6px;background:var(--blue);color:white;cursor:pointer;font-size:0.8rem;">Upload Evidence to Portal</button>
                 </div>
-                <div style="font-size:0.75rem;margin-bottom:0.5rem;"><strong>Confirmation:</strong> ${filing.filing_confirmation || '—'}</div>
+                <div style="font-size:0.75rem;margin-bottom:0.5rem;"><strong>Confirmation:</strong> ${filing.filing_confirmation || '-'}</div>
                 <div style="margin-bottom:0.5rem;">${screenshotHtml || '<span style="color:var(--text-muted);font-size:0.8rem;">No screenshots yet</span>'}</div>
                 <div style="max-height:200px;overflow-y:auto;background:#f8f9fa;border-radius:6px;padding:0.5rem;">${logHtml || '<span style="color:var(--text-muted);font-size:0.8rem;">No automation log</span>'}</div>
             </div>
@@ -1984,7 +1984,7 @@ async function loadFollowUpsDue() {
         count.textContent = data.length + ' follow-up' + (data.length > 1 ? 's' : '') + ' due';
         body.innerHTML = data.map(s => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #eee;">
-                <div><strong>${s.case_id || s.caseId}</strong> — ${s.owner_name || s.name || '?'} · ${s.follow_up_note || s.followUpNote || ''}</div>
+                <div><strong>${s.case_id || s.caseId}</strong> - ${s.owner_name || s.name || '?'} · ${s.follow_up_note || s.followUpNote || ''}</div>
                 <div style="font-size:0.8rem;color:#e17055;">${s.follow_up_date || s.followUpDate}</div>
             </div>
         `).join('');

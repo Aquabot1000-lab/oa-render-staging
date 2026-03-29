@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } catch (stripeErr) {
                     console.warn('[Stripe] Card setup failed:', stripeErr.message);
-                    // Continue without card — they'll get invoiced later
+                    // Continue without card - they'll get invoiced later
                 }
             }
 

@@ -26,7 +26,7 @@ const tarrantData = require('./services/tarrant-data');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Supabase routes (new database layer — runs alongside existing file-based routes)
+// Supabase routes (new database layer - runs alongside existing file-based routes)
 const { isSupabaseEnabled, supabaseAdmin } = require('./lib/supabase');
 const { normalizeAddress, normalizeStreet, addressesMatch } = require('./lib/normalize-address');
 const { validateIntakeFields } = require('./lib/validate-input');
@@ -207,9 +207,9 @@ app.post('/api/estimate', async (req, res) => {
             });
         }
 
-        // Reject fallback/estimated data for the public estimator — only show real CAD values
+        // Reject fallback/estimated data for the public estimator - only show real CAD values
         if (propertyData.source === 'intake-fallback') {
-            console.warn('[Estimator] Rejecting fallback data — CAD lookup timed out or failed');
+            console.warn('[Estimator] Rejecting fallback data - CAD lookup timed out or failed');
             return res.json({
                 error: 'Our property lookup is taking longer than expected. Please try again in a moment, or contact us for a free personalized analysis.'
             });
@@ -464,7 +464,7 @@ function rowToSubmission(row) {
     };
 }
 
-// Read all submissions — Supabase primary, file fallback
+// Read all submissions - Supabase primary, file fallback
 // By default filters out soft-deleted records; pass includeDeleted=true to get everything
 async function readAllSubmissions(includeDeleted = false) {
     if (isSupabaseEnabled()) {
@@ -491,7 +491,7 @@ async function readAllSubmissions(includeDeleted = false) {
     return [...tx, ...ga];
 }
 
-// Write (upsert) a submission — Supabase primary, JSON always (dual-write for safety)
+// Write (upsert) a submission - Supabase primary, JSON always (dual-write for safety)
 async function writeSubmission(submission) {
     let supabaseOk = false;
     if (isSupabaseEnabled()) {
@@ -519,7 +519,7 @@ async function writeSubmission(submission) {
         await writeJsonFile(file, submissions);
     } catch (jsonErr) {
         if (!supabaseOk) {
-            // Both failed — this is critical
+            // Both failed - this is critical
             console.error('[Submissions] CRITICAL: Both Supabase and JSON write failed!', jsonErr.message);
             throw jsonErr;
         }
@@ -527,7 +527,7 @@ async function writeSubmission(submission) {
     }
 }
 
-// Update submission in place — Supabase primary, file fallback
+// Update submission in place - Supabase primary, file fallback
 async function updateSubmissionInPlace(submissionId, updater) {
     if (isSupabaseEnabled()) {
         try {
@@ -629,7 +629,7 @@ async function initializeDataFiles() {
             createdAt: new Date().toISOString()
         };
         await fs.writeFile(USERS_FILE, JSON.stringify([defaultUser], null, 2));
-        console.log('[Init] Admin user reset — tyler@overassessed.ai / OverAssessed!2026');
+        console.log('[Init] Admin user reset - tyler@overassessed.ai / OverAssessed!2026');
     }
     await fs.mkdir(noticesDir, { recursive: true });
 }
@@ -661,7 +661,7 @@ async function getNextCaseId() {
                 const nextNum = lastNum + 1;
                 return `OA-${String(nextNum).padStart(4, '0')}`;
             }
-            // No submissions yet in Supabase — check local counter then start at 1
+            // No submissions yet in Supabase - check local counter then start at 1
         } catch (err) {
             console.error('[CaseId] Supabase counter failed:', err.message);
         }
@@ -738,7 +738,7 @@ function buildNotificationContent(sub) {
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px;">
             <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-                <h3 style="margin: 0;">🏠 New OverAssessed Lead — ${sub.caseId}</h3>
+                <h3 style="margin: 0;">🏠 New OverAssessed Lead - ${sub.caseId}</h3>
             </div>
             <div style="background: #f7fafc; padding: 20px; border-radius: 0 0 8px 8px;">
                 <table style="width: 100%; border-collapse: collapse;">
@@ -771,7 +771,7 @@ function brandedEmailWrapper(title, subtitle, bodyHtml) {
             ${bodyHtml}
         </div>
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px; opacity: 0.8;">
-            OverAssessed, LLC — San Antonio, Texas<br>
+            OverAssessed, LLC - San Antonio, Texas<br>
             Questions? Reply to this email or call (888) 282-9165
         </div>
     </div>`;
@@ -799,7 +799,7 @@ function buildWelcomeEmail(sub) {
             <div style="text-align: center; margin: 25px 0;">
                 <a href="${signUrl}" style="background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; padding: 14px 32px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px;">Sign Authorization Form →</a>
             </div>
-            <p style="font-size: 13px; color: #6b7280; text-align: center;">Or <a href="${portalUrl}" style="color: #6c5ce7;">view your client portal</a> — log in with your email and case ID: <strong>${sub.caseId}</strong></p>
+            <p style="font-size: 13px; color: #6b7280; text-align: center;">Or <a href="${portalUrl}" style="color: #6c5ce7;">view your client portal</a> - log in with your email and case ID: <strong>${sub.caseId}</strong></p>
     `);
 }
 
@@ -820,7 +820,7 @@ function buildStatusEmail(sub, newStatus, extras) {
                 </div>
                 <p>Once we have your official assessed value, we'll provide a precise savings projection based on comparable properties in your area.</p>`
                 : `<p>Hi ${sub.ownerName},</p>
-                <p>Great news — our team has completed the analysis for your property at <strong>${sub.propertyAddress}</strong>.</p>
+                <p>Great news - our team has completed the analysis for your property at <strong>${sub.propertyAddress}</strong>.</p>
                 ${sub.estimatedSavings ? `<div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
                     <p style="margin:0 0 5px;color:#6b7280;">Estimated Annual Tax Savings</p>
                     <p style="margin:0;font-size:32px;font-weight:800;color:#00b894;">$${sub.estimatedSavings.toLocaleString()}</p>
@@ -831,7 +831,7 @@ function buildStatusEmail(sub, newStatus, extras) {
                 </div>`,
             sms: sub.needsManualReview && sub.unreliableData
                 ? `OverAssessed: We've started analyzing your property. To get your final savings estimate, please upload your Notice of Appraised Value at ${getBaseUrl()}/portal`
-                : `OverAssessed: Your analysis is ready${sub.estimatedSavings ? ` — estimated savings: $${sub.estimatedSavings.toLocaleString()}/yr` : ''}! Sign your authorization form to proceed: ${getBaseUrl()}/sign/${sub.caseId}`
+                : `OverAssessed: Your analysis is ready${sub.estimatedSavings ? ` - estimated savings: $${sub.estimatedSavings.toLocaleString()}/yr` : ''}! Sign your authorization form to proceed: ${getBaseUrl()}/sign/${sub.caseId}`
         },
         'Protest Filed': {
             title: 'Your Protest Has Been Filed! 📤',
@@ -849,17 +849,17 @@ function buildStatusEmail(sub, newStatus, extras) {
             subtitle: `Case ${sub.caseId}`,
             body: `<p>Hi ${sub.ownerName},</p>
                 <p>A hearing has been scheduled for your property tax protest on <strong>${sub.propertyAddress}</strong>.</p>
-                <p>Our team will represent you — no action is needed on your part. We'll let you know the outcome as soon as the hearing concludes.</p>
+                <p>Our team will represent you - no action is needed on your part. We'll let you know the outcome as soon as the hearing concludes.</p>
                 <div style="text-align:center;margin:20px 0;">
                     <a href="${portalUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">View Your Portal</a>
                 </div>`,
-            sms: `OverAssessed: A hearing has been scheduled for your property tax protest. Our team will represent you — no action needed!`
+            sms: `OverAssessed: A hearing has been scheduled for your property tax protest. Our team will represent you - no action needed!`
         },
         'Resolved': {
             title: 'Your Case is Resolved! ✅',
             subtitle: `Case ${sub.caseId}`,
             body: `<p>Hi ${sub.ownerName},</p>
-                <p>Great news — your property tax protest for <strong>${sub.propertyAddress}</strong> has been resolved!</p>
+                <p>Great news - your property tax protest for <strong>${sub.propertyAddress}</strong> has been resolved!</p>
                 ${(extras && extras.savings) ? `<div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
                     <p style="margin:0 0 5px;color:#6b7280;">Your Annual Tax Savings</p>
                     <p style="margin:0;font-size:32px;font-weight:800;color:#00b894;">$${Number(extras.savings).toLocaleString()}</p>
@@ -896,10 +896,10 @@ async function runDripCheck() {
             // 24hr reminder email
             if (hoursSince >= 24 && !drip.reminder24) {
                 console.log(`[Drip] 24hr reminder email → ${sub.email} (${sub.caseId})`);
-                sendClientEmail(sub.email, `Reminder: Sign Your Authorization — ${sub.caseId}`,
+                sendClientEmail(sub.email, `Reminder: Sign Your Authorization - ${sub.caseId}`,
                     brandedEmailWrapper('Quick Reminder', `Case ${sub.caseId}`, `
                         <p>Hi ${sub.ownerName},</p>
-                        <p>Just a friendly reminder — we still need your signed Form 50-162 to proceed with your property tax protest for <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>Just a friendly reminder - we still need your signed Form 50-162 to proceed with your property tax protest for <strong>${sub.propertyAddress}</strong>.</p>
                         <p>It only takes a minute:</p>
                         <div style="text-align:center;margin:25px 0;">
                             <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Now →</a>
@@ -922,11 +922,11 @@ async function runDripCheck() {
             // 72hr final email + SMS to Tyler
             if (hoursSince >= 72 && !drip.reminder72) {
                 console.log(`[Drip] 72hr final reminder → ${sub.email} + Tyler alert (${sub.caseId})`);
-                sendClientEmail(sub.email, `Action Needed: Don't Miss Out — ${sub.caseId}`,
+                sendClientEmail(sub.email, `Action Needed: Don't Miss Out - ${sub.caseId}`,
                     brandedEmailWrapper('Don\'t Miss Your Deadline', `Case ${sub.caseId}`, `
                         <p>Hi ${sub.ownerName},</p>
                         <p>We haven't received your signed authorization yet for <strong>${sub.propertyAddress}</strong>. Property tax protest deadlines are approaching and we don't want you to miss out on potential savings.</p>
-                        <p>Please take a moment to sign — it only takes 60 seconds:</p>
+                        <p>Please take a moment to sign - it only takes 60 seconds:</p>
                         <div style="text-align:center;margin:25px 0;">
                             <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Before It's Too Late →</a>
                         </div>
@@ -935,7 +935,7 @@ async function runDripCheck() {
                 );
                 // Alert Tyler to call them
                 sendNotificationSMS(`⚠️ Follow-up needed!\n${sub.ownerName} hasn't signed Form 50-162 after 72hrs.\nCase: ${sub.caseId}\nPhone: ${sub.phone}\nPlease call them.`);
-                sendNotificationEmail(`⚠️ Follow-up Needed — ${sub.caseId} ${sub.ownerName}`,
+                sendNotificationEmail(`⚠️ Follow-up Needed - ${sub.caseId} ${sub.ownerName}`,
                     `<div style="font-family:Arial;"><p><strong>${sub.ownerName}</strong> hasn't signed their Form 50-162 after 72 hours.</p>
                     <p>Case: ${sub.caseId}<br>Phone: <a href="tel:${sub.phone}">${sub.phone}</a><br>Email: ${sub.email}<br>Property: ${sub.propertyAddress}</p>
                     <p><strong>Please call them to follow up.</strong></p></div>`
@@ -988,10 +988,10 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// ==================== SUPABASE DB ROUTES (new — /api/db/*) ====================
+// ==================== SUPABASE DB ROUTES (new - /api/db/*) ====================
 // These run alongside existing file-based routes. Existing routes are untouched.
 if (isSupabaseEnabled()) {
-    console.log('✅ Supabase enabled — mounting /api/db/* routes');
+    console.log('✅ Supabase enabled - mounting /api/db/* routes');
     app.use('/api/db/clients', authenticateToken, clientsRouter);
     app.use('/api/db/properties', authenticateToken, propertiesRouter);
     app.use('/api/db/appeals', authenticateToken, appealsRouter);
@@ -1002,7 +1002,7 @@ if (isSupabaseEnabled()) {
     app.use('/api/filings', authenticateToken, filingsRouter);
     app.use('/api/admin/uri-commissions', authenticateToken, uriCommissionsRouter);
 } else {
-    console.log('⚠️  Supabase not configured — /api/db/* routes disabled');
+    console.log('⚠️  Supabase not configured - /api/db/* routes disabled');
 }
 
 // ==================== PUBLIC ROUTES (no auth) ====================
@@ -1014,7 +1014,7 @@ if (isSupabaseEnabled()) {
     app.use('/api/referrals', referralsRouter);
     // Stripe payment routes (webhook is public, others are authenticated via admin check)
     app.use('/api/stripe', stripeRouter);
-    // Coinbase Commerce Bitcoin payment routes (all public — webhook needs raw body)
+    // Coinbase Commerce Bitcoin payment routes (all public - webhook needs raw body)
     app.use('/api/coinbase', coinbaseRouter);
     app.use('/api/email', emailNurtureRouter);
     console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email');
@@ -1023,7 +1023,7 @@ if (isSupabaseEnabled()) {
 // ==================== ROUTES ====================
 
 // ==================== OUTCOME MONITOR ROUTES ====================
-// POST /api/admin/check-outcomes — manually trigger outcome check for all pending appeals
+// POST /api/admin/check-outcomes - manually trigger outcome check for all pending appeals
 app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
     try {
         const result = await checkAllPendingOutcomes();
@@ -1034,7 +1034,7 @@ app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
 });
 
 // ==================== CONFIRM SAVINGS & AUTO-BILL ====================
-// POST /api/admin/confirm-savings — confirm savings, auto-charge or send invoice
+// POST /api/admin/confirm-savings - confirm savings, auto-charge or send invoice
 app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
     try {
         const { submissionId, verifiedSavings, feeRate, forceInvoice } = req.body;
@@ -1085,7 +1085,7 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
             }
 
             if (clientId) {
-                result = await chargeSavedCard(clientId, null, fee, `Property Tax Appeal Fee — ${sub.caseId} — ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`);
+                result = await chargeSavedCard(clientId, null, fee, `Property Tax Appeal Fee - ${sub.caseId} - ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`);
                 if (result) method = 'auto_charge';
             }
         }
@@ -1123,7 +1123,7 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
                 invoice: invoice.id,
                 amount: Math.round(fee * 100),
                 currency: 'usd',
-                description: `Property Tax Appeal Fee — ${sub.caseId} — ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`
+                description: `Property Tax Appeal Fee - ${sub.caseId} - ${(feeRate*100).toFixed(0)}% of $${verifiedSavings.toLocaleString()} savings`
             });
             const finalized = await stripeLib.invoices.finalizeInvoice(invoice.id);
             await stripeLib.invoices.sendInvoice(invoice.id);
@@ -1166,19 +1166,19 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
                     <p style="margin:0 0 8px;"><strong>Case:</strong> ${sub.caseId}</p>
                     <p style="margin:0 0 8px;"><strong>Verified Savings:</strong> <span style="color:#00b894;font-weight:700;">$${verifiedSavings.toLocaleString()}/yr</span></p>
                     <p style="margin:0 0 8px;"><strong>Our Fee (${(feeRate*100).toFixed(0)}%):</strong> $${fee.toFixed(2)}</p>
-                    <p style="margin:0;"><strong>Payment:</strong> ${method === 'auto_charge' ? 'Charged to your card on file — receipt sent separately by Stripe' : 'Invoice sent to your email — due in 30 days'}</p>
+                    <p style="margin:0;"><strong>Payment:</strong> ${method === 'auto_charge' ? 'Charged to your card on file - receipt sent separately by Stripe' : 'Invoice sent to your email - due in 30 days'}</p>
                 </div>
                 <p>Thank you for trusting OverAssessed with your property tax appeal. We'll continue monitoring your property for future increases.</p>
             `);
-            sendClientEmail(sub.email, `🎉 Your Property Tax Appeal Won — $${verifiedSavings.toLocaleString()} Saved! (${sub.caseId})`, receiptHtml);
+            sendClientEmail(sub.email, `🎉 Your Property Tax Appeal Won - $${verifiedSavings.toLocaleString()} Saved! (${sub.caseId})`, receiptHtml);
         } catch (notifyErr) {
             console.log('[Billing] Client notification failed:', notifyErr.message);
         }
 
         // Notify Tyler
-        sendNotificationSMS(`💰 ${sub.caseId} — Savings confirmed: $${verifiedSavings.toLocaleString()} | Fee: $${fee.toFixed(2)} | ${method === 'auto_charge' ? 'Auto-charged' : 'Invoice sent'}`);
+        sendNotificationSMS(`💰 ${sub.caseId} - Savings confirmed: $${verifiedSavings.toLocaleString()} | Fee: $${fee.toFixed(2)} | ${method === 'auto_charge' ? 'Auto-charged' : 'Invoice sent'}`);
 
-        console.log(`[Billing] ✅ ${sub.caseId} — $${fee.toFixed(2)} ${method} for $${verifiedSavings.toLocaleString()} savings`);
+        console.log(`[Billing] ✅ ${sub.caseId} - $${fee.toFixed(2)} ${method} for $${verifiedSavings.toLocaleString()} savings`);
         res.json({ success: true, method, fee, email: sub.email, ...result });
 
     } catch (err) {
@@ -1188,7 +1188,7 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
 });
 
 // ==================== RENTCAST ANALYSIS ROUTES ====================
-// POST /api/analysis/run — full RentCast + ArcGIS analysis for any address
+// POST /api/analysis/run - full RentCast + ArcGIS analysis for any address
 app.post('/api/analysis/run', authenticateToken, async (req, res) => {
     try {
         const { address } = req.body;
@@ -1202,7 +1202,7 @@ app.post('/api/analysis/run', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/analysis/comps — comparables only
+// GET /api/analysis/comps - comparables only
 app.get('/api/analysis/comps', authenticateToken, async (req, res) => {
     try {
         const { address } = req.query;
@@ -1273,13 +1273,13 @@ app.post('/api/auth/login', async (req, res) => {
 // ==================== CLIENT PORTAL AUTH ====================
 /**
  * Sanitize a submission for the client portal.
- * Strips comp details, evidence packets, raw property data, and methodology —
+ * Strips comp details, evidence packets, raw property data, and methodology -
  * clients only see the savings number and confidence, NOT the underlying data.
  */
 function sanitizeForPortal(sub) {
     const safe = { ...sub };
 
-    // Strip raw analysis data — clients don't get comp addresses, scores, or methodology
+    // Strip raw analysis data - clients don't get comp addresses, scores, or methodology
     delete safe.compResults;
     delete safe.propertyData;
     delete safe.evidencePacketPath;
@@ -1350,10 +1350,10 @@ function buildClientSavingsHtml(sub) {
         <div style="background: #f7f7fc; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px;">
             <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">What Happens Next</div>
             <ol style="color: #4a4a68; line-height: 1.7; font-size: 12px; margin: 0; padding-left: 18px;">
-                <li><strong>Sign authorization</strong> — lets us file on your behalf</li>
-                <li><strong>We build your case</strong> — comparable sales, evidence packet, filing</li>
-                <li><strong>We attend your hearing</strong> — our experts represent you</li>
-                <li><strong>You save money</strong> — only pay if we reduce your taxes</li>
+                <li><strong>Sign authorization</strong> - lets us file on your behalf</li>
+                <li><strong>We build your case</strong> - comparable sales, evidence packet, filing</li>
+                <li><strong>We attend your hearing</strong> - our experts represent you</li>
+                <li><strong>You save money</strong> - only pay if we reduce your taxes</li>
             </ol>
         </div>
 
@@ -1390,7 +1390,7 @@ app.get('/api/portal/case', async (req, res) => {
         const sub = submissions.find(s => s.email.toLowerCase() === email.toLowerCase() && s.caseId === caseId.toUpperCase());
         if (!sub) return res.status(404).json({ error: 'Case not found' });
 
-        // Return sanitized data — no comp details, evidence, or methodology
+        // Return sanitized data - no comp details, evidence, or methodology
         res.json(sanitizeForPortal(sub));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch case' });
@@ -1423,14 +1423,14 @@ app.post('/api/pre-register', async (req, res) => {
                     html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
                         <h2 style="color:#6c5ce7;">You're on the list, ${name}!</h2>
                         <p>We'll analyze <strong>${property_address}</strong> in <strong>${county} County</strong> the moment appraisal notices drop in April.</p>
-                        <p>You'll get a head start on your protest — no action needed until then.</p>
-                        <p style="color:#636e72;font-size:14px;">— The OverAssessed Team</p>
+                        <p>You'll get a head start on your protest - no action needed until then.</p>
+                        <p style="color:#636e72;font-size:14px;">- The OverAssessed Team</p>
                     </div>`
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
         // Notify admin
-        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) — ${property_address}, ${county} County`); } catch(e) {}
+        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county} County`); } catch(e) {}
         try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county} County</p>`); } catch(e) {}
 
         res.json({ success: true, id: data.id });
@@ -1579,7 +1579,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                     const addressMatch = emailMatches.find(m => addressesMatch(propertyAddress, m.property_address));
 
                     if (addressMatch) {
-                        console.log(`[Intake] Duplicate detected — email: ${normalizedEmail}, existing case: ${addressMatch.case_id}`);
+                        console.log(`[Intake] Duplicate detected - email: ${normalizedEmail}, existing case: ${addressMatch.case_id}`);
                         return res.json({
                             duplicate: true,
                             caseId: addressMatch.case_id,
@@ -1660,7 +1660,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                         })
                         .eq('id', referral.id);
 
-                    console.log(`[Intake] Referral ${ref} applied — discounted rate: ${discountedRate}`);
+                    console.log(`[Intake] Referral ${ref} applied - discounted rate: ${discountedRate}`);
                 }
             } catch (refErr) {
                 console.log('[Intake] Referral lookup failed:', refErr.message);
@@ -1702,7 +1702,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
 
         // Also send the rich welcome email (existing branded flow)
         const welcomeHtml = buildWelcomeEmail(submission);
-        sendClientEmail(email, `Welcome to OverAssessed — Case ${caseId}`, welcomeHtml);
+        sendClientEmail(email, `Welcome to OverAssessed - Case ${caseId}`, welcomeHtml);
 
         // Initiation Fee: Create Stripe checkout for $79 initiation fee
         // The fee is credited toward the final contingency fee
@@ -1769,16 +1769,16 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 console.log(`[AutoAnalysis] Complete for ${caseId}`);
                 // Notify Tyler that analysis is ready
                 sendNotificationSMS(`📊 Auto-analysis complete!\nCase: ${caseId}\nProperty: ${propertyAddress}\nEvidence packet ready for review.`);
-                sendNotificationEmail(`📊 Analysis Ready — ${caseId} ${ownerName}`,
-                    `<p>Auto-analysis complete for <strong>${caseId}</strong> — ${propertyAddress}.</p>
+                sendNotificationEmail(`📊 Analysis Ready - ${caseId} ${ownerName}`,
+                    `<p>Auto-analysis complete for <strong>${caseId}</strong> - ${propertyAddress}.</p>
                     <p>Evidence packet is generated and ready for review in the admin dashboard.</p>`);
-                // Notify CLIENT that their analysis is ready (was missing — bug fix 2026-03-10)
+                // Notify CLIENT that their analysis is ready (was missing - bug fix 2026-03-10)
                 const updatedSub = await findSubmission(submission.id);
                 if (updatedSub) {
                     const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
                     const template = buildStatusEmail(updatedSub, 'Analysis Complete', {});
                     if (template) {
-                        sendClientEmail(email, `${template.title} — ${caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
+                        sendClientEmail(email, `${template.title} - ${caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
                         sendClientSMS(phone, template.sms);
                         console.log(`[AutoAnalysis] Client notification sent to ${email} for ${caseId}`);
                     }
@@ -1869,7 +1869,7 @@ app.post('/api/commercial-intake', async (req, res) => {
         await writeSubmission(submission);
 
         // Notify Tyler via SMS
-        const smsMsg = `🏢 NEW COMMERCIAL LEAD!\n${name}${companyName ? ' (' + companyName + ')' : ''}\n${propertyType} — ${propertyAddress}\nValue: ${assessedValue || 'Not provided'}\nProperties: ${propertyCount || '1'}\nPhone: ${phone}\nEmail: ${email}\nCase: ${caseId}`;
+        const smsMsg = `🏢 NEW COMMERCIAL LEAD!\n${name}${companyName ? ' (' + companyName + ')' : ''}\n${propertyType} - ${propertyAddress}\nValue: ${assessedValue || 'Not provided'}\nProperties: ${propertyCount || '1'}\nPhone: ${phone}\nEmail: ${email}\nCase: ${caseId}`;
         sendNotificationSMS(smsMsg);
 
         // Notify Tyler via email
@@ -1897,7 +1897,7 @@ app.post('/api/commercial-intake', async (req, res) => {
 
         // Send welcome email
         const welcomeHtml = buildWelcomeEmail(submission);
-        sendClientEmail(email, `Welcome to OverAssessed — Case ${caseId}`, welcomeHtml);
+        sendClientEmail(email, `Welcome to OverAssessed - Case ${caseId}`, welcomeHtml);
 
         // Auto-trigger analysis (async)
         setTimeout(async () => {
@@ -1911,7 +1911,7 @@ app.post('/api/commercial-intake', async (req, res) => {
             }
         }, 2000);
 
-        console.log(`[Commercial] New lead: ${caseId} — ${name} (${propertyType}) at ${propertyAddress}`);
+        console.log(`[Commercial] New lead: ${caseId} - ${name} (${propertyType}) at ${propertyAddress}`);
         res.json({ success: true, caseId, message: 'Commercial intake received' });
 
     } catch (err) {
@@ -1946,7 +1946,7 @@ app.post('/api/sign/:id', async (req, res) => {
                 documentsSigned: docsSigned
             };
 
-            // Fee Agreement Signature — use client-specific rate if set, else state default
+            // Fee Agreement Signature - use client-specific rate if set, else state default
             const clientRate = s.discountedRate || s.discounted_rate;
             const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
             submissions[idx].feeAgreementSignature = {
@@ -1976,7 +1976,7 @@ app.post('/api/sign/:id', async (req, res) => {
 
         // Notify Tyler
         sendNotificationEmail(
-            `${formName} + Fee Agreement Signed — ${sub.caseId} ${sub.ownerName}`,
+            `${formName} + Fee Agreement Signed - ${sub.caseId} ${sub.ownerName}`,
             `<div style="font-family:Arial;max-width:600px;">
                 <div style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:20px;border-radius:8px 8px 0 0;">
                     <h3 style="margin:0;">✍️ ${formName} + Fee Agreement Signed</h3>
@@ -1989,7 +1989,7 @@ app.post('/api/sign/:id', async (req, res) => {
                     <p><strong>Authorization Signed:</strong> ${fullName}</p>
                     <p><strong>Fee Agreement Signed:</strong> ${feeAgreementName} (${feeRate} contingency)</p>
                     <p><strong>Signed At:</strong> ${new Date().toLocaleString()}</p>
-                    <p style="margin-top:12px;padding:12px;background:#e8f5e9;border-radius:8px;"><strong>✅ Both agreements signed — ready for auto-charge on savings confirmation</strong></p>
+                    <p style="margin-top:12px;padding:12px;background:#e8f5e9;border-radius:8px;"><strong>✅ Both agreements signed - ready for auto-charge on savings confirmation</strong></p>
                 </div>
             </div>`
         );
@@ -2072,15 +2072,15 @@ async function runFullAnalysis(caseId) {
     submissions[idx].propertyData = propertyData;
     await saveProgress();
 
-    // Step 2: Check if we have real assessed value — never use synthetic/default data
+    // Step 2: Check if we have real assessed value - never use synthetic/default data
     const assessedNum = propertyData.assessedValue || parseInt((sub.assessedValue || '0').replace(/[^0-9]/g, '')) || 0;
     const hasRealValue = assessedNum > 0 && propertyData.source !== 'intake-fallback';
 
     if (!hasRealValue) {
-        console.warn(`[Analysis] No real assessed value for ${sub.caseId} — skipping analysis. Source: ${propertyData.source}, value: ${assessedNum}`);
+        console.warn(`[Analysis] No real assessed value for ${sub.caseId} - skipping analysis. Source: ${propertyData.source}, value: ${assessedNum}`);
         submissions[idx].unreliableData = true;
         submissions[idx].needsManualReview = true;
-        submissions[idx].reviewReason = 'No real assessed value available — county lookup failed or returned fallback data. Waiting for client to upload their notice of appraised value.';
+        submissions[idx].reviewReason = 'No real assessed value available - county lookup failed or returned fallback data. Waiting for client to upload their notice of appraised value.';
         submissions[idx].status = 'Analysis Complete';
         submissions[idx].analysisStatus = 'Awaiting Notice Upload';
         submissions[idx].updatedAt = new Date().toISOString();
@@ -2088,7 +2088,7 @@ async function runFullAnalysis(caseId) {
 
         // DO NOT send any client email when analysis is flagged/unreliable
         // Standing rule: No client emails until analysis is confirmed correct with no flags
-        console.log(`[Analysis] Holding all client emails for ${sub.caseId} — unreliable data, needs manual review`);
+        console.log(`[Analysis] Holding all client emails for ${sub.caseId} - unreliable data, needs manual review`);
 
         // Still notify Tyler about the lead (internal only)
         const { sms, html } = buildNotificationContent(sub);
@@ -2112,7 +2112,7 @@ async function runFullAnalysis(caseId) {
     await saveProgress();
 
     // Step 4: Build analysis report
-    // assessedNum already validated above — guaranteed to be real
+    // assessedNum already validated above - guaranteed to be real
     const report = {
         generatedAt: new Date().toISOString(),
         propertyAddress: sub.propertyAddress,
@@ -2167,7 +2167,7 @@ async function runFullAnalysis(caseId) {
         })),
         methodology: compResults.methodology,
         recommendation: compResults.estimatedSavings > 0
-            ? 'PROTEST RECOMMENDED — Strong basis for reduction based on comparable sales analysis.'
+            ? 'PROTEST RECOMMENDED - Strong basis for reduction based on comparable sales analysis.'
             : 'Assessment appears in line with market. Limited protest potential.',
         reportHtml: buildAnalysisHtml(sub, propertyData, compResults)
     };
@@ -2196,7 +2196,7 @@ async function runFullAnalysis(caseId) {
     if (!propertyData.bathrooms) missingFields.push('number of bathrooms');
 
     if (missingFields.length > 0 && sub.email) {
-        console.log(`[Analysis] ${sub.caseId}: Missing data (${missingFields.join(', ')}) — sending info request email`);
+        console.log(`[Analysis] ${sub.caseId}: Missing data (${missingFields.join(', ')}) - sending info request email`);
         submissions[idx].missingDataRequested = true;
         submissions[idx].missingFields = missingFields;
         await saveProgress();
@@ -2206,7 +2206,7 @@ async function runFullAnalysis(caseId) {
 
         const infoRequestHtml = `
             <p>Hi ${sub.ownerName},</p>
-            <p>Great news — we've completed an initial analysis of your property at <strong>${sub.propertyAddress}</strong> and found potential savings of <strong>$${mvSavings.toLocaleString()}/year</strong>.</p>
+            <p>Great news - we've completed an initial analysis of your property at <strong>${sub.propertyAddress}</strong> and found potential savings of <strong>$${mvSavings.toLocaleString()}/year</strong>.</p>
 
             <div style="background:#f8f9ff;border:2px solid #00b894;border-radius:8px;padding:20px;margin:20px 0;text-align:center;">
                 <p style="margin:0 0 5px;color:#6b7280;">Initial Estimated Savings</p>
@@ -2232,7 +2232,7 @@ async function runFullAnalysis(caseId) {
 
         try {
             await sendNotificationEmail(
-                `${sub.ownerName} — We Found $${mvSavings.toLocaleString()}/yr Savings (+ Potential for More)`,
+                `${sub.ownerName} - We Found $${mvSavings.toLocaleString()}/yr Savings (+ Potential for More)`,
                 infoRequestHtml,
                 sub.email
             );
@@ -2264,11 +2264,11 @@ function buildEUHtmlSection(compResults, assessedNum) {
                 <tr>
                     <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
                         <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">Subject $/SqFt</div>
-                        <div style="font-size: 14px; font-weight: 800; color: #e17055; margin-top: 2px;">$${eu.subjectPSF || '—'}</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #e17055; margin-top: 2px;">$${eu.subjectPSF || '-'}</div>
                     </td>
                     <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
                         <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">Median Comp $/SqFt</div>
-                        <div style="font-size: 14px; font-weight: 800; color: #00b894; margin-top: 2px;">$${eu.medianPSF || '—'}</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #00b894; margin-top: 2px;">$${eu.medianPSF || '-'}</div>
                     </td>
                     <td style="background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;">
                         <div style="font-size: 8px; color: #7c7c96; text-transform: uppercase;">E&U Recommended</div>
@@ -2301,12 +2301,12 @@ function buildEUHtmlSection(compResults, assessedNum) {
                 <tbody>
                     ${euComps.map((c, i) => `<tr style="background: ${i % 2 ? '#f7f7fc' : 'white'};">
                         <td style="padding: 3px 5px; font-size: 9px;">${(c.address || '').substring(0, 30)}</td>
-                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">${c.sqft ? c.sqft.toLocaleString() : '—'}</td>
-                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">$${c.compPSF || '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">${c.sqft ? c.sqft.toLocaleString() : '-'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px;">$${c.compPSF || '-'}</td>
                         <td style="padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: ${(c.adjustedValue || 0) < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
-                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.size || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.size >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.size || 0).toLocaleString() : '—'}</td>
-                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.age || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.age >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.age || 0).toLocaleString() : '—'}</td>
-                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.land || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.land >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.land || 0).toLocaleString() : '—'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.size || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.size >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.size || 0).toLocaleString() : '-'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.age || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.age >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.age || 0).toLocaleString() : '-'}</td>
+                        <td style="padding: 3px 5px; text-align: right; font-size: 9px; color: ${(c.adjustments?.land || 0) >= 0 ? '#00b894' : '#e17055'};">${c.adjustments ? (c.adjustments.land >= 0 ? '+' : '') + '$' + Math.abs(c.adjustments.land || 0).toLocaleString() : '-'}</td>
                     </tr>`).join('')}
                 </tbody>
             </table>
@@ -2377,13 +2377,13 @@ function buildAnalysisHtml(sub, propertyData, compResults) {
             </tr></thead>
             <tbody>
                 ${(compResults.comps || []).map((c, i) => `<tr style="background: ${i % 2 ? '#f7f7fc' : 'white'};">
-                    ${(compResults.comps || []).some(c => c.accountId && !c.accountId.startsWith('R')) ? `<td style="padding: 4px 6px; font-size: 10px; font-weight: 700; color: #6c5ce7;">${c.accountId || '—'}</td>` : ''}
+                    ${(compResults.comps || []).some(c => c.accountId && !c.accountId.startsWith('R')) ? `<td style="padding: 4px 6px; font-size: 10px; font-weight: 700; color: #6c5ce7;">${c.accountId || '-'}</td>` : ''}
                     <td style="padding: 4px 6px; font-size: 10px;">${c.address}</td>
                     <td style="padding: 4px 6px; text-align: right; font-size: 10px;">$${(c.assessedValue || 0).toLocaleString()}</td>
                     <td style="padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: ${(c.adjustedValue || 0) < assessedNum ? '#00b894' : '#e17055'};">$${(c.adjustedValue || 0).toLocaleString()}</td>
-                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.sqft ? c.sqft.toLocaleString() : '—'}</td>
-                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.yearBuilt || '—'}</td>
-                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.pricePerSqft ? '$' + c.pricePerSqft : '—'}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.sqft ? c.sqft.toLocaleString() : '-'}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.yearBuilt || '-'}</td>
+                    <td style="padding: 4px 6px; text-align: right; font-size: 10px;">${c.pricePerSqft ? '$' + c.pricePerSqft : '-'}</td>
                     <td style="padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;">${c.score}</td>
                 </tr>`).join('')}
             </tbody>
@@ -2436,10 +2436,10 @@ app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
         const result = await runFullAnalysis(req.params.id);
 
         // STANDING RULE: No client emails until analysis is manually reviewed and confirmed correct
-        // All emails require Tyler's approval — no auto-sends on analysis completion
+        // All emails require Tyler's approval - no auto-sends on analysis completion
         const sub = await findSubmission(req.params.id);
         const hasFlags = result.unreliableData || (result.compResults && result.compResults.unreliableData);
-        console.log(`[Analysis] ${sub?.caseId || req.params.id} — analysis complete. Unreliable: ${hasFlags}. Holding all client emails for manual review.`);
+        console.log(`[Analysis] ${sub?.caseId || req.params.id} - analysis complete. Unreliable: ${hasFlags}. Holding all client emails for manual review.`);
 
         res.json({ success: true, estimatedSavings: result.compResults.estimatedSavings, report: result.report });
     } catch (error) {
@@ -2622,7 +2622,7 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
         if (!sub) return res.status(404).json({ error: 'Case not found' });
 
         sendNotificationEmail(
-            `Notice Uploaded — ${sub.caseId}`,
+            `Notice Uploaded - ${sub.caseId}`,
             `<p>Client ${sub.ownerName} uploaded their Notice of Appraised Value for case ${sub.caseId}.</p>`
         );
 
@@ -2640,7 +2640,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         const statuses = ['New', 'Analysis Complete', 'Form Signed', 'Protest Filed', 'Hearing Scheduled', 'Resolved'];
         const pipeline = {};
         statuses.forEach(s => pipeline[s] = 0);
-        // Count statuses — normalize "Signed" → "Form Signed" for pipeline
+        // Count statuses - normalize "Signed" → "Form Signed" for pipeline
         const statusMap = { 'Signed': 'Form Signed', 'New Submission': 'New' };
         submissions.forEach(s => {
             const mapped = statusMap[s.status] || s.status;
@@ -2683,7 +2683,7 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
         if (oldStatus !== status) {
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
-                sendClientEmail(sub.email, `${template.title} — ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
+                sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
                 sendClientSMS(sub.phone, template.sms);
                 console.log(`Status notification sent to ${sub.email} for ${status}`);
             }
@@ -2711,7 +2711,7 @@ app.get('/api/submissions', authenticateToken, async (req, res) => {
 });
 
 // These must be BEFORE :id routes so Express doesn't match "deleted"/"follow-ups-due" as an :id
-// GET /api/submissions/deleted — list soft-deleted records
+// GET /api/submissions/deleted - list soft-deleted records
 app.get('/api/submissions/deleted', authenticateToken, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
@@ -2729,7 +2729,7 @@ app.get('/api/submissions/deleted', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/submissions/follow-ups-due — leads with follow_up_date <= today
+// GET /api/submissions/follow-ups-due - leads with follow_up_date <= today
 app.get('/api/submissions/follow-ups-due', authenticateToken, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
@@ -2784,7 +2784,7 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
         if (status && oldStatus !== status) {
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
-                sendClientEmail(sub.email, `${template.title} — ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
+                sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
                 sendClientSMS(sub.phone, template.sms);
             }
         }
@@ -2796,7 +2796,7 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
 });
 
 // ==================== SOFT DELETE ENDPOINTS ====================
-// DELETE /api/submissions/:id — soft delete (set deleted_at)
+// DELETE /api/submissions/:id - soft delete (set deleted_at)
 app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
@@ -2816,7 +2816,7 @@ app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/submissions/:id/restore — restore soft-deleted record
+// POST /api/submissions/:id/restore - restore soft-deleted record
 app.post('/api/submissions/:id/restore', authenticateToken, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
@@ -2836,7 +2836,7 @@ app.post('/api/submissions/:id/restore', authenticateToken, async (req, res) => 
 });
 
 // ==================== NOTES (CRM) ENDPOINTS ====================
-// GET /api/submissions/:id/notes — get all notes for a submission
+// GET /api/submissions/:id/notes - get all notes for a submission
 app.get('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
@@ -2854,7 +2854,7 @@ app.get('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/submissions/:id/notes — add a note to a submission
+// POST /api/submissions/:id/notes - add a note to a submission
 app.post('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
     try {
         const { note_text } = req.body;
@@ -2879,7 +2879,7 @@ app.post('/api/submissions/:id/notes', authenticateToken, async (req, res) => {
 });
 
 // ==================== FOLLOW-UP ENDPOINTS ====================
-// PATCH /api/submissions/:id/follow-up — set follow-up date and note
+// PATCH /api/submissions/:id/follow-up - set follow-up date and note
 app.patch('/api/submissions/:id/follow-up', authenticateToken, async (req, res) => {
     try {
         const { follow_up_date, follow_up_note } = req.body;
@@ -2911,7 +2911,7 @@ app.post('/api/notify', authenticateToken, async (req, res) => {
 
         const { sms, html } = buildNotificationContent(sub);
         await sendNotificationSMS(sms);
-        await sendNotificationEmail('OverAssessed — Re-notification: ' + sub.ownerName, html);
+        await sendNotificationEmail('OverAssessed - Re-notification: ' + sub.ownerName, html);
         res.json({ success: true, message: 'Notifications sent' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to send notifications' });
@@ -2944,7 +2944,7 @@ app.get('/portal', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'portal.html'));
 });
 
-// Portal deep link with UUID token — look up case ID and redirect to sign page
+// Portal deep link with UUID token - look up case ID and redirect to sign page
 app.get('/portal/:token', async (req, res) => {
     try {
         const { data } = await supabase.from('submissions').select('case_id').eq('id', req.params.token).single();
@@ -3386,7 +3386,7 @@ async function startServer() {
             const stats = tarrantData.getStats();
             console.log(`🏠 Tarrant CAD: ${stats.totalRecords.toLocaleString()} parcels loaded (${stats.memoryMB}MB)`);
         } else {
-            console.log('⚠️  Tarrant CAD data not available — using synthetic comps for Tarrant County');
+            console.log('⚠️  Tarrant CAD data not available - using synthetic comps for Tarrant County');
         }
     }).catch(err => {
         console.error('❌ Tarrant CAD load error:', err.message);
@@ -3418,7 +3418,7 @@ setInterval(() => {
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
-const AI_SYSTEM_PROMPT = `You are Sarah, the friendly and knowledgeable phone receptionist at OverAssessed. You sound natural, warm, confident, and helpful — like a real person who genuinely cares, not a robot reading a script.
+const AI_SYSTEM_PROMPT = `You are Sarah, the friendly and knowledgeable phone receptionist at OverAssessed. You sound natural, warm, confident, and helpful - like a real person who genuinely cares, not a robot reading a script.
 
 ABOUT OVERASSESSED:
 - Property tax protest experts serving all of Texas AND Georgia
@@ -3441,7 +3441,7 @@ Once you have all three, say: "Perfect! I've got everything I need. We'll run yo
 
 PHONE CALL RULES (CRITICAL):
 - Keep responses to 1-3 SHORT sentences max. Phone callers hate long responses.
-- Sound natural. Use contractions freely — "we'll", "you're", "that's", "don't".
+- Sound natural. Use contractions freely - "we'll", "you're", "that's", "don't".
 - When someone gives info, REPEAT IT BACK: "Got it, so that's John Smith at 123 Main Street in San Antonio, right?"
 - If speech sounds garbled: "Sorry, I didn't quite catch that. Could you repeat that for me?"
 - If they ask something you don't know: "That's a great question. Tyler can go into more detail on that when he follows up with your analysis. Want me to get your info so he can reach out?"
@@ -3449,7 +3449,7 @@ PHONE CALL RULES (CRITICAL):
 - Your name is Sarah. You're the front office assistant.
 - NEVER use markdown, bullet points, asterisks, numbered lists, or any formatting
 - Be conversational and warm. Laugh naturally if something's funny. Be human.
-- If they seem hesitant: "I totally understand. There's zero risk — the analysis is completely free and there's no obligation. We just need your address to check if you're overpaying."
+- If they seem hesitant: "I totally understand. There's zero risk - the analysis is completely free and there's no obligation. We just need your address to check if you're overpaying."
 - End every interaction trying to collect their info if you haven't already`;
 
 async function callClaude(messages) {
@@ -3516,7 +3516,7 @@ function extractCallerInfo(messages) {
     return info;
 }
 
-// 1. Inbound call — AI greeting + first gather
+// 1. Inbound call - AI greeting + first gather
 app.post('/twiml/voice', (req, res) => {
     const callSid = req.body?.CallSid || 'unknown';
     const callerNumber = req.body?.From || 'Unknown';
@@ -3551,7 +3551,7 @@ app.post('/twiml/voice', (req, res) => {
     }
 });
 
-// 2. AI respond — process speech, get AI response, gather again
+// 2. AI respond - process speech, get AI response, gather again
 app.post('/twiml/ai-respond', async (req, res) => {
     const callSid = req.body?.CallSid || 'unknown';
     const speechResult = req.body?.SpeechResult || '';
@@ -3603,7 +3603,7 @@ app.post('/twiml/ai-respond', async (req, res) => {
 </Response>`);
             return;
         } else {
-            // Outside business hours — tell them Tyler will call back
+            // Outside business hours - tell them Tyler will call back
             state.messages.push({
                 role: 'assistant',
                 content: "I'd be happy to have Tyler call you back. Our business hours are Monday through Friday, 8 AM to 6 PM Central Time. Tyler will call you back within one business hour once we're open. Can I help you with anything else in the meantime?"
@@ -3698,7 +3698,7 @@ app.post('/twiml/ai-transfer-status', (req, res) => {
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response><Hangup/></Response>`);
     } else {
-        // Tyler didn't answer — voicemail fallback
+        // Tyler didn't answer - voicemail fallback
         res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Joanna">Tyler is unavailable right now. Please leave a message after the beep and he'll call you back within one business hour.</Say>
@@ -3713,7 +3713,7 @@ app.post('/twiml/ai-transfer-status', (req, res) => {
     }
 });
 
-// 5. Call complete — send summary notifications
+// 5. Call complete - send summary notifications
 app.post('/twiml/ai-complete', (req, res) => {
     const callSid = req.body?.CallSid || 'unknown';
     const state = aiCallState.get(callSid);
@@ -3742,7 +3742,7 @@ async function sendCallSummary(callSid, state) {
     // Parse caller info from conversation text
     const fullText = state.messages.filter(m => m.role === 'user').map(m => m.content).join(' ');
     
-    // SMS to Tyler — short summary
+    // SMS to Tyler - short summary
     const smsLines = [`📞 AI Call Summary`, `From: ${callerNumber}`, `Time: ${callTime}`];
     if (callerInfo.name) smsLines.push(`Name: ${callerInfo.name}`);
     if (callerInfo.address) smsLines.push(`Property: ${callerInfo.address}`);
@@ -3765,7 +3765,7 @@ async function sendCallSummary(callSid, state) {
         }
     }
     
-    // Email to Tyler — full transcript
+    // Email to Tyler - full transcript
     if (process.env.SENDGRID_API_KEY) {
         try {
             const transcriptHtml = state.messages.map(m => {
@@ -3777,7 +3777,7 @@ async function sendCallSummary(callSid, state) {
             await sgMail.send({
                 to: 'tyler@overassessed.ai',
                 from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
-                subject: `📞 AI Call from ${callerNumber} — ${callTime}`,
+                subject: `📞 AI Call from ${callerNumber} - ${callTime}`,
                 html: `
                     <h2>AI Phone Call Summary</h2>
                     <table style="border-collapse:collapse;margin-bottom:16px;">
@@ -3790,7 +3790,7 @@ async function sendCallSummary(callSid, state) {
                     <h3>Full Conversation</h3>
                     ${transcriptHtml}
                     <hr>
-                    <p style="color:#888;font-size:12px;">OverAssessed Phone — (888) 282-9165</p>
+                    <p style="color:#888;font-size:12px;">OverAssessed Phone - (888) 282-9165</p>
                 `
             });
             console.log(`📧 [AI Phone] Email summary sent for ${callSid}`);
@@ -3841,13 +3841,13 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
         : `📞 OA Voicemail from ${from} (new recording)`;
     
     const html = `
-        <h2>New Voicemail — OverAssessed</h2>
+        <h2>New Voicemail - OverAssessed</h2>
         <p><strong>From:</strong> ${from}</p>
         <p><strong>Time:</strong> ${new Date().toLocaleString('en-US', {timeZone: 'America/Chicago'})}</p>
         ${transcription ? `<p><strong>Transcription:</strong> ${transcription}</p>` : ''}
         ${recordingUrl ? `<p><strong>Listen:</strong> <a href="${recordingUrl}">${recordingUrl}</a></p>` : ''}
         <hr>
-        <p style="color:#888;">OverAssessed — (888) 282-9165</p>
+        <p style="color:#888;">OverAssessed - (888) 282-9165</p>
     `;
     
     try {
