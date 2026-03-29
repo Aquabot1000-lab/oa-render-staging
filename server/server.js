@@ -1948,7 +1948,7 @@ app.post('/api/sign/:id', async (req, res) => {
 
             // Fee Agreement Signature — use client-specific rate if set, else state default
             const clientRate = sub.discountedRate || sub.discounted_rate;
-            const feeRates = { TX: '20%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
+            const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
             submissions[idx].feeAgreementSignature = {
                 fullName: feeAgreementName,
                 authorized: true,
@@ -1970,7 +1970,7 @@ app.post('/api/sign/:id', async (req, res) => {
 
         const state = sub.state || 'TX';
         const formName = state === 'GA' ? 'Service Agreement & Letter of Authorization' : 'Form 50-162';
-        const feeRates = { TX: '20%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
+        const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
         const clientRate2 = sub.discountedRate || sub.discounted_rate;
         const feeRate = clientRate2 ? `${clientRate2}%` : (feeRates[state] || '25%');
 
