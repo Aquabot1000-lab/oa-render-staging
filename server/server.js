@@ -1819,7 +1819,8 @@ app.get('/api/sign/:id', async (req, res) => {
             state: sub.state || 'TX',
             county: sub.county || null,
             signed: !!sub.signature,
-            feeAgreementSigned: !!sub.feeAgreementSignature
+            feeAgreementSigned: !!sub.feeAgreementSignature,
+            feeRate: sub.discountedRate || sub.discounted_rate || null
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to load signing data' });
@@ -1945,14 +1946,15 @@ app.post('/api/sign/:id', async (req, res) => {
                 documentsSigned: docsSigned
             };
 
-            // Fee Agreement Signature
-            const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
+            // Fee Agreement Signature — use client-specific rate if set, else state default
+            const clientRate = sub.discountedRate || sub.discounted_rate;
+            const feeRates = { TX: '20%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
             submissions[idx].feeAgreementSignature = {
                 fullName: feeAgreementName,
                 authorized: true,
                 signedAt: new Date().toISOString(),
                 ipAddress: req.ip,
-                applicableRate: feeRates[state] || '25%',
+                applicableRate: clientRate ? `${clientRate}%` : (feeRates[state] || '25%'),
                 state: state
             };
             submissions[idx].fee_agreement_signed = true;
@@ -1968,8 +1970,9 @@ app.post('/api/sign/:id', async (req, res) => {
 
         const state = sub.state || 'TX';
         const formName = state === 'GA' ? 'Service Agreement & Letter of Authorization' : 'Form 50-162';
-        const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
-        const feeRate = feeRates[state] || '25%';
+        const feeRates = { TX: '20%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
+        const clientRate2 = sub.discountedRate || sub.discounted_rate;
+        const feeRate = clientRate2 ? `${clientRate2}%` : (feeRates[state] || '25%');
 
         // Notify Tyler
         sendNotificationEmail(
