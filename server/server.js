@@ -1947,7 +1947,7 @@ app.post('/api/sign/:id', async (req, res) => {
             };
 
             // Fee Agreement Signature — use client-specific rate if set, else state default
-            const clientRate = sub.discountedRate || sub.discounted_rate;
+            const clientRate = s.discountedRate || s.discounted_rate;
             const feeRates = { TX: '25%', GA: '25%', WA: '25%', AZ: '25%', CO: '25%' };
             submissions[idx].feeAgreementSignature = {
                 fullName: feeAgreementName,
