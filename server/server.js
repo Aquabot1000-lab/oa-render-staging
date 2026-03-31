@@ -396,6 +396,7 @@ function submissionToRow(sub) {
         drip_state: sub.dripState,
         referral_code: sub.referralCode,
         discounted_rate: sub.discountedRate,
+        referral_credit: sub.referralCredit || null,
         referral_id: sub.referralId,
         stripe_customer_id: sub.stripeCustomerId,
         created_at: sub.createdAt,
@@ -454,6 +455,7 @@ function rowToSubmission(row) {
         dripState: row.drip_state,
         referralCode: row.referral_code,
         discountedRate: row.discounted_rate,
+        referralCredit: row.referral_credit || null,
         referralId: row.referral_id,
         stripeCustomerId: row.stripe_customer_id,
         createdAt: row.created_at,
@@ -1644,9 +1646,9 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                     .single();
 
                 if (referral) {
-                    const discountedRate = 0.20; // Referral discount: 20% vs standard 25%
+                    // Referral benefit: $50 credit toward fee (no rate discount)
                     submission.referralCode = ref;
-                    submission.discountedRate = discountedRate;
+                    submission.referralCredit = 50; // Flat $50 credit applied at billing
                     submission.referralId = referral.id;
 
                     // Link the referral to this new client
@@ -1660,7 +1662,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                         })
                         .eq('id', referral.id);
 
-                    console.log(`[Intake] Referral ${ref} applied - discounted rate: ${discountedRate}`);
+                    console.log(`[Intake] Referral ${ref} applied - $50 credit toward fee`);
                 }
             } catch (refErr) {
                 console.log('[Intake] Referral lookup failed:', refErr.message);
@@ -3113,12 +3115,13 @@ app.get('/georgia', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'georgia.html'));
 });
 
-app.get('/ohio', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
-});
-app.get('/lp/ohio', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
-});
+// Ohio routes commented out - deadline passed, pulling out of state (2026-03-31)
+// app.get('/ohio', (req, res) => {
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
+// });
+// app.get('/lp/ohio', (req, res) => {
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
+// });
 
 app.get('/arizona', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));

@@ -109,7 +109,8 @@ async function checkAllPendingOutcomes() {
                 if (savings > 0) {
                     // WON — value was reduced
                     const state = (appeal.state || 'TX').toUpperCase();
-                    const feePercent = appeal.our_fee_percent || (state === 'OH' ? 30 : 25);
+                    // Ohio removed 2026-03-31. Existing OH cases keep their stored our_fee_percent.
+                    const feePercent = appeal.our_fee_percent || 25;
                     const taxRate = await getEstimatedTaxRate(county, state) || 0.025; // default 2.5%
                     const annualSavings = Math.round(savings * taxRate * 100) / 100;
                     

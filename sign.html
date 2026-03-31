@@ -498,8 +498,7 @@
             if (rate) return `${rate}% contingency fee - no win, no fee`;
             if (!state) return `20% contingency fee - no win, no fee`;
             const feeMap = {
-                'TX': 25, 'GA': 25, 'WA': 25, 'AZ': 25, 'CO': 25,
-                'OH': 30
+                'TX': 25, 'GA': 25, 'WA': 25, 'AZ': 25, 'CO': 25
             };
             const fee = feeMap[state.toUpperCase()] || 25;
             return `${fee}% contingency fee - no win, no fee`;

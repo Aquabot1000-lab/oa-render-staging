@@ -21,3 +21,4 @@ server/data/bexar/parcels-compact.jsonl.gz
 server/data/dallas/parcels-compact.jsonl.gz
 server/data/*/parcels-compact.jsonl
 server/data/
+marketing/tiktok-videos/
