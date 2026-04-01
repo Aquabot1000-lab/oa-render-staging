@@ -42,6 +42,7 @@ const stripeRouter = require('./routes/stripe');
 const coinbaseRouter = require('./routes/coinbase');
 const emailNurtureRouter = require('./routes/email-nurture');
 const uriCommissionsRouter = require('./routes/uri-commissions');
+const pipelineRouter = require('./routes/pipeline');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
 // Twilio setup
@@ -700,6 +701,41 @@ async function sendNotificationSMS(message) {
     await sendSMS(process.env.NOTIFY_PHONE, message);
 }
 
+// Telegram real-time alert
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8546685923:AAGxRV6_YwimsyLvaORNhZTNu-1JM9PtdDs';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8568734697';
+
+async function sendTelegramAlert(text) {
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
+        });
+        if (!resp.ok) console.error('[Telegram] Alert failed:', resp.status, await resp.text());
+        else console.log('[Telegram] Alert sent');
+    } catch (err) {
+        console.error('[Telegram] Alert error:', err.message);
+    }
+}
+
+function buildTelegramLeadAlert(sub) {
+    const assessed = sub.assessedValue ? `\n💰 Assessed: ${sub.assessedValue}` : '';
+    const highValue = sub.assessedValue && parseInt(String(sub.assessedValue).replace(/[^0-9]/g, '')) > 500000 ? '💰 HIGH VALUE ' : '';
+    return `🚨 ${highValue}NEW LEAD — ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true })} CST
+
+<b>Name:</b> ${sub.ownerName}
+<b>Email:</b> ${sub.email}
+<b>Phone:</b> ${sub.phone || '—'}
+<b>Property:</b> ${sub.propertyAddress}
+<b>County:</b> ${sub.county || '—'}
+<b>State:</b> ${sub.state || 'TX'}
+<b>Case:</b> ${sub.caseId}${assessed}
+
+➡️ <b>Next:</b> Send intro email & schedule consultation.`;
+}
+
 async function sendClientSMS(phone, message) {
     // Normalize phone to E.164
     let cleaned = phone.replace(/\D/g, '');
@@ -1003,6 +1039,7 @@ if (isSupabaseEnabled()) {
     app.use('/api/db/referrals', authenticateToken, referralsRouter);
     app.use('/api/filings', authenticateToken, filingsRouter);
     app.use('/api/admin/uri-commissions', authenticateToken, uriCommissionsRouter);
+    app.use('/api/pipeline', authenticateToken, pipelineRouter);
 } else {
     console.log('⚠️  Supabase not configured - /api/db/* routes disabled');
 }
@@ -1434,6 +1471,7 @@ app.post('/api/pre-register', async (req, res) => {
         // Notify admin
         try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county} County`); } catch(e) {}
         try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county} County</p>`); } catch(e) {}
+        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n\n➡️ Will convert to full lead when protest season opens.`); } catch(e) {}
 
         res.json({ success: true, id: data.id });
     } catch (error) {
@@ -1697,6 +1735,9 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         const { sms, html } = buildNotificationContent(submission);
         sendNotificationSMS(sms);
         sendNotificationEmail('New OverAssessed Lead: ' + ownerName + ' (' + caseId + ')', html);
+
+        // Real-time Telegram alert (immediate)
+        sendTelegramAlert(buildTelegramLeadAlert(submission));
 
         // Send welcome notification to client via stage notification engine
         const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
