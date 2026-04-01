@@ -121,13 +121,15 @@ router.post('/nurture', async (req, res) => {
 
     const msg = {
       to: recipientEmail,
+      bcc: [{ email: 'tyler@overassessed.ai' }],
       from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
+      replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
       subject: replaceVariables(emailData.subject, { firstName }),
       html: html,
     };
 
     await sgMail.send(msg);
-    console.log(`📧 Sent ${sequence} email #${emailIndex} to ${recipientEmail}`);
+    console.log(`📧 Sent ${sequence} email #${emailIndex} to ${recipientEmail} (BCC: Tyler)`);
     
     res.json({ 
       success: true, 

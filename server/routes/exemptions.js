@@ -210,7 +210,9 @@ async function sendExemptionStatusNotification(status, client, exType, addr, ext
                 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
                 await sgMail.send({
                     to: client.email,
+                    bcc: [{ email: 'tyler@overassessed.ai' }],
                     from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
+                    replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
                     subject: template.subject,
                     html: template.html
                 });

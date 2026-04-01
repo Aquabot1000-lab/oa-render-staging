@@ -1831,7 +1831,8 @@ app.post('/api/pre-register', async (req, res) => {
             try {
                 await sgMail.send({
                     to: email,
-                    from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com', name: 'OverAssessed' },
+                    bcc: [{ email: 'tyler@overassessed.ai' }],
+                    from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
                     replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
                     subject: '✅ You\'re Pre-Registered for TX Property Tax Season!',
                     html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
