@@ -3413,9 +3413,8 @@ app.post('/api/inbound-reply', async (req, res) => {
         // ── Check 2: Customer lead reply? ──
         if (isSupabaseEnabled() && emailClean) {
             const { data } = await supabaseAdmin.from('submissions')
-                .select('id, owner_name, case_id, status')
+                .select('id, owner_name, case_id, status, email, phone')
                 .ilike('email', emailClean)
-                .in('status', ['Contacted', 'Analysis Complete', 'Needs Data'])
                 .limit(5);
             
             if (data && data.length > 0) {
@@ -3429,12 +3428,30 @@ app.post('/api/inbound-reply', async (req, res) => {
                     console.log(`[InboundReply] Marked ${sub.case_id} (${sub.owner_name}) as replied`);
                 }
                 
-                sendTelegramAlert(`📩 Customer Reply Detected\n\n<b>From:</b> ${emailClean}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Action:</b> Follow-up automation stopped. Check inbox for their message.`);
+                sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b>\n\n<b>From:</b> ${emailClean}\n<b>Name:</b> ${data[0].owner_name}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 200)}\n\n<b>Action:</b> Follow-up automation stopped.`);
             } else {
-                // Unknown sender — still log it
+                // Unknown sender — still alert
                 console.log(`[InboundReply] Unknown sender: ${emailClean} | Subject: ${subject}`);
-                sendTelegramAlert(`📨 New inbound email (unmatched)\n\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 100)}`);
+                sendTelegramAlert(`📨 <b>New inbound email</b> (unmatched)\n\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}`);
             }
+        }
+        
+        // ── Always forward to Tyler ──
+        try {
+            await sendNotificationEmail(
+                `📩 OA Reply: ${subject.substring(0, 60)}`,
+                `<div style="font-family:Arial,sans-serif;max-width:600px;padding:20px;">
+                    <h3 style="color:#6c5ce7;">📩 Inbound Reply</h3>
+                    <p><b>From:</b> ${fromEmail}</p>
+                    <p><b>Subject:</b> ${subject}</p>
+                    <hr style="border:none;border-top:1px solid #eee;">
+                    <div style="background:#f7f7f7;padding:15px;border-radius:8px;white-space:pre-wrap;">${textBody.substring(0, 2000)}</div>
+                </div>`,
+                'tyler@overassessed.ai'
+            );
+            console.log(`[InboundReply] Forwarded to tyler@overassessed.ai`);
+        } catch (fwdErr) {
+            console.error(`[InboundReply] Forward failed: ${fwdErr.message}`);
         }
         
         res.status(200).send('OK');
