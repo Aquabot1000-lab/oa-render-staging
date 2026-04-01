@@ -1499,6 +1499,7 @@ app.post('/api/calculator-lead', async (req, res) => {
         if (phone) insertData.phone = phone;
         const { data, error } = await supabaseAdmin.from('calculator_leads').insert(insertData).select().single();
         if (error) throw error;
+        sendTelegramAlert(`📊 CALCULATOR LEAD\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Phone:</b> ${phone || '—'}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county}\n<b>Assessed:</b> $${parseInt(assessed_value).toLocaleString()}\n<b>Est. Savings:</b> $${parseInt(estimated_savings || 0).toLocaleString()}\n\n➡️ Hot lead — used savings calculator.`);
         res.json({ success: true, data });
     } catch (error) {
         console.error('Calculator lead error:', error);
@@ -1933,6 +1934,7 @@ app.post('/api/commercial-intake', async (req, res) => {
             </table>
         `;
         sendNotificationEmail('🏢 New Commercial Lead: ' + name + ' (' + caseId + ')', emailHtml);
+        sendTelegramAlert(`🏢 COMMERCIAL LEAD\n\n<b>Name:</b> ${name}\n<b>Company:</b> ${companyName || '—'}\n<b>Email:</b> ${email}\n<b>Phone:</b> ${phone}\n<b>Property:</b> ${propertyAddress}\n<b>Assessed:</b> ${assessedValue || '—'}\n<b>Properties:</b> ${propertyCount || '1'}\n<b>Case:</b> ${caseId}\n\n➡️ Commercial lead — high value potential.`);
 
         // Send welcome notification to client
         const notifyFns = { sendClientSMS, sendClientEmail, brandedEmailWrapper };
