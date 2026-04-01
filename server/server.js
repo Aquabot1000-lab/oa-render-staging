@@ -3189,19 +3189,92 @@ app.patch('/api/submissions/:id/customer-replied', authenticateToken, async (req
     }
 });
 
+// ── Creator Outreach Tracking ──
+let creatorOutreach = []; // In-memory store for creator pipeline
+
+// Load creator emails for matching
+const creatorEmailMap = new Map();
+try {
+    const creatorData = require('fs').readFileSync('/Users/aquabot/.openclaw/workspace/creator-outreach-master.json', 'utf8');
+    const creators = JSON.parse(creatorData);
+    creators.forEach(c => {
+        if (c.email) creatorEmailMap.set(c.email.toLowerCase(), c);
+    });
+    console.log(`[CreatorTracker] Loaded ${creatorEmailMap.size} creator emails for reply matching`);
+} catch (e) {
+    console.log('[CreatorTracker] Creator list not available:', e.message);
+}
+
 // POST /api/inbound-reply — webhook for inbound email replies (SendGrid Inbound Parse)
+// Handles BOTH customer lead replies AND creator outreach replies
 app.post('/api/inbound-reply', async (req, res) => {
     try {
         const fromEmail = req.body.from || req.body.envelope?.from || '';
-        console.log(`[InboundReply] Email received from: ${fromEmail}`);
+        const subject = req.body.subject || '';
+        const textBody = req.body.text || '';
+        console.log(`[InboundReply] Email received from: ${fromEmail} | Subject: ${subject}`);
         
-        // Find the submission by email
-        if (isSupabaseEnabled() && fromEmail) {
-            const emailClean = fromEmail.replace(/.*</, '').replace(/>.*/, '').trim().toLowerCase();
+        const emailClean = fromEmail.replace(/.*</, '').replace(/>.*/, '').trim().toLowerCase();
+        
+        // ── Check 1: Creator reply? ──
+        const creator = creatorEmailMap.get(emailClean);
+        if (creator) {
+            console.log(`[CreatorTracker] 📩 CREATOR REPLY: ${creator.name} (${emailClean})`);
+            
+            const reply = {
+                id: `cr-${Date.now()}`,
+                name: creator.name,
+                email: emailClean,
+                instagram: creator.instagram || null,
+                platform: 'email',
+                subject: subject.substring(0, 100),
+                preview: textBody.substring(0, 200),
+                detectedAt: new Date().toISOString(),
+                respondedAt: null,
+                status: 'new',
+                followers: creator.followers || 0,
+                state: creator.state || '?'
+            };
+            creatorOutreach.push(reply);
+            
+            // Update creator in master file
+            creator.replyStatus = 'replied';
+            creator.repliedAt = new Date().toISOString();
+            creator.replyChannel = 'email';
+            
+            // Telegram alert — HIGH priority
+            sendTelegramAlert(`📩 <b>CREATOR REPLY</b>\n\n<b>Name:</b> ${creator.name}\n<b>Followers:</b> ${(creator.followers || 0).toLocaleString()}\n<b>State:</b> ${creator.state || '?'}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}\n\n⏰ <b>1-HOUR SLA — Respond now!</b>`);
+            
+            // Post to Mission Control
+            try {
+                const fetch = require('node:https');
+                const mcData = JSON.stringify({
+                    name: creator.name,
+                    email: emailClean,
+                    instagram: creator.instagram,
+                    platform: 'email',
+                    subject: subject.substring(0, 100),
+                    preview: textBody.substring(0, 200)
+                });
+                // Fire and forget to Mission Control
+                const mcReq = require('https').request('https://mission-control-production-8225.up.railway.app/api/creator-reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Content-Length': mcData.length }
+                });
+                mcReq.write(mcData);
+                mcReq.end();
+            } catch (mcErr) { console.error('[CreatorTracker] MC update failed:', mcErr.message); }
+            
+            res.status(200).send('OK');
+            return;
+        }
+        
+        // ── Check 2: Customer lead reply? ──
+        if (isSupabaseEnabled() && emailClean) {
             const { data } = await supabaseAdmin.from('submissions')
                 .select('id, owner_name, case_id, status')
                 .ilike('email', emailClean)
-                .in('status', ['Contacted', 'Analysis Complete'])
+                .in('status', ['Contacted', 'Analysis Complete', 'Needs Data'])
                 .limit(5);
             
             if (data && data.length > 0) {
@@ -3216,14 +3289,75 @@ app.post('/api/inbound-reply', async (req, res) => {
                 }
                 
                 sendTelegramAlert(`📩 Customer Reply Detected\n\n<b>From:</b> ${emailClean}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Action:</b> Follow-up automation stopped. Check inbox for their message.`);
+            } else {
+                // Unknown sender — still log it
+                console.log(`[InboundReply] Unknown sender: ${emailClean} | Subject: ${subject}`);
+                sendTelegramAlert(`📨 New inbound email (unmatched)\n\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 100)}`);
             }
         }
         
         res.status(200).send('OK');
     } catch (error) {
         console.error('[InboundReply] Error:', error.message);
-        res.status(200).send('OK'); // Always 200 to prevent retries
+        res.status(200).send('OK');
     }
+});
+
+// GET /api/creator-replies — list creator reply pipeline
+app.get('/api/creator-replies', (req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayReplies = creatorOutreach.filter(r => r.detectedAt.slice(0, 10) === today);
+    const unresponded = creatorOutreach.filter(r => r.status === 'new');
+    const expired = creatorOutreach.filter(r => {
+        if (r.status !== 'new') return false;
+        const age = Date.now() - new Date(r.detectedAt).getTime();
+        return age > 60 * 60 * 1000; // 1 hour
+    });
+    
+    // Mark expired
+    expired.forEach(r => { r.status = 'expired'; });
+    
+    res.json({
+        today: todayReplies,
+        unresponded,
+        expired,
+        total: creatorOutreach.length,
+        stats: {
+            totalContacted: creatorEmailMap.size,
+            totalReplied: creatorOutreach.length,
+            replyRate: creatorEmailMap.size > 0 ? `${((creatorOutreach.length / creatorEmailMap.size) * 100).toFixed(1)}%` : '0%'
+        }
+    });
+});
+
+// POST /api/creator-reply — manual log (from cron or MC)
+app.post('/api/creator-reply-log', (req, res) => {
+    const { name, email, instagram, platform, subject, preview } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    
+    const reply = {
+        id: `cr-${Date.now()}`,
+        name, email, instagram,
+        platform: platform || 'email',
+        subject, preview,
+        detectedAt: new Date().toISOString(),
+        respondedAt: null,
+        status: 'new'
+    };
+    creatorOutreach.push(reply);
+    
+    sendTelegramAlert(`📩 <b>CREATOR REPLY</b> (manual)\n\n<b>Name:</b> ${name}\n<b>Platform:</b> ${platform || 'email'}\n\n⏰ <b>1-HOUR SLA</b>`);
+    
+    res.json({ success: true, reply });
+});
+
+// PATCH /api/creator-reply/:id — mark responded
+app.patch('/api/creator-reply/:id', (req, res) => {
+    const reply = creatorOutreach.find(r => r.id === req.params.id);
+    if (!reply) return res.status(404).json({ error: 'not found' });
+    reply.status = 'responded';
+    reply.respondedAt = new Date().toISOString();
+    res.json({ success: true, reply });
 });
 
 app.post('/api/notify', authenticateToken, async (req, res) => {
