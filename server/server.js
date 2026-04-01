@@ -903,15 +903,21 @@ async function sendNotificationEmail(subject, html, toEmail) {
     const to = toEmail || process.env.NOTIFY_EMAIL;
     if (!to) { console.log('Email skipped - no recipient'); return; }
     try {
-        await sgMail.send({
+        const msg = {
             to,
-            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com', name: 'OverAssessed' },
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
             replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
             subject,
             html,
             trackingSettings: { clickTracking: { enable: true }, openTracking: { enable: true } }
-        });
-        console.log('Email sent to', to);
+        };
+        // BCC Tyler on all outbound customer emails (skip if TO is already Tyler)
+        const tylerEmail = 'tyler@overassessed.ai';
+        if (to && to.toLowerCase() !== tylerEmail.toLowerCase()) {
+            msg.bcc = [{ email: tylerEmail }];
+        }
+        await sgMail.send(msg);
+        console.log(`Email sent to ${to}${msg.bcc ? ' (BCC: Tyler)' : ''}`);
         logComm({ event: 'sent', channel: 'email', to, subject });
     } catch (error) {
         console.error('Email failed:', error.message);
@@ -3426,10 +3432,29 @@ app.post('/api/inbound-reply', async (req, res) => {
         
         const emailClean = fromEmail.replace(/.*</, '').replace(/>.*/, '').trim().toLowerCase();
         
+        // ── Store in email viewer ──
+        const storedEmail = {
+            id: `em-${Date.now()}`,
+            from: emailClean,
+            fromDisplay: fromEmail.replace(/<.*>/, '').trim() || emailClean,
+            subject,
+            body: textBody,
+            htmlBody: req.body.html || null,
+            receivedAt: new Date().toISOString(),
+            status: 'new', // new, read, replied, assigned, done
+            assignee: null,
+            notes: null,
+            type: null, // set below: 'creator', 'customer', 'unknown'
+            updatedAt: new Date().toISOString()
+        };
+        emailStore.unshift(storedEmail);
+        if (emailStore.length > 100) emailStore.length = 100;
+        
         // ── Check 1: Creator reply? ──
         const creator = creatorEmailMap.get(emailClean);
         if (creator) {
             console.log(`[CreatorTracker] 📩 CREATOR REPLY: ${creator.name} (${emailClean})`);
+            storedEmail.type = 'creator';
             
             const reply = {
                 id: `cr-${Date.now()}`,
@@ -3452,8 +3477,8 @@ app.post('/api/inbound-reply', async (req, res) => {
             creator.repliedAt = new Date().toISOString();
             creator.replyChannel = 'email';
             
-            // Telegram alert — HIGH priority (immediate)
-            sendTelegramAlert(`📩 <b>CREATOR REPLY</b>\n\n<b>Name:</b> ${creator.name}\n<b>Followers:</b> ${(creator.followers || 0).toLocaleString()}\n<b>State:</b> ${creator.state || '?'}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}\n\n⏰ <b>RESPOND WITHIN 30 MIN</b>`);
+            // Telegram alert — SHORT, high priority
+            sendTelegramAlert(`📩 <b>CREATOR REPLY</b>\n<b>From:</b> ${creator.name} (${(creator.followers || 0).toLocaleString()} followers)\n<b>Subject:</b> ${subject.substring(0, 60)}\n⏰ <b>Respond within 30 min — full email in inbox</b>`);
             
             // 30-min warning
             setTimeout(() => {
@@ -3513,32 +3538,41 @@ app.post('/api/inbound-reply', async (req, res) => {
                         .eq('id', sub.id);
                     console.log(`[InboundReply] Marked ${sub.case_id} (${sub.owner_name}) as replied`);
                     logComm({ event: 'replied', channel: 'email', to: emailClean, caseId: sub.case_id, name: sub.owner_name });
+                    storedEmail.type = 'customer';
                 }
                 
-                sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b>\n\n<b>From:</b> ${emailClean}\n<b>Name:</b> ${data[0].owner_name}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 200)}\n\n<b>Action:</b> Follow-up automation stopped.`);
+                // Telegram — SHORT preview only
+                sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b>\n<b>From:</b> ${data[0].owner_name}\n<b>Subject:</b> ${subject.substring(0, 60)}\n<b>Action:</b> Check inbox — full email forwarded`);
             } else {
-                // Unknown sender — still alert
                 console.log(`[InboundReply] Unknown sender: ${emailClean} | Subject: ${subject}`);
-                sendTelegramAlert(`📨 <b>New inbound email</b> (unmatched)\n\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}`);
+                sendTelegramAlert(`📨 <b>Inbound email</b>\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 60)}\n<b>Action:</b> Check inbox`);
             }
         }
         
-        // ── Always forward to Tyler ──
+        // ── ALWAYS forward full raw email to Tyler's inbox ──
         try {
-            await sendNotificationEmail(
-                `📩 OA Reply: ${subject.substring(0, 60)}`,
-                `<div style="font-family:Arial,sans-serif;max-width:600px;padding:20px;">
-                    <h3 style="color:#6c5ce7;">📩 Inbound Reply</h3>
-                    <p><b>From:</b> ${fromEmail}</p>
-                    <p><b>Subject:</b> ${subject}</p>
-                    <hr style="border:none;border-top:1px solid #eee;">
-                    <div style="background:#f7f7f7;padding:15px;border-radius:8px;white-space:pre-wrap;">${textBody.substring(0, 2000)}</div>
+            const htmlBody = req.body.html || '';
+            const fullBody = htmlBody || textBody;
+            await sgMail.send({
+                to: 'tyler@overassessed.ai',
+                from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OA Inbound' },
+                replyTo: { email: emailClean, name: fromEmail.replace(/<.*>/, '').trim() || emailClean },
+                subject: `Fwd: ${subject}`,
+                html: `<div style="font-family:Arial,sans-serif;max-width:700px;padding:15px;">
+                    <div style="background:#f0f0f0;padding:12px;border-radius:6px;margin-bottom:15px;">
+                        <b>From:</b> ${fromEmail}<br>
+                        <b>Date:</b> ${new Date().toLocaleString('en-US', {timeZone:'America/Chicago'})}<br>
+                        <b>Subject:</b> ${subject}
+                    </div>
+                    <div style="white-space:pre-wrap;">${fullBody}</div>
                 </div>`,
-                'tyler@overassessed.ai'
-            );
-            console.log(`[InboundReply] Forwarded to tyler@overassessed.ai`);
+                text: `From: ${fromEmail}\nDate: ${new Date().toISOString()}\nSubject: ${subject}\n\n${textBody}`
+            });
+            console.log(`[InboundReply] Full email forwarded to tyler@overassessed.ai`);
         } catch (fwdErr) {
             console.error(`[InboundReply] Forward failed: ${fwdErr.message}`);
+            // Fallback: send via Telegram with more content if forward fails
+            sendTelegramAlert(`⚠️ <b>Email forward FAILED</b>\n\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject}\n<b>Body:</b>\n${textBody.substring(0, 500)}\n\n<i>Forward to inbox failed — showing full content here.</i>`);
         }
         
         res.status(200).send('OK');
@@ -3546,6 +3580,37 @@ app.post('/api/inbound-reply', async (req, res) => {
         console.error('[InboundReply] Error:', error.message);
         res.status(200).send('OK');
     }
+});
+
+// ── Email Store (for Mission Control viewer) ──
+const emailStore = []; // Last 100 inbound emails
+
+app.get('/api/emails', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const offset = (page - 1) * limit;
+    res.json({
+        emails: emailStore.slice(offset, offset + limit),
+        total: emailStore.length,
+        page,
+        pages: Math.ceil(emailStore.length / limit)
+    });
+});
+
+app.get('/api/emails/:id', (req, res) => {
+    const email = emailStore.find(e => e.id === req.params.id);
+    if (!email) return res.status(404).json({ error: 'not found' });
+    res.json(email);
+});
+
+app.patch('/api/emails/:id', (req, res) => {
+    const email = emailStore.find(e => e.id === req.params.id);
+    if (!email) return res.status(404).json({ error: 'not found' });
+    if (req.body.status) email.status = req.body.status; // new, read, replied, assigned, done
+    if (req.body.assignee) email.assignee = req.body.assignee;
+    if (req.body.notes) email.notes = req.body.notes;
+    email.updatedAt = new Date().toISOString();
+    res.json({ success: true, email });
 });
 
 // GET /api/creator-replies — list creator reply pipeline
