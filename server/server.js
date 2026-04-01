@@ -687,34 +687,140 @@ async function getNextCaseId() {
     return `OA-${String(counter.lastCaseNumber).padStart(4, '0')}`;
 }
 
-// Notifications
+// ── SMS System with 10DLC Fallback ──
+const smsMetrics = {
+    attempts: 0,
+    successes: 0,
+    failures: 0,
+    fallbacksToEmail: 0,
+    errorCodes: {},
+    lastError: null,
+    lastSuccess: null,
+    status: 'DEGRADED', // HEALTHY, DEGRADED, DOWN
+    statusReason: '10DLC campaigns pending approval',
+    log: [] // last 50 entries
+};
+
+function logSmsAttempt(to, success, errorCode, fallback, context) {
+    const entry = {
+        at: new Date().toISOString(),
+        to: to ? to.replace(/\d(?=\d{4})/g, '*') : '?', // mask number
+        success,
+        errorCode: errorCode || null,
+        fallback: fallback || null,
+        context: context || 'unknown'
+    };
+    smsMetrics.log.unshift(entry);
+    if (smsMetrics.log.length > 50) smsMetrics.log.pop();
+    smsMetrics.attempts++;
+    if (success) {
+        smsMetrics.successes++;
+        smsMetrics.lastSuccess = entry.at;
+        // If 5 consecutive successes, upgrade status
+        const recent = smsMetrics.log.slice(0, 5);
+        if (recent.every(e => e.success)) {
+            smsMetrics.status = 'HEALTHY';
+            smsMetrics.statusReason = 'SMS delivering normally';
+        }
+    } else {
+        smsMetrics.failures++;
+        smsMetrics.lastError = { at: entry.at, code: errorCode };
+        smsMetrics.errorCodes[errorCode] = (smsMetrics.errorCodes[errorCode] || 0) + 1;
+        if (fallback) smsMetrics.fallbacksToEmail++;
+    }
+    // Update status based on success rate
+    if (smsMetrics.attempts >= 5) {
+        const rate = smsMetrics.successes / smsMetrics.attempts;
+        if (rate < 0.5) { smsMetrics.status = 'DOWN'; smsMetrics.statusReason = `${(rate * 100).toFixed(0)}% success rate`; }
+        else if (rate < 0.9) { smsMetrics.status = 'DEGRADED'; smsMetrics.statusReason = `${(rate * 100).toFixed(0)}% success rate`; }
+    }
+}
+
+// Core SMS send — returns {success, sid, errorCode}
 async function sendSMS(to, message, { useMessagingService = false } = {}) {
-    if (!twilioClient) { console.log('SMS skipped - no Twilio client'); return; }
-    if (!to) { console.log('SMS skipped - no recipient'); return; }
+    if (!twilioClient) { console.log('SMS skipped - no Twilio client'); return { success: false, errorCode: 'NO_CLIENT' }; }
+    if (!to) { console.log('SMS skipped - no recipient'); return { success: false, errorCode: 'NO_RECIPIENT' }; }
     try {
         const msgOpts = { body: message, to };
-        // Use Messaging Service for customer-facing SMS (10DLC compliant)
-        // Use direct from number for internal/Tyler notifications
         if (useMessagingService && process.env.TWILIO_MESSAGING_SERVICE_SID) {
             msgOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
         } else {
             msgOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
         }
-        await twilioClient.messages.create(msgOpts);
-        console.log(`SMS sent to ${to} (${useMessagingService ? 'MessagingService' : 'direct'})`);
+        const result = await twilioClient.messages.create(msgOpts);
+        
+        // Check delivery status after 5 seconds (Twilio may accept then fail)
+        const sid = result.sid;
+        setTimeout(async () => {
+            try {
+                const msg = await twilioClient.messages(sid).fetch();
+                if (msg.status === 'undelivered' || msg.status === 'failed') {
+                    const code = msg.errorCode || 'UNKNOWN';
+                    console.error(`[SMS] Delayed failure: ${sid} → ${msg.status} (${code})`);
+                    logSmsAttempt(to, false, code, null, 'delayed_check');
+                    // If 10DLC error, update status
+                    if ([30034, 30032].includes(parseInt(code))) {
+                        smsMetrics.status = 'DEGRADED';
+                        smsMetrics.statusReason = `10DLC block (error ${code})`;
+                    }
+                }
+            } catch (e) { /* ignore fetch errors */ }
+        }, 6000);
+        
+        console.log(`SMS sent to ${to} (${useMessagingService ? 'MessagingService' : 'direct'}) SID: ${sid}`);
+        return { success: true, sid };
     } catch (error) {
-        console.error('SMS failed:', error.message);
+        const code = error.code || error.message;
+        console.error(`SMS failed to ${to}: ${error.message} (code: ${code})`);
+        return { success: false, errorCode: code };
     }
 }
 
-// Customer-facing SMS (uses Messaging Service for 10DLC compliance)
-async function sendCustomerSMS(to, message) {
-    await sendSMS(to, message, { useMessagingService: true });
+// Customer-facing SMS with EMAIL FALLBACK
+// If SMS fails (30034 10DLC, 30032 toll-free, or any error), auto-sends email instead
+async function sendCustomerSMS(to, message, { email, customerName, context } = {}) {
+    const result = await sendSMS(to, message, { useMessagingService: true });
+    logSmsAttempt(to, result.success, result.errorCode, null, context || 'customer');
+    
+    if (!result.success) {
+        const errorCode = result.errorCode;
+        console.log(`[SMS→Email Fallback] SMS failed (${errorCode}) for ${to}. Attempting email fallback.`);
+        
+        // Try email fallback if we have an email address
+        if (email) {
+            try {
+                const emailHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
+                        <p>${message.replace(/\n/g, '<br>')}</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                        <p style="color: #999; font-size: 12px;">This message was sent via email because SMS delivery is temporarily unavailable.</p>
+                    </div>`;
+                await sendNotificationEmail('Message from OverAssessed', emailHtml, email);
+                logSmsAttempt(to, false, errorCode, 'email_sent', context || 'customer');
+                console.log(`[SMS→Email Fallback] ✅ Email sent to ${email} (SMS error: ${errorCode})`);
+                
+                sendTelegramAlert(`⚠️ <b>SMS FAILED → EMAIL SENT</b>\n\n<b>To:</b> ${customerName || to}\n<b>SMS Error:</b> ${errorCode}\n<b>Fallback:</b> Email sent to ${email}\n<b>Message:</b> ${message.substring(0, 100)}...`);
+                
+                return { success: true, method: 'email_fallback', originalError: errorCode };
+            } catch (emailErr) {
+                console.error(`[SMS→Email Fallback] Both failed! SMS: ${errorCode}, Email: ${emailErr.message}`);
+                sendTelegramAlert(`🔴 <b>COMMUNICATION FAILURE</b>\n\n<b>To:</b> ${customerName || to}\n<b>SMS Error:</b> ${errorCode}\n<b>Email Error:</b> ${emailErr.message}\n<b>⚠️ Customer NOT reached!</b>`);
+                return { success: false, method: 'both_failed', smsError: errorCode, emailError: emailErr.message };
+            }
+        } else {
+            // No email to fall back to
+            sendTelegramAlert(`⚠️ <b>SMS FAILED — NO EMAIL FALLBACK</b>\n\n<b>To:</b> ${customerName || to}\n<b>Error:</b> ${errorCode}\n<b>⚠️ No email on file — customer NOT reached!</b>`);
+            return { success: false, method: 'sms_only_failed', errorCode };
+        }
+    }
+    
+    return { success: true, method: 'sms', sid: result.sid };
 }
 
-// Internal/Tyler notification SMS (direct from number, no Messaging Service needed)
+// Internal/Tyler notification SMS (direct from number, no fallback needed — Telegram is primary)
 async function sendNotificationSMS(message) {
-    await sendSMS(process.env.NOTIFY_PHONE, message);
+    const result = await sendSMS(process.env.NOTIFY_PHONE, message);
+    logSmsAttempt(process.env.NOTIFY_PHONE, result.success, result.errorCode, null, 'tyler_notification');
 }
 
 // Telegram real-time alert
@@ -758,12 +864,12 @@ function buildTelegramLeadAlert(sub) {
 <b>Next Action (TYLER):</b> Approve outreach after analysis`;
 }
 
-async function sendClientSMS(phone, message) {
+async function sendClientSMS(phone, message, { email, customerName, context } = {}) {
     // Normalize phone to E.164
     let cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) cleaned = '1' + cleaned;
     if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
-    await sendCustomerSMS(cleaned, message);
+    return await sendCustomerSMS(cleaned, message, { email, customerName, context });
 }
 
 async function sendNotificationEmail(subject, html, toEmail) {
@@ -974,7 +1080,7 @@ async function runDripCheck() {
             // 48hr reminder SMS
             if (hoursSince >= 48 && !drip.reminder48) {
                 console.log(`[Drip] 48hr reminder SMS → ${sub.phone} (${sub.caseId})`);
-                sendClientSMS(sub.phone, `OverAssessed reminder: We still need your signed authorization to file your property tax protest. Sign here: ${signUrl}`);
+                sendClientSMS(sub.phone, `OverAssessed reminder: We still need your signed authorization to file your property tax protest. Sign here: ${signUrl}`, { email: sub.email, customerName: sub.ownerName, context: '48hr_reminder' });
                 drip.reminder48 = new Date().toISOString();
                 changed = true;
             }
@@ -1411,6 +1517,29 @@ app.get('/api/analysis/comps', authenticateToken, async (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy', service: 'OverAssessed', timestamp: new Date().toISOString() });
+});
+
+// SMS Metrics & Status
+app.get('/api/sms-status', (req, res) => {
+    const successRate = smsMetrics.attempts > 0 
+        ? ((smsMetrics.successes / smsMetrics.attempts) * 100).toFixed(1) + '%' 
+        : 'N/A';
+    const isBlocker = smsMetrics.attempts >= 5 && (smsMetrics.successes / smsMetrics.attempts) < 0.9;
+    
+    res.json({
+        status: smsMetrics.status,
+        statusReason: smsMetrics.statusReason,
+        successRate,
+        isBlocker,
+        attempts: smsMetrics.attempts,
+        successes: smsMetrics.successes,
+        failures: smsMetrics.failures,
+        fallbacksToEmail: smsMetrics.fallbacksToEmail,
+        errorCodes: smsMetrics.errorCodes,
+        lastError: smsMetrics.lastError,
+        lastSuccess: smsMetrics.lastSuccess,
+        recentLog: smsMetrics.log.slice(0, 10)
+    });
 });
 
 // TAD data stats (admin)
@@ -2945,7 +3074,7 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
                 sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
-                sendClientSMS(sub.phone, template.sms);
+                sendClientSMS(sub.phone, template.sms, { email: sub.email, customerName: sub.ownerName, context: 'status_notification' });
                 console.log(`Status notification sent to ${sub.email} for ${status}`);
             }
         }
@@ -3046,7 +3175,7 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
                 sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
-                sendClientSMS(sub.phone, template.sms);
+                sendClientSMS(sub.phone, template.sms, { email: sub.email, customerName: sub.ownerName, context: 'status_notification' });
             }
         }
 

@@ -427,7 +427,7 @@ async function checkClient(client, state) {
 
 // ─── Notification Helpers ──────────────────────────────────
 
-async function sendSMS(to, message) {
+async function sendSMS(to, message, { email, customerName } = {}) {
     try {
         const twilio = require('twilio');
         const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -443,7 +443,17 @@ async function sendSMS(to, message) {
         await client.messages.create(msgOpts);
         console.log(`[ValueMonitor] SMS sent to ${formattedTo}`);
     } catch (err) {
-        console.error(`[ValueMonitor] SMS error: ${err.message}`);
+        console.error(`[ValueMonitor] SMS error (${err.code || err.message}): ${err.message}`);
+        // Fallback to email on 10DLC errors
+        if ([30034, 30032, 21610].includes(parseInt(err.code)) && email) {
+            try {
+                await sendEmail(email, 'Update from OverAssessed', 
+                    `<div style="font-family:Arial,sans-serif;padding:20px;"><p>${message.replace(/\n/g, '<br>')}</p><p style="color:#999;font-size:12px;">Sent via email — SMS temporarily unavailable.</p></div>`);
+                console.log(`[ValueMonitor] SMS→Email fallback sent to ${email}`);
+            } catch (emailErr) {
+                console.error(`[ValueMonitor] Both SMS and email failed: ${emailErr.message}`);
+            }
+        }
     }
 }
 
