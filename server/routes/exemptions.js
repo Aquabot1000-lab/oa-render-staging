@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
-const { sendNotificationSMS, sendNotificationEmail } = require('../server-notifications');
+const { sendNotificationSMS, sendNotificationEmail, sendTelegramAlert } = require('../server-notifications');
 
 // Exemption file upload setup
 const exemptionUploadsDir = path.join(__dirname, '..', 'uploads', 'exemptions');
@@ -416,6 +416,7 @@ router.post('/intake', uploadExemption.array('documents', 10), async (req, res) 
                 `<p><strong>${ownerName}</strong> submitted an exemption intake.</p>
                 <p>Email: ${email}<br>Phone: ${phone || 'N/A'}<br>Property: ${propertyAddress}<br>Type: ${exemptionType}<br>Documents: ${fileCount} file(s)</p>
                 ${crossSellProtest === 'true' ? '<p>📊 <strong>Cross-sell:</strong> Protest lead also created.</p>' : ''}`);
+            sendTelegramAlert(`📋 EXEMPTION INTAKE (OA)\n\n<b>Name:</b> ${ownerName}\n<b>Email:</b> ${email}\n<b>Phone:</b> ${phone || '—'}\n<b>Property:</b> ${propertyAddress}\n<b>Type:</b> ${exemptionType}\n<b>Docs:</b> ${fileCount} file(s)${crossSellProtest === 'true' ? '\n📊 Cross-sell protest lead also created' : ''}\n\n<b>Next Action (BOT):</b> Process exemption filing\n<b>Next Action (TYLER):</b> Review if cross-sell applies`);
         } catch (e) {
             console.log('[Exemptions] Notification helpers not available:', e.message);
         }

@@ -46,4 +46,23 @@ async function sendNotificationEmail(subject, html) {
     } catch (e) { console.error('Email failed:', e.message); }
 }
 
-module.exports = { sendNotificationSMS, sendNotificationEmail };
+// Telegram real-time alert
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8546685923:AAGxRV6_YwimsyLvaORNhZTNu-1JM9PtdDs';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8568734697';
+
+async function sendTelegramAlert(text) {
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
+        });
+        if (!resp.ok) console.error('[Telegram] Alert failed:', resp.status);
+        else console.log('[Telegram] Alert sent');
+    } catch (err) {
+        console.error('[Telegram] Alert error:', err.message);
+    }
+}
+
+module.exports = { sendNotificationSMS, sendNotificationEmail, sendTelegramAlert };
