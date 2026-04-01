@@ -688,6 +688,28 @@ async function getNextCaseId() {
 }
 
 // ── SMS System with 10DLC Fallback ──
+// ── Communication Outcome Tracking ──
+// Tracks every customer communication: send → deliver → open → reply → convert
+const commsLog = []; // Last 500 entries
+const commsStats = { sent: 0, delivered: 0, opened: 0, replied: 0, bounced: 0, failed: 0 };
+
+function logComm(entry) {
+    const comm = {
+        id: `comm-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        at: new Date().toISOString(),
+        ...entry
+    };
+    commsLog.unshift(comm);
+    if (commsLog.length > 500) commsLog.length = 500;
+    if (entry.event === 'sent') commsStats.sent++;
+    if (entry.event === 'delivered') commsStats.delivered++;
+    if (entry.event === 'opened') commsStats.opened++;
+    if (entry.event === 'replied') commsStats.replied++;
+    if (entry.event === 'bounced') commsStats.bounced++;
+    if (entry.event === 'failed') commsStats.failed++;
+    return comm;
+}
+
 const smsMetrics = {
     attempts: 0,
     successes: 0,
@@ -781,6 +803,7 @@ async function sendSMS(to, message, { useMessagingService = false } = {}) {
 async function sendCustomerSMS(to, message, { email, customerName, context } = {}) {
     const result = await sendSMS(to, message, { useMessagingService: true });
     logSmsAttempt(to, result.success, result.errorCode, null, context || 'customer');
+    logComm({ event: result.success ? 'sent' : 'failed', channel: 'sms', to, name: customerName, context, error: result.errorCode });
     
     if (!result.success) {
         const errorCode = result.errorCode;
@@ -886,11 +909,13 @@ async function sendNotificationEmail(subject, html, toEmail) {
             replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
             subject,
             html,
-            trackingSettings: { clickTracking: { enable: false }, openTracking: { enable: false } }
+            trackingSettings: { clickTracking: { enable: true }, openTracking: { enable: true } }
         });
         console.log('Email sent to', to);
+        logComm({ event: 'sent', channel: 'email', to, subject });
     } catch (error) {
         console.error('Email failed:', error.message);
+        logComm({ event: 'failed', channel: 'email', to, subject, error: error.message });
     }
 }
 
@@ -1539,6 +1564,67 @@ app.get('/api/sms-status', (req, res) => {
         lastError: smsMetrics.lastError,
         lastSuccess: smsMetrics.lastSuccess,
         recentLog: smsMetrics.log.slice(0, 10)
+    });
+});
+
+// ── SendGrid Event Webhook — delivery/open/click/bounce tracking ──
+app.post('/api/sendgrid-events', (req, res) => {
+    try {
+        const events = Array.isArray(req.body) ? req.body : [req.body];
+        for (const evt of events) {
+            const email = evt.email || '';
+            const event = evt.event || '';
+            const subject = evt.subject || '';
+            const sgMessageId = evt.sg_message_id || '';
+            
+            // Map SendGrid events to our tracking
+            if (event === 'delivered') {
+                logComm({ event: 'delivered', channel: 'email', to: email, subject, sgMessageId });
+            } else if (event === 'open') {
+                logComm({ event: 'opened', channel: 'email', to: email, subject, sgMessageId });
+            } else if (event === 'click') {
+                logComm({ event: 'clicked', channel: 'email', to: email, subject, sgMessageId, url: evt.url });
+            } else if (event === 'bounce' || event === 'dropped') {
+                logComm({ event: 'bounced', channel: 'email', to: email, subject, reason: evt.reason || evt.type, sgMessageId });
+                sendTelegramAlert(`📭 <b>Email ${event}</b>\n\n<b>To:</b> ${email}\n<b>Reason:</b> ${(evt.reason || evt.type || '?').substring(0, 100)}\n<b>Subject:</b> ${subject.substring(0, 60)}`);
+            } else if (event === 'spam_report') {
+                logComm({ event: 'spam', channel: 'email', to: email, subject, sgMessageId });
+                sendTelegramAlert(`🚨 <b>SPAM REPORT</b>\n\n<b>From:</b> ${email}\n<b>Subject:</b> ${subject.substring(0, 60)}\n\n⚠️ Consider removing from outreach.`);
+            }
+        }
+        res.status(200).send('OK');
+    } catch (err) {
+        console.error('[SendGridEvents] Error:', err.message);
+        res.status(200).send('OK');
+    }
+});
+
+// ── Communication Outcomes API ──
+app.get('/api/comms-status', (req, res) => {
+    const total = commsStats.sent || 1;
+    
+    // Calculate response rate: replied / (delivered - bounced)
+    const reachable = commsStats.delivered - commsStats.bounced;
+    const responseRate = reachable > 0 ? ((commsStats.replied / reachable) * 100).toFixed(1) + '%' : 'N/A';
+    const openRate = commsStats.delivered > 0 ? ((commsStats.opened / commsStats.delivered) * 100).toFixed(1) + '%' : 'N/A';
+    const deliveryRate = commsStats.sent > 0 ? ((commsStats.delivered / commsStats.sent) * 100).toFixed(1) + '%' : 'N/A';
+    const bounceRate = commsStats.sent > 0 ? ((commsStats.bounced / commsStats.sent) * 100).toFixed(1) + '%' : 'N/A';
+    
+    // Check for no-reply leads that need follow-up (delivered 24h+ ago, no reply)
+    const now = Date.now();
+    const delivered24hAgo = commsLog.filter(c => 
+        c.event === 'delivered' && 
+        (now - new Date(c.at).getTime()) > 24 * 60 * 60 * 1000
+    );
+    const repliedEmails = new Set(commsLog.filter(c => c.event === 'replied').map(c => c.to));
+    const noReply24h = delivered24hAgo.filter(c => !repliedEmails.has(c.to));
+    
+    res.json({
+        stats: commsStats,
+        rates: { deliveryRate, openRate, responseRate, bounceRate },
+        noReply24h: noReply24h.length,
+        noReplyLeads: noReply24h.slice(0, 10).map(c => ({ email: c.to, deliveredAt: c.at, subject: c.subject })),
+        recentActivity: commsLog.slice(0, 20)
     });
 });
 
@@ -3426,6 +3512,7 @@ app.post('/api/inbound-reply', async (req, res) => {
                         })
                         .eq('id', sub.id);
                     console.log(`[InboundReply] Marked ${sub.case_id} (${sub.owner_name}) as replied`);
+                    logComm({ event: 'replied', channel: 'email', to: emailClean, caseId: sub.case_id, name: sub.owner_name });
                 }
                 
                 sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b>\n\n<b>From:</b> ${emailClean}\n<b>Name:</b> ${data[0].owner_name}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 200)}\n\n<b>Action:</b> Follow-up automation stopped.`);
