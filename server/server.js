@@ -721,19 +721,25 @@ async function sendTelegramAlert(text) {
 }
 
 function buildTelegramLeadAlert(sub) {
-    const assessed = sub.assessedValue ? `\n💰 Assessed: ${sub.assessedValue}` : '';
-    const highValue = sub.assessedValue && parseInt(String(sub.assessedValue).replace(/[^0-9]/g, '')) > 500000 ? '💰 HIGH VALUE ' : '';
-    return `🚨 ${highValue}NEW LEAD — ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true })} CST
+    const assessedNum = sub.assessedValue ? parseInt(String(sub.assessedValue).replace(/[^0-9]/g, '')) : 0;
+    const assessed = assessedNum > 0 ? `\n💰 <b>Estimated Value:</b> $${assessedNum.toLocaleString()}` : '\n💰 <b>Estimated Value:</b> Pending analysis';
+    const priority = assessedNum > 500000 ? '🔥 HIGH' : assessedNum > 300000 ? '🔥 MEDIUM' : '📋 NORMAL';
+    const score = assessedNum > 500000 ? '9/10' : assessedNum > 300000 ? '7/10' : assessedNum > 0 ? '5/10' : 'Pending';
+    const time = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true });
+
+    return `🚨 NEW LEAD (OA) — ${time} CST
 
 <b>Name:</b> ${sub.ownerName}
 <b>Email:</b> ${sub.email}
 <b>Phone:</b> ${sub.phone || '—'}
-<b>Property:</b> ${sub.propertyAddress}
+<b>Address:</b> ${sub.propertyAddress}
 <b>County:</b> ${sub.county || '—'}
-<b>State:</b> ${sub.state || 'TX'}
 <b>Case:</b> ${sub.caseId}${assessed}
+<b>Priority:</b> ${priority}
+<b>Score:</b> ${score}
 
-➡️ <b>Next:</b> Send intro email & schedule consultation.`;
+<b>Next Action (BOT):</b> Run comp analysis → present results
+<b>Next Action (TYLER):</b> Approve outreach after analysis`;
 }
 
 async function sendClientSMS(phone, message) {
