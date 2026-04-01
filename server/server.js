@@ -2232,19 +2232,67 @@ async function runFullAnalysis(caseId) {
     if (compResults.unreliableData) {
         submissions[idx].unreliableData = true;
     }
-    // Post-analysis validation: never leave a lead in Analysis Complete with $0 savings
+    // ── 3-Outcome Post-Analysis Routing ──
+    // Outcome 1: ANALYSIS FAILED — data lookup failed, incomplete input, no comps
+    // Outcome 2: NO SAVINGS — valid analysis, property fairly assessed
+    // Outcome 3: SAVINGS FOUND — normal flow
     if (submissions[idx].status === 'New') {
-        if (!compResults.estimatedSavings || compResults.estimatedSavings <= 0) {
+        const savings = compResults.estimatedSavings || 0;
+        const hasComps = compResults.comps && compResults.comps.length > 0;
+        const isUnreliable = compResults.unreliableData || submissions[idx].unreliableData;
+        const hadDataFailure = !hasComps || isUnreliable || compResults.dataSourceFailed;
+        
+        if (hadDataFailure && savings <= 0) {
+            // OUTCOME 1: ANALYSIS FAILED — bad data, not a valid result
             submissions[idx].status = 'Needs Data';
+            submissions[idx].analysisOutcome = 'failed';
             submissions[idx].needsManualReview = true;
             submissions[idx].reviewReason = (submissions[idx].reviewReason || '') + 
-                ' Analysis completed with $0 savings — likely bad address, unsupported county, or data source failure.';
-            console.warn(`[Analysis] ${sub.caseId}: $0 savings — setting status to Needs Data, NOT Analysis Complete`);
+                ' Analysis failed — missing comps, unreliable data, or data source error.';
+            console.warn(`[Analysis] ${sub.caseId}: ANALYSIS FAILED — no comps or unreliable data. Status → Needs Data`);
             
-            // Alert Tyler via Telegram
-            sendTelegramAlert(`🔴 ANALYSIS FAILED — $0 SAVINGS\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>County:</b> ${sub.county || 'Unknown'}\n\nMoved to Needs Data. Likely bad address or unsupported county.`);
+            sendTelegramAlert(`🔴 ANALYSIS FAILED\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>County:</b> ${sub.county || 'Unknown'}\n<b>Reason:</b> ${!hasComps ? 'No comparables found' : 'Unreliable data'}\n\nMoved to Needs Data. Info request email will be sent.`);
+        } else if (savings <= 0 && hasComps && !isUnreliable) {
+            // OUTCOME 2: NO SAVINGS — valid analysis, property is fairly assessed
+            submissions[idx].status = 'No Savings';
+            submissions[idx].analysisOutcome = 'no_savings';
+            console.log(`[Analysis] ${sub.caseId}: NO SAVINGS — valid analysis, property fairly assessed. Status → No Savings`);
+            
+            sendTelegramAlert(`📊 NO SAVINGS — Valid Result\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Assessed:</b> $${assessedNum.toLocaleString()}\n\nComps confirm fair assessment. "No protest recommended" email will be sent. Lead kept for future follow-up.`);
+            
+            // Send "no protest recommended" email
+            if (sub.email && !sub.email.includes('benchmark@')) {
+                try {
+                    const noSavingsHtml = `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+  <div style="background: #6c5ce7; padding: 16px 24px; border-radius: 8px 8px 0 0;">
+    <span style="color: white; font-weight: 700; font-size: 18px;">OVERASSESSED</span>
+  </div>
+  <div style="border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 24px;">
+    <p style="font-size: 16px;">Hi ${sub.ownerName},</p>
+    <p style="font-size: 15px; line-height: 1.6;">We completed the analysis on <strong>${sub.propertyAddress}</strong>. After reviewing comparable properties in your area, your current assessed value appears to be in line with the market.</p>
+    <div style="background: #f0f9ff; border: 2px solid #0984e3; border-radius: 8px; padding: 20px; margin: 24px 0;">
+      <p style="font-size: 15px; font-weight: 600; color: #0984e3; margin: 0;">We don't recommend protesting this year.</p>
+      <p style="font-size: 13px; color: #4a4a68; margin: 8px 0 0;">Filing a protest without strong evidence could result in your value staying the same — or even increasing.</p>
+    </div>
+    <p style="font-size: 15px; line-height: 1.6;">We'll automatically re-analyze your property when next year's values are released. If your assessment increases unfairly, we'll let you know and recommend a protest at that time.</p>
+    <p style="font-size: 15px; line-height: 1.6;">No action needed on your end — we're watching it for you.</p>
+    <p style="font-size: 13px; color: #7c7c96; margin-top: 24px;">— The OverAssessed Team<br>
+    <a href="https://overassessed.ai" style="color: #6c5ce7;">overassessed.ai</a></p>
+  </div>
+</div>`;
+                    await sendClientEmail(sub.email, 'Your property tax analysis results', noSavingsHtml);
+                    console.log(`[Analysis] ${sub.caseId}: "No protest recommended" email sent to ${sub.email}`);
+                    submissions[idx].follow_up_note = 'No savings email sent. Lead kept for annual re-check.';
+                } catch (emailErr) {
+                    console.error(`[Analysis] ${sub.caseId}: Failed to send no-savings email:`, emailErr.message);
+                }
+            }
         } else {
+            // OUTCOME 3: SAVINGS FOUND — normal flow
             submissions[idx].status = 'Analysis Complete';
+            submissions[idx].analysisOutcome = 'savings_found';
+            console.log(`[Analysis] ${sub.caseId}: SAVINGS FOUND — $${savings.toLocaleString()}/yr. Status → Analysis Complete`);
         }
     }
     submissions[idx].updatedAt = new Date().toISOString();
