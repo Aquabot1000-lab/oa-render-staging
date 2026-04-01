@@ -883,7 +883,7 @@ async function sendNotificationEmail(subject, html, toEmail) {
         await sgMail.send({
             to,
             from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com', name: 'OverAssessed' },
-            replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
             subject,
             html,
             trackingSettings: { clickTracking: { enable: false }, openTracking: { enable: false } }
@@ -1740,7 +1740,7 @@ app.post('/api/pre-register', async (req, res) => {
                 await sgMail.send({
                     to: email,
                     from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@wortheyaquatics.com', name: 'OverAssessed' },
-                    replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+                    replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
                     subject: '✅ You\'re Pre-Registered for TX Property Tax Season!',
                     html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
                         <h2 style="color:#6c5ce7;">You're on the list, ${name}!</h2>
@@ -3371,8 +3371,25 @@ app.post('/api/inbound-reply', async (req, res) => {
             creator.repliedAt = new Date().toISOString();
             creator.replyChannel = 'email';
             
-            // Telegram alert — HIGH priority
-            sendTelegramAlert(`📩 <b>CREATOR REPLY</b>\n\n<b>Name:</b> ${creator.name}\n<b>Followers:</b> ${(creator.followers || 0).toLocaleString()}\n<b>State:</b> ${creator.state || '?'}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}\n\n⏰ <b>1-HOUR SLA — Respond now!</b>`);
+            // Telegram alert — HIGH priority (immediate)
+            sendTelegramAlert(`📩 <b>CREATOR REPLY</b>\n\n<b>Name:</b> ${creator.name}\n<b>Followers:</b> ${(creator.followers || 0).toLocaleString()}\n<b>State:</b> ${creator.state || '?'}\n<b>Subject:</b> ${subject.substring(0, 80)}\n<b>Preview:</b> ${textBody.substring(0, 150)}\n\n⏰ <b>RESPOND WITHIN 30 MIN</b>`);
+            
+            // 30-min warning
+            setTimeout(() => {
+                const r = creatorOutreach.find(cr => cr.id === reply.id);
+                if (r && r.status === 'new') {
+                    sendTelegramAlert(`⚠️ <b>CREATOR WAITING — 30 MIN</b>\n\n<b>${creator.name}</b> (${(creator.followers || 0).toLocaleString()} followers)\nReplied 30 min ago. No response yet.\n\n🕐 <b>30 min until BLOCKER</b>`);
+                }
+            }, 30 * 60 * 1000);
+            
+            // 1-hour BLOCKER
+            setTimeout(() => {
+                const r = creatorOutreach.find(cr => cr.id === reply.id);
+                if (r && r.status === 'new') {
+                    r.status = 'expired';
+                    sendTelegramAlert(`🔴 <b>BLOCKER — CREATOR REPLY EXPIRED</b>\n\n<b>${creator.name}</b> (${(creator.followers || 0).toLocaleString()} followers)\nWaited 1 hour with no response.\n\n<b>This creator may be lost.</b>`);
+                }
+            }, 60 * 60 * 1000);
             
             // Post to Mission Control
             try {
