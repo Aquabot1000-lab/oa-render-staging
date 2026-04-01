@@ -2132,7 +2132,7 @@ async function runFullAnalysis(caseId) {
         submissions[idx].unreliableData = true;
         submissions[idx].needsManualReview = true;
         submissions[idx].reviewReason = 'No real assessed value available - county lookup failed or returned fallback data. Waiting for client to upload their notice of appraised value.';
-        submissions[idx].status = 'Analysis Complete';
+        submissions[idx].status = 'Needs Data';
         submissions[idx].analysisStatus = 'Awaiting Notice Upload';
         submissions[idx].updatedAt = new Date().toISOString();
         await saveProgress();
@@ -2232,8 +2232,20 @@ async function runFullAnalysis(caseId) {
     if (compResults.unreliableData) {
         submissions[idx].unreliableData = true;
     }
+    // Post-analysis validation: never leave a lead in Analysis Complete with $0 savings
     if (submissions[idx].status === 'New') {
-        submissions[idx].status = 'Analysis Complete';
+        if (!compResults.estimatedSavings || compResults.estimatedSavings <= 0) {
+            submissions[idx].status = 'Needs Data';
+            submissions[idx].needsManualReview = true;
+            submissions[idx].reviewReason = (submissions[idx].reviewReason || '') + 
+                ' Analysis completed with $0 savings — likely bad address, unsupported county, or data source failure.';
+            console.warn(`[Analysis] ${sub.caseId}: $0 savings — setting status to Needs Data, NOT Analysis Complete`);
+            
+            // Alert Tyler via Telegram
+            sendTelegramAlert(`🔴 ANALYSIS FAILED — $0 SAVINGS\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>County:</b> ${sub.county || 'Unknown'}\n\nMoved to Needs Data. Likely bad address or unsupported county.`);
+        } else {
+            submissions[idx].status = 'Analysis Complete';
+        }
     }
     submissions[idx].updatedAt = new Date().toISOString();
     await saveProgress();
