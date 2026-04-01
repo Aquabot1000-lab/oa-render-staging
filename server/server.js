@@ -682,21 +682,31 @@ async function getNextCaseId() {
 }
 
 // Notifications
-async function sendSMS(to, message) {
+async function sendSMS(to, message, { useMessagingService = false } = {}) {
     if (!twilioClient) { console.log('SMS skipped - no Twilio client'); return; }
     if (!to) { console.log('SMS skipped - no recipient'); return; }
     try {
-        await twilioClient.messages.create({
-            body: message,
-            from: process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER,
-            to
-        });
-        console.log('SMS sent to', to);
+        const msgOpts = { body: message, to };
+        // Use Messaging Service for customer-facing SMS (10DLC compliant)
+        // Use direct from number for internal/Tyler notifications
+        if (useMessagingService && process.env.TWILIO_MESSAGING_SERVICE_SID) {
+            msgOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+        } else {
+            msgOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+        }
+        await twilioClient.messages.create(msgOpts);
+        console.log(`SMS sent to ${to} (${useMessagingService ? 'MessagingService' : 'direct'})`);
     } catch (error) {
         console.error('SMS failed:', error.message);
     }
 }
 
+// Customer-facing SMS (uses Messaging Service for 10DLC compliance)
+async function sendCustomerSMS(to, message) {
+    await sendSMS(to, message, { useMessagingService: true });
+}
+
+// Internal/Tyler notification SMS (direct from number, no Messaging Service needed)
 async function sendNotificationSMS(message) {
     await sendSMS(process.env.NOTIFY_PHONE, message);
 }
@@ -747,7 +757,7 @@ async function sendClientSMS(phone, message) {
     let cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) cleaned = '1' + cleaned;
     if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
-    await sendSMS(cleaned, message);
+    await sendCustomerSMS(cleaned, message);
 }
 
 async function sendNotificationEmail(subject, html, toEmail) {

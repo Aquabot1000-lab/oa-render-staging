@@ -434,11 +434,13 @@ async function sendSMS(to, message) {
         
         const formattedTo = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
         
-        await client.messages.create({
-            body: message,
-            from: process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER,
-            to: formattedTo,
-        });
+        const msgOpts = { body: message, to: formattedTo };
+        if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+            msgOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+        } else {
+            msgOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+        }
+        await client.messages.create(msgOpts);
         console.log(`[ValueMonitor] SMS sent to ${formattedTo}`);
     } catch (err) {
         console.error(`[ValueMonitor] SMS error: ${err.message}`);

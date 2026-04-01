@@ -229,7 +229,9 @@ async function sendExemptionStatusNotification(status, client, exType, addr, ext
                 if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
                 await twilioClient.messages.create({
                     body: template.sms,
-                    from: process.env.TWILIO_PHONE_NUMBER,
+                    ...(process.env.TWILIO_MESSAGING_SERVICE_SID 
+                        ? { messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID }
+                        : { from: process.env.TWILIO_PHONE_NUMBER }),
                     to: cleaned
                 });
             }
