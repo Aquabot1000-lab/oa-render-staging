@@ -463,7 +463,13 @@ function rowToSubmission(row) {
         updatedAt: row.updated_at,
         deletedAt: row.deleted_at || null,
         followUpDate: row.follow_up_date || null,
-        followUpNote: row.follow_up_note || null
+        followUpNote: row.follow_up_note || null,
+        // Contacted follow-up fields (stored in drip_state.contacted)
+        contactedDrip: row.drip_state?.contacted || null,
+        customerReplied: row.follow_up_note?.includes('Customer replied') || false,
+        followUpStage: row.follow_up_note?.startsWith('Stage: ') ? row.follow_up_note.replace('Stage: ', '') : null,
+        firstContactedAt: row.drip_state?.firstContactedAt || null,
+        stageUpdatedAt: row.updated_at
     };
 }
 
@@ -1028,6 +1034,138 @@ async function runDripCheck() {
     } catch (error) {
         console.error('[Drip] Error:', error.message);
     }
+}
+
+// ── Contacted Lead Follow-Up System ──
+// Day 0: Results email sent (already happened)
+// Day 2: "Just checking — want me to move forward?"
+// Day 5: "Last call before protest deadlines approach"
+// Day 7: Mark as COLD
+// If customer replies → stop all automation
+async function runContactedFollowUp() {
+    console.log('[FollowUp] Running contacted lead follow-up check...');
+    try {
+        const submissions = await readAllSubmissions();
+        const now = Date.now();
+        let changed = false;
+
+        for (let i = 0; i < submissions.length; i++) {
+            const sub = submissions[i];
+            
+            // Only process Contacted leads
+            if (sub.status !== 'Contacted') continue;
+            
+            // Skip if customer replied (stop automation)
+            if (sub.customerReplied) continue;
+            
+            // Skip if already cold
+            if (sub.followUpStage === 'cold') continue;
+            
+            // Skip if no email
+            if (!sub.email || sub.email.includes('benchmark@') || sub.email.includes('test@')) continue;
+            
+            // Calculate days since first contacted
+            const contactedAt = sub.firstContactedAt || sub.stageUpdatedAt || sub.updatedAt;
+            if (!contactedAt) continue;
+            const daysSince = (now - new Date(contactedAt).getTime()) / (1000 * 60 * 60 * 24);
+            
+            const followUp = sub.contactedDrip || {};
+            const savings = sub.estimatedSavings || 0;
+            const savingsStr = savings > 0 ? `$${savings.toLocaleString()}/year` : 'significant';
+
+            // Day 2: Gentle follow-up
+            if (daysSince >= 2 && !followUp.day2) {
+                console.log(`[FollowUp] Day 2 follow-up → ${sub.email} (${sub.caseId})`);
+                const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
+                await sendClientEmail(sub.email, `Quick follow-up — ${savingsStr} in savings waiting`,
+                    brandedEmailWrapper('Quick Follow-Up', `Case ${sub.caseId}`, `
+                        <p>Hi ${sub.ownerName},</p>
+                        <p>Just checking in — we sent your property tax analysis a couple days ago showing <strong>${savingsStr} in potential savings</strong> on <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>Want us to move forward with your protest? We handle everything — filing, evidence, and the hearing.</p>
+                        <div style="text-align:center;margin:25px 0;">
+                            <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Yes, Move Forward →</a>
+                        </div>
+                        <p>Or simply reply YES to this email and we'll get started.</p>
+                        <p style="font-size:13px;color:#6b7280;">No upfront fees. We only get paid if we save you money.</p>
+                    `)
+                );
+                followUp.day2 = new Date().toISOString();
+                changed = true;
+            }
+
+            // Day 5: Urgency follow-up
+            if (daysSince >= 5 && !followUp.day5) {
+                console.log(`[FollowUp] Day 5 final nudge → ${sub.email} (${sub.caseId})`);
+                const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
+                await sendClientEmail(sub.email, `Last call — protest deadlines are approaching`,
+                    brandedEmailWrapper('Don\'t Miss Out', `Case ${sub.caseId}`, `
+                        <p>Hi ${sub.ownerName},</p>
+                        <p>This is our last reminder about your property tax analysis for <strong>${sub.propertyAddress}</strong>.</p>
+                        <div style="background:#fff3e0;border-left:4px solid #e67e22;padding:16px 20px;margin:20px 0;border-radius:4px;">
+                            <p style="font-weight:700;color:#e67e22;margin:0;">⏰ Protest filing deadlines are approaching.</p>
+                            <p style="margin:8px 0 0;color:#4a4a68;">Once the deadline passes, you'll have to wait another full year — and pay the higher tax amount in the meantime.</p>
+                        </div>
+                        <p>Your estimated savings: <strong>${savingsStr}</strong>. We handle the entire process at no upfront cost.</p>
+                        <div style="text-align:center;margin:25px 0;">
+                            <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">File My Protest →</a>
+                        </div>
+                        <p>Reply YES or click the button above. If you have questions, just reply to this email.</p>
+                    `)
+                );
+                // Also alert Tyler
+                sendTelegramAlert(`⚠️ Day 5 — Lead going cold\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Email:</b> ${sub.email}\n<b>Phone:</b> ${sub.phone || 'none'}\n\nFinal nudge email sent. Consider a personal call.`);
+                followUp.day5 = new Date().toISOString();
+                changed = true;
+            }
+
+            // Day 7: Mark as COLD
+            if (daysSince >= 7 && !followUp.day7) {
+                console.log(`[FollowUp] Day 7 — marking ${sub.caseId} as COLD`);
+                submissions[i].followUpStage = 'cold';
+                submissions[i].status = 'Cold';
+                followUp.day7 = new Date().toISOString();
+                
+                sendTelegramAlert(`❄️ Lead marked COLD\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n\nNo reply after 7 days. Moved to Cold. Will re-check next protest season.`);
+                changed = true;
+            }
+
+            submissions[i].contactedDrip = followUp;
+        }
+
+        if (changed) {
+            // Persist to Supabase
+            if (isSupabaseEnabled()) {
+                try {
+                    for (const sub of submissions) {
+                        if (sub.contactedDrip || sub.followUpStage) {
+                            const updates = { updated_at: new Date().toISOString() };
+                            if (sub.contactedDrip) updates.drip_state = { ...(sub.dripState || {}), contacted: sub.contactedDrip };
+                            if (sub.status === 'Cold') updates.status = 'Cold';
+                            if (sub.followUpStage) updates.follow_up_note = `Stage: ${sub.followUpStage}`;
+                            await supabaseAdmin.from('submissions')
+                                .update(updates)
+                                .eq('id', sub.id);
+                        }
+                    }
+                    console.log('[FollowUp] Supabase updated');
+                } catch (err) {
+                    console.error('[FollowUp] Supabase write failed:', err.message);
+                }
+            }
+        } else {
+            console.log('[FollowUp] No follow-ups needed');
+        }
+    } catch (error) {
+        console.error('[FollowUp] Error:', error.message);
+    }
+}
+
+// ── Reply Detection: Stop automation when customer replies ──
+// Called from inbound email handler and manual status updates
+function markCustomerReplied(submissionId) {
+    // This is called when we detect a reply from the customer
+    // It sets customerReplied=true to stop all automated follow-ups
+    console.log(`[FollowUp] Customer replied — stopping automation for ${submissionId}`);
 }
 
 // Auth middleware
@@ -2021,9 +2159,11 @@ app.post('/api/sign/:id', async (req, res) => {
             submissions[idx].fee_agreement_signed = true;
             submissions[idx].fee_agreement_signed_at = new Date().toISOString();
 
-            if (['New', 'Analysis Complete'].includes(submissions[idx].status)) {
+            if (['New', 'Analysis Complete', 'Contacted'].includes(submissions[idx].status)) {
                 submissions[idx].status = 'Form Signed';
             }
+            // Stop follow-up automation — customer engaged
+            submissions[idx].customerReplied = true;
             submissions[idx].updatedAt = new Date().toISOString();
         });
 
@@ -3024,6 +3164,68 @@ app.patch('/api/submissions/:id/follow-up', authenticateToken, async (req, res) 
     }
 });
 
+// PATCH /api/submissions/:id/customer-replied — stop follow-up automation
+app.patch('/api/submissions/:id/customer-replied', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (isSupabaseEnabled()) {
+            await supabaseAdmin.from('submissions')
+                .update({ 
+                    updated_at: new Date().toISOString(),
+                    follow_up_note: 'Customer replied — automation stopped'
+                })
+                .eq('id', id);
+        }
+        // Also update in-memory
+        const submissions = await readAllSubmissions();
+        const sub = submissions.find(s => s.id === id || s.caseId === id);
+        if (sub) {
+            sub.customerReplied = true;
+            console.log(`[FollowUp] Customer replied — automation stopped for ${id}`);
+        }
+        res.json({ success: true, message: 'Follow-up automation stopped' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to mark reply' });
+    }
+});
+
+// POST /api/inbound-reply — webhook for inbound email replies (SendGrid Inbound Parse)
+app.post('/api/inbound-reply', async (req, res) => {
+    try {
+        const fromEmail = req.body.from || req.body.envelope?.from || '';
+        console.log(`[InboundReply] Email received from: ${fromEmail}`);
+        
+        // Find the submission by email
+        if (isSupabaseEnabled() && fromEmail) {
+            const emailClean = fromEmail.replace(/.*</, '').replace(/>.*/, '').trim().toLowerCase();
+            const { data } = await supabaseAdmin.from('submissions')
+                .select('id, owner_name, case_id, status')
+                .ilike('email', emailClean)
+                .in('status', ['Contacted', 'Analysis Complete'])
+                .limit(5);
+            
+            if (data && data.length > 0) {
+                for (const sub of data) {
+                    await supabaseAdmin.from('submissions')
+                        .update({ 
+                            updated_at: new Date().toISOString(),
+                            follow_up_note: `Customer replied via email at ${new Date().toISOString()}`
+                        })
+                        .eq('id', sub.id);
+                    console.log(`[InboundReply] Marked ${sub.case_id} (${sub.owner_name}) as replied`);
+                }
+                
+                sendTelegramAlert(`📩 Customer Reply Detected\n\n<b>From:</b> ${emailClean}\n<b>Cases:</b> ${data.map(d => d.case_id).join(', ')}\n<b>Action:</b> Follow-up automation stopped. Check inbox for their message.`);
+            }
+        }
+        
+        res.status(200).send('OK');
+    } catch (error) {
+        console.error('[InboundReply] Error:', error.message);
+        res.status(200).send('OK'); // Always 200 to prevent retries
+    }
+});
+
 app.post('/api/notify', authenticateToken, async (req, res) => {
     try {
         const { submissionId } = req.body;
@@ -4003,10 +4205,13 @@ app.listen(PORT, async () => {
         }
     });
 
-    // Run drip check every hour
+    // Run drip check every hour (pre-sign reminders)
     setInterval(runDripCheck, 60 * 60 * 1000);
-    // Also run once 30 seconds after startup
     setTimeout(runDripCheck, 30000);
+    
+    // Run contacted follow-up every 4 hours (post-results follow-up)
+    setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
+    setTimeout(runContactedFollowUp, 60000); // 1 min after startup
 
     // Run outcome monitor every 6 hours (checks county sites for hearing results)
     setInterval(async () => {
