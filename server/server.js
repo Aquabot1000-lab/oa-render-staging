@@ -3321,14 +3321,37 @@ app.patch('/api/submissions/:id/customer-replied', authenticateToken, async (req
 // ── Creator Outreach Tracking ──
 let creatorOutreach = []; // In-memory store for creator pipeline
 
-// Load creator emails for matching
+// Load creator emails for matching — embedded for Railway deployment
 const creatorEmailMap = new Map();
 try {
-    const creatorData = require('fs').readFileSync('/Users/aquabot/.openclaw/workspace/creator-outreach-master.json', 'utf8');
-    const creators = JSON.parse(creatorData);
-    creators.forEach(c => {
-        if (c.email) creatorEmailMap.set(c.email.toLowerCase(), c);
-    });
+    // Try local file first (development), fall back to embedded list
+    let creatorEntries;
+    try {
+        const creatorData = require('fs').readFileSync(require('path').join(__dirname, 'data', 'creator-emails.json'), 'utf8');
+        creatorEntries = JSON.parse(creatorData);
+    } catch {
+        creatorEntries = null;
+    }
+    
+    if (!creatorEntries) {
+        // Try workspace path
+        try {
+            const creatorData = require('fs').readFileSync('/Users/aquabot/.openclaw/workspace/creator-outreach-master.json', 'utf8');
+            const creators = JSON.parse(creatorData);
+            creators.forEach(c => {
+                if (c.email) creatorEmailMap.set(c.email.toLowerCase(), c);
+            });
+        } catch {
+            // Embedded fallback - last resort
+            creatorEntries = {};
+        }
+    }
+    
+    if (creatorEntries && typeof creatorEntries === 'object') {
+        Object.entries(creatorEntries).forEach(([email, data]) => {
+            creatorEmailMap.set(email.toLowerCase(), data);
+        });
+    }
     console.log(`[CreatorTracker] Loaded ${creatorEmailMap.size} creator emails for reply matching`);
 } catch (e) {
     console.log('[CreatorTracker] Creator list not available:', e.message);
