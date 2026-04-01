@@ -2591,7 +2591,7 @@ async function runFullAnalysis(caseId) {
         methodology: compResults.methodology,
         recommendation: compResults.estimatedSavings > 0
             ? 'PROTEST RECOMMENDED - Strong basis for reduction based on comparable sales analysis.'
-            : 'Assessment appears in line with market. Limited protest potential.',
+            : 'Preliminary analysis did not identify clear savings. Additional data or appraisal notice may reveal opportunities.',
         reportHtml: buildAnalysisHtml(sub, propertyData, compResults)
     };
 
@@ -2625,39 +2625,49 @@ async function runFullAnalysis(caseId) {
             
             sendTelegramAlert(`🔴 ANALYSIS FAILED\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>County:</b> ${sub.county || 'Unknown'}\n<b>Reason:</b> ${!hasComps ? 'No comparables found' : 'Unreliable data'}\n\nMoved to Needs Data. Info request email will be sent.`);
         } else if (savings <= 0 && hasComps && !isUnreliable) {
-            // OUTCOME 2: NO SAVINGS — valid analysis, property is fairly assessed
-            submissions[idx].status = 'No Savings';
-            submissions[idx].analysisOutcome = 'no_savings';
-            console.log(`[Analysis] ${sub.caseId}: NO SAVINGS — valid analysis, property fairly assessed. Status → No Savings`);
+            // OUTCOME 2: NO SAVINGS from preliminary analysis
+            // DO NOT tell the lead "no savings" — preliminary data may be incomplete
+            // Instead: request more info (notice, details) before making any conclusion
+            submissions[idx].status = 'Needs Data';
+            submissions[idx].analysisOutcome = 'preliminary_no_savings';
+            submissions[idx].needsManualReview = true;
+            submissions[idx].reviewReason = (submissions[idx].reviewReason || '') + 
+                ' Preliminary analysis found no savings, but this may change with full appraisal notice or additional property details.';
+            console.log(`[Analysis] ${sub.caseId}: PRELIMINARY NO SAVINGS — requesting more data before concluding. Status → Needs Data`);
             
-            sendTelegramAlert(`📊 NO SAVINGS — Valid Result\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Assessed:</b> $${assessedNum.toLocaleString()}\n\nComps confirm fair assessment. "No protest recommended" email will be sent. Lead kept for future follow-up.`);
+            sendTelegramAlert(`📊 <b>PRELIMINARY — No savings yet</b>\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Email:</b> ${sub.email}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Assessed:</b> $${assessedNum.toLocaleString()}\n\n⚠️ <b>NOT telling lead "no savings."</b>\nRequesting appraisal notice + details first.\nFull analysis may reveal opportunities.`);
             
-            // Send "no protest recommended" email
+            // Send "need more info" email instead of "no protest" email
             if (sub.email && !sub.email.includes('benchmark@')) {
                 try {
-                    const noSavingsHtml = `
+                    const needMoreInfoHtml = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
   <div style="background: #6c5ce7; padding: 16px 24px; border-radius: 8px 8px 0 0;">
     <span style="color: white; font-weight: 700; font-size: 18px;">OVERASSESSED</span>
   </div>
   <div style="border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 24px;">
     <p style="font-size: 16px;">Hi ${sub.ownerName},</p>
-    <p style="font-size: 15px; line-height: 1.6;">We completed the analysis on <strong>${sub.propertyAddress}</strong>. After reviewing comparable properties in your area, your current assessed value appears to be in line with the market.</p>
-    <div style="background: #f0f9ff; border: 2px solid #0984e3; border-radius: 8px; padding: 20px; margin: 24px 0;">
-      <p style="font-size: 15px; font-weight: 600; color: #0984e3; margin: 0;">We don't recommend protesting this year.</p>
-      <p style="font-size: 13px; color: #4a4a68; margin: 8px 0 0;">Filing a protest without strong evidence could result in your value staying the same — or even increasing.</p>
+    <p style="font-size: 15px; line-height: 1.6;">We've started analyzing your property at <strong>${sub.propertyAddress}</strong>. Our preliminary review is in — but to give you an accurate recommendation, we need a bit more information.</p>
+    <div style="background: #fff8e1; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 24px 0;">
+      <p style="font-size: 15px; font-weight: 600; color: #b45309; margin: 0;">What we need from you:</p>
+      <ul style="font-size: 14px; color: #4a4a68; margin: 8px 0 0; padding-left: 20px;">
+        <li>Your official appraisal notice (when you receive it)</li>
+        <li>Any details about your property's condition, recent renovations, or issues</li>
+        <li>Confirm your county name if not already provided</li>
+      </ul>
     </div>
-    <p style="font-size: 15px; line-height: 1.6;">We'll automatically re-analyze your property when next year's values are released. If your assessment increases unfairly, we'll let you know and recommend a protest at that time.</p>
-    <p style="font-size: 15px; line-height: 1.6;">No action needed on your end — we're watching it for you.</p>
+    <p style="font-size: 15px; line-height: 1.6;">Many homeowners see significant savings once we compare their official notice against comparable sales. We want to make sure we're giving you the most accurate assessment possible.</p>
+    <p style="font-size: 15px; line-height: 1.6;"><strong>Just reply to this email</strong> with any additional details, and we'll complete your full analysis right away.</p>
     <p style="font-size: 13px; color: #7c7c96; margin-top: 24px;">— The OverAssessed Team<br>
     <a href="https://overassessed.ai" style="color: #6c5ce7;">overassessed.ai</a></p>
   </div>
 </div>`;
-                    await sendClientEmail(sub.email, 'Your property tax analysis results', noSavingsHtml);
-                    console.log(`[Analysis] ${sub.caseId}: "No protest recommended" email sent to ${sub.email}`);
-                    submissions[idx].follow_up_note = 'No savings email sent. Lead kept for annual re-check.';
+                    await sendClientEmail(sub.email, 'Almost done — we need a few details to finalize your analysis', needMoreInfoHtml);
+                    console.log(`[Analysis] ${sub.caseId}: "Need more info" email sent (NOT "no savings")`);
+                    submissions[idx].follow_up_note = `Preliminary analysis found no savings. Requesting more data. Follow up in 2 days if no reply.`;
+                    submissions[idx].follow_up_date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 } catch (emailErr) {
-                    console.error(`[Analysis] ${sub.caseId}: Failed to send no-savings email:`, emailErr.message);
+                    console.error(`[Analysis] ${sub.caseId}: Failed to send need-more-info email:`, emailErr.message);
                 }
             }
         } else {
