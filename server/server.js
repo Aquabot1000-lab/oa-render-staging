@@ -3323,39 +3323,11 @@ let creatorOutreach = []; // In-memory store for creator pipeline
 
 // Load creator emails for matching — embedded for Railway deployment
 const creatorEmailMap = new Map();
-try {
-    // Try local file first (development), fall back to embedded list
-    let creatorEntries;
-    try {
-        const creatorData = require('fs').readFileSync(require('path').join(__dirname, 'data', 'creator-emails.json'), 'utf8');
-        creatorEntries = JSON.parse(creatorData);
-    } catch {
-        creatorEntries = null;
-    }
-    
-    if (!creatorEntries) {
-        // Try workspace path
-        try {
-            const creatorData = require('fs').readFileSync('/Users/aquabot/.openclaw/workspace/creator-outreach-master.json', 'utf8');
-            const creators = JSON.parse(creatorData);
-            creators.forEach(c => {
-                if (c.email) creatorEmailMap.set(c.email.toLowerCase(), c);
-            });
-        } catch {
-            // Embedded fallback - last resort
-            creatorEntries = {};
-        }
-    }
-    
-    if (creatorEntries && typeof creatorEntries === 'object') {
-        Object.entries(creatorEntries).forEach(([email, data]) => {
-            creatorEmailMap.set(email.toLowerCase(), data);
-        });
-    }
-    console.log(`[CreatorTracker] Loaded ${creatorEmailMap.size} creator emails for reply matching`);
-} catch (e) {
-    console.log('[CreatorTracker] Creator list not available:', e.message);
-}
+const CREATOR_EMAIL_DATA = {"denvervibe@gmail.com": {"name": "Denver Vibe", "instagram": "@denvervibe", "followers": 32000, "state": "CO"}, "connor@milehimodern.com": {"name": "Connor Cole", "instagram": "@connordcole", "followers": 6400, "state": "CO"}, "[redacted]@gmail.com": {"name": "Logan Lester", "instagram": "@lololester", "followers": 60000, "state": "TX"}, "angelaguyrealty@gmail.com": {"name": "Angela Guy", "instagram": "@listedbyangela", "followers": 50000, "state": "GA"}, "cbeltre@norluxerealty.com": {"name": "Chianti Beltre", "instagram": "@chianti.therealtor", "followers": 10000, "state": "GA"}, "seanrodriguez@dorseyalston.com": {"name": "Sean Rodriguez", "instagram": "@seanrodriguez_atl", "followers": 10000, "state": "GA"}, "sylvia.nwajei@metrobrokers.com": {"name": "Isioma Nwajei", "instagram": "@isioma.the.realtor", "followers": 8000, "state": "GA"}, "leah@456growth.com": {"name": "Leah Garcia", "instagram": "@leah_txrealtor", "followers": 966000, "state": "TX"}, "nori@norisoldit.com": {"name": "Nori Johnson", "instagram": "@norisoldit", "followers": 363000, "state": "TX"}, "ben@rogershealy.com": {"name": "Ben Wegmann", "instagram": "@benwegmann", "followers": 187000, "state": "TX"}, "armando@outlook.com": {"name": "Armando Nava", "instagram": "@nava.realtor", "followers": 102000, "state": "TX"}, "chris@phyllisbrowning.com": {"name": "Chris Engstrom", "instagram": "@chrisengstromrealtor", "followers": 98000, "state": "TX"}, "[redacted]@ranikatherealtor.com": {"name": "Ranika Prince Gilliam", "instagram": "@ranikatherealtor", "followers": 76000, "state": "TX"}, "david@alamocityrealty.com": {"name": "David Gonzalez", "instagram": "@alamocity_realtor", "followers": 66000, "state": "TX"}, "alex@rentallsa.com": {"name": "Alex Magana", "instagram": "@alexmagana_doesrealestate", "followers": 56000, "state": "TX"}, "[redacted]@shabnamjalili.com": {"name": "Shabnam Jalili", "instagram": "@houstonhousehunter", "followers": 48000, "state": "TX"}, "yesenia@urbandallashomes.com": {"name": "Yesenia Carmolinga", "instagram": "@yeseniacarmolinga", "followers": 40000, "state": "TX"}, "navjot@singhregroup.com": {"name": "Navjot Singh", "instagram": "@navjot.singh.re", "followers": 32000, "state": "TX"}, "andrea@atpropertiestx.com": {"name": "Andrea Reynolds", "instagram": "@andreareynolds_thefitagent", "followers": 29000, "state": "TX"}, "lisa@texashomeopulencegroup.com": {"name": "Lisa Gumbo", "instagram": "@dallasrealtor.lisagumbo", "followers": 24000, "state": "TX"}, "aj@proxypropertymgmt.com": {"name": "A.J. Ramler", "instagram": "@ajramler", "followers": 21000, "state": "TX"}, "keyra@kw.com": {"name": "Keyra Ford", "instagram": "@keyraford", "followers": 20000, "state": "TX"}, "calvin@calvinstrain.com": {"name": "Calvin Strain", "instagram": "@calvinstrainrealestate", "followers": 18000, "state": "TX"}, "porshae@sohourealtygroup.com": {"name": "Porshae Brown", "instagram": "@realtorporshae", "followers": 18000, "state": "TX"}, "hannah@twelveriversrealty.com": {"name": "Hannah Allen", "instagram": "@hannahvnemes", "followers": 16000, "state": "TX"}, "lesley@findmyhomedfw.com": {"name": "Lesley Stegmeier", "instagram": "@lesleystegmeierrealtor", "followers": 16000, "state": "TX"}, "marci@exprealty.com": {"name": "Marci Poticny", "instagram": "@marcipoticnyrealestate", "followers": 14000, "state": "TX"}, "kallie@ritcheyrealty.com": {"name": "Kallie Spencer", "instagram": "@kallieritcheyrealtor", "followers": 12000, "state": "TX"}, "caroline@compass.com": {"name": "Caroline Bean", "instagram": "@carolinebean.compass", "followers": 11000, "state": "TX"}, "john@compass.com": {"name": "John Zimmerman", "instagram": "@jzfortworth", "followers": 11000, "state": "TX"}, "taylor@exprealty.com": {"name": "Taylor Park", "instagram": "@selling_alamo_city", "followers": 11000, "state": "TX"}, "darsh@compass.com": {"name": "Darsh Parikh", "instagram": "@darsh_atx", "followers": 11000, "state": "TX"}, "mark@bigretx.com": {"name": "Mark Anthony Ball", "instagram": "@markanthonyball", "followers": 10000, "state": "TX"}, "carol@compass.com": {"name": "Carol OrtizRodriguez", "instagram": "@caroltherealtor.atx", "followers": 10000, "state": "TX"}, "adrienne@lifeinaustintexas.com": {"name": "Adrienne Gravens", "instagram": "@adriennegravens", "followers": 10000, "state": "TX"}, "mariela@findmyhomedfw.com": {"name": "Mariela Borjon", "instagram": "@dfwrealtormariela", "followers": 10000, "state": "TX"}, "kito@theksrealtygroup.com": {"name": "Kito Smith", "instagram": "@kito_smith_realtor", "followers": 9000, "state": "TX"}, "malina@lptrealty.com": {"name": "Malina Bercher", "instagram": "@movetotexaswithmalina", "followers": 9000, "state": "TX"}, "deedee@compass.com": {"name": "Dee Dee Guggenheim Howes", "instagram": "@deedeehowes.compass", "followers": 9000, "state": "TX"}, "amber@dorseydfwgroup.com": {"name": "Amber Dorsey", "instagram": "@dorsey_sells_dfw", "followers": 9000, "state": "TX"}, "ashley@compass.com": {"name": "Ashley Brinkman", "instagram": "@ihearttheatx", "followers": 9000, "state": "TX"}, "blanca@malouffig.com": {"name": "Blanca Gonzalez", "instagram": "@blancalgonzalezg", "followers": 9000, "state": "TX"}, "ashley@peakhtx.com": {"name": "Ashley Alexander", "instagram": "@ashleyaalexander", "followers": 8000, "state": "TX"}, "sandra@sgrproperties.com": {"name": "Sandra Rangel", "instagram": "@sandrarangel2018", "followers": 8000, "state": "TX"}, "somer@tinsleyrealtygroup.com": {"name": "Somer Tinsley", "instagram": "@somertinsley", "followers": 7000, "state": "TX"}, "sarrah@monumentstar.com": {"name": "Sarrah Hooshmand", "instagram": "@realtorsarrah", "followers": 7000, "state": "TX"}, "misty@theemerygrp.com": {"name": "Misty Rose Galante", "instagram": "@sellsatmistyrose", "followers": 6000, "state": "TX"}, "daira@sanantoniolivinginfo.com": {"name": "Daira Vasquez", "instagram": "@dairavasquezrealtor", "followers": 4000, "state": "TX"}, "jada@fathomrealty.com": {"name": "Jada", "instagram": "@jada_dallas_realtor", "followers": 4000, "state": "TX"}, "aguilarnick1@gmail.com": {"name": "Nick Aguilar", "instagram": "@nick_aguilar_realtor", "followers": null, "state": "TX"}};
+Object.entries(CREATOR_EMAIL_DATA).forEach(([email, data]) => {
+    creatorEmailMap.set(email.toLowerCase(), data);
+});
+console.log(`[CreatorTracker] Loaded ${creatorEmailMap.size} creator emails for reply matching`);
 
 // POST /api/inbound-reply — webhook for inbound email replies (SendGrid Inbound Parse)
 // Handles BOTH customer lead replies AND creator outreach replies
