@@ -4054,6 +4054,10 @@ app.get('/pre-season', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'pre-season.html'));
 });
 
+app.get('/developers', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'developers.html'));
+});
+
 app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'privacy.html'));
 });
