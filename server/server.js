@@ -3119,7 +3119,30 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             `<p>Client ${sub.ownerName} uploaded their Notice of Appraised Value for case ${sub.caseId}.</p>`
         );
 
-        res.json({ success: true, message: 'Notice uploaded', filePath });
+        // ── AUTO-FILE TRIGGER: If case is signed + has notice → prepare filing ──
+        const canAutoFile = ['Signed', 'Form Signed'].includes(sub.status) && filePath;
+        if (canAutoFile) {
+            console.log(`[AutoFile] 🚀 Notice received for signed case ${sub.caseId} — triggering auto-file preparation`);
+            try {
+                const { prepareFilingPackage } = require('./services/auto-file');
+                const filingPkg = await prepareFilingPackage(
+                    { caseId: sub.caseId, ownerName: sub.ownerName, propertyAddress: sub.propertyAddress, pin: sub.pin },
+                    { address: sub.propertyAddress, assessedValue: sub.assessedValue, accountId: sub.pin },
+                    { recommendedValue: null, reduction: sub.estimatedSavings, estimatedSavings: sub.estimatedSavings, comps: [] }
+                );
+                console.log(`[AutoFile] ✅ Filing package prepared for ${sub.caseId}`);
+                sendNotificationEmail(
+                    `🚀 AUTO-FILE READY - ${sub.caseId}`,
+                    `<p>Notice uploaded + case signed. Filing package auto-generated for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
+                     <p><b>County:</b> ${sub.county || 'unknown'} | <b>State:</b> ${sub.state}</p>
+                     <p>Ready to submit to county portal. Review and approve filing.</p>`
+                );
+            } catch (afErr) {
+                console.error(`[AutoFile] Error preparing filing for ${sub.caseId}:`, afErr.message);
+            }
+        }
+
+        res.json({ success: true, message: 'Notice uploaded', filePath, autoFileTriggered: canAutoFile });
     } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: 'Failed to upload notice' });
@@ -3179,6 +3202,28 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
                 sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
                 sendClientSMS(sub.phone, template.sms, { email: sub.email, customerName: sub.ownerName, context: 'status_notification' });
                 console.log(`Status notification sent to ${sub.email} for ${status}`);
+            }
+
+            // ── AUTO-FILE TRIGGER: Status changed to Signed + notice exists → prepare filing ──
+            if (['Signed', 'Form Signed'].includes(status) && sub.noticeOfValue) {
+                console.log(`[AutoFile] 🚀 Case ${sub.caseId} signed + notice on file — triggering auto-file`);
+                try {
+                    const { prepareFilingPackage } = require('./services/auto-file');
+                    const filingPkg = await prepareFilingPackage(
+                        { caseId: sub.caseId, ownerName: sub.ownerName, propertyAddress: sub.propertyAddress, pin: sub.pin },
+                        { address: sub.propertyAddress, assessedValue: sub.assessedValue, accountId: sub.pin },
+                        { recommendedValue: null, reduction: sub.estimatedSavings, estimatedSavings: sub.estimatedSavings, comps: [] }
+                    );
+                    console.log(`[AutoFile] ✅ Filing package prepared for ${sub.caseId}`);
+                    sendNotificationEmail(
+                        `🚀 AUTO-FILE READY - ${sub.caseId}`,
+                        `<p>Case signed + notice on file. Filing package auto-generated for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
+                         <p><b>County:</b> ${sub.county || 'unknown'} | <b>State:</b> ${sub.state}</p>
+                         <p>Ready to submit to county portal.</p>`
+                    );
+                } catch (afErr) {
+                    console.error(`[AutoFile] Error preparing filing for ${sub.caseId}:`, afErr.message);
+                }
             }
         }
 
