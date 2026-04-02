@@ -959,15 +959,15 @@ function getBaseUrl() {
 
 function brandedEmailWrapper(title, subtitle, bodyHtml) {
     return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px;">${title}</h1>
-            ${subtitle ? `<p style="margin: 8px 0 0; opacity: 0.9;">${subtitle}</p>` : ''}
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <div style="background-color: #6c5ce7; background: linear-gradient(135deg, #6c5ce7, #0984e3); color: #ffffff; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; color: #ffffff;">${title}</h1>
+            ${subtitle ? `<p style="margin: 8px 0 0; color: #e8e8e8;">${subtitle}</p>` : ''}
         </div>
-        <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none;">
+        <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; color: #2d3436;">
             ${bodyHtml}
         </div>
-        <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px; opacity: 0.8;">
+        <div style="background-color: #1a1a2e; color: #ffffff; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px;">
             OverAssessed, LLC - San Antonio, Texas<br>
             Questions? Reply to this email or call (888) 282-9165
         </div>

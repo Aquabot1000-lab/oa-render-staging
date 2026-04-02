@@ -251,7 +251,21 @@ async function sendStageNotification(submission, stage, extras, { sendClientSMS,
     const subject = fillTemplate(messages.subject, vars);
 
     // Build email body
-    const emailBody = `<p>Hi ${submission.ownerName},</p><p>${smsText.replace(/\n/g, '</p><p>')}</p>`;
+    // Build richer email body for specific stages, plain SMS-to-HTML for others
+    let emailBody;
+    if (stage === 'analysis_complete') {
+        emailBody = `
+            <p style="color: #2d3436;">Hi ${submission.ownerName},</p>
+            <p style="color: #2d3436;">Great news — our team has completed the analysis for your property at <strong>${vars.propertyAddress || 'your address'}</strong>.</p>
+            <p style="color: #2d3436;">Log into your portal to view the full report and sign the authorization form:</p>
+            <div style="text-align: center; margin: 24px 0;">
+                <a href="${vars.signUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Sign Authorization & View Report</a>
+            </div>
+            ${vars.savings ? `<p style="color: #2d3436;"><strong>Estimated savings: ${vars.savings}/year</strong></p>` : ''}
+            <p style="color: #6b7280; font-size: 13px;">If the button doesn't work, copy this link: ${vars.signUrl}</p>`;
+    } else {
+        emailBody = `<p style="color: #2d3436;">Hi ${submission.ownerName},</p><p style="color: #2d3436;">${smsText.replace(/\n/g, '</p><p style="color: #2d3436;">')}</p>`;
+    }
     const emailHtml = brandedEmailWrapper(
         fillTemplate(messages.email_title, vars),
         fillTemplate(messages.email_subtitle, vars),
@@ -356,11 +370,11 @@ async function sendFilingNotification(toEmail, stage, vars = {}) {
 
         const subject = fill(template.subject);
         const html = `
-            <div style="font-family:'Inter',sans-serif;max-width:600px;margin:0 auto;">
-                <div style="background:linear-gradient(135deg,#6c5ce7,#0984e3);padding:2rem;text-align:center;border-radius:12px 12px 0 0;">
-                    <h1 style="color:white;margin:0;font-size:1.5rem;">${fill(template.title)}</h1>
+            <div style="font-family:'Inter',sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">
+                <div style="background-color:#6c5ce7;background:linear-gradient(135deg,#6c5ce7,#0984e3);padding:2rem;text-align:center;border-radius:12px 12px 0 0;">
+                    <h1 style="color:#ffffff;margin:0;font-size:1.5rem;">${fill(template.title)}</h1>
                 </div>
-                <div style="padding:2rem;background:white;border:1px solid #eee;border-radius:0 0 12px 12px;">
+                <div style="padding:2rem;background-color:#ffffff;color:#2d3436;border:1px solid #eee;border-radius:0 0 12px 12px;">
                     ${fill(template.body)}
                     <hr style="border:none;border-top:1px solid #eee;margin:2rem 0;">
                     <p style="font-size:0.8rem;color:#999;text-align:center;">OverAssessed, LLC | 6002 Camp Bullis, Suite 208, San Antonio, TX 78257<br>
