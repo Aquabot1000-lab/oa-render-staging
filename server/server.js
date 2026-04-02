@@ -4058,6 +4058,22 @@ app.get('/developers', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'developers.html'));
 });
 
+// ─── Tracking Redirects (Creator Outreach + MilePilot) ─────────────────────
+const trackingLog = path.join(__dirname, '..', 'data', 'tracking-clicks.json');
+function logClick(source, req) {
+    const entry = { source, ts: new Date().toISOString(), ip: req.ip, ua: (req.headers['user-agent']||'').substring(0,120), ref: req.query.ref || '' };
+    try {
+        const clicks = fs.existsSync(trackingLog) ? JSON.parse(fs.readFileSync(trackingLog,'utf8')) : [];
+        clicks.push(entry);
+        fs.writeFileSync(trackingLog, JSON.stringify(clicks, null, 2));
+    } catch(e) { console.error('[Tracking]', e.message); }
+}
+app.get('/e1', (req, res) => { logClick('email', req); res.redirect('https://overassessed.ai/?utm_source=email&utm_medium=creator&utm_campaign=outreach'); });
+app.get('/r1', (req, res) => { logClick('reddit', req); res.redirect('https://milepilot.app/?utm_source=reddit&utm_medium=social&utm_campaign=launch'); });
+app.get('/fb1', (req, res) => { logClick('facebook', req); res.redirect('https://milepilot.app/?utm_source=facebook&utm_medium=social&utm_campaign=launch'); });
+app.get('/mp', (req, res) => { logClick('milepilot-general', req); res.redirect('https://testflight.apple.com/join/4r14t4G6'); });
+// ────────────────────────────────────────────────────────────────────────────
+
 app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'privacy.html'));
 });
