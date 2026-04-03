@@ -1895,7 +1895,7 @@ app.post('/api/simple-lead', async (req, res) => {
         const { data, error } = await supabaseAdmin.from('simple_leads').insert(insertData).select().single();
         if (error) {
             // If table doesn't exist, fall back to calculator_leads
-            if (error.message.includes('relation') || error.code === '42P01') {
+            if (error.message.includes('relation') || error.message.includes('schema cache') || error.message.includes('simple_leads') || error.code === '42P01') {
                 const fallback = {
                     name: 'Simple Form Lead',
                     email: email.trim().toLowerCase(),
