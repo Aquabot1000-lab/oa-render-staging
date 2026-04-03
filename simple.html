@@ -180,7 +180,7 @@
                     </div>
                     <button type="submit" class="cta">Get My Full Report →</button>
                 </form>
-                <span class="skip-link" onclick="showSuccess()">Skip — just email me the estimate</span>
+                <span class="skip-link" onclick="showSuccess(true)">Skip — just email me the estimate</span>
             </div>
             
             <!-- SUCCESS -->
@@ -205,6 +205,38 @@
     <script>
         const API = window.location.origin;
         let leadData = {};
+        
+        // === CONVERSION TRACKING ===
+        const track = (event, data = {}) => {
+            // Meta Pixel
+            if (typeof fbq !== 'undefined') {
+                if (event === 'page_view') fbq('track', 'PageView');
+                else if (event === 'form_start') fbq('trackCustom', 'FormStart', data);
+                else if (event === 'form_submit') fbq('track', 'Lead', data);
+                else if (event === 'step2_complete') fbq('track', 'CompleteRegistration', data);
+                else if (event === 'step2_skip') fbq('trackCustom', 'Step2Skip', data);
+            }
+            // Google Analytics / Ads
+            if (typeof gtag !== 'undefined') {
+                gtag('event', event, { ...data, event_category: 'simple_form' });
+            }
+            // Console log for debugging
+            console.log(`[TRACK] ${event}`, data);
+        };
+        
+        // Track page view
+        track('page_view', { page: '/simple', timestamp: new Date().toISOString() });
+        
+        // Track form start (first interaction with any input)
+        let formStarted = false;
+        document.querySelectorAll('#step1Form input').forEach(input => {
+            input.addEventListener('focus', () => {
+                if (!formStarted) {
+                    formStarted = true;
+                    track('form_start', { field: input.id });
+                }
+            }, { once: true });
+        });
         
         // Step 1: Address + Email
         document.getElementById('step1Form').addEventListener('submit', async (e) => {
@@ -272,10 +304,14 @@
                     
                     document.getElementById('step2Form').classList.add('show');
                     
-                    // Fire Meta Lead event
-                    if (typeof fbq !== 'undefined') fbq('track', 'Lead');
-                    // Fire Google Ads conversion
-                    if (typeof gtag !== 'undefined') gtag('event', 'conversion', { send_to: 'AW-17990551503/simple_lead' });
+                    // Track form submit with conversion data
+                    track('form_submit', { 
+                        state: leadResult.state, 
+                        county: leadResult.county,
+                        has_savings: !!savings,
+                        savings_amount: savings || 0
+                    });
+                    gtag('event', 'conversion', { send_to: 'AW-17990551503/simple_lead' });
                 }, 2500);
                 
             } catch(err) {
@@ -312,12 +348,19 @@
             showSuccess();
         });
         
-        function showSuccess() {
+        function showSuccess(skipped = false) {
             document.getElementById('step2Form').classList.remove('show');
             document.getElementById('step2Form').style.display = 'none';
             document.getElementById('successView').classList.add('show');
             
-            if (typeof fbq !== 'undefined') fbq('track', 'CompleteRegistration');
+            if (skipped) {
+                track('step2_skip');
+            } else {
+                track('step2_complete', {
+                    has_phone: !!document.getElementById('phone').value,
+                    has_name: !!document.getElementById('ownerName').value
+                });
+            }
         }
     </script>
 </body>
