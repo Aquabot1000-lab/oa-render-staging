@@ -4051,9 +4051,9 @@ app.get('/tarrant-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'tarrant-county.html'));
 });
 
-app.get('/georgia', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'georgia.html'));
-});
+// [REDIRECT-OVERRIDE] app.get('/georgia', (req, res) => {
+// [REDIRECT-OVERRIDE]     res.sendFile(path.join(__dirname, '..', 'lp', 'georgia.html'));
+// [REDIRECT-OVERRIDE] });
 
 // Ohio routes commented out - deadline passed, pulling out of state (2026-03-31)
 // app.get('/ohio', (req, res) => {
@@ -4063,12 +4063,12 @@ app.get('/georgia', (req, res) => {
 //     res.sendFile(path.join(__dirname, '..', 'lp', 'ohio.html'));
 // });
 
-app.get('/arizona', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+// [SIMPLE-REDIRECT] app.get('/arizona', (req, res) => {
+    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
 });
 
-app.get('/colorado', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+// [SIMPLE-REDIRECT] app.get('/colorado', (req, res) => {
+    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
 });
 
 app.get('/commercial', (req, res) => {
@@ -4080,8 +4080,8 @@ app.get('/texas', (req, res) => {
 });
 
 // Washington state + county pages
-app.get('/washington', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
+// [SIMPLE-REDIRECT] app.get('/washington', (req, res) => {
+    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
 });
 app.get('/king-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'king-county.html'));
@@ -4113,8 +4113,8 @@ app.get('/lp/clark-county', (req, res) => {
 });
 
 // Colorado landing pages
-app.get('/colorado', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+// [SIMPLE-REDIRECT] app.get('/colorado', (req, res) => {
+    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
 });
 app.get('/lp/colorado', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
@@ -4169,8 +4169,8 @@ app.get('/la-plata-county', (req, res) => {
 });
 
 // Arizona landing pages
-app.get('/arizona', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+// [SIMPLE-REDIRECT] app.get('/arizona', (req, res) => {
+    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
 });
 app.get('/lp/arizona', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
@@ -4318,6 +4318,22 @@ app.get('/blog/:slug', (req, res) => {
 // TikTok domain verification
 app.get('/tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD.txt', (req, res) => {
     res.type('text/plain').send('tiktokKIXW8kcCOw9dYhRPnYsy10Xqz1VGsZUD');
+});
+
+// ══════════════════════════════════════════════════════════════
+// 🔀 REDIRECT: Route state short-codes to /simple funnel
+// Added 2026-04-03 — all Meta ad traffic → simplified 2-field form
+// This replaces the 31-field SPA with the high-converting /simple page
+// ══════════════════════════════════════════════════════════════
+const STATE_REDIRECTS = { '/tx': 'TX', '/ga': 'GA', '/wa': 'WA', '/az': 'AZ', '/co': 'CO', '/oh': 'OH',
+    '/georgia': 'GA', '/arizona': 'AZ', '/colorado': 'CO', '/washington': 'WA', '/ohio': 'OH' };
+Object.entries(STATE_REDIRECTS).forEach(([path, state]) => {
+    app.get(path, (req, res) => {
+        const query = req.query;
+        const params = new URLSearchParams({ state, ...query });
+        console.log(`[REDIRECT] ${path} → /simple?${params}`);
+        res.redirect(302, `/simple?${params}`);
+    });
 });
 
 // Catch-all: serve frontend
