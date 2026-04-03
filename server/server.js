@@ -52,8 +52,13 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
 }
 
 // SendGrid setup
-if (process.env.SENDGRID_API_KEY) {
+// 🚨 OA EMAIL KILL SWITCH — set by Tyler 2026-04-03
+// ALL outbound OA customer emails PAUSED. Only internal logging active.
+const OA_EMAIL_KILLED = true;
+if (process.env.SENDGRID_API_KEY && !OA_EMAIL_KILLED) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+    console.log('[OA EMAIL] ⛔ Kill switch active — SendGrid NOT initialized');
 }
 
 // File upload setup
