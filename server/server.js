@@ -1894,19 +1894,23 @@ app.post('/api/simple-lead', async (req, res) => {
 
         const { data, error } = await supabaseAdmin.from('simple_leads').insert(insertData).select().single();
         if (error) {
-            // If table doesn't exist, fall back to calculator_leads
+            // If table doesn't exist, fall back to submissions table
             if (error.message.includes('relation') || error.message.includes('schema cache') || error.message.includes('simple_leads') || error.code === '42P01') {
+                const caseId = await getNextCaseId();
                 const fallback = {
-                    name: 'Simple Form Lead',
+                    id: require('uuid').v4(),
+                    caseId,
+                    ownerName: 'Simple Form Lead',
                     email: email.trim().toLowerCase(),
-                    property_address,
-                    county: county || 'Unknown',
-                    assessed_value: 0,
-                    estimated_savings: 0,
-                    property_type: 'residential',
-                    source: 'simple-form'
+                    propertyAddress: property_address,
+                    propertyType: 'residential',
+                    county: county || null,
+                    state: state || null,
+                    source: 'simple-form',
+                    stage: 'New',
+                    phone: null
                 };
-                const { data: fbData, error: fbError } = await supabaseAdmin.from('calculator_leads').insert(fallback).select().single();
+                const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
                 
                 sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n➡️ From simplified landing page (high-intent Meta traffic)`);
@@ -1940,7 +1944,16 @@ app.patch('/api/simple-lead/:id/details', async (req, res) => {
         if (ownerName) updateData.name = ownerName;
         if (phone) updateData.phone = phone;
 
-        const { error } = await supabaseAdmin.from('calculator_leads').update(updateData).eq('id', id);
+        // Update submissions table
+        const subUpdate = {};
+        if (ownerName) subUpdate.ownerName = ownerName;
+        if (phone) subUpdate.phone = phone;
+        if (bedrooms) subUpdate.bedrooms = parseInt(bedrooms);
+        if (bathrooms) subUpdate.bathrooms = parseFloat(bathrooms);
+        if (sqft) subUpdate.sqft = parseInt(sqft);
+        if (yearBuilt) subUpdate.yearBuilt = parseInt(yearBuilt);
+        
+        const { error } = await supabaseAdmin.from('submissions').update(subUpdate).eq('id', id);
         if (error) {
             console.error('Simple lead detail update error:', error);
             return res.json({ success: true, note: 'details logged' });
