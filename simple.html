@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Check Your Property Tax Savings | OverAssessed</title>
+    <meta name="description" content="Enter your address and see how much you could save on property taxes. Free, instant estimate.">
+    
+    <!-- Google Ads Conversion Tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17990551503"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','AW-17990551503');</script>
+    
+    <!-- Meta Pixel -->
+    <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1354abortedsafetycheck');fbq('track','PageView');</script>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--primary:#6C5CE7;--primary-dark:#5b4bd5;--bg:#0f0f23;--card:#1a1a2e;--text:#e2e8f0;--text-dim:#94a3b8;--green:#10b981;--radius:16px;--shadow:0 20px 60px rgba(0,0,0,0.3)}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+        
+        /* Preload Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        .container{width:100%;max-width:460px;text-align:center}
+        
+        /* Logo */
+        .logo{font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:32px;color:var(--text)}
+        .logo span{color:var(--primary)}
+        
+        /* Trust bar */
+        .trust{display:flex;gap:16px;justify-content:center;margin-bottom:28px;flex-wrap:wrap}
+        .trust-item{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-dim)}
+        .trust-item svg{width:16px;height:16px;fill:var(--green);flex-shrink:0}
+        
+        /* Headline */
+        h1{font-size:clamp(1.75rem,5vw,2.25rem);font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:12px}
+        h1 em{font-style:normal;color:var(--primary)}
+        .sub{font-size:1.05rem;color:var(--text-dim);margin-bottom:32px;line-height:1.5}
+        
+        /* Card */
+        .card{background:var(--card);border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.06)}
+        
+        /* Form */
+        .form-group{margin-bottom:16px;text-align:left}
+        .form-group label{display:block;font-size:0.8rem;font-weight:600;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+        .form-group input{width:100%;padding:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:1rem;font-family:inherit;background:rgba(255,255,255,0.05);color:var(--text);transition:all 0.2s;outline:none}
+        .form-group input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.15)}
+        .form-group input::placeholder{color:rgba(255,255,255,0.3)}
+        
+        .cta{width:100%;padding:18px;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;background:var(--primary);color:#fff;margin-top:8px}
+        .cta:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 8px 24px rgba(108,92,231,0.3)}
+        .cta:active{transform:translateY(0)}
+        .cta:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+        
+        .privacy{font-size:0.75rem;color:var(--text-dim);margin-top:14px;line-height:1.5}
+        
+        /* Step 2 */
+        .step2{display:none}
+        .step2.show{display:block;animation:fadeUp 0.4s ease}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        
+        .savings-badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center}
+        .savings-badge .amount{font-size:2rem;font-weight:800;letter-spacing:-0.02em}
+        .savings-badge .label{font-size:0.85rem;opacity:0.9;margin-top:4px}
+        
+        .calculating{text-align:center;padding:32px 0}
+        .calculating .spinner{width:40px;height:40px;border:3px solid rgba(108,92,231,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        
+        .step2-title{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+        .step2-sub{font-size:0.9rem;color:var(--text-dim);margin-bottom:20px}
+        
+        .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+        .detail-grid .form-group{margin-bottom:0}
+        .detail-grid input{padding:14px}
+        
+        .skip-link{display:inline-block;margin-top:12px;font-size:0.85rem;color:var(--text-dim);cursor:pointer;text-decoration:underline}
+        .skip-link:hover{color:var(--text)}
+        
+        /* Success */
+        .success{display:none;text-align:center;padding:24px 0}
+        .success.show{display:block;animation:fadeUp 0.4s ease}
+        .success svg{width:64px;height:64px;fill:var(--green);margin-bottom:16px}
+        .success h2{font-size:1.5rem;font-weight:700;margin-bottom:8px}
+        .success p{color:var(--text-dim);line-height:1.6}
+        
+        /* Social proof ticker */
+        .ticker{margin-top:28px;font-size:0.8rem;color:var(--text-dim);overflow:hidden;height:20px}
+        .ticker-inner{animation:tickerSlide 12s ease-in-out infinite}
+        @keyframes tickerSlide{0%,20%{transform:translateY(0)}25%,45%{transform:translateY(-20px)}50%,70%{transform:translateY(-40px)}75%,95%{transform:translateY(-60px)}100%{transform:translateY(0)}}
+        .ticker-item{height:20px;line-height:20px}
+        
+        /* Loading state */
+        .cta.loading{position:relative;color:transparent}
+        .cta.loading::after{content:'';position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Over<span>Assessed</span></div>
+        
+        <div class="trust">
+            <div class="trust-item">
+                <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                Free Analysis
+            </div>
+            <div class="trust-item">
+                <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                2 Minutes
+            </div>
+            <div class="trust-item">
+                <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                No Obligation
+            </div>
+        </div>
+        
+        <h1>Are You <em>Overpaying</em> on Property Taxes?</h1>
+        <p class="sub">Enter your address — we'll show you how much you could save.</p>
+        
+        <div class="card">
+            <!-- STEP 1: Address + Email -->
+            <form id="step1Form" class="step1">
+                <div class="form-group">
+                    <label>Property Address</label>
+                    <input type="text" id="address" placeholder="123 Main St, San Antonio, TX" required autocomplete="street-address">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="you@email.com" required autocomplete="email">
+                </div>
+                <button type="submit" class="cta" id="ctaBtn">Check My Savings →</button>
+                <p class="privacy">🔒 We never share your info. Results sent to your email.</p>
+            </form>
+            
+            <!-- CALCULATING -->
+            <div id="calculating" class="step2">
+                <div class="calculating">
+                    <div class="spinner"></div>
+                    <p style="font-weight:600;">Analyzing your property...</p>
+                    <p style="font-size:0.85rem;color:var(--text-dim);margin-top:8px;">Checking assessed value against comparable sales</p>
+                </div>
+            </div>
+            
+            <!-- STEP 2: Optional details (shown after calculation) -->
+            <div id="step2Form" class="step2">
+                <div id="savingsBadge" class="savings-badge">
+                    <div class="label">Estimated Annual Savings</div>
+                    <div class="amount" id="savingsAmount">$0</div>
+                </div>
+                
+                <p class="step2-title">Help us refine your estimate</p>
+                <p class="step2-sub">Optional — but more details = more accurate savings.</p>
+                
+                <form id="detailsForm">
+                    <div class="detail-grid">
+                        <div class="form-group">
+                            <label>Bedrooms</label>
+                            <input type="number" id="bedrooms" placeholder="3" min="0" max="20">
+                        </div>
+                        <div class="form-group">
+                            <label>Bathrooms</label>
+                            <input type="number" id="bathrooms" placeholder="2" min="0" max="20" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Square Feet</label>
+                            <input type="number" id="sqft" placeholder="1,800" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Year Built</label>
+                            <input type="number" id="yearBuilt" placeholder="2005" min="1800" max="2030">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Your Name</label>
+                        <input type="text" id="ownerName" placeholder="Your full name" autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone (for your personalized report)</label>
+                        <input type="tel" id="phone" placeholder="(210) 555-0123" autocomplete="tel">
+                    </div>
+                    <button type="submit" class="cta">Get My Full Report →</button>
+                </form>
+                <span class="skip-link" onclick="showSuccess()">Skip — just email me the estimate</span>
+            </div>
+            
+            <!-- SUCCESS -->
+            <div id="successView" class="success">
+                <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                <h2>You're All Set! 🎉</h2>
+                <p>We're preparing your personalized property tax savings report. Check your email in the next few minutes.</p>
+                <p style="margin-top:16px;font-weight:600;color:var(--primary)">Average savings: $1,200–$3,800/year</p>
+            </div>
+        </div>
+        
+        <div class="ticker">
+            <div class="ticker-inner">
+                <div class="ticker-item">✅ Sarah in Houston saved $2,847 on her property taxes</div>
+                <div class="ticker-item">✅ 1,200+ homeowners have checked their savings</div>
+                <div class="ticker-item">✅ Mike in Dallas saved $1,923 last tax season</div>
+                <div class="ticker-item">✅ Average savings: $1,800/year across Texas</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        let leadData = {};
+        
+        // Step 1: Address + Email
+        document.getElementById('step1Form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('ctaBtn');
+            const address = document.getElementById('address').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!address || !email) return;
+            
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            leadData = { address, email };
+            
+            try {
+                // Submit lead immediately (simple-form source)
+                const leadRes = await fetch(API + '/api/simple-lead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ property_address: address, email, source: 'simple-form' })
+                });
+                const leadResult = await leadRes.json();
+                leadData.leadId = leadResult.id;
+                leadData.county = leadResult.county;
+                leadData.state = leadResult.state;
+                
+                // Show calculating animation
+                document.querySelector('.step1').style.display = 'none';
+                document.getElementById('calculating').classList.add('show');
+                
+                // Try to get estimate
+                let savings = null;
+                try {
+                    const estRes = await fetch(API + '/api/estimate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            address, 
+                            state: leadResult.state || 'TX',
+                            county: leadResult.county || 'Bexar'
+                        })
+                    });
+                    const estData = await estRes.json();
+                    if (estData.estimatedSavings) {
+                        savings = estData.estimatedSavings;
+                        leadData.assessed_value = estData.assessedValue;
+                        leadData.estimated_savings = savings;
+                    }
+                } catch(err) {
+                    console.log('Estimate lookup failed, showing default');
+                }
+                
+                // Show Step 2 after a brief delay for UX
+                setTimeout(() => {
+                    document.getElementById('calculating').classList.remove('show');
+                    document.getElementById('calculating').style.display = 'none';
+                    
+                    if (savings && savings > 0) {
+                        document.getElementById('savingsAmount').textContent = '$' + savings.toLocaleString();
+                    } else {
+                        document.getElementById('savingsAmount').textContent = '$1,200–$3,800';
+                        document.querySelector('.savings-badge .label').textContent = 'Typical Annual Savings in Your Area';
+                    }
+                    
+                    document.getElementById('step2Form').classList.add('show');
+                    
+                    // Fire Meta Lead event
+                    if (typeof fbq !== 'undefined') fbq('track', 'Lead');
+                    // Fire Google Ads conversion
+                    if (typeof gtag !== 'undefined') gtag('event', 'conversion', { send_to: 'AW-17990551503/simple_lead' });
+                }, 2500);
+                
+            } catch(err) {
+                console.error('Submit error:', err);
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.textContent = 'Try Again';
+            }
+        });
+        
+        // Step 2: Optional details
+        document.getElementById('detailsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const details = {
+                bedrooms: document.getElementById('bedrooms').value || null,
+                bathrooms: document.getElementById('bathrooms').value || null,
+                sqft: document.getElementById('sqft').value || null,
+                yearBuilt: document.getElementById('yearBuilt').value || null,
+                ownerName: document.getElementById('ownerName').value || null,
+                phone: document.getElementById('phone').value || null
+            };
+            
+            // Update lead with additional details
+            try {
+                await fetch(API + '/api/simple-lead/' + leadData.leadId + '/details', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(details)
+                });
+            } catch(err) {
+                console.log('Detail update failed:', err);
+            }
+            
+            showSuccess();
+        });
+        
+        function showSuccess() {
+            document.getElementById('step2Form').classList.remove('show');
+            document.getElementById('step2Form').style.display = 'none';
+            document.getElementById('successView').classList.add('show');
+            
+            if (typeof fbq !== 'undefined') fbq('track', 'CompleteRegistration');
+        }
+    </script>
+</body>
+</html>

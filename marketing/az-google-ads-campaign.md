@@ -1,135 +1,102 @@
-# OA - AZ Property Tax Appeal - Google Search Campaign
+# OA - Search - Arizona Property Tax Appeal
+## Google Ads Account: 351-343-8695
 
-## Campaign: "OA - AZ Property Tax Appeal - Search"
-- **Account:** 351-343-8695
-- **Budget:** $25/day
-- **Bidding:** Maximize conversions
-- **Networks:** Search only (no display)
-- **Locations:** Arizona (Maricopa County priority)
+### Campaign Settings
+- **Name:** OA - Search - AZ Property Tax Appeal
+- **Type:** Search
+- **Networks:** Google Search ONLY (no Display, no Search Partners)
+- **Locations:** Arizona (entire state)
+- **Excluded Locations:** None
 - **Language:** English
-- **Start Date:** ASAP (March 27, 2026)
-- **End Date:** April 21, 2026 (filing deadline)
+- **Budget:** $25/day
+- **Bidding:** Maximize Conversions
+- **Start Date:** Immediately
+- **Ad Schedule:** All day (Mon-Sun)
 
-## Ad Group 1: "AZ Property Tax Appeal"
-### Keywords:
-- arizona property tax appeal
+### Ad Group 1: Property Tax Appeal (Broad)
+**Keywords:**
+- property tax appeal arizona
 - arizona property tax protest
-- maricopa county property tax appeal
-- phoenix property tax appeal
-- fight property tax arizona
-- lower property tax arizona
+- appeal property taxes az
+- lower property taxes arizona
 - property tax reduction arizona
-- property tax too high arizona
-- contest property tax maricopa county
-- scottsdale property tax appeal
+- fight property taxes az
+- contest property assessment arizona
+- property tax help arizona
+- reduce property taxes az
+- arizona tax appeal deadline
+
+**Negative Keywords:**
+- ownwell
+- o'connor
+- attorney
+- lawyer
+- free
+- diy
+- how to
+- calculator
+- what is
+- income tax
+- sales tax
+
+### Ad Group 2: County-Specific (Maricopa)
+**Keywords:**
+- maricopa county property tax appeal
+- maricopa county tax protest
+- phoenix property tax appeal
+- scottsdale property tax protest
 - mesa property tax appeal
-- property tax notice of value arizona
-- appeal property assessment arizona
+- maricopa county assessor appeal
+- appeal property taxes maricopa
 
-### Negative Keywords:
-- jobs, career, salary, attorney, lawyer, DIY, free tool
+### Ad Group 3: County-Specific (Other AZ Counties)
+**Keywords:**
+- pima county property tax appeal
+- tucson property tax protest
+- pinal county property tax appeal
+- coconino county tax appeal
+- yavapai county property tax protest
+- flagstaff property tax appeal
 
-### Responsive Search Ad 1:
+### Responsive Search Ad
 **Headlines (15):**
-1. Arizona Property Tax Too High?
-2. Appeal Your AZ Property Tax
-3. Maricopa County Tax Appeal
-4. No Upfront Cost — 20% Fee
-5. April 21 Deadline Approaching
-6. Lower Your Property Tax Bill
-7. Free Property Analysis
-8. File Digitally — 100% Remote
-9. Fight Your AZ Assessment
-10. Phoenix Property Tax Appeal
-11. Save $1,000+ On Property Tax
-12. Expert Property Tax Protest
-13. No Savings = No Fee
-14. Trusted Tax Appeal Service
-15. OverAssessed — Real Results
+1. Arizona Property Tax Appeal
+2. Lower Your AZ Property Taxes
+3. Deadline April 21, 2026
+4. Only 19 Days Left to Appeal
+5. No Win, No Fee - 25%
+6. Just $79 to Start
+7. Maricopa County Appeals
+8. Free Property Analysis
+9. Expert Tax Protest Service
+10. We Handle Everything
+11. Save Hundreds Per Year
+12. Arizona Tax Appeal Experts
+13. File Before the Deadline
+14. Professional Tax Protest
+15. Appeal Your Assessment Now
 
 **Descriptions (4):**
-1. Arizona property taxes going up? We fight overassessed values for you. No upfront cost — you only pay 20% of your savings. File by April 21.
-2. Free analysis of your Maricopa County property. If your Notice of Value is too high, we'll file a petition and handle everything. 100% digital.
-3. OverAssessed LLC helps AZ homeowners lower property taxes. No license needed — just results. Average savings $1,000+/year.
-4. Property tax notice too high? Don't overpay. We analyze comparable properties and fight your assessment. April 21 deadline — act now.
+1. Arizona property tax appeal deadline is April 21. We handle filing, evidence & hearings. Pay 25% only if we save you money. Start for just $79.
+2. Over-assessed? We fight to lower your Arizona property taxes. Maricopa, Pima, Pinal, Coconino & Yavapai counties. File before the April 21 deadline.
+3. Don't overpay property taxes in Arizona. Our experts analyze your property, build evidence & file your appeal. No savings = no fee.
+4. Arizona homeowners: your tax appeal deadline is April 21, 2026. We handle everything — analysis, filing, evidence & hearing. Start now for $79.
 
 **Final URL:** https://overassessed.ai/arizona
-**Display Path:** overassessed.ai / arizona
+**Display Path:** overassessed.com/Arizona/Tax-Appeal
 
-### Ad Extensions:
-- **Sitelinks:** Free Analysis | How It Works | About Us | Contact
-- **Callout:** No Upfront Cost | 100% Digital Filing | 20% Contingency Fee | Trusted Experts
-- **Call:** (888) 282-9165
-- **Structured Snippet (Services):** Property Tax Appeal, Property Analysis, Tax Protest Filing, Assessment Review
+### Sitelinks
+1. How It Works → https://overassessed.ai/arizona#how-it-works
+2. Check Your Property → https://overassessed.ai/arizona#calculator
+3. Maricopa County → https://overassessed.ai/tax-appeal/Arizona/Maricopa
+4. AZ Deadline April 21 → https://overassessed.ai/arizona
 
----
+### Callout Extensions
+- No Win No Fee
+- Only $79 to Start
+- 25% Contingency
+- All AZ Counties
+- Expert Analysis
 
-## Ad Group 2: "AZ Property Tax Protest" (broader)
-### Keywords:
-- property tax protest arizona
-- how to protest property tax arizona
-- reduce property tax maricopa
-- property tax help arizona
-- overassessed property arizona
-- property tax assessment too high az
-- dispute property tax arizona
-
-### Same ads as Ad Group 1
-
----
-
-# OA - CO Property Tax Appeal - Google Search Campaign
-
-## Campaign: "OA - CO Property Tax Appeal - Search"
-- **Account:** 351-343-8695
-- **Budget:** $15/day
-- **Bidding:** Maximize conversions
-- **Networks:** Search only
-- **Locations:** Colorado (Denver metro priority)
-- **Language:** English
-- **Start Date:** April 15, 2026 (2 weeks before notices)
-- **End Date:** June 1, 2026 (filing deadline)
-
-## Ad Group 1: "CO Property Tax Appeal"
-### Keywords:
-- colorado property tax appeal
-- colorado property tax protest
-- denver property tax appeal
-- denver county property tax protest
-- fight property tax colorado
-- lower property tax colorado
-- property tax reduction colorado
-- property tax too high colorado
-- property assessment appeal denver
-- jefferson county property tax appeal
-- arapahoe county property tax appeal
-- el paso county property tax appeal
-
-### Responsive Search Ad 1:
-**Headlines (15):**
-1. Colorado Property Tax Too High?
-2. Appeal Your CO Property Tax
-3. Denver Property Tax Appeal
-4. No Upfront Cost — 25% Fee
-5. June 1 Deadline Approaching
-6. Lower Your Property Tax Bill
-7. Free Property Analysis
-8. File Online — 100% Remote
-9. Fight Your CO Assessment
-10. 2026 Reassessment Year
-11. Save on Colorado Property Tax
-12. Expert Tax Appeal Service
-13. No Savings = No Fee
-14. Values Jumped? We Can Help
-15. OverAssessed — Real Results
-
-**Descriptions (4):**
-1. Colorado property values jumped in 2026? We fight overassessed values for you. No upfront cost — pay only 25% of savings. File by June 1.
-2. Free analysis of your Denver area property. If your Notice of Valuation is too high, we'll file a protest and handle everything. 100% online.
-3. OverAssessed LLC helps CO homeowners lower property taxes through the appeal process. Average Denver tax is $3,055/yr — we can reduce it.
-4. 2026 reassessment year means higher values for many CO homeowners. Don't overpay. We analyze comps and fight your assessment.
-
-**Final URL:** https://overassessed.ai/colorado
-**Display Path:** overassessed.ai / colorado
-
----
+### Call Extension
+- Phone: (888) 282-9165

@@ -1856,6 +1856,107 @@ app.post('/api/pre-register', async (req, res) => {
     }
 });
 
+// ==================== SIMPLE LANDING PAGE LEAD ====================
+app.post('/api/simple-lead', async (req, res) => {
+    try {
+        const { property_address, email, source } = req.body;
+        if (!property_address || !email) {
+            return res.status(400).json({ error: 'Address and email are required' });
+        }
+        if (!isSupabaseEnabled()) {
+            return res.status(503).json({ error: 'Database not configured' });
+        }
+
+        // Auto-detect state and county from address
+        let state = null, county = null;
+        const stateMatch = property_address.match(/,\s*([A-Z]{2})\s*\d{0,5}\s*$/i) || property_address.match(/,\s*(\w+)\s*$/);
+        if (stateMatch) {
+            const s = stateMatch[1].trim().toUpperCase();
+            const stateMap = { TX: 'TX', TEXAS: 'TX', AZ: 'AZ', ARIZONA: 'AZ', CO: 'CO', COLORADO: 'CO', GA: 'GA', GEORGIA: 'GA', WA: 'WA', WASHINGTON: 'WA', OH: 'OH', OHIO: 'OH' };
+            state = stateMap[s] || s;
+        }
+        // Common TX county detection
+        const addrLower = property_address.toLowerCase();
+        if (addrLower.includes('san antonio') || addrLower.includes('78')) county = 'Bexar';
+        else if (addrLower.includes('houston')) county = 'Harris';
+        else if (addrLower.includes('dallas')) county = 'Dallas';
+        else if (addrLower.includes('austin')) county = 'Travis';
+        else if (addrLower.includes('fort worth')) county = 'Tarrant';
+
+        const insertData = {
+            property_address,
+            email: email.trim().toLowerCase(),
+            source: source || 'simple-form',
+            state,
+            county,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabaseAdmin.from('simple_leads').insert(insertData).select().single();
+        if (error) {
+            // If table doesn't exist, fall back to calculator_leads
+            if (error.message.includes('relation') || error.code === '42P01') {
+                const fallback = {
+                    name: 'Simple Form Lead',
+                    email: email.trim().toLowerCase(),
+                    property_address,
+                    county: county || 'Unknown',
+                    assessed_value: 0,
+                    estimated_savings: 0,
+                    property_type: 'residential',
+                    source: 'simple-form'
+                };
+                const { data: fbData, error: fbError } = await supabaseAdmin.from('calculator_leads').insert(fallback).select().single();
+                if (fbError) throw fbError;
+                
+                sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n➡️ From simplified landing page (high-intent Meta traffic)`);
+                
+                return res.json({ success: true, id: fbData.id, state, county });
+            }
+            throw error;
+        }
+
+        sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n➡️ From simplified landing page (high-intent Meta traffic)`);
+
+        res.json({ success: true, id: data.id, state, county });
+    } catch (error) {
+        console.error('Simple lead error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/simple-lead/:id/details', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { bedrooms, bathrooms, sqft, yearBuilt, ownerName, phone } = req.body;
+        if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+
+        // Try simple_leads first, then calculator_leads
+        const updateData = {};
+        if (bedrooms) updateData.bedrooms = parseInt(bedrooms);
+        if (bathrooms) updateData.bathrooms = parseFloat(bathrooms);
+        if (sqft) updateData.sqft = parseInt(sqft);
+        if (yearBuilt) updateData.year_built = parseInt(yearBuilt);
+        if (ownerName) updateData.name = ownerName;
+        if (phone) updateData.phone = phone;
+
+        const { error } = await supabaseAdmin.from('calculator_leads').update(updateData).eq('id', id);
+        if (error) {
+            console.error('Simple lead detail update error:', error);
+            return res.json({ success: true, note: 'details logged' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Simple lead detail error:', error);
+        res.json({ success: true, note: 'details logged' });
+    }
+});
+
+// Serve simple landing page
+app.get('/simple', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'simple.html'));
+});
+
 app.post('/api/calculator-lead', async (req, res) => {
     try {
         const { name, email, phone, property_address, county, assessed_value, estimated_savings, property_type } = req.body;
