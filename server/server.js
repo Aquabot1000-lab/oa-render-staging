@@ -1899,15 +1899,15 @@ app.post('/api/simple-lead', async (req, res) => {
                 const caseId = await getNextCaseId();
                 const fallback = {
                     id: require('uuid').v4(),
-                    caseId,
-                    ownerName: 'Simple Form Lead',
+                    case_id: caseId,
+                    owner_name: 'Simple Form Lead',
                     email: email.trim().toLowerCase(),
-                    propertyAddress: property_address,
-                    propertyType: 'residential',
+                    property_address,
+                    property_type: 'residential',
                     county: county || null,
                     state: state || null,
                     source: 'simple-form',
-                    stage: 'New',
+                    status: 'New',
                     phone: null
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
@@ -1944,14 +1944,14 @@ app.patch('/api/simple-lead/:id/details', async (req, res) => {
         if (ownerName) updateData.name = ownerName;
         if (phone) updateData.phone = phone;
 
-        // Update submissions table
+        // Update submissions table (snake_case columns)
         const subUpdate = {};
-        if (ownerName) subUpdate.ownerName = ownerName;
+        if (ownerName) subUpdate.owner_name = ownerName;
         if (phone) subUpdate.phone = phone;
         if (bedrooms) subUpdate.bedrooms = parseInt(bedrooms);
         if (bathrooms) subUpdate.bathrooms = parseFloat(bathrooms);
         if (sqft) subUpdate.sqft = parseInt(sqft);
-        if (yearBuilt) subUpdate.yearBuilt = parseInt(yearBuilt);
+        if (yearBuilt) subUpdate.year_built = parseInt(yearBuilt);
         
         const { error } = await supabaseAdmin.from('submissions').update(subUpdate).eq('id', id);
         if (error) {
