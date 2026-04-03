@@ -4064,12 +4064,12 @@ app.get('/tarrant-county', (req, res) => {
 // });
 
 // [SIMPLE-REDIRECT] app.get('/arizona', (req, res) => {
-    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
-});
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+// });
 
 // [SIMPLE-REDIRECT] app.get('/colorado', (req, res) => {
-    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
-});
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+// });
 
 app.get('/commercial', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'commercial.html'));
@@ -4081,8 +4081,8 @@ app.get('/texas', (req, res) => {
 
 // Washington state + county pages
 // [SIMPLE-REDIRECT] app.get('/washington', (req, res) => {
-    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
-});
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'washington.html'));
+// });
 app.get('/king-county', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'king-county.html'));
 });
@@ -4114,8 +4114,8 @@ app.get('/lp/clark-county', (req, res) => {
 
 // Colorado landing pages
 // [SIMPLE-REDIRECT] app.get('/colorado', (req, res) => {
-    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
-});
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
+// });
 app.get('/lp/colorado', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'colorado.html'));
 });
@@ -4170,8 +4170,8 @@ app.get('/la-plata-county', (req, res) => {
 
 // Arizona landing pages
 // [SIMPLE-REDIRECT] app.get('/arizona', (req, res) => {
-    // [SIMPLE-REDIRECT] res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
-});
+//     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
+// });
 app.get('/lp/arizona', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'arizona.html'));
 });
