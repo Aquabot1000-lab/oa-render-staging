@@ -1864,7 +1864,7 @@ app.post('/api/pre-register', async (req, res) => {
 // ==================== SIMPLE LANDING PAGE LEAD ====================
 app.post('/api/simple-lead', async (req, res) => {
     try {
-        const { property_address, email, source } = req.body;
+        const { property_address, email, source, state_hint } = req.body;
         if (!property_address || !email) {
             return res.status(400).json({ error: 'Address and email are required' });
         }
@@ -1879,6 +1879,11 @@ app.post('/api/simple-lead', async (req, res) => {
             const s = stateMatch[1].trim().toUpperCase();
             const stateMap = { TX: 'TX', TEXAS: 'TX', AZ: 'AZ', ARIZONA: 'AZ', CO: 'CO', COLORADO: 'CO', GA: 'GA', GEORGIA: 'GA', WA: 'WA', WASHINGTON: 'WA', OH: 'OH', OHIO: 'OH' };
             state = stateMap[s] || s;
+        }
+        // Fallback: use state_hint from frontend (from URL ?state= param)
+        if (!state && state_hint) {
+            const hintMap = { TX: 'TX', GA: 'GA', WA: 'WA', AZ: 'AZ', CO: 'CO', OH: 'OH' };
+            state = hintMap[state_hint.toUpperCase()] || null;
         }
         // Common TX county detection
         const addrLower = property_address.toLowerCase();

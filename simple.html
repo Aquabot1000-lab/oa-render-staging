@@ -290,7 +290,7 @@
                 const leadRes = await fetch(API + '/api/simple-lead', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ property_address: address, email, source: 'simple-form' })
+                    body: JSON.stringify({ property_address: address, email, source: 'simple-form', state_hint: detectedState })
                 });
                 const leadResult = await leadRes.json();
                 leadData.leadId = leadResult.id;
