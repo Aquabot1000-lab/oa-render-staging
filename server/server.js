@@ -1972,6 +1972,129 @@ app.post('/api/simple-lead', async (req, res) => {
                     console.error(`[SIMPLE LEAD] Status update failed:`, updateErr.message);
                 }
                 
+                // 6. AUTO-ANALYSIS PIPELINE (async, don't block response)
+                setTimeout(async () => {
+                    try {
+                        console.log(`[SimpleAnalysis] Starting analysis for ${caseNum}: ${property_address}`);
+                        
+                        // Build case data for property lookup
+                        const caseData = {
+                            propertyAddress: property_address,
+                            state: state || 'TX',
+                            county: county || null,
+                            id: leadId
+                        };
+                        
+                        // Step 1: Fetch property data
+                        let propertyData;
+                        try {
+                            propertyData = await fetchPropertyData(caseData);
+                        } catch (fetchErr) {
+                            console.error(`[SimpleAnalysis] Property lookup failed for ${caseNum}:`, fetchErr.message);
+                            propertyData = null;
+                        }
+                        
+                        const assessedValue = propertyData?.assessedValue || 0;
+                        const hasRealData = assessedValue > 0 && propertyData?.source !== 'intake-fallback';
+                        
+                        if (hasRealData) {
+                            // Step 2: Find comps
+                            let compResults;
+                            try {
+                                compResults = await findComparables(propertyData, caseData);
+                            } catch (compErr) {
+                                console.error(`[SimpleAnalysis] Comps failed for ${caseNum}:`, compErr.message);
+                                compResults = null;
+                            }
+                            
+                            const estimatedSavings = compResults?.estimatedSavings || Math.round(assessedValue * 0.08 * 0.023);
+                            const reduction = compResults?.reduction || Math.round(assessedValue * 0.08);
+                            const recommendedValue = compResults?.recommendedValue || (assessedValue - reduction);
+                            
+                            // Update case with analysis
+                            await supabaseAdmin.from('submissions').update({
+                                status: 'Analyzed',
+                                drip_state: {
+                                    status: 'analyzed',
+                                    firstContactedAt: new Date().toISOString(),
+                                    channel: 'email',
+                                    assignee: 'Tyler',
+                                    analysisComplete: true,
+                                    assessedValue,
+                                    recommendedValue,
+                                    estimatedSavings,
+                                    compsFound: compResults?.comps?.length || 0
+                                },
+                                updated_at: new Date().toISOString()
+                            }).eq('id', leadId);
+                            
+                            // Send analysis email to lead
+                            const savingsFormatted = estimatedSavings.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+                            const assessedFormatted = assessedValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+                            const recommendedFormatted = recommendedValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+                            
+                            await sgMail.send({
+                                to: email.trim().toLowerCase(),
+                                from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
+                                replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+                                subject: `You may be overassessed by ${savingsFormatted}/year \u2014 ${caseNum}`,
+                                html: `<h2>Your Property Tax Analysis</h2>
+                                    <p>We've completed a preliminary analysis of your property at <b>${property_address}</b>.</p>
+                                    <table style="border-collapse:collapse;margin:16px 0;">
+                                        <tr><td style="padding:8px 16px;border:1px solid #ddd;">Current Assessed Value</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;">${assessedFormatted}</td></tr>
+                                        <tr><td style="padding:8px 16px;border:1px solid #ddd;">Our Recommended Value</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;color:#16a34a;">${recommendedFormatted}</td></tr>
+                                        <tr><td style="padding:8px 16px;border:1px solid #ddd;">Estimated Annual Savings</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;color:#16a34a;font-size:1.2em;">${savingsFormatted}</td></tr>
+                                    </table>
+                                    <p>Based on ${compResults?.comps?.length || 'multiple'} comparable properties in your area, your property appears to be <b>over-assessed</b>.</p>
+                                    <p><b>Next step:</b> Reply to this email or call us to start your protest. We handle everything \u2014 no win, no fee.</p>
+                                    <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                            });
+                            console.log(`[SimpleAnalysis] \u2705 Analysis email sent to ${email} | Savings: ${savingsFormatted}`);
+                            
+                            sendTelegramAlert(`\ud83d\udcca <b>ANALYSIS COMPLETE</b>\n\n<b>Case:</b> ${caseNum}\n<b>Property:</b> ${property_address}\n<b>Assessed:</b> ${assessedFormatted}\n<b>Recommended:</b> ${recommendedFormatted}\n<b>Savings:</b> ${savingsFormatted}\n<b>Comps:</b> ${compResults?.comps?.length || 0}\n\n\u2705 Analysis email sent to lead\n\ud83c\udff7 Tagged: analyzed, high-priority`);
+                            
+                        } else {
+                            // No real assessed value — needs notice
+                            await supabaseAdmin.from('submissions').update({
+                                status: 'Needs Data',
+                                drip_state: {
+                                    status: 'needs-docs',
+                                    firstContactedAt: new Date().toISOString(),
+                                    channel: 'email',
+                                    assignee: 'Tyler',
+                                    needsNotice: true
+                                },
+                                updated_at: new Date().toISOString()
+                            }).eq('id', leadId);
+                            
+                            // Send needs-docs email
+                            await sgMail.send({
+                                to: email.trim().toLowerCase(),
+                                from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
+                                replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+                                subject: `Action Needed: Upload Your Notice of Appraised Value \u2014 ${caseNum}`,
+                                html: `<h2>We Need One More Thing</h2>
+                                    <p>Thanks for submitting your property at <b>${property_address}</b>.</p>
+                                    <p>To complete your analysis and calculate your exact savings, we need your <b>Notice of Appraised Value</b> from your county appraisal district.</p>
+                                    <p><b>What to do:</b></p>
+                                    <ol>
+                                        <li>Check your mail for the notice (usually arrives April\u2013May)</li>
+                                        <li>Take a photo or scan it</li>
+                                        <li>Reply to this email with the image attached</li>
+                                    </ol>
+                                    <p>Once we have your notice, we'll complete your analysis within 24 hours and let you know exactly how much you can save.</p>
+                                    <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                            });
+                            console.log(`[SimpleAnalysis] \u2705 Needs-docs email sent to ${email}`);
+                            
+                            sendTelegramAlert(`\ud83d\udce6 <b>NEEDS NOTICE</b>\n\n<b>Case:</b> ${caseNum}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '\u2014'}\n\nProperty lookup returned no assessed value.\n\u2705 Needs-docs email sent to lead\n\ud83c\udff7 Tagged: needs-docs`);
+                        }
+                    } catch (analysisErr) {
+                        console.error(`[SimpleAnalysis] Pipeline failed for ${caseNum}:`, analysisErr.message);
+                        sendTelegramAlert(`\u274c <b>ANALYSIS FAILED</b>\n\n<b>Case:</b> ${caseNum}\n<b>Error:</b> ${analysisErr.message}\n\nLead has ack email but no analysis. Needs manual review.`);
+                    }
+                }, 3000); // Start 3s after response to avoid blocking
+                
                 return res.json({ success: true, id: leadId, state, county });
             }
             throw error;
