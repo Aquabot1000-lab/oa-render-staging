@@ -1923,14 +1923,75 @@ app.post('/api/simple-lead', async (req, res) => {
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
                 
-                sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n➡️ From simplified landing page (high-intent Meta traffic)`);
+                // === AUTO-RESPONSE SYSTEM ===
+                const leadId = fbData.id;
+                const caseNum = caseId;
                 
-                return res.json({ success: true, id: fbData.id, state, county });
+                // 1. Auto-assign (default: Tyler for OA leads)
+                const assignee = 'Tyler';
+                const assigneeEmail = 'tyler@overassessed.ai';
+                
+                // 2. Send instant acknowledgment email to lead
+                try {
+                    await sgMail.send({
+                        to: email.trim().toLowerCase(),
+                        from: { email: 'tyler@overassessed.ai', name: 'OverAssessed Team' },
+                        replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+                        subject: 'Your Property Tax Savings — Next Step',
+                        html: `<p>Hi there,</p><p>Thanks for submitting your property for review.</p><p>We're currently analyzing your property to identify potential tax savings. One of our specialists will review your case and follow up with you shortly.</p><p>If you'd like to speed things up, feel free to reply to this email with any additional details or questions.</p><p>Best,<br>OverAssessed Team</p>`
+                    });
+                    console.log(`[SIMPLE LEAD] ✅ Auto-email sent to ${email}`);
+                } catch (emailErr) {
+                    console.error(`[SIMPLE LEAD] ❌ Auto-email failed for ${email}:`, emailErr.message);
+                }
+                
+                // 3. Notify Tyler (assignee)
+                try {
+                    await sgMail.send({
+                        to: 'tyler@overassessed.ai',
+                        from: { email: 'notifications@overassessed.ai', name: 'OverAssessed CRM' },
+                        subject: `🎯 New Lead: ${caseNum} — ${state || 'Unknown'} | ${property_address.substring(0, 40)}`,
+                        html: `<h3>New /simple Lead</h3><p><b>Case:</b> ${caseNum}</p><p><b>Email:</b> ${email}</p><p><b>Property:</b> ${property_address}</p><p><b>State:</b> ${state || '—'}</p><p><b>County:</b> ${county || '—'}</p><p><b>Assigned to:</b> ${assignee}</p><p>Auto-acknowledgment email sent to lead ✅</p>`
+                    });
+                    console.log(`[SIMPLE LEAD] ✅ Notification sent to Tyler`);
+                } catch (notifyErr) {
+                    console.error(`[SIMPLE LEAD] ❌ Notification failed:`, notifyErr.message);
+                }
+                
+                // 4. Telegram alert
+                sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Case:</b> ${caseNum}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n<b>Assigned:</b> ${assignee}\n\n✅ Auto-email sent to lead\n✅ Notification sent to ${assignee}`);
+                
+                // 5. Update status to Contacted
+                try {
+                    await supabaseAdmin.from('submissions').update({
+                        status: 'Contacted',
+                        drip_state: { status: 'contacted', firstContactedAt: new Date().toISOString(), channel: 'email', assignee },
+                        updated_at: new Date().toISOString()
+                    }).eq('id', leadId);
+                } catch (updateErr) {
+                    console.error(`[SIMPLE LEAD] Status update failed:`, updateErr.message);
+                }
+                
+                return res.json({ success: true, id: leadId, state, county });
             }
             throw error;
         }
 
-        sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n➡️ From simplified landing page (high-intent Meta traffic)`);
+        // === AUTO-RESPONSE (simple_leads table path) ===
+        try {
+            await sgMail.send({
+                to: email.trim().toLowerCase(),
+                from: { email: 'tyler@overassessed.ai', name: 'OverAssessed Team' },
+                replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
+                subject: 'Your Property Tax Savings — Next Step',
+                html: `<p>Hi there,</p><p>Thanks for submitting your property for review.</p><p>We're currently analyzing your property to identify potential tax savings. One of our specialists will review your case and follow up with you shortly.</p><p>If you'd like to speed things up, feel free to reply to this email with any additional details or questions.</p><p>Best,<br>OverAssessed Team</p>`
+            });
+            console.log(`[SIMPLE LEAD] ✅ Auto-email sent to ${email}`);
+        } catch (emailErr) {
+            console.error(`[SIMPLE LEAD] ❌ Auto-email failed:`, emailErr.message);
+        }
+        
+        sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n✅ Auto-email sent to lead\n✅ Assigned to Tyler`);
 
         res.json({ success: true, id: data.id, state, county });
     } catch (error) {
