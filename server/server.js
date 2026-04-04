@@ -3783,41 +3783,26 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
             !(s.email && (s.email.includes('benchmark@') || s.email.includes('test@')))
         );
         
-        const statuses = ['New', 'Analysis Complete', 'Form Signed', 'Protest Filed', 'Hearing Scheduled', 'Resolved'];
+        // Use ACTUAL DB stages — no remapping
+        const statuses = ['New', 'Contacted', 'Analysis Complete', 'Form Signed', 'Filing Prepared', 'Submitted', 'Needs Data', 'Duplicate', 'Hearing Scheduled', 'Won', 'Lost'];
         const pipeline = {};
         statuses.forEach(s => pipeline[s] = 0);
-        // Normalize status names for pipeline display
-        const statusMap = { 
-            'Signed': 'Form Signed', 
-            'New Submission': 'New',
-            'Analyzed': 'Analysis Complete',
-            'Contacted': 'Analysis Complete',
-            'Needs Data': 'New',
-            'Partial Analysis': 'New',
-            'Filing Prepared': 'Protest Filed',
-            'Submitted': 'Protest Filed'
-        };
         submissions.forEach(s => {
-            if (s.status === 'Deleted') return; // Skip deleted
-            const mapped = statusMap[s.status] || s.status;
-            if (pipeline[mapped] !== undefined) {
-                pipeline[mapped]++;
-            } else if (pipeline[s.status] !== undefined) {
+            if (s.status === 'Deleted') return;
+            if (pipeline[s.status] !== undefined) {
                 pipeline[s.status]++;
-            } else {
-                // Unmapped status — count under New
-                pipeline['New'] = (pipeline['New'] || 0) + 1;
             }
+            // Don't remap or bucket unknown stages — just skip
         });
 
-        const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0);
-        // Use per-case fee_rate (stored in DB), default 0.25 for any missing
+        const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || s.estimated_savings || 0), 0);
         const totalFees = submissions.reduce((sum, s) => {
             const rate = s.feeRate || s.fee_rate || 0.25;
-            return sum + Math.round((s.estimatedSavings || 0) * rate);
+            return sum + Math.round((s.estimatedSavings || s.estimated_savings || 0) * rate);
         }, 0);
-        const signed = submissions.filter(s => s.signature).length;
-        const notices = submissions.filter(s => s.noticeOfValue).length;
+        // Signed = fee_agreement_signed OR stage in (Form Signed, Filing Prepared)
+        const signed = submissions.filter(s => s.feeAgreementSigned || s.fee_agreement_signed || ['Form Signed', 'Filing Prepared'].includes(s.status)).length;
+        const notices = submissions.filter(s => s.noticeOfValue || s.notice_of_value).length;
 
         res.json({ pipeline, totalEstimatedSavings, totalFees, signed, notices, total: submissions.length });
     } catch (error) {
@@ -4423,14 +4408,20 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
     try {
         const submissions = await readAllSubmissions();
         const total = submissions.length;
-        const active = submissions.filter(s => ['New', 'Analysis Complete', 'Form Signed', 'Protest Filed', 'Hearing Scheduled', 'In Review', 'Appeal Filed'].includes(s.status)).length;
-        const won = submissions.filter(s => s.status === 'Won' || s.status === 'Resolved').length;
+        // Use ACTUAL DB stages only
+        const activeStages = ['New', 'Contacted', 'Analysis Complete', 'Form Signed', 'Filing Prepared', 'Submitted', 'Needs Data', 'Hearing Scheduled'];
+        const active = submissions.filter(s => activeStages.includes(s.status)).length;
+        // Signed = fee_agreement_signed OR stage in (Form Signed, Filing Prepared)
+        const signed = submissions.filter(s => s.feeAgreementSigned || s.fee_agreement_signed || ['Form Signed', 'Filing Prepared'].includes(s.status)).length;
+        const filed = submissions.filter(s => ['Submitted', 'Filing Prepared'].includes(s.status)).length;
+        const won = submissions.filter(s => s.status === 'Won').length;
         const lost = submissions.filter(s => s.status === 'Lost').length;
         const decided = won + lost;
         const winRate = decided > 0 ? Math.round((won / decided) * 100) : 0;
-        const totalSavings = submissions.reduce((sum, s) => sum + (parseFloat(s.savings) || 0), 0);
+        // Use estimated_savings (correct field name from Supabase)
+        const totalSavings = submissions.reduce((sum, s) => sum + (parseFloat(s.estimatedSavings) || parseFloat(s.estimated_savings) || 0), 0);
 
-        res.json({ total, active, won, lost, winRate, totalSavings });
+        res.json({ total, active, signed, filed, won, lost, winRate, totalSavings });
     } catch (error) {
         res.status(500).json({ error: 'Failed to compute stats' });
     }
@@ -5412,10 +5403,10 @@ app.get('/dashboard/leads', async (req, res) => {
     try {
         const { data: leads, error } = await supabaseAdmin
             .from('submissions')
-            .select('case_id,email,owner_name,property_address,phone,state,county,status,drip_state,estimated_savings,created_at,updated_at')
-            .eq('source', 'simple-form')
+            .select('case_id,email,owner_name,property_address,phone,state,county,status,drip_state,estimated_savings,assessed_value,fee_agreement_signed,created_at,updated_at')
+            .is('deleted_at', null)
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(200);
         
         if (error) throw error;
         
