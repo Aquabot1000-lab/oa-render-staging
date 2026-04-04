@@ -870,6 +870,47 @@ registerAdapter('harris', {
     }
 });
 
+// ===== GENERIC LOCAL BULK DATA ADAPTER =====
+// For counties with loaded parcel data but no web scraper (WA, GA, CO, AZ)
+function createLocalBulkAdapter(countyName, displayName) {
+    return {
+        name: displayName,
+        code: countyName.toUpperCase(),
+        async searchByAddress(address) {
+            const localData = getCountyData(countyName);
+            if (!localData || !localData.isLoaded()) {
+                console.log(`[${countyName}] Local data not loaded`);
+                return [];
+            }
+            const results = localData.searchByAddress(address);
+            if (results && results.length > 0) {
+                return results.map(r => ({ ...r, _source: 'local-bulk' }));
+            }
+            return [];
+        },
+        async getPropertyDetails(accountId) { return null; },
+        async searchComparables() { return []; }
+    };
+}
+
+// Register multi-state counties with local bulk data
+const localBulkCounties = [
+    ['king', 'King County Assessor (WA)'],
+    ['pierce', 'Pierce County Assessor (WA)'],
+    ['fulton', 'Fulton County Tax Assessor (GA)'],
+    ['dekalb', 'DeKalb County Tax Assessor (GA)'],
+    ['denver', 'Denver County Assessor (CO)'],
+    ['el-paso', 'El Paso County Assessor (CO)'],
+    ['maricopa', 'Maricopa County Assessor (AZ)'],
+    ['coconino', 'Coconino County Assessor (AZ)'],
+    ['clark', 'Clark County Assessor'],
+];
+localBulkCounties.forEach(([county, name]) => {
+    if (!countyAdapters[county]) {
+        registerAdapter(county, createLocalBulkAdapter(county, name));
+    }
+});
+
 // ===== MAIN API =====
 
 /**

@@ -5178,3 +5178,72 @@ app.get('/tiktok/callback', async (req, res) => {
 app.get('/api/version', (req, res) => {
     res.json({ version: '2.5.0-tad', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
 });
+
+// ===== INTERNAL SYSTEMS DIRECTORY =====
+app.get('/internal/systems', (req, res) => {
+    // Auth: simple token check
+    const token = req.query.key || req.headers['x-auth-key'];
+    if (token !== 'oa-dash-2026') {
+        return res.status(401).send('Unauthorized');
+    }
+    
+    const systems = [
+        { name: 'OA Lead Dashboard', url: 'https://overassessed.ai/dashboard/leads?key=oa-dash-2026', status: '✅ Live', auth: 'Query key', owner: 'Tyler', desc: '/simple funnel leads — sorted by savings' },
+        { name: 'OA /simple Landing Page', url: 'https://overassessed.ai/simple', status: '✅ Live', auth: 'Public', owner: 'Tyler', desc: 'Simplified lead capture — 2 fields + phone' },
+        { name: 'OA Admin Dashboard', url: 'https://overassessed.ai/admin', status: '✅ Live', auth: 'tyler@overassessed.ai', owner: 'Tyler', desc: 'Full case management + analysis' },
+        { name: 'WortheyFlow CRM (Render)', url: 'https://wortheyflow.onrender.com', status: '✅ Live (NEW)', auth: 'tyler@wortheyaquatics.com', owner: 'Tyler', desc: 'Lead management + automation — GHL webhook target' },
+        { name: 'WortheyFlow CRM (Railway)', url: 'https://wortheyflow-production.up.railway.app', status: '⚠️ Retiring', auth: 'tyler@wortheyaquatics.com', owner: 'Tyler', desc: 'Old deployment — webhook switching to Render' },
+        { name: 'Mission Control (Render)', url: 'https://mission-control-x2mr.onrender.com', status: '✅ Live', auth: 'WortheyMC!2026', owner: 'Tyler', desc: 'Agent orchestration + project overview' },
+        { name: 'Mission Control (Local)', url: 'http://192.168.1.186:4000', status: '✅ Running', auth: 'WortheyMC!2026', owner: 'AquaBot', desc: 'Local Mac Mini instance (LAN only)' },
+        { name: 'MilePilot API', url: 'https://milepilot-api-op2s.onrender.com', status: '✅ Live', auth: 'JWT', owner: 'Tyler', desc: 'Backend API for MilePilot app' },
+        { name: 'MilePilot Landing', url: 'https://milepilot.app', status: '✅ Live', auth: 'Public', owner: 'Tyler', desc: 'Marketing landing page' },
+        { name: 'GHL / GoHighLevel', url: 'https://app.techfektor.com', status: '✅ Active', auth: 'tyler@wortheyaquatics.com', owner: 'Pool Monopoly', desc: 'Lead source CRM (Teckfactor managed)' },
+        { name: 'Supabase (OA)', url: 'https://ylxreuqvofgbpsatfsvr.supabase.co', status: '✅ Active', auth: 'tyler@overassessed.ai', owner: 'Tyler', desc: 'OA database — submissions, cases, analytics' },
+        { name: 'Supabase (MilePilot)', url: 'https://sxgvtocpgdpbxodzkdmt.supabase.co', status: '✅ Active', auth: 'aquabot1000@icloud.com', owner: 'Tyler', desc: 'MilePilot database — users, trips, subscriptions' },
+    ];
+    
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Worthey Enterprise — Systems Directory</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:20px;background:#0f172a;color:#e2e8f0}
+  h1{color:#38bdf8;margin-bottom:4px}
+  .sub{color:#94a3b8;margin-bottom:24px}
+  .card{background:#1e293b;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-left:4px solid #38bdf8}
+  .card:hover{background:#263548}
+  .card h3{margin:0 0 4px;color:#f1f5f9}
+  .card h3 a{color:#38bdf8;text-decoration:none}
+  .card h3 a:hover{text-decoration:underline}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:0.8rem;color:#94a3b8}
+  .meta span{background:#0f172a;padding:2px 8px;border-radius:4px}
+  .desc{color:#cbd5e1;font-size:0.9rem;margin-top:4px}
+  .status-live{color:#4ade80} .status-warn{color:#fbbf24} .status-off{color:#f87171}
+  .section{margin-top:32px;padding-top:16px;border-top:1px solid #334155}
+  .section h2{color:#94a3b8;font-size:0.9rem;text-transform:uppercase;letter-spacing:1px}
+  .ts{text-align:center;color:#475569;font-size:0.75rem;margin-top:32px}
+</style></head><body>
+<h1>🏢 Worthey Enterprise — Systems Directory</h1>
+<p class="sub">Internal reference — all active systems, dashboards, and APIs</p>
+
+${['OverAssessed', 'Worthey Aquatics', 'MilePilot', 'Infrastructure'].map(section => {
+    const sectionMap = {
+        'OverAssessed': s => s.name.includes('OA') || s.name.includes('OverAssessed') || s.url.includes('overassessed'),
+        'Worthey Aquatics': s => s.name.includes('Worthey') || s.name.includes('GHL') || s.url.includes('worthey'),
+        'MilePilot': s => s.name.includes('MilePilot') || s.url.includes('milepilot'),
+        'Infrastructure': s => s.name.includes('Mission') || s.name.includes('Supabase'),
+    };
+    const items = systems.filter(sectionMap[section]);
+    if (!items.length) return '';
+    return '<div class="section"><h2>' + section + '</h2>' + items.map(s => 
+        '<div class="card"><h3><a href="' + s.url + '" target="_blank">' + s.name + '</a> <span class="' + 
+        (s.status.includes('✅') ? 'status-live' : s.status.includes('⚠') ? 'status-warn' : 'status-off') + 
+        '" style="font-size:0.8rem">' + s.status + '</span></h3>' +
+        '<p class="desc">' + s.desc + '</p>' +
+        '<div class="meta"><span>🔑 ' + s.auth + '</span><span>👤 ' + s.owner + '</span></div></div>'
+    ).join('') + '</div>';
+}).join('')}
+
+<p class="ts">Last updated: ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })}</p>
+</body></html>`;
+    
+    res.send(html);
+});
