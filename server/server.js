@@ -5527,9 +5527,53 @@ app.get('/tiktok/callback', async (req, res) => {
     res.redirect('/tiktok/?connected=true');
 });
 
+// ===== EMAIL APPROVAL QUEUE UI =====
+app.get('/api/email-queue', (req, res) => {
+    res.json(emailApprovalQueue.map((e, i) => ({
+        id: i,
+        to: e.to,
+        subject: e.subject,
+        tier: e.tier || 'approval-required',
+        queuedAt: e.queuedAt,
+        status: e.status
+    })));
+});
+
+app.get('/api/email-queue/:id', (req, res) => {
+    const email = emailApprovalQueue[parseInt(req.params.id)];
+    if (!email) return res.status(404).json({ error: 'Not found' });
+    res.json(email);
+});
+
+app.post('/api/email-queue/:id/approve', async (req, res) => {
+    const email = emailApprovalQueue[parseInt(req.params.id)];
+    if (!email) return res.status(404).json({ error: 'Not found' });
+    if (email.status !== 'pending_approval') return res.json({ error: 'Already processed', status: email.status });
+    try {
+        await sendNotificationEmail(email.subject, email.html, email.to);
+        email.status = 'approved_sent';
+        email.approvedAt = new Date().toISOString();
+        console.log(`[EMAIL APPROVED] ✅ "${email.subject}" → ${email.to}`);
+        res.json({ success: true, status: 'sent' });
+    } catch (err) {
+        email.status = 'send_failed';
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/email-queue/:id/reject', (req, res) => {
+    const email = emailApprovalQueue[parseInt(req.params.id)];
+    if (!email) return res.status(404).json({ error: 'Not found' });
+    email.status = 'rejected';
+    email.rejectedAt = new Date().toISOString();
+    email.rejectReason = req.body?.reason || 'Rejected by Tyler';
+    console.log(`[EMAIL REJECTED] ❌ "${email.subject}" → ${email.to}`);
+    res.json({ success: true, status: 'rejected' });
+});
+
 // Version check
 app.get('/api/version', (req, res) => {
-    res.json({ version: '2.5.0-tad', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
+    res.json({ version: '2.6.0-v2', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
 });
 
 // ===== INTERNAL SYSTEMS DIRECTORY =====
