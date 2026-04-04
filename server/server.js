@@ -5394,6 +5394,216 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
 }
 // ===== END TWILIO VOICE =====
 
+// ===== PIPELINE SYSTEM =====
+// Stage definitions: NEW → ANALYSIS → VERIFIED → READY_TO_FILE → PAYMENT_RECEIVED → FILED → REVIEW → WON → LOST
+const PIPELINE_STAGES = ['New', 'Analysis', 'Verified', 'Ready to File', 'Payment Received', 'Filed', 'Review', 'Won', 'Lost'];
+
+const PIPELINE_RULES = {
+    // What's required to enter each stage
+    'Verified': (lead) => {
+        const errors = [];
+        if (lead.verification_status !== 'verified') errors.push('verification_status must be "verified"');
+        if (!lead.comp_results?.comps?.length) errors.push('No comps found');
+        const hasRealComps = lead.comp_results?.comps?.some(c => c.source !== 'synthetic-estimate');
+        if (!hasRealComps) errors.push('All comps are synthetic — need real sales data');
+        if (!lead.estimated_savings || lead.estimated_savings <= 0) errors.push('No savings calculated');
+        if (!lead.county) errors.push('Missing county');
+        const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
+        if (!av) errors.push('Missing assessed value');
+        return errors;
+    },
+    'Ready to File': (lead) => {
+        const errors = PIPELINE_RULES['Verified'](lead);
+        if (!lead.fee_agreement_signed) errors.push('Fee agreement not signed');
+        if (!lead.property_address) errors.push('Missing property address');
+        // Notice required for TX
+        if (lead.state === 'TX' && !lead.notice_of_value && !lead.notice_file) {
+            errors.push('Missing notice of value (required for TX)');
+        }
+        return errors;
+    },
+    'Payment Received': (lead) => {
+        const errors = PIPELINE_RULES['Ready to File'](lead);
+        if (!lead.initiation_paid && lead.payment_status !== 'paid') errors.push('Initiation fee not paid');
+        return errors;
+    },
+    'Filed': (lead) => {
+        const errors = PIPELINE_RULES['Payment Received'](lead);
+        if (lead.filing_status === 'not_filed') errors.push('Filing not submitted');
+        return errors;
+    }
+};
+
+// Pipeline: validate stage transition
+app.post('/api/pipeline/validate', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id, target_stage } = req.body;
+        if (!lead_id || !target_stage) return res.status(400).json({ error: 'lead_id and target_stage required' });
+        if (!PIPELINE_STAGES.includes(target_stage)) return res.status(400).json({ error: 'Invalid stage', valid: PIPELINE_STAGES });
+
+        const { data: lead, error } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+        if (error || !lead) return res.status(404).json({ error: 'Lead not found' });
+
+        const validator = PIPELINE_RULES[target_stage];
+        const errors = validator ? validator(lead) : [];
+
+        res.json({
+            lead_id,
+            lead_name: lead.owner_name,
+            current_stage: lead.status,
+            target_stage,
+            can_transition: errors.length === 0,
+            blockers: errors,
+            current_data: {
+                verification_status: lead.verification_status,
+                payment_status: lead.payment_status,
+                filing_status: lead.filing_status,
+                fee_signed: lead.fee_agreement_signed || false,
+                initiation_paid: lead.initiation_paid || false,
+                has_notice: !!(lead.notice_of_value || lead.notice_file),
+                has_comps: !!(lead.comp_results?.comps?.length),
+                has_real_comps: !!(lead.comp_results?.comps?.some(c => c.source !== 'synthetic-estimate')),
+                estimated_savings: lead.estimated_savings,
+                assessed_value: lead.assessed_value
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Pipeline: move lead to new stage (with validation)
+app.post('/api/pipeline/transition', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id, target_stage, force } = req.body;
+        if (!lead_id || !target_stage) return res.status(400).json({ error: 'lead_id and target_stage required' });
+        if (!PIPELINE_STAGES.includes(target_stage)) return res.status(400).json({ error: 'Invalid stage', valid: PIPELINE_STAGES });
+
+        const { data: lead, error } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+        if (error || !lead) return res.status(404).json({ error: 'Lead not found' });
+
+        // Validate unless forced by admin
+        const validator = PIPELINE_RULES[target_stage];
+        const errors = validator ? validator(lead) : [];
+        if (errors.length > 0 && !force) {
+            return res.status(422).json({
+                error: 'Cannot transition — blockers exist',
+                blockers: errors,
+                hint: 'Set force=true to override (admin only)'
+            });
+        }
+
+        // Build update
+        const update = { status: target_stage, updated_at: new Date().toISOString() };
+        if (target_stage === 'Won' || target_stage === 'Lost') {
+            update.close_date = new Date().toISOString();
+        }
+
+        const { error: updateErr } = await supabaseAdmin.from('submissions').update(update).eq('id', lead_id);
+        if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+        res.json({
+            success: true,
+            lead_id,
+            lead_name: lead.owner_name,
+            previous_stage: lead.status,
+            new_stage: target_stage,
+            forced: !!(errors.length > 0 && force),
+            blockers_overridden: errors.length > 0 ? errors : undefined
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Pipeline: bulk validate all leads
+app.get('/api/pipeline/audit', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads, error } = await supabaseAdmin.from('submissions')
+            .select('*').is('deleted_at', null).order('estimated_savings', { ascending: false });
+        if (error) return res.status(500).json({ error: error.message });
+
+        const audit = leads.map(lead => {
+            const verifyErrors = PIPELINE_RULES['Verified'](lead);
+            const rtfErrors = PIPELINE_RULES['Ready to File'](lead);
+            const payErrors = PIPELINE_RULES['Payment Received'](lead);
+            const fileErrors = PIPELINE_RULES['Filed'](lead);
+
+            let recommended_stage = 'New';
+            if (fileErrors.length === 0) recommended_stage = 'Filed';
+            else if (payErrors.length === 0) recommended_stage = 'Payment Received';
+            else if (rtfErrors.length === 0) recommended_stage = 'Ready to File';
+            else if (verifyErrors.length === 0) recommended_stage = 'Verified';
+            else if (lead.comp_results?.comps?.length) recommended_stage = 'Analysis';
+
+            return {
+                id: lead.id,
+                name: lead.owner_name,
+                email: lead.email,
+                current_stage: lead.status,
+                recommended_stage,
+                needs_correction: lead.status !== recommended_stage,
+                estimated_savings: lead.estimated_savings,
+                county: lead.county,
+                verification_status: lead.verification_status,
+                payment_status: lead.payment_status || 'unpaid',
+                filing_status: lead.filing_status || 'not_filed',
+                fee_signed: lead.fee_agreement_signed || false,
+                initiation_paid: lead.initiation_paid || false,
+                has_notice: !!(lead.notice_of_value || lead.notice_file),
+                has_real_comps: !!(lead.comp_results?.comps?.some(c => c.source !== 'synthetic-estimate')),
+                blockers: {
+                    to_verified: verifyErrors,
+                    to_ready: rtfErrors,
+                    to_paid: payErrors,
+                    to_filed: fileErrors
+                }
+            };
+        });
+
+        const summary = {
+            total: audit.length,
+            by_recommended: {},
+            needs_correction: audit.filter(a => a.needs_correction).length,
+            with_real_comps: audit.filter(a => a.has_real_comps).length,
+            with_synthetic_only: audit.filter(a => !a.has_real_comps).length
+        };
+        audit.forEach(a => {
+            summary.by_recommended[a.recommended_stage] = (summary.by_recommended[a.recommended_stage] || 0) + 1;
+        });
+
+        res.json({ summary, leads: audit });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Pipeline: Stripe webhook handler for payment_status
+// (Supplements existing webhook — updates pipeline fields)
+app.post('/api/pipeline/stripe-webhook', async (req, res) => {
+    try {
+        const event = req.body;
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data?.object;
+            const leadId = session?.metadata?.lead_id;
+            if (leadId) {
+                await supabaseAdmin.from('submissions').update({
+                    initiation_paid: true,
+                    initiation_paid_at: new Date().toISOString(),
+                    payment_status: 'paid',
+                    status: 'Payment Received',
+                    updated_at: new Date().toISOString()
+                }).eq('id', leadId);
+                console.log(`[Pipeline] Payment received for lead ${leadId}`);
+            }
+        }
+        res.json({ received: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+// ===== END PIPELINE SYSTEM =====
+
 // ===== LEAD DASHBOARD =====
 // ========== COMMAND CENTER ==========
 app.get('/admin/command-center', authenticateToken, async (req, res) => {
