@@ -1966,10 +1966,15 @@ app.post('/api/pre-register', async (req, res) => {
 // ==================== SIMPLE LANDING PAGE LEAD ====================
 app.post('/api/simple-lead', async (req, res) => {
     try {
-        const { property_address, email, source, state_hint } = req.body;
+        const { property_address, email, source, state_hint, assessed_value, property_type, county: submitted_county, phone, owner_name } = req.body;
         if (!property_address || !email) {
             return res.status(400).json({ error: 'Address and email are required' });
         }
+        // Track missing required fields
+        const missingFields = [];
+        if (!assessed_value) missingFields.push('assessed_value');
+        if (!submitted_county && !property_address.match(/county/i)) missingFields.push('county');
+        if (!property_type) missingFields.push('property_type');
         if (!isSupabaseEnabled()) {
             return res.status(503).json({ error: 'Database not configured' });
         }
@@ -2039,19 +2044,24 @@ app.post('/api/simple-lead', async (req, res) => {
                 const fallback = {
                     id: require('uuid').v4(),
                     case_id: caseId,
-                    owner_name: 'Simple Form Lead',
+                    owner_name: owner_name || 'Simple Form Lead',
                     email: email.trim().toLowerCase(),
+                    phone: phone || null,
                     property_address,
-                    property_type: 'residential',
-                    county: county || null,
+                    property_type: property_type || 'residential',
+                    county: submitted_county || county || null,
                     state: state || null,
                     source: 'simple-form',
-                    status: 'New',
-                    phone: null,
+                    status: missingFields.length > 0 ? 'New' : 'New',
+                    assessed_value: assessed_value ? Number(assessed_value) : null,
+                    assigned_to: 'Tyler',
+                    lead_priority: 'normal',
+                    verification_status: 'needs-data',
                     fee_rate: 0.25,
                     pricing_seen: 0.25,
                     pricing_source: 'simple-form-post-fix',
-                    pricing_locked: true
+                    pricing_locked: true,
+                    notes: missingFields.length > 0 ? `Missing at intake: ${missingFields.join(', ')}` : null
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
