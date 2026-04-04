@@ -31,6 +31,13 @@ const MIN_COMPS_FOR_EU = 5;       // Minimum for E&U to run
 const MAX_EVIDENCE_COMPS = 5;     // Market value comps in evidence
 const MAX_EU_EVIDENCE_COMPS = 20; // E&U comps in evidence
 const SYNTHETIC_FILL_TARGET = 15; // Generate enough synthetics to reach this
+const V2_COMP_FILTERS = {
+    sqftRange: 0.15,    // ±15% sqft
+    bedRange: 1,        // ±1 bedroom
+    bathRange: 1,       // ±1 bathroom  
+    yearRange: 15,      // ±15 years
+    minComps: 5         // Minimum 5 comps always required
+};
 
 /**
  * Property type category mapping for hard filtering.
@@ -254,8 +261,32 @@ async function findComparables(subject, caseData) {
         console.log(`[CompEngine] Property type filter: ${rawComps.length} → ${typeFiltered.length} (category: ${subjectCategory})`);
     }
 
+    // V2: Apply hard filters (±15% sqft, ±1 bed/bath, ±15 years) BEFORE scoring
+    let v2Filtered = typeFiltered;
+    if (subject.sqft && subject.sqft > 0) {
+        const sqftLow = subject.sqft * (1 - V2_COMP_FILTERS.sqftRange);
+        const sqftHigh = subject.sqft * (1 + V2_COMP_FILTERS.sqftRange);
+        v2Filtered = v2Filtered.filter(c => !c.sqft || (c.sqft >= sqftLow && c.sqft <= sqftHigh));
+    }
+    if (subject.bedrooms) {
+        v2Filtered = v2Filtered.filter(c => !c.bedrooms || Math.abs(c.bedrooms - subject.bedrooms) <= V2_COMP_FILTERS.bedRange);
+    }
+    if (subject.bathrooms) {
+        v2Filtered = v2Filtered.filter(c => !c.bathrooms || Math.abs(c.bathrooms - subject.bathrooms) <= V2_COMP_FILTERS.bathRange);
+    }
+    if (subject.yearBuilt) {
+        v2Filtered = v2Filtered.filter(c => !c.yearBuilt || Math.abs(c.yearBuilt - subject.yearBuilt) <= V2_COMP_FILTERS.yearRange);
+    }
+    console.log(`[CompEngine] V2 hard filters: ${typeFiltered.length} → ${v2Filtered.length} (±15% sqft, ±1 bed/bath, ±15 years)`);
+
+    // If V2 filters are too aggressive (< 5 comps), fall back to unfiltered
+    const compsToScore = v2Filtered.length >= V2_COMP_FILTERS.minComps ? v2Filtered : typeFiltered;
+    if (v2Filtered.length < V2_COMP_FILTERS.minComps) {
+        console.log(`[CompEngine] V2 filter too strict (${v2Filtered.length} < ${V2_COMP_FILTERS.minComps}), using full pool`);
+    }
+
     // Score and rank ALL comps
-    const scored = typeFiltered
+    const scored = compsToScore
         .map(comp => scoreComp(subject, comp))
         .filter(c => c.score > 0)
         .sort((a, b) => b.score - a.score);
@@ -454,8 +485,52 @@ async function findComparables(subject, caseData) {
         estimatedSavings = 0;
     }
 
+    // ─── V2: PROPERTY PROFILE ───────────────────────────────────────
+    const propertyProfile = {
+        address: subject.address,
+        sqft: subject.sqft || null,
+        bedrooms: subject.bedrooms || null,
+        bathrooms: subject.bathrooms || null,
+        yearBuilt: subject.yearBuilt || null,
+        lotSize: subject.lotSize || null,
+        propertyType: subject.propertyType || 'Single Family Home',
+        subdivision: subject.legalDescription || subject.neighborhoodCode || null,
+        assessedValue: subject.assessedValue || null,
+        landValue: subject.landValue || null,
+        improvementValue: subject.improvementValue || null,
+        profileSource: usedRealData ? 'verified-cad' : (subject.source === 'client-notice' ? 'client-provided' : 'intake-estimate')
+    };
+
+    // ─── V2: VERIFICATION TAG ───────────────────────────────────────
+    const hasSyntheticComps = bestComps.some(c => c._synthetic || c.source === 'synthetic-estimate');
+    const verificationTag = usedRealData ? 'verified' : (hasSyntheticComps ? 'preliminary' : 'verified');
+
+    // ─── V2: CONSERVATIVE + AGGRESSIVE VALUES ───────────────────────
+    const sortedCompValues = bestComps.map(c => c.adjustedValue || c.assessedValue).sort((a,b) => a - b);
+    const conservativeValue = sortedCompValues.length > 0 
+        ? Math.round(sortedCompValues.reduce((a,b) => a+b, 0) / sortedCompValues.length) 
+        : recommendedValue;
+    const aggressiveValue = sortedCompValues.length > 0 
+        ? sortedCompValues[0] 
+        : recommendedValue;
+    const conservativeReduction = Math.max(0, subject.assessedValue - conservativeValue);
+    const aggressiveReduction = Math.max(0, subject.assessedValue - aggressiveValue);
+    const conservativeSavings = Math.round(conservativeReduction * taxRate);
+    const aggressiveSavings = Math.round(aggressiveReduction * taxRate);
+
     // ─── BUILD RESULT ───────────────────────────────────────────────
     const result = {
+        // V2 fields
+        verificationTag,  // 'verified' or 'preliminary'
+        propertyProfile,
+        conservativeValue,
+        aggressiveValue,
+        conservativeSavings,
+        aggressiveSavings,
+        positioningSummary: verificationTag === 'verified'
+            ? `Based on ${bestComps.length} verified comps, protest target $${recommendedValue.toLocaleString()} (reduction $${reduction.toLocaleString()}, savings ~$${estimatedSavings.toLocaleString()}/yr)`
+            : `Preliminary estimate based on market modeling. ${bestComps.length} comps suggest value range $${aggressiveValue.toLocaleString()}-$${conservativeValue.toLocaleString()}. Pending verification with county data.`,
+
         // Primary recommendation (whichever strategy is better)
         comps: bestComps.slice(0, MAX_EVIDENCE_COMPS),
         totalCompsFound: scored.length,
@@ -756,10 +831,11 @@ function generateSyntheticComps(subject, count) {
     for (let i = 0; i < count; i++) {
         // Generate comps that are generally LOWER in assessed value (favorable to taxpayer)
         // More variance in the pool for realistic E&U analysis
-        const valueFactor = 0.78 + Math.random() * 0.24; // 78-102% of subject value
-        const sqftFactor = 0.80 + Math.random() * 0.40;  // 80-120% of subject sqft
-        const yearOffset = Math.floor(Math.random() * 16) - 8; // ±8 years
-        const lotFactor = 0.75 + Math.random() * 0.50;    // 75-125% lot size
+        // V2: Tighter matching — ±15% sqft, ±15 years, values 85-100% of subject
+        const valueFactor = 0.85 + Math.random() * 0.15; // 85-100% of subject value
+        const sqftFactor = (1 - V2_COMP_FILTERS.sqftRange) + Math.random() * (V2_COMP_FILTERS.sqftRange * 2);  // ±15% sqft
+        const yearOffset = Math.floor(Math.random() * (V2_COMP_FILTERS.yearRange * 2 + 1)) - V2_COMP_FILTERS.yearRange; // ±15 years
+        const lotFactor = 0.85 + Math.random() * 0.30;    // 85-115% lot size
 
         const compSqft = Math.round(sqft * sqftFactor);
         const compValue = Math.round(base * valueFactor);
@@ -773,8 +849,9 @@ function generateSyntheticComps(subject, count) {
         const houseNum = 100 + Math.floor(Math.random() * 9900);
 
         comps.push({
-            source: 'district-records',
-            accountId: `R${100000 + Math.floor(Math.random() * 900000)}`,
+            source: 'synthetic-estimate',
+            _synthetic: true,
+            accountId: `SYN-${100000 + Math.floor(Math.random() * 900000)}`,
             address: `${houseNum} ${streetName}`,
             ownerName: null,
             propertyType: normalizePropertyType(subject.propertyType) || 'Single Family Home',
