@@ -3595,7 +3595,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         });
 
         const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0);
-        const totalFees = Math.round(totalEstimatedSavings * 0.20); // 20% fee structure
+        const totalFees = Math.round(totalEstimatedSavings * 0.25); // 25% standard rate (20% was early/existing customers only)
         const signed = submissions.filter(s => s.signature).length;
         const notices = submissions.filter(s => s.noticeOfValue).length;
 
