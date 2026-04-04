@@ -964,19 +964,76 @@ async function sendNotificationEmail(subject, html, toEmail) {
 const OA_CLIENT_EMAIL_ENABLED = false;
 const emailApprovalQueue = [];
 
-async function sendClientEmail(toEmail, subject, html) {
-    if (!OA_CLIENT_EMAIL_ENABLED) {
-        console.log(`[EMAIL BLOCKED] ⛔ Auto-send disabled. Queued for approval: "${subject}" → ${toEmail}`);
+// ========== INBOUND REPLY CLASSIFICATION ==========
+// A = Sent notice/document | B = Asked question | C = Ready to proceed | D = Other
+function classifyInboundReply(subject, body) {
+    const text = `${subject} ${body}`.toLowerCase();
+    // A: Sent notice or attachment
+    if (/notice|apprais|assessment|attach|document|here.?s my|tax.?bill|photo|pdf|image|screenshot/i.test(text)) return 'A';
+    // C: Ready to proceed
+    if (/ready|proceed|go ahead|let.?s do it|sign me up|yes.*file|file.*protest|approve/i.test(text)) return 'C';
+    // B: Question
+    if (/\?|how (does|do|much|long)|what (is|are|do)|can (you|i)|when (will|do)|explain|tell me|question/i.test(text)) return 'B';
+    return 'D';
+}
+
+// ========== COMMUNICATION TIER SYSTEM ==========
+// Tier 1: AUTO-SEND (no approval needed)
+//   - "We received your submission"
+//   - "Send your notice"
+//   - "We're working on your file"
+// Tier 2: APPROVAL REQUIRED
+//   - Any savings estimates
+//   - Any analysis results
+//   - Any custom replies
+// Tier 3: SIGNED CLIENTS
+//   - Status updates can auto-send
+//   - No sales language ever
+const COMM_TIER_AUTO_SEND_SUBJECTS = [
+    /received your submission/i,
+    /send your notice/i,
+    /working on your file/i,
+    /welcome to overassessed/i,
+    /we.?re processing/i,
+];
+
+function getCommTier(subject, html, recipientStatus) {
+    // Signed clients get status update auto-sends
+    if (recipientStatus === 'signed' || recipientStatus === 'Filed') {
+        if (!/savings|\$[0-9]|reduction|estimate/i.test(html)) {
+            return 'auto-send-signed';
+        }
+    }
+    // Check if subject matches auto-send patterns
+    if (COMM_TIER_AUTO_SEND_SUBJECTS.some(rx => rx.test(subject))) {
+        return 'auto-send';
+    }
+    return 'approval-required';
+}
+
+async function sendClientEmail(toEmail, subject, html, options = {}) {
+    const tier = getCommTier(subject, html, options.recipientStatus);
+    const isAutoSend = tier.startsWith('auto-send');
+    
+    if (!OA_CLIENT_EMAIL_ENABLED && !isAutoSend) {
+        console.log(`[EMAIL BLOCKED] ⛔ Tier: ${tier} | Queued for approval: "${subject}" → ${toEmail}`);
         emailApprovalQueue.push({
             to: toEmail,
             subject,
             html,
+            tier,
             queuedAt: new Date().toISOString(),
             status: 'pending_approval'
         });
-        return { success: false, reason: 'approval_required', queued: true };
+        return { success: false, reason: 'approval_required', tier, queued: true };
     }
+    
+    if (isAutoSend) {
+        console.log(`[EMAIL AUTO-SEND] ✅ Tier: ${tier} | "${subject}" → ${toEmail}`);
+    }
+    
     await sendNotificationEmail(subject, html, toEmail);
+    return { success: true, tier };
 }
 
 function buildNotificationContent(sub) {
@@ -4173,8 +4230,36 @@ app.post('/api/inbound-reply', async (req, res) => {
                     storedEmail.type = 'customer';
                 }
                 
-                // Telegram — SHORT preview only
-                sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b>\n<b>From:</b> ${data[0].owner_name}\n<b>Subject:</b> ${subject.substring(0, 60)}\n<b>Action:</b> Check inbox — full email forwarded`);
+                // ── V2: CLASSIFY REPLY ──
+                const replyClass = classifyInboundReply(subject, textBody);
+                const classLabel = { A: '📎 SENT NOTICE', B: '❓ QUESTION', C: '✅ READY TO PROCEED', D: '📧 OTHER' }[replyClass] || '📧 OTHER';
+                
+                // If notice received → mark as HOT priority
+                if (replyClass === 'A') {
+                    for (const sub of data) {
+                        await supabaseAdmin.from('submissions')
+                            .update({ 
+                                status: 'Notice Received',
+                                updated_at: new Date().toISOString(),
+                                follow_up_note: `Notice received via email at ${new Date().toISOString()}. PRIORITY ANALYSIS TRIGGERED.`
+                            })
+                            .eq('id', sub.id);
+                    }
+                }
+                // If ready to proceed → mark as HOT
+                if (replyClass === 'C') {
+                    for (const sub of data) {
+                        await supabaseAdmin.from('submissions')
+                            .update({ 
+                                updated_at: new Date().toISOString(),
+                                follow_up_note: `Client ready to proceed — HOT LEAD. Replied at ${new Date().toISOString()}`
+                            })
+                            .eq('id', sub.id);
+                    }
+                }
+                
+                // Telegram — include classification
+                sendTelegramAlert(`📩 <b>CUSTOMER REPLY</b> [${classLabel}]\n<b>From:</b> ${data[0].owner_name} (${data[0].case_id})\n<b>Subject:</b> ${subject.substring(0, 60)}\n<b>Classification:</b> ${classLabel}\n<b>Action:</b> Draft response queued for approval`);
             } else {
                 console.log(`[InboundReply] Unknown sender: ${emailClean} | Subject: ${subject}`);
                 sendTelegramAlert(`📨 <b>Inbound email</b>\n<b>From:</b> ${emailClean}\n<b>Subject:</b> ${subject.substring(0, 60)}\n<b>Action:</b> Check inbox`);
