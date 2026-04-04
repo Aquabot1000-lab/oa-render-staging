@@ -148,6 +148,15 @@ app.get('/tiktokLoFc44Nvwbs1cHB7Oom7sVDCqlMd6dch', (req, res) => {
 // Simple rate limiter for /api/estimate (max 10 requests per hour per IP)
 const estimateRateLimiter = new Map();
 const ESTIMATE_RATE_LIMIT = 10;
+
+// === PRICING CONFIG (single source of truth) ===
+const PRICING = {
+    STANDARD_RATE: 0.25,      // 25% for all new customers
+    LEGACY_RATE: 0.20,        // 20% only for explicitly flagged legacy customers
+    INITIATION_FEE: 79,       // $79 initiation fee
+    // To apply legacy rate, set fee_rate=0.20 AND pricing_locked=true on the case
+    // Never hardcode percentages in content — always reference PRICING.STANDARD_RATE
+};
 const ESTIMATE_RATE_WINDOW = 60 * 60 * 1000; // 1 hour
 
 app.post('/api/estimate', async (req, res) => {
@@ -1920,7 +1929,11 @@ app.post('/api/simple-lead', async (req, res) => {
                     state: state || null,
                     source: 'simple-form',
                     status: 'New',
-                    phone: null
+                    phone: null,
+                    fee_rate: 0.25,
+                    pricing_seen: 0.25,
+                    pricing_source: 'simple-form-post-fix',
+                    pricing_locked: true
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
