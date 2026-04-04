@@ -5396,10 +5396,19 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
 
 // ===== PIPELINE SYSTEM =====
 // Stage definitions: NEW → ANALYSIS → VERIFIED → READY_TO_FILE → PAYMENT_RECEIVED → FILED → REVIEW → WON → LOST
-const PIPELINE_STAGES = ['New', 'Analysis', 'Verified', 'Ready to File', 'Payment Received', 'Filed', 'Review', 'Won', 'Lost'];
+const PIPELINE_STAGES = ['New', 'Analysis', 'Preview Ready', 'Verified', 'Ready to File', 'Payment Received', 'Filed', 'Review', 'Won', 'Lost'];
 
 const PIPELINE_RULES = {
     // What's required to enter each stage
+    'Preview Ready': (lead) => {
+        const errors = [];
+        if (!lead.estimated_savings || lead.estimated_savings <= 0) errors.push('No savings estimate');
+        if (!lead.county) errors.push('Missing county');
+        if (!lead.property_address) errors.push('Missing property address');
+        const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
+        if (!av) errors.push('Missing assessed value');
+        return errors;
+    },
     'Verified': (lead) => {
         const errors = [];
         if (lead.verification_status !== 'verified') errors.push('verification_status must be "verified"');
@@ -5577,6 +5586,149 @@ app.get('/api/pipeline/audit', authenticateToken, async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+
+// ===== PREVIEW SYSTEM =====
+// Generate customer-facing preview (NO proprietary data exposed)
+app.get('/api/preview/:caseId', async (req, res) => {
+    try {
+        const caseId = req.params.caseId;
+        const { data: lead, error } = await supabaseAdmin.from('submissions')
+            .select('*').eq('case_id', caseId).is('deleted_at', null).single();
+        if (error || !lead) return res.status(404).json({ error: 'Case not found' });
+
+        // Parse assessed value
+        const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
+        const savings = lead.estimated_savings || 0;
+
+        // Calculate estimated range (±20% band around savings)
+        const savingsLow = Math.round(savings * 0.7 / 100) * 100;
+        const savingsHigh = Math.round(savings * 1.2 / 100) * 100;
+
+        // Estimated value range (assessed minus savings range / tax rate)
+        const taxRate = lead.analysis_report?.taxRate || lead.comp_results?.taxRate || 0.0225;
+        const valueLow = av ? Math.round((av - (savingsHigh / taxRate)) / 1000) * 1000 : null;
+        const valueHigh = av ? Math.round((av - (savingsLow / taxRate)) / 1000) * 1000 : null;
+
+        // Determine high-level reasoning (no comp details)
+        const compCount = lead.comp_results?.comps?.length || 0;
+        let reasoning = '';
+        if (compCount >= 3) {
+            reasoning = `Our analysis of ${compCount} comparable properties in ${lead.county} County suggests your assessed value may be higher than current market conditions support.`;
+        } else if (compCount > 0) {
+            reasoning = `Our initial analysis of comparable properties in ${lead.county} County indicates a potential overassessment.`;
+        } else {
+            reasoning = `Based on market data for ${lead.county} County, your assessed value may be higher than supported by current conditions.`;
+        }
+
+        // Condition factors
+        if (lead.condition_issues && lead.condition_issues !== 'No') {
+            reasoning += ` Property condition factors may further support a reduction.`;
+        }
+        if (lead.year_built && (new Date().getFullYear() - lead.year_built) > 20) {
+            reasoning += ` Age-related depreciation is also a factor in our assessment.`;
+        }
+
+        // State-specific deadline
+        const deadlines = { TX: 'May 15, 2026', GA: '45 days after notice', WA: 'July 1, 2026', CO: 'June 1, 2026', AZ: 'Varies by county', OH: 'March 31, 2026' };
+        const deadline = deadlines[lead.state] || 'Contact us for your deadline';
+
+        // Generate preview HTML
+        const firstName = (lead.owner_name || '').split(' ')[0];
+        const preview = {
+            caseId: lead.case_id,
+            firstName,
+            propertyAddress: lead.property_address,
+            county: lead.county,
+            state: lead.state,
+            assessedValue: av ? `$${av.toLocaleString()}` : 'Under review',
+            estimatedValueRange: valueLow && valueHigh ? `$${valueLow.toLocaleString()} – $${valueHigh.toLocaleString()}` : 'Analysis in progress',
+            estimatedSavingsRange: savingsLow > 0 ? `$${savingsLow.toLocaleString()} – $${savingsHigh.toLocaleString()} per year` : 'Analysis in progress',
+            reasoning,
+            deadline,
+            feeStructure: `${Math.round((lead.fee_rate || 0.25) * 100)}% of actual tax savings — you only pay if we reduce your taxes`,
+            initiationFee: '$79',
+            nextStep: lead.fee_agreement_signed ? 'Complete your filing authorization' : 'Review and sign your authorization to proceed'
+        };
+
+        // Return HTML or JSON based on Accept header
+        if (req.headers.accept?.includes('text/html')) {
+            res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Property Tax Analysis | OverAssessed</title>
+<style>
+body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:0;background:#f8fafc;color:#1a1a2e}
+.wrap{max-width:600px;margin:0 auto;padding:20px}
+.header{background:linear-gradient(135deg,#6c5ce7,#0984e3);color:#fff;padding:30px;border-radius:12px 12px 0 0;text-align:center}
+.header h1{margin:0;font-size:22px}.header p{margin:8px 0 0;color:#e8e8e8;font-size:14px}
+.body{background:#fff;padding:30px;border:1px solid #e2e8f0;border-top:none}
+.metric{background:#f1f5f9;border-radius:8px;padding:16px;margin:12px 0}
+.metric-label{font-size:12px;text-transform:uppercase;color:#64748b;letter-spacing:0.5px}
+.metric-value{font-size:24px;font-weight:700;color:#0984e3;margin-top:4px}
+.metric-value.savings{color:#22c55e}
+.reasoning{background:#fffbeb;border-left:3px solid #f59e0b;padding:16px;margin:16px 0;border-radius:0 8px 8px 0;font-size:14px;line-height:1.6}
+.deadline{background:#fef2f2;border-left:3px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;font-size:14px}
+.cta{display:block;background:linear-gradient(135deg,#6c5ce7,#0984e3);color:#fff;text-align:center;padding:16px;border-radius:50px;text-decoration:none;font-weight:700;font-size:16px;margin:24px 0}
+.fee{text-align:center;font-size:13px;color:#64748b;margin:8px 0}
+.footer{background:#1a1a2e;color:#94a3b8;padding:20px;border-radius:0 0 12px 12px;text-align:center;font-size:12px}
+.disclaimer{font-size:11px;color:#94a3b8;margin-top:16px;line-height:1.5}
+</style></head><body><div class="wrap">
+<div class="header"><h1>Your Property Tax Analysis</h1><p>Case ${preview.caseId}</p></div>
+<div class="body">
+<p>Hi ${preview.firstName},</p>
+<p>We've completed a preliminary analysis of your property and found a potential opportunity to reduce your property taxes.</p>
+<div class="metric"><div class="metric-label">Your Property</div><div class="metric-value" style="font-size:16px;color:#1a1a2e">${preview.propertyAddress}</div></div>
+<div class="metric"><div class="metric-label">County Assessed Value</div><div class="metric-value">${preview.assessedValue}</div></div>
+<div class="metric"><div class="metric-label">Our Estimated Market Value Range</div><div class="metric-value">${preview.estimatedValueRange}</div></div>
+<div class="metric"><div class="metric-label">Estimated Annual Tax Savings</div><div class="metric-value savings">${preview.estimatedSavingsRange}</div></div>
+<div class="reasoning"><strong>Why we believe your assessment is too high:</strong><br>${preview.reasoning}</div>
+<div class="deadline">⚠️ <strong>Filing Deadline:</strong> ${preview.deadline}</div>
+<a class="cta" href="https://overassessed.ai/portal">Get Started →</a>
+<p class="fee">${preview.feeStructure}<br>One-time initiation fee: ${preview.initiationFee}</p>
+<p class="disclaimer">This is a preliminary estimate based on available market data. Actual savings will depend on the outcome of the formal protest process. Past results do not guarantee future outcomes. All figures are estimates and subject to change based on additional analysis and county review.</p>
+</div>
+<div class="footer">OverAssessed, LLC · San Antonio, Texas<br>(888) 282-9165 · support@overassessed.ai</div>
+</div></body></html>`);
+        } else {
+            res.json(preview);
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Batch generate previews for all eligible leads
+app.get('/api/previews/batch', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads, error } = await supabaseAdmin.from('submissions')
+            .select('case_id,owner_name,property_address,county,state,assessed_value,estimated_savings,status,verification_status')
+            .is('deleted_at', null)
+            .not('estimated_savings', 'is', null)
+            .gt('estimated_savings', 0)
+            .order('estimated_savings', { ascending: false });
+        if (error) return res.status(500).json({ error: error.message });
+
+        const previews = leads.map(l => {
+            const av = parseInt(String(l.assessed_value || '0').replace(/[\$,]/g, ''));
+            const s = l.estimated_savings || 0;
+            const sLow = Math.round(s * 0.7 / 100) * 100;
+            const sHigh = Math.round(s * 1.2 / 100) * 100;
+            return {
+                caseId: l.case_id,
+                name: l.owner_name,
+                address: l.property_address,
+                county: l.county,
+                assessed: av ? `$${av.toLocaleString()}` : '?',
+                savingsRange: sLow > 0 ? `$${sLow.toLocaleString()}–$${sHigh.toLocaleString()}/yr` : '?',
+                status: l.status,
+                previewUrl: `https://disciplined-alignment-production.up.railway.app/api/preview/${l.case_id}`
+            };
+        });
+
+        res.json({ total: previews.length, previews });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+// ===== END PREVIEW SYSTEM =====
 
 // Pipeline: Stripe webhook handler for payment_status
 // NO AUTH — Stripe webhooks can't send tokens
