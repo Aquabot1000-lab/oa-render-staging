@@ -31,7 +31,7 @@
 ## Callout Extensions (25 Characters Max)
 
 1. No Win, No Fee Promise
-2. 20% Fee vs 25% Others
+2. 25% Fee — Lowest in Market
 3. May 15 Deadline
 4. Texas & Georgia
 5. Free Savings Calculator
@@ -57,7 +57,7 @@
 
 ### Benefits:
 - No Upfront Costs
-- 20% Contingency Fee
+- 25% Contingency Fee
 - Expert Representation
 - Personal Service
 - Fast Processing

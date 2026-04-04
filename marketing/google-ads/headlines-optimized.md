@@ -19,9 +19,9 @@
 10. Don't Miss Tax Appeal Deadline
 
 ### Differentiators & No-Risk
-11. Only Pay If We Win - 20% Fee
+11. Only Pay If We Win - 25% Fee
 12. No Win = No Fee Guarantee
-13. 20% Fee vs. Competitors' 25%
+13. 25% Fee — Lowest in Market
 
 ### Local/Service
 14. Texas Property Tax Protest
@@ -33,7 +33,7 @@
 
 1. **No-Win, No-Fee property tax appeals. Pay only 25% of savings. Texas & Georgia. File by May 15.**
 
-2. **Lower fees than competitors—20% vs 25%. Expert appeals, personal service. Deadline May 15.**
+2. **Lower fees than competitors—25% — lowest rate available. Expert appeals, personal service. Deadline May 15.**
 
 3. **Protest your property taxes with confidence. No upfront cost. Only pay if we reduce your bill.**
 
