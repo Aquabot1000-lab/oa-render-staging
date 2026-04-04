@@ -496,7 +496,7 @@
         function getFeeRateText(state, rate) {
             // If a per-client discounted_rate was set, use it first
             if (rate) return `${rate}% contingency fee - no win, no fee`;
-            if (!state) return `20% contingency fee - no win, no fee`;
+            if (!state) return `25% contingency fee - no win, no fee`;
             const feeMap = {
                 'TX': 25, 'GA': 25, 'WA': 25, 'AZ': 25, 'CO': 25
             };

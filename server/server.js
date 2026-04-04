@@ -402,6 +402,7 @@ function submissionToRow(sub) {
         drip_state: sub.dripState,
         referral_code: sub.referralCode,
         discounted_rate: sub.discountedRate,
+        fee_rate: sub.feeRate || 0.25,
         referral_credit: sub.referralCredit || null,
         referral_id: sub.referralId,
         stripe_customer_id: sub.stripeCustomerId,
@@ -461,6 +462,7 @@ function rowToSubmission(row) {
         dripState: row.drip_state,
         referralCode: row.referral_code,
         discountedRate: row.discounted_rate,
+        feeRate: row.fee_rate || 0.25,
         referralCredit: row.referral_credit || null,
         referralId: row.referral_id,
         stripeCustomerId: row.stripe_customer_id,
@@ -3595,7 +3597,11 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         });
 
         const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0);
-        const totalFees = Math.round(totalEstimatedSavings * 0.25); // 25% standard rate (20% was early/existing customers only)
+        // Use per-case fee_rate (stored in DB), default 0.25 for any missing
+        const totalFees = submissions.reduce((sum, s) => {
+            const rate = s.feeRate || s.fee_rate || 0.25;
+            return sum + Math.round((s.estimatedSavings || 0) * rate);
+        }, 0);
         const signed = submissions.filter(s => s.signature).length;
         const notices = submissions.filter(s => s.noticeOfValue).length;
 
@@ -4713,7 +4719,7 @@ const AI_SYSTEM_PROMPT = `You are Sarah, the friendly and knowledgeable phone re
 ABOUT OVERASSESSED:
 - Property tax protest experts serving all of Texas AND Georgia
 - How it works: Give us your property address → we run a free analysis → if you're overpaying, we file the protest and handle everything → you save money
-- Pricing: 20% of tax savings in Texas, 25% in Georgia. Just a $79 initiation fee to get started, which gets credited toward your contingency fee.
+- Pricing: 25% of tax savings across all states (TX, GA, WA, AZ, CO). Just a $79 initiation fee to get started, which gets credited toward your contingency fee.
 - Timeline: TX protest season is mid-April through August. TX deadline is May 15. GA deadline is 45 days after assessment notice (April-June).
 - Georgia special: If you win an appeal, your value is FROZEN for 3 years. That's 3 years of guaranteed savings from one appeal.
 - Homestead exemptions: We file those too, included free with our service
