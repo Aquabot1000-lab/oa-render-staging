@@ -2968,23 +2968,78 @@ async function runFullAnalysis(caseId) {
     const hasRealValue = assessedNum > 0 && propertyData.source !== 'intake-fallback';
 
     if (!hasRealValue) {
-        console.warn(`[Analysis] No real assessed value for ${sub.caseId} - skipping analysis. Source: ${propertyData.source}, value: ${assessedNum}`);
-        submissions[idx].unreliableData = true;
-        submissions[idx].needsManualReview = true;
-        submissions[idx].reviewReason = 'No real assessed value available - county lookup failed or returned fallback data. Waiting for client to upload their notice of appraised value.';
-        submissions[idx].status = 'Needs Data';
-        submissions[idx].analysisStatus = 'Awaiting Notice Upload';
+        console.log(`[Analysis] No real assessed value for ${sub.caseId} — running PRELIMINARY analysis with best available data.`);
+        // NEW RULE: Always produce preliminary analysis. Never return 0 comps or "needs data" without value.
+        // Use comps from nearby sold homes to estimate value range.
+        
+        // Attempt comp search even without real assessed value
+        let prelimComps = null;
+        try {
+            // Use a reasonable estimate or the fallback value for comp searching
+            const estimateValue = assessedNum > 0 ? assessedNum : 350000;
+            const searchData = { ...propertyData, assessedValue: estimateValue };
+            prelimComps = await findComparables(searchData, sub);
+        } catch (compErr) {
+            console.warn(`[Analysis] Preliminary comp search failed for ${sub.caseId}:`, compErr.message);
+        }
+        
+        const hasComps = prelimComps && prelimComps.comps && prelimComps.comps.length > 0;
+        const compCount = hasComps ? prelimComps.comps.length : 0;
+        const medianCompValue = hasComps 
+            ? prelimComps.comps.map(c => c.assessedValue || c.salePrice || 0).sort((a,b) => a-b)[Math.floor(compCount/2)]
+            : null;
+        const lowComp = hasComps ? Math.min(...prelimComps.comps.map(c => c.assessedValue || c.salePrice || Infinity)) : null;
+        const highComp = hasComps ? Math.max(...prelimComps.comps.map(c => c.assessedValue || c.salePrice || 0)) : null;
+        
+        // Build preliminary estimate
+        const prelimReport = {
+            type: 'preliminary',
+            generatedAt: new Date().toISOString(),
+            propertyAddress: sub.propertyAddress,
+            state: sub.state,
+            county: sub.county,
+            dataSource: propertyData.source,
+            estimatedMarketValueRange: medianCompValue ? { low: lowComp, median: medianCompValue, high: highComp } : null,
+            compsFound: compCount,
+            estimatedSavingsRange: medianCompValue && assessedNum > medianCompValue 
+                ? { low: Math.round((assessedNum - highComp) * 0.025), high: Math.round((assessedNum - lowComp) * 0.025) }
+                : { low: 0, high: 0, note: 'Need Notice of Appraised Value to calculate precise savings' },
+            comparables: hasComps ? prelimComps.comps.slice(0, 5).map(c => ({
+                address: c.address, value: c.assessedValue || c.salePrice, sqft: c.sqft, yearBuilt: c.yearBuilt
+            })) : [],
+            recommendation: 'PRELIMINARY — Upload your Notice of Appraised Value for a precise savings estimate.'
+        };
+        
+        submissions[idx].analysisReport = prelimReport;
+        submissions[idx].compResults = prelimComps;
+        submissions[idx].status = 'Preliminary Analysis';
+        submissions[idx].analysisStatus = 'Preliminary';
+        submissions[idx].tags = [...(submissions[idx].tags || []), 'preliminary-analysis', 'needs-docs'];
         submissions[idx].updatedAt = new Date().toISOString();
         await saveProgress();
-
-        // DO NOT send any client email when analysis is flagged/unreliable
-        // Standing rule: No client emails until analysis is confirmed correct with no flags
-        console.log(`[Analysis] Holding all client emails for ${sub.caseId} - unreliable data, needs manual review`);
-
-        // Still notify Tyler about the lead (internal only)
+        
+        // Update Supabase with preliminary results
+        try {
+            await supabaseAdmin.from('submissions').update({
+                status: 'Preliminary Analysis',
+                analysis_status: 'Preliminary',
+                comp_results: prelimComps,
+                analysis_report: prelimReport,
+                estimated_savings: prelimReport.estimatedSavingsRange?.high || 0,
+                needs_manual_review: true,
+                updated_at: new Date().toISOString(),
+                notes: `[${new Date().toISOString().split('T')[0]}] Preliminary analysis: ${compCount} comps found. Median comp value: $${medianCompValue?.toLocaleString() || 'N/A'}. Awaiting Notice of Appraised Value for precise estimate.`
+            }).eq('case_id', sub.caseId);
+        } catch (dbErr) {
+            console.warn(`[Analysis] Supabase update failed for ${sub.caseId}:`, dbErr.message);
+        }
+        
+        console.log(`[Analysis] Preliminary analysis complete for ${sub.caseId}: ${compCount} comps, median $${medianCompValue || 'N/A'}`);
+        
+        // Notify Tyler (internal)
         const { sms, html } = buildNotificationContent(sub);
-        sendNotificationSMS(`[NEEDS REVIEW - NO EMAIL SENT] ${sms}`);
-
+        sendNotificationSMS(`[PRELIMINARY - ${compCount} comps] ${sms}`);
+        
         return submissions[idx];
     }
 
