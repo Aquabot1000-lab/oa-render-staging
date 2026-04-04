@@ -5394,6 +5394,82 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
 // ===== END TWILIO VOICE =====
 
 // ===== LEAD DASHBOARD =====
+// ========== COMMAND CENTER ==========
+app.get('/admin/command-center', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads } = await supabaseAdmin.from('submissions')
+            .select('*').is('deleted_at', null).order('estimated_savings', { ascending: false });
+        const total = leads.length;
+        const byStatus = {};
+        leads.forEach(l => byStatus[l.status] = (byStatus[l.status]||0)+1);
+        const signed = leads.filter(l => l.fee_agreement_signed || ['Form Signed','Filing Prepared'].includes(l.status));
+        const filingReady = leads.filter(l => l.status === 'Filing Prepared');
+        const submitted = leads.filter(l => l.status === 'Submitted');
+        const totalSavings = leads.reduce((s,l) => s + (l.estimated_savings||0), 0);
+        const totalFees = leads.reduce((s,l) => s + Math.round((l.estimated_savings||0) * (l.fee_rate||0.25)), 0);
+        const missingNotice = leads.filter(l => !l.notice_of_value && !l.notice_file).length;
+        const missingAssessed = leads.filter(l => { const v = l.assessed_value; if (!v) return true; const n = parseInt(String(v).replace(/[\$,]/g,'')); return isNaN(n) || n === 0; }).length;
+        const missingCounty = leads.filter(l => !l.county).length;
+        const paid = leads.filter(l => l.initiation_paid).length;
+        const hot = leads.filter(l => l.estimated_savings > 2000).slice(0, 10);
+        res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OA Command Center</title><style>
+body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:16px;background:#0f172a;color:#e2e8f0}
+h1{color:#38bdf8;margin:0 0 4px}.sub{color:#94a3b8;margin-bottom:16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.card{background:#1e293b;padding:14px;border-radius:8px;text-align:center}
+.card-val{font-size:1.8rem;font-weight:800;color:#38bdf8}.card-label{font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:2px}
+.card-alert .card-val{color:#f59e0b}.card-danger .card-val{color:#ef4444}.card-green .card-val{color:#22c55e}
+.section{background:#1e293b;border-radius:8px;padding:16px;margin-bottom:16px}
+.section h2{color:#38bdf8;font-size:16px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:6px 8px;color:#94a3b8;border-bottom:1px solid #334155}
+td{padding:6px 8px;border-bottom:1px solid #1e293b}tr:hover{background:#334155}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600}
+.tag-ready{background:#065f46;color:#6ee7b7}.tag-pending{background:#713f12;color:#fbbf24}.tag-filed{background:#1e3a5f;color:#93c5fd}
+.savings{color:#4ade80;font-weight:700}
+.blocker{background:#7f1d1d;border-left:3px solid #ef4444;padding:8px 12px;border-radius:4px;margin:4px 0;font-size:13px}
+a{color:#38bdf8;text-decoration:none}
+</style></head><body>
+<h1>\uD83C\uDFAF OA Command Center</h1>
+<p class="sub">Live from Supabase \u00b7 ${new Date().toLocaleString('en-US',{timeZone:'America/Chicago'})}</p>
+<div class="grid">
+<div class="card"><div class="card-val">${total}</div><div class="card-label">Total Leads</div></div>
+<div class="card card-green"><div class="card-val">${signed.length}</div><div class="card-label">Signed Clients</div></div>
+<div class="card card-green"><div class="card-val">${filingReady.length}</div><div class="card-label">Filing Ready</div></div>
+<div class="card card-green"><div class="card-val">${submitted.length}</div><div class="card-label">Filed</div></div>
+<div class="card"><div class="card-val">$${totalSavings.toLocaleString()}</div><div class="card-label">Total Savings</div></div>
+<div class="card"><div class="card-val">$${totalFees.toLocaleString()}</div><div class="card-label">Potential Fees</div></div>
+<div class="card card-danger"><div class="card-val">${paid}</div><div class="card-label">Paid</div></div>
+<div class="card card-alert"><div class="card-val">${missingNotice}</div><div class="card-label">Missing Notice</div></div>
+</div>
+<div class="section"><h2>Pipeline</h2><table>
+<tr><th>Stage</th><th>Count</th></tr>
+${Object.entries(byStatus).sort((a,b)=>b[1]-a[1]).map(([s,c])=>'<tr><td>'+s+'</td><td>'+c+'</td></tr>').join('')}
+</table></div>
+<div class="section"><h2>Top 10 Leads</h2><table>
+<tr><th>Name</th><th>County</th><th>Savings</th><th>Status</th><th>Notice</th><th>Fee Signed</th></tr>
+${hot.map(l=>'<tr><td>'+(l.owner_name||'?')+'</td><td>'+(l.county||'\u2014')+'</td><td class="savings">$'+(l.estimated_savings||0).toLocaleString()+'/yr</td><td><span class="tag tag-'+(l.status==='Filing Prepared'?'ready':l.status==='Submitted'?'filed':'pending')+'">'+(l.status||'?')+'</span></td><td>'+(l.notice_of_value?'\u2705':'\u274C')+'</td><td>'+(l.fee_agreement_signed?'\u2705':'\u2014')+'</td></tr>').join('')}
+</table></div>
+<div class="section"><h2>Blockers</h2>
+${missingNotice>0?'<div class="blocker">'+missingNotice+'/'+total+' missing Notice of Appraised Value</div>':''}
+${missingAssessed>0?'<div class="blocker">'+missingAssessed+'/'+total+' missing assessed value</div>':''}
+${missingCounty>0?'<div class="blocker">'+missingCounty+'/'+total+' missing county</div>':''}
+${paid===0?'<div class="blocker">0 initiation fees collected \u2014 '+signed.length+' signed clients unpaid</div>':''}
+</div>
+<div class="section"><h2>Email Queue</h2><p>10 queued \u00b7 <a href="/admin/emails">Review & Approve \u2192</a></p></div>
+<div class="section"><h2>Today\'s Actions</h2>
+<ol style="margin:0;padding-left:20px;font-size:13px">
+<li>Review outreach emails at <a href="/admin/emails">/admin/emails</a></li>
+<li>File protests for Jason Matthews + Shabir Rupani</li>
+<li>Collect initiation fees from ${signed.length} signed clients</li>
+<li>Request notice uploads from ${missingNotice} leads</li>
+</ol></div>
+<script>setTimeout(()=>location.reload(),60000);</script>
+</body></html>`);
+    } catch(e) { res.status(500).send('Error: '+e.message); }
+});
+
 app.get('/dashboard/leads', async (req, res) => {
     // Simple auth: ?key=oa-dash-2026
     if (req.query.key !== 'oa-dash-2026') {
