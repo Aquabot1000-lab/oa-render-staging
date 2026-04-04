@@ -959,7 +959,23 @@ async function sendNotificationEmail(subject, html, toEmail) {
     }
 }
 
+// HARD RULE: ALL customer-facing emails require Tyler's approval.
+// No auto-sends. No exceptions. Queue for review instead.
+const OA_CLIENT_EMAIL_ENABLED = false;
+const emailApprovalQueue = [];
+
 async function sendClientEmail(toEmail, subject, html) {
+    if (!OA_CLIENT_EMAIL_ENABLED) {
+        console.log(`[EMAIL BLOCKED] ⛔ Auto-send disabled. Queued for approval: "${subject}" → ${toEmail}`);
+        emailApprovalQueue.push({
+            to: toEmail,
+            subject,
+            html,
+            queuedAt: new Date().toISOString(),
+            status: 'pending_approval'
+        });
+        return { success: false, reason: 'approval_required', queued: true };
+    }
     await sendNotificationEmail(subject, html, toEmail);
 }
 
