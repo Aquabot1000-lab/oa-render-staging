@@ -13,6 +13,9 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 // RentCast analysis service
 const { runRentCastAnalysis, getComps: getRentCastComps } = require('./services/rentcast');
 
+// Real Comp Engine (no synthetic data)
+const { fetchRealComps, fetchRealCompsBatch } = require('./services/real-comp-engine');
+
 // Analysis services
 const { fetchPropertyData } = require('./services/property-data');
 const { findComparables } = require('./services/comp-engine');
@@ -5958,6 +5961,294 @@ app.post('/api/stripe/pipeline-webhook', async (req, res) => {
     }
 });
 // ===== END PIPELINE SYSTEM =====
+
+// ===== REAL COMP ENGINE =====
+
+// Fetch real comps for a single lead
+app.post('/api/comps/fetch', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id, dry_run } = req.body;
+        if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+        
+        const { data: leads, error } = await supabaseAdmin
+            .from('submissions')
+            .select('*')
+            .eq('id', lead_id)
+            .is('deleted_at', null);
+        
+        if (error || !leads?.length) return res.status(404).json({ error: 'Lead not found' });
+        const lead = leads[0];
+        
+        console.log(`[RealCompEngine] Fetching comps for: ${lead.owner_name} (${lead.property_address})`);
+        const result = await fetchRealComps(lead);
+        
+        if (!dry_run) {
+            // Write results to Supabase
+            const updateData = {
+                comp_results: {
+                    comps: result.comps,
+                    value_range: result.value_range,
+                    confidence: result.confidence,
+                    fetched_at: result.fetched_at,
+                    data_sources: result.data_sources,
+                    appraisal_analysis: result.appraisal_analysis
+                },
+                data_sources: result.data_sources,
+                estimated_savings: result.estimated_savings?.annual || 0,
+                updated_at: new Date().toISOString()
+            };
+            
+            // If insufficient data, mark for manual review
+            if (result.insufficient_data) {
+                updateData.needs_manual_review = true;
+                updateData.review_reason = `INSUFFICIENT_DATA: Only ${result.comp_count} valid comps (need 3)`;
+            }
+            
+            const { error: updateError } = await supabaseAdmin
+                .from('submissions')
+                .update(updateData)
+                .eq('id', lead_id);
+            
+            if (updateError) {
+                console.error('[RealCompEngine] Update failed:', updateError);
+                result.db_write = 'failed';
+                result.db_error = updateError.message;
+            } else {
+                result.db_write = 'success';
+            }
+        } else {
+            result.db_write = 'dry_run';
+        }
+        
+        res.json(result);
+    } catch (e) {
+        console.error('[RealCompEngine] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Fetch real comps for multiple leads (batch)
+app.post('/api/comps/batch', authenticateToken, async (req, res) => {
+    try {
+        const { lead_ids, all, dry_run, delay_ms } = req.body;
+        
+        let leads;
+        if (all) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .select('*')
+                .is('deleted_at', null)
+                .order('created_at', { ascending: true });
+            if (error) return res.status(500).json({ error: error.message });
+            leads = data;
+        } else if (lead_ids?.length) {
+            const { data, error } = await supabaseAdmin
+                .from('submissions')
+                .select('*')
+                .in('id', lead_ids)
+                .is('deleted_at', null);
+            if (error) return res.status(500).json({ error: error.message });
+            leads = data;
+        } else {
+            return res.status(400).json({ error: 'lead_ids array or all=true required' });
+        }
+        
+        console.log(`[RealCompEngine] Batch: ${leads.length} leads, dry_run=${!!dry_run}`);
+        const results = await fetchRealCompsBatch(leads, delay_ms || 2000);
+        
+        // Write results if not dry run
+        if (!dry_run) {
+            let written = 0, failed = 0;
+            for (const result of results) {
+                if (result.error) { failed++; continue; }
+                const updateData = {
+                    comp_results: {
+                        comps: result.comps,
+                        value_range: result.value_range,
+                        confidence: result.confidence,
+                        fetched_at: result.fetched_at,
+                        data_sources: result.data_sources,
+                        appraisal_analysis: result.appraisal_analysis
+                    },
+                    data_sources: result.data_sources,
+                    estimated_savings: result.estimated_savings?.annual || 0,
+                    updated_at: new Date().toISOString()
+                };
+                if (result.insufficient_data) {
+                    updateData.needs_manual_review = true;
+                    updateData.review_reason = `INSUFFICIENT_DATA: Only ${result.comp_count} valid comps (need 3)`;
+                }
+                const { error } = await supabaseAdmin
+                    .from('submissions')
+                    .update(updateData)
+                    .eq('id', result.lead_id);
+                if (error) failed++;
+                else written++;
+            }
+            res.json({ total: leads.length, results_summary: {
+                written, failed,
+                sufficient: results.filter(r => !r.insufficient_data && !r.error).length,
+                insufficient: results.filter(r => r.insufficient_data).length,
+                errors: results.filter(r => r.error).length
+            }, results });
+        } else {
+            res.json({ total: leads.length, dry_run: true, results });
+        }
+    } catch (e) {
+        console.error('[RealCompEngine] Batch error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Re-run QA after comp fetch
+app.post('/api/comps/fetch-and-qa', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id } = req.body;
+        if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+        
+        // Step 1: Fetch real comps
+        const { data: leads, error } = await supabaseAdmin
+            .from('submissions')
+            .select('*')
+            .eq('id', lead_id)
+            .is('deleted_at', null);
+        
+        if (error || !leads?.length) return res.status(404).json({ error: 'Lead not found' });
+        const lead = leads[0];
+        
+        console.log(`[RealCompEngine] Fetch+QA for: ${lead.owner_name}`);
+        const compResult = await fetchRealComps(lead);
+        
+        // Write comp results
+        await supabaseAdmin
+            .from('submissions')
+            .update({
+                comp_results: {
+                    comps: compResult.comps,
+                    value_range: compResult.value_range,
+                    confidence: compResult.confidence,
+                    fetched_at: compResult.fetched_at,
+                    data_sources: compResult.data_sources,
+                    appraisal_analysis: compResult.appraisal_analysis
+                },
+                data_sources: compResult.data_sources,
+                estimated_savings: compResult.estimated_savings?.annual || 0,
+                needs_manual_review: compResult.insufficient_data,
+                review_reason: compResult.insufficient_data ? `INSUFFICIENT_DATA: Only ${compResult.comp_count} valid comps` : null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', lead_id);
+        
+        // Step 2: Re-fetch updated lead and run QA
+        const { data: updated } = await supabaseAdmin
+            .from('submissions')
+            .select('*')
+            .eq('id', lead_id)
+            .single();
+        
+        // Run QA inline (same logic as /api/qa/run)
+        const qaResult = runQACheck(updated);
+        
+        // Write QA results
+        await supabaseAdmin
+            .from('submissions')
+            .update({
+                qa_status: qaResult.passed ? 'passed' : 'failed',
+                qa_result: qaResult,
+                qa_run_at: new Date().toISOString()
+            })
+            .eq('id', lead_id);
+        
+        res.json({
+            comp_result: compResult,
+            qa_result: qaResult,
+            lead_name: lead.owner_name,
+            qa_passed: qaResult.passed
+        });
+    } catch (e) {
+        console.error('[RealCompEngine] Fetch+QA error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// QA check helper (extracted for reuse)
+function runQACheck(lead) {
+    const errors = [];
+    const warnings = [];
+    const compChecks = [];
+    
+    if (!lead.comp_results?.comps?.length) errors.push({ field: 'comps', msg: 'No comps found' });
+    
+    const comps = lead.comp_results?.comps || [];
+    const syntheticComps = comps.filter(c => c.source === 'synthetic-estimate' || c.source === 'synthetic');
+    const realComps = comps.filter(c => c.source !== 'synthetic-estimate' && c.source !== 'synthetic');
+    
+    if (syntheticComps.length > 0) {
+        errors.push({ field: 'comps', msg: `${syntheticComps.length} of ${comps.length} comps are SYNTHETIC — all must be real` });
+    }
+    if (realComps.length < 3) {
+        errors.push({ field: 'comps', msg: `Only ${realComps.length} real comps — minimum 3 required for defensible analysis` });
+    }
+    
+    const assessed = parseFloat(String(lead.assessed_value || '0').replace(/[,$]/g, ''));
+    const savings = lead.estimated_savings;
+    if (assessed && savings) {
+        const savingsRatio = savings / assessed;
+        if (savingsRatio > 0.15) warnings.push({ field: 'savings', msg: `Savings ${(savingsRatio*100).toFixed(1)}% of assessed — unusually high` });
+    }
+    
+    if (lead.property_data?.source === 'intake-fallback') {
+        warnings.push({ field: 'property_data.source', msg: `Data from "intake-fallback" — not verified against county records` });
+    }
+    
+    for (let i = 0; i < comps.length; i++) {
+        const c = comps[i];
+        const issues = [];
+        if (!c.source || c.source === 'synthetic-estimate' || c.source === 'synthetic') {
+            issues.push(`SYNTHETIC — not a real sale`);
+        }
+        if (!c.sale_date) issues.push('Missing sale date');
+        if (!c.sale_price || c.sale_price <= 0) issues.push('Missing sale price');
+        if (!c.sqft || c.sqft <= 0) issues.push('Missing sqft');
+        if (!c.address || c.address.length < 5) issues.push('Invalid address');
+        
+        // Check for placeholder/fake addresses
+        if (c.address && /^\d{4,5}\s/.test(c.address)) {
+            const streetNum = parseInt(c.address);
+            if (streetNum > 9000 && c.source !== 'redfin-mls' && c.source !== 'rentcast-api') {
+                issues.push('Possible fabricated address (high street number)');
+            }
+        }
+        
+        compChecks.push({
+            index: i + 1,
+            address: c.address,
+            source: c.source,
+            valid: issues.length === 0,
+            issues
+        });
+    }
+    
+    return {
+        passed: errors.length === 0,
+        errors,
+        warnings,
+        compChecks,
+        summary: {
+            totalComps: comps.length,
+            realComps: realComps.length,
+            syntheticComps: syntheticComps.length,
+            validComps: compChecks.filter(c => c.valid).length,
+            assessedValue: assessed,
+            reportedSavings: savings,
+            confidence: lead.comp_results?.confidence || 'unknown',
+            dataSource: lead.property_data?.source || 'unknown'
+        },
+        runAt: new Date().toISOString()
+    };
+}
+
+// ===== END REAL COMP ENGINE =====
 
 // ===== LEAD DASHBOARD =====
 // ========== COMMAND CENTER ==========
