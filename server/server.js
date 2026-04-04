@@ -903,7 +903,25 @@ function buildTelegramLeadAlert(sub) {
 <b>Next Action (TYLER):</b> Approve outreach after analysis`;
 }
 
+// OA SMS KILL SWITCH — disabled until Twilio 10DLC fully verified
+// Error 20003 = authentication failure. Email-first for all OA customer communication.
+const OA_SMS_ENABLED = false;
+
 async function sendClientSMS(phone, message, { email, customerName, context } = {}) {
+    if (!OA_SMS_ENABLED) {
+        console.log(`[SMS] ⚠️ OA SMS disabled (kill switch). Would have sent to ${phone}. Falling back to email.`);
+        // Auto-fallback to email if available
+        if (email) {
+            try {
+                await sendClientEmail(email, 'OverAssessed Update', `<p>${message}</p>`);
+                console.log(`[SMS] ✉️ Email fallback sent to ${email}`);
+                return { success: true, fallback: 'email', to: email };
+            } catch (e) {
+                console.error(`[SMS] Email fallback also failed:`, e.message);
+            }
+        }
+        return { success: false, reason: 'sms_disabled', fallback: email ? 'email_attempted' : 'no_email' };
+    }
     // Normalize phone to E.164
     let cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) cleaned = '1' + cleaned;
@@ -1904,9 +1922,36 @@ app.post('/api/simple-lead', async (req, res) => {
         else if (addrLower.includes('austin')) county = 'Travis';
         else if (addrLower.includes('fort worth')) county = 'Tarrant';
 
+        // === DEDUPE CHECK ===
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedAddress = property_address.trim().replace(/\s+/g, ' ').replace(/,\s*/g, ', ');
+        
+        // Check for existing submission with same email in last 24 hours
+        const { data: existingByEmail } = await supabaseAdmin
+            .from('submissions')
+            .select('case_id, property_address, email, created_at, status')
+            .eq('email', normalizedEmail)
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .neq('status', 'Duplicate')
+            .limit(1);
+        
+        if (existingByEmail && existingByEmail.length > 0) {
+            const existing = existingByEmail[0];
+            console.log(`[SIMPLE LEAD] ⚠️ DEDUPE: ${normalizedEmail} already submitted as ${existing.case_id} (${existing.property_address})`);
+            // Update existing case with better address if this one has more detail
+            if (normalizedAddress.length > (existing.property_address || '').length) {
+                await supabaseAdmin
+                    .from('submissions')
+                    .update({ property_address: normalizedAddress, county: county || undefined, state: state || undefined })
+                    .eq('case_id', existing.case_id);
+                console.log(`[SIMPLE LEAD] Updated ${existing.case_id} with better address: ${normalizedAddress}`);
+            }
+            return res.json({ success: true, caseId: existing.case_id, message: 'Existing case found', deduplicated: true });
+        }
+
         const insertData = {
-            property_address,
-            email: email.trim().toLowerCase(),
+            property_address: normalizedAddress,
+            email: normalizedEmail,
             source: source || 'simple-form',
             state,
             county,
