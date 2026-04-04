@@ -875,8 +875,33 @@ registerAdapter('harris', {
 /**
  * Detect county from address (default: Bexar)
  */
-function detectCounty(address) {
+function detectCounty(address, state) {
     const addr = (address || '').toLowerCase();
+    const st = (state || '').toUpperCase();
+    
+    // WA state detection
+    if (st === 'WA' || addr.includes(', wa') || addr.includes('washington')) {
+        if (addr.includes('kenmore') || addr.includes('seattle') || addr.includes('bellevue') || addr.includes('redmond') || addr.includes('kirkland') || addr.includes('renton') || addr.includes('bothell') || addr.includes('woodinville') || addr.includes('sammamish') || addr.includes('issaquah') || addr.includes('mercer island') || addr.includes('shoreline') || addr.includes('burien') || addr.includes('tukwila') || addr.includes('seatac') || addr.includes('king')) return 'king';
+        if (addr.includes('tacoma') || addr.includes('puyallup') || addr.includes('lakewood') || addr.includes('bonney lake') || addr.includes('pierce')) return 'pierce';
+        return 'king'; // Default WA to King County
+    }
+    // GA state detection
+    if (st === 'GA' || addr.includes(', ga') || addr.includes('georgia')) {
+        if (addr.includes('atlanta') || addr.includes('fulton') || addr.includes('sandy springs') || addr.includes('roswell') || addr.includes('alpharetta') || addr.includes('johns creek') || addr.includes('milton')) return 'fulton';
+        if (addr.includes('decatur') || addr.includes('dekalb') || addr.includes('stone mountain') || addr.includes('dunwoody') || addr.includes('brookhaven') || addr.includes('tucker')) return 'dekalb';
+        return 'fulton'; // Default GA to Fulton County
+    }
+    // CO state detection  
+    if (st === 'CO' || addr.includes(', co') || addr.includes('colorado')) {
+        if (addr.includes('denver')) return 'denver';
+        if (addr.includes('el paso') || addr.includes('colorado springs')) return 'el-paso';
+        return 'denver'; // Default CO to Denver
+    }
+    // AZ state detection
+    if (st === 'AZ' || addr.includes(', az') || addr.includes('arizona')) {
+        if (addr.includes('phoenix') || addr.includes('scottsdale') || addr.includes('tempe') || addr.includes('mesa') || addr.includes('chandler') || addr.includes('glendale') || addr.includes('maricopa')) return 'maricopa';
+        return 'maricopa'; // Default AZ to Maricopa
+    }
     if (addr.includes('houston') || addr.includes('harris')) return 'harris';
     if (addr.includes('austin') || addr.includes('travis') || addr.includes('pflugerville') || addr.includes('round rock') || addr.includes('cedar park')) return 'travis';
     if (addr.includes('fort bend') || addr.includes('richmond') || addr.includes('sugar land') || addr.includes('sugarland') || addr.includes('katy') || addr.includes('missouri city') || addr.includes('rosenberg') || addr.includes('stafford') || addr.includes('fulshear')) return 'fort bend';
@@ -900,7 +925,9 @@ function detectCounty(address) {
  * Fetch property data for a case
  */
 async function fetchPropertyData(caseData) {
-    const county = detectCounty(caseData.propertyAddress);
+    // Use explicit county from caseData if available, otherwise detect from address
+    let county = caseData.county ? caseData.county.toLowerCase().replace(' county', '').trim() : null;
+    if (!county) county = detectCounty(caseData.propertyAddress, caseData.state);
     const adapter = getAdapter(county);
     if (!adapter) throw new Error(`No adapter for county: ${county}`);
 
