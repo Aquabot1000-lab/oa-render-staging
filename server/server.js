@@ -2957,9 +2957,20 @@ async function runFullAnalysis(caseId) {
     submissions[idx].updatedAt = new Date().toISOString();
     await saveProgress();
 
-    // Step 1: Fetch property data
-    console.log(`[Analysis] Step 1: Fetching property data...`);
-    const propertyData = await fetchPropertyData(sub);
+    // Step 1: Fetch property data (use stored client-provided data if available)
+    let propertyData;
+    const existingPD = sub.propertyData || sub.property_data;
+    const hasClientData = existingPD && typeof existingPD === 'object' 
+        && existingPD.source && existingPD.source.startsWith('client-notice')
+        && existingPD.assessedValue > 0;
+    
+    if (hasClientData) {
+        console.log(`[Analysis] Step 1: Using client-provided data (${existingPD.source}), assessed: $${existingPD.assessedValue}`);
+        propertyData = existingPD;
+    } else {
+        console.log(`[Analysis] Step 1: Fetching property data...`);
+        propertyData = await fetchPropertyData(sub);
+    }
     submissions[idx].propertyData = propertyData;
     await saveProgress();
 
