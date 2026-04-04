@@ -3560,25 +3560,42 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
 // ==================== PIPELINE STATS ====================
 app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
     try {
-        const submissions = await readAllSubmissions();
+        const allSubmissions = await readAllSubmissions();
+        // Exclude benchmark/test data from pipeline stats
+        const submissions = allSubmissions.filter(s => 
+            s.source !== 'stephen-benchmark' && 
+            !(s.email && (s.email.includes('benchmark@') || s.email.includes('test@')))
+        );
+        
         const statuses = ['New', 'Analysis Complete', 'Form Signed', 'Protest Filed', 'Hearing Scheduled', 'Resolved'];
         const pipeline = {};
         statuses.forEach(s => pipeline[s] = 0);
-        // Count statuses - normalize "Signed" → "Form Signed" for pipeline
-        const statusMap = { 'Signed': 'Form Signed', 'New Submission': 'New' };
+        // Normalize status names for pipeline display
+        const statusMap = { 
+            'Signed': 'Form Signed', 
+            'New Submission': 'New',
+            'Analyzed': 'Analysis Complete',
+            'Contacted': 'Analysis Complete',
+            'Needs Data': 'New',
+            'Partial Analysis': 'New',
+            'Filing Prepared': 'Protest Filed',
+            'Submitted': 'Protest Filed'
+        };
         submissions.forEach(s => {
+            if (s.status === 'Deleted') return; // Skip deleted
             const mapped = statusMap[s.status] || s.status;
             if (pipeline[mapped] !== undefined) {
                 pipeline[mapped]++;
             } else if (pipeline[s.status] !== undefined) {
                 pipeline[s.status]++;
             } else {
-                pipeline[s.status] = (pipeline[s.status] || 0) + 1;
+                // Unmapped status — count under New
+                pipeline['New'] = (pipeline['New'] || 0) + 1;
             }
         });
 
         const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0);
-        const totalFees = Math.round(totalEstimatedSavings * 0.25);
+        const totalFees = Math.round(totalEstimatedSavings * 0.20); // 20% fee structure
         const signed = submissions.filter(s => s.signature).length;
         const notices = submissions.filter(s => s.noticeOfValue).length;
 
@@ -3645,6 +3662,11 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
 app.get('/api/submissions', authenticateToken, async (req, res) => {
     try {
         let submissions = await readAllSubmissions();
+        // Exclude benchmark/test data from admin view
+        submissions = submissions.filter(s => 
+            s.source !== 'stephen-benchmark' && 
+            !(s.email && (s.email.includes('benchmark@') || s.email.includes('test@')))
+        );
         const stateFilter = req.query.state;
         if (stateFilter && stateFilter !== 'all') {
             submissions = submissions.filter(s => (s.state || 'TX') === stateFilter.toUpperCase());
