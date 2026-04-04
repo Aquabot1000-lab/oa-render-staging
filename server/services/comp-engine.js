@@ -294,10 +294,11 @@ async function findComparables(subject, caseData) {
     console.log(`[CompEngine] ${scored.length} comps scored and ranked`);
 
     // ─── MARKET VALUE ANALYSIS ──────────────────────────────────────
+    const safeAssessed = subject.assessedValue || 0;
     // Bug 2 fix: Select best comps by SCORE (similarity) first, not lowest value
     // Among high-score comps, prefer ones that support a lower value
     const bestComps = scored
-        .filter(c => c.adjustedValue < subject.assessedValue)
+        .filter(c => c.adjustedValue < safeAssessed || safeAssessed === 0)
         .sort((a, b) => {
             // Primary: highest quality/similarity score
             if (b.score !== a.score) return b.score - a.score;
@@ -342,13 +343,13 @@ async function findComparables(subject, caseData) {
 
     // Calculate recommended protest value (market value approach)
     let { recommendedValue: mvRecommendedValue, methodology: mvMethodology } = calculateRecommendedValue(subject, bestComps);
-    const taxRate = COUNTY_TAX_RATES[county] || COUNTY_TAX_RATES[county.toLowerCase()] || 0.025;
+    const taxRate = COUNTY_TAX_RATES[county] || COUNTY_TAX_RATES[(county || '').toLowerCase()] || 0.025;
 
     // Issue 1 fix: If MV recommended > assessed, property is fairly valued — cap at assessed (0% reduction)
-    if (mvRecommendedValue > subject.assessedValue) {
-        mvRecommendedValue = subject.assessedValue;
+    if (mvRecommendedValue > safeAssessed) {
+        mvRecommendedValue = safeAssessed;
     }
-    const mvReduction = Math.max(0, subject.assessedValue - mvRecommendedValue);
+    const mvReduction = Math.max(0, safeAssessed - (mvRecommendedValue || 0));
     const mvSavings = Math.max(0, Math.round(mvReduction * taxRate));
 
     // ─── EQUAL & UNIFORM ANALYSIS (PSF-based) ──────────────────────
@@ -479,8 +480,8 @@ async function findComparables(subject, caseData) {
     }
 
     // Issue 1 fix: Final safety — recommended value must never exceed assessed
-    if (recommendedValue > subject.assessedValue) {
-        recommendedValue = subject.assessedValue;
+    if (recommendedValue > safeAssessed) {
+        recommendedValue = safeAssessed;
         reduction = 0;
         estimatedSavings = 0;
     }
@@ -503,7 +504,8 @@ async function findComparables(subject, caseData) {
 
     // ─── V2: VERIFICATION TAG ───────────────────────────────────────
     const hasSyntheticComps = bestComps.some(c => c._synthetic || c.source === 'synthetic-estimate');
-    const verificationTag = usedRealData ? 'verified' : (hasSyntheticComps ? 'preliminary' : 'verified');
+    const hasRealComps = bestComps.some(c => c.source && c.source !== 'synthetic-estimate' && !c._synthetic);
+    const verificationTag = (usedRealData || hasRealComps) ? 'verified' : 'preliminary';
 
     // ─── V2: CONSERVATIVE + AGGRESSIVE VALUES ───────────────────────
     const sortedCompValues = bestComps.map(c => c.adjustedValue || c.assessedValue).sort((a,b) => a - b);
@@ -513,8 +515,9 @@ async function findComparables(subject, caseData) {
     const aggressiveValue = sortedCompValues.length > 0 
         ? sortedCompValues[0] 
         : recommendedValue;
-    const conservativeReduction = Math.max(0, subject.assessedValue - conservativeValue);
-    const aggressiveReduction = Math.max(0, subject.assessedValue - aggressiveValue);
+    const subjectAssessed = subject.assessedValue || 0;
+    const conservativeReduction = Math.max(0, subjectAssessed - conservativeValue);
+    const aggressiveReduction = Math.max(0, subjectAssessed - aggressiveValue);
     const conservativeSavings = Math.round(conservativeReduction * taxRate);
     const aggressiveSavings = Math.round(aggressiveReduction * taxRate);
 
@@ -528,8 +531,8 @@ async function findComparables(subject, caseData) {
         conservativeSavings,
         aggressiveSavings,
         positioningSummary: verificationTag === 'verified'
-            ? `Based on ${bestComps.length} verified comps, protest target $${recommendedValue.toLocaleString()} (reduction $${reduction.toLocaleString()}, savings ~$${estimatedSavings.toLocaleString()}/yr)`
-            : `Preliminary estimate based on market modeling. ${bestComps.length} comps suggest value range $${aggressiveValue.toLocaleString()}-$${conservativeValue.toLocaleString()}. Pending verification with county data.`,
+            ? `Based on ${bestComps.length} verified comps, protest target $${(recommendedValue || 0).toLocaleString()} (reduction $${(reduction || 0).toLocaleString()}, savings ~$${(estimatedSavings || 0).toLocaleString()}/yr)`
+            : `Preliminary estimate based on market modeling. ${bestComps.length} comps suggest value range $${(aggressiveValue || 0).toLocaleString()}-$${(conservativeValue || 0).toLocaleString()}. Pending verification with county data.`,
 
         // Primary recommendation (whichever strategy is better)
         comps: bestComps.slice(0, MAX_EVIDENCE_COMPS),
@@ -759,6 +762,8 @@ function scoreComp(subject, comp) {
         condition: comp.condition,
         quality: comp.quality,
         salePrice: comp.salePrice,
+        source: comp.source,
+        _synthetic: comp._synthetic || false,
         score: Math.max(0, Math.min(100, score)),
         adjustments: details,
         adjustmentBreakdown,
