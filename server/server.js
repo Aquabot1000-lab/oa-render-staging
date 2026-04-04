@@ -5032,6 +5032,85 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
 }
 // ===== END TWILIO VOICE =====
 
+// ===== LEAD DASHBOARD =====
+app.get('/dashboard/leads', async (req, res) => {
+    // Simple auth: ?key=oa-dash-2026
+    if (req.query.key !== 'oa-dash-2026') {
+        return res.status(401).send('Unauthorized. Add ?key=oa-dash-2026');
+    }
+    
+    try {
+        const { data: leads, error } = await supabaseAdmin
+            .from('submissions')
+            .select('case_id,email,owner_name,property_address,phone,state,county,status,drip_state,estimated_savings,created_at,updated_at')
+            .eq('source', 'simple-form')
+            .order('created_at', { ascending: false })
+            .limit(100);
+        
+        if (error) throw error;
+        
+        const rows = (leads || []).map(l => {
+            const ds = l.drip_state || {};
+            const savings = ds.estimatedSavings || l.estimated_savings || null;
+            const assessed = ds.assessedValue || null;
+            const recommended = ds.recommendedValue || null;
+            const priority = savings && savings > 1000 ? '🔴 HIGH' : savings && savings > 500 ? '🟡 MED' : savings ? '🟢 LOW' : '⭕ UNSCORED';
+            return { ...l, savings, assessed, recommended, priority, assignee: ds.assignee || 'Unassigned', analyzed: !!ds.analysisComplete };
+        }).sort((a, b) => (b.savings || 0) - (a.savings || 0));
+        
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OA Lead Dashboard</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:20px;background:#0f172a;color:#e2e8f0}
+  h1{color:#38bdf8;margin-bottom:4px}
+  .sub{color:#94a3b8;margin-bottom:20px}
+  table{width:100%;border-collapse:collapse;font-size:0.85rem}
+  th{background:#1e293b;padding:10px 8px;text-align:left;color:#38bdf8;position:sticky;top:0}
+  td{padding:8px;border-bottom:1px solid #1e293b}
+  tr:hover{background:#1e293b}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600}
+  .analyzed{background:#065f46;color:#6ee7b7}
+  .needs-docs{background:#713f12;color:#fbbf24}
+  .contacted{background:#1e3a5f;color:#93c5fd}
+  .new{background:#4a1942;color:#f0abfc}
+  .savings{color:#4ade80;font-weight:700}
+  .stats{display:flex;gap:16px;margin-bottom:20px}
+  .stat{background:#1e293b;padding:12px 20px;border-radius:8px;text-align:center}
+  .stat-val{font-size:1.5rem;font-weight:700;color:#38bdf8}
+  .stat-label{font-size:0.75rem;color:#94a3b8}
+</style></head><body>
+<h1>🎯 OA Lead Dashboard</h1>
+<p class="sub">/simple funnel leads — sorted by highest savings</p>
+<div class="stats">
+  <div class="stat"><div class="stat-val">${rows.length}</div><div class="stat-label">Total Leads</div></div>
+  <div class="stat"><div class="stat-val">${rows.filter(r=>r.analyzed).length}</div><div class="stat-label">Analyzed</div></div>
+  <div class="stat"><div class="stat-val">${rows.filter(r=>r.status==='Needs Data').length}</div><div class="stat-label">Needs Docs</div></div>
+  <div class="stat"><div class="stat-val">${rows.filter(r=>r.phone).length}</div><div class="stat-label">Has Phone</div></div>
+  <div class="stat"><div class="stat-val">$${rows.reduce((s,r)=>s+(r.savings||0),0).toLocaleString()}</div><div class="stat-label">Total Savings</div></div>
+</div>
+<table>
+<tr><th>Case</th><th>Priority</th><th>Name / Email</th><th>Address</th><th>State</th><th>Savings</th><th>Assessed</th><th>Status</th><th>Assignee</th><th>Submitted</th></tr>
+${rows.map(r => `<tr>
+  <td>${r.case_id}</td>
+  <td>${r.priority}</td>
+  <td>${r.owner_name !== 'Simple Form Lead' ? r.owner_name + '<br>' : ''}${r.email}${r.phone ? '<br>📞 '+r.phone : ''}</td>
+  <td>${r.property_address}</td>
+  <td>${r.state || '?'}</td>
+  <td class="savings">${r.savings ? '$'+r.savings.toLocaleString()+'/yr' : '—'}</td>
+  <td>${r.assessed ? '$'+r.assessed.toLocaleString() : '—'}</td>
+  <td><span class="tag ${(r.status||'').toLowerCase().replace(/\s/g,'-')}">${r.status || 'New'}</span></td>
+  <td>${r.assignee}</td>
+  <td>${new Date(r.created_at).toLocaleString('en-US',{timeZone:'America/Chicago',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>
+</tr>`).join('')}
+</table>
+</body></html>`;
+        
+        res.send(html);
+    } catch (err) {
+        console.error('[Dashboard] Error:', err.message);
+        res.status(500).send('Dashboard error: ' + err.message);
+    }
+});
 
 app.listen(PORT, async () => {
         console.log(`🚀 OverAssessed running on port ${PORT}`);
