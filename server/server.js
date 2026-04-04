@@ -5407,14 +5407,30 @@ const PIPELINE_RULES = {
         if (!lead.property_address) errors.push('Missing property address');
         const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
         if (!av) errors.push('Missing assessed value');
+        // QA GATE: must pass QA before preview
+        if (lead.qa_status !== 'passed') errors.push('QA not passed — no preview without verified data');
         return errors;
     },
     'Verified': (lead) => {
         const errors = [];
+        // QA HARD GATE — nothing proceeds without QA pass
+        if (lead.qa_status !== 'passed') errors.push('QA GATE: analysis has not passed quality assurance');
         if (lead.verification_status !== 'verified') errors.push('verification_status must be "verified"');
         if (!lead.comp_results?.comps?.length) errors.push('No comps found');
-        const hasRealComps = lead.comp_results?.comps?.some(c => c.source !== 'synthetic-estimate');
-        if (!hasRealComps) errors.push('All comps are synthetic — need real sales data');
+        // Check EVERY comp is real — zero synthetic tolerance
+        const comps = lead.comp_results?.comps || [];
+        const syntheticComps = comps.filter(c => c.source === 'synthetic-estimate' || c.source === 'synthetic');
+        if (syntheticComps.length > 0) errors.push(`${syntheticComps.length} synthetic comps detected — ALL comps must be from real sources`);
+        const hasRealComps = comps.some(c => c.source !== 'synthetic-estimate' && c.source !== 'synthetic');
+        if (!hasRealComps && comps.length > 0) errors.push('Zero real comps — need county records or MLS data');
+        // Validate each comp has required fields
+        comps.forEach((c, i) => {
+            if (!c.address) errors.push(`Comp ${i+1}: missing address`);
+            if (!c.salePrice && !c.baseValue) errors.push(`Comp ${i+1}: missing sale price`);
+            if (!c.saleDate && !c.soldDate) errors.push(`Comp ${i+1}: missing sale date`);
+            if (!c.sqft) errors.push(`Comp ${i+1}: missing sqft`);
+            if (!c.source || c.source === 'synthetic-estimate') errors.push(`Comp ${i+1}: invalid source "${c.source}"`);
+        });
         if (!lead.estimated_savings || lead.estimated_savings <= 0) errors.push('No savings calculated');
         if (!lead.county) errors.push('Missing county');
         const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
@@ -5729,6 +5745,193 @@ app.get('/api/previews/batch', authenticateToken, async (req, res) => {
     }
 });
 // ===== END PREVIEW SYSTEM =====
+
+// ===== QA AGENT =====
+// Hard gate: validates ALL data before anything proceeds
+app.post('/api/qa/run', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id } = req.body;
+        if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+
+        const { data: lead, error } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+        if (error || !lead) return res.status(404).json({ error: 'Lead not found' });
+
+        const errors = [];
+        const warnings = [];
+        const compChecks = [];
+
+        // 1. Assessed value validation
+        const av = parseInt(String(lead.assessed_value || '0').replace(/[\$,]/g, ''));
+        if (!av) errors.push({ field: 'assessed_value', msg: 'Missing or zero assessed value' });
+
+        // 2. Property data source check
+        const propSource = lead.property_data?.source || 'unknown';
+        if (propSource === 'intake-fallback') {
+            warnings.push({ field: 'property_data.source', msg: `Data from "${propSource}" — not verified against county records` });
+        }
+
+        // 3. COMP VALIDATION — zero synthetic tolerance
+        const comps = lead.comp_results?.comps || [];
+        if (comps.length === 0) {
+            errors.push({ field: 'comps', msg: 'No comparable properties found' });
+        }
+
+        let realCompCount = 0;
+        let syntheticCount = 0;
+        comps.forEach((c, i) => {
+            const check = { index: i + 1, address: c.address || '?', source: c.source || '?', issues: [] };
+
+            // Source check
+            if (!c.source || c.source === 'synthetic-estimate' || c.source === 'synthetic') {
+                check.issues.push('SYNTHETIC — not a real sale');
+                syntheticCount++;
+            } else {
+                realCompCount++;
+            }
+
+            // Required fields
+            if (!c.address) check.issues.push('Missing address');
+            if (!c.salePrice && !c.baseValue) check.issues.push('Missing sale price');
+            if (!c.saleDate && !c.soldDate) check.issues.push('Missing sale date');
+            if (!c.sqft || c.sqft <= 0) check.issues.push('Missing or invalid sqft');
+
+            // Distance check
+            if (c.distance && c.distance > 5) {
+                check.issues.push(`Distance ${c.distance}mi — may be too far for reliable comp`);
+            }
+
+            // Age check (sale date)
+            const saleDate = c.saleDate || c.soldDate;
+            if (saleDate) {
+                const monthsAgo = (Date.now() - new Date(saleDate).getTime()) / (1000 * 60 * 60 * 24 * 30);
+                if (monthsAgo > 24) check.issues.push(`Sale date ${saleDate} — over 24 months old`);
+            }
+
+            check.valid = check.issues.length === 0;
+            compChecks.push(check);
+        });
+
+        if (syntheticCount > 0) {
+            errors.push({ field: 'comps', msg: `${syntheticCount} of ${comps.length} comps are SYNTHETIC — all must be real` });
+        }
+        if (realCompCount < 3 && comps.length > 0) {
+            errors.push({ field: 'comps', msg: `Only ${realCompCount} real comps — minimum 3 required for defensible analysis` });
+        }
+
+        // 4. Savings math validation
+        if (realCompCount >= 3 && av > 0) {
+            const realComps = comps.filter(c => c.source !== 'synthetic-estimate' && c.source !== 'synthetic');
+            const avgCompVal = realComps.reduce((s, c) => s + (c.salePrice || c.baseValue || 0), 0) / realComps.length;
+            const taxRate = lead.analysis_report?.taxRate || lead.comp_results?.taxRate || 0.0225;
+            const impliedSavings = Math.round((av - avgCompVal) * taxRate);
+            const reportedSavings = lead.estimated_savings || 0;
+
+            if (impliedSavings <= 0) {
+                errors.push({ field: 'savings', msg: `Implied savings is $${impliedSavings} — comps don't support a reduction` });
+            } else if (reportedSavings > impliedSavings * 1.5) {
+                errors.push({ field: 'savings', msg: `Reported savings $${reportedSavings} is ${Math.round(reportedSavings/impliedSavings*100)/100}x the implied savings of $${impliedSavings}` });
+            }
+        }
+
+        // 5. Required fields
+        if (!lead.county) errors.push({ field: 'county', msg: 'Missing county' });
+        if (!lead.property_address) errors.push({ field: 'property_address', msg: 'Missing property address' });
+        if (!lead.state) errors.push({ field: 'state', msg: 'Missing state' });
+
+        // VERDICT
+        const passed = errors.length === 0;
+        const qaResult = {
+            passed,
+            errors,
+            warnings,
+            compChecks,
+            summary: {
+                totalComps: comps.length,
+                realComps: realCompCount,
+                syntheticComps: syntheticCount,
+                validComps: compChecks.filter(c => c.valid).length,
+                assessedValue: av,
+                reportedSavings: lead.estimated_savings,
+                dataSource: propSource
+            },
+            runAt: new Date().toISOString()
+        };
+
+        // Update lead in Supabase
+        await supabaseAdmin.from('submissions').update({
+            qa_status: passed ? 'passed' : 'failed',
+            qa_result: qaResult,
+            qa_run_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }).eq('id', lead_id);
+
+        res.json({
+            lead_id,
+            lead_name: lead.owner_name,
+            case_id: lead.case_id,
+            qa_status: passed ? 'passed' : 'failed',
+            ...qaResult
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// QA: batch run on all active leads
+app.post('/api/qa/batch', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads, error } = await supabaseAdmin.from('submissions')
+            .select('id,owner_name,case_id').is('deleted_at', null);
+        if (error) return res.status(500).json({ error: error.message });
+
+        // We'll just mark the status — actual QA runs per-lead
+        const results = [];
+        for (const lead of leads) {
+            // Fetch full lead
+            const { data: full } = await supabaseAdmin.from('submissions').select('*').eq('id', lead.id).single();
+            if (!full) continue;
+
+            const comps = full.comp_results?.comps || [];
+            const synth = comps.filter(c => c.source === 'synthetic-estimate' || c.source === 'synthetic').length;
+            const real = comps.length - synth;
+            const av = parseInt(String(full.assessed_value || '0').replace(/[\$,]/g, ''));
+
+            let status = 'failed';
+            const issues = [];
+            if (comps.length === 0) issues.push('no comps');
+            if (synth > 0) issues.push(`${synth} synthetic comps`);
+            if (real < 3) issues.push(`only ${real} real comps`);
+            if (!av) issues.push('no assessed value');
+            if (!full.county) issues.push('no county');
+            if (issues.length === 0) status = 'passed';
+
+            await supabaseAdmin.from('submissions').update({
+                qa_status: status,
+                qa_run_at: new Date().toISOString()
+            }).eq('id', lead.id);
+
+            results.push({
+                name: full.owner_name,
+                case_id: full.case_id,
+                qa_status: status,
+                issues: issues.length > 0 ? issues : ['all checks passed']
+            });
+        }
+
+        const passed = results.filter(r => r.qa_status === 'passed').length;
+        const failed = results.filter(r => r.qa_status === 'failed').length;
+
+        res.json({
+            total: results.length,
+            passed,
+            failed,
+            results
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+// ===== END QA AGENT =====
 
 // Pipeline: Stripe webhook handler for payment_status
 // NO AUTH — Stripe webhooks can't send tokens
