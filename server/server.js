@@ -4886,8 +4886,9 @@ Object.entries(STATE_REDIRECTS).forEach(([path, state]) => {
     });
 });
 
-// Catch-all: serve frontend
-app.get('{*path}', (req, res) => {
+// Catch-all: serve frontend (skip /admin/* and /api/* routes)
+app.get('{*path}', (req, res, next) => {
+    if (req.path.startsWith('/admin/') || req.path.startsWith('/api/')) return next();
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
