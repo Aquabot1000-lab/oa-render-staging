@@ -2513,7 +2513,14 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 bedrooms, bathrooms, sqft, yearBuilt, renovations, renovationDesc, conditionIssues, conditionDesc, recentAppraisal, appraisedValue, appraisalDate,
                 stripeCustomerId, stripePaymentMethodId } = req.body;
         if (!propertyAddress || !propertyType || !ownerName || !phone || !email) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({ error: 'Missing required fields: propertyAddress, propertyType, ownerName, phone, email' });
+        }
+        // SECTION 7: assessed_value and county now required
+        if (!assessedValue) {
+            return res.status(400).json({ error: 'Assessed value is required. Check your county appraisal district notice.', field: 'assessedValue' });
+        }
+        if (!county) {
+            return res.status(400).json({ error: 'County is required to process your protest.', field: 'county' });
         }
 
         // === Input validation & auto-correction ===
