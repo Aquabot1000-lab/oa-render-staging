@@ -5579,8 +5579,8 @@ app.get('/api/pipeline/audit', authenticateToken, async (req, res) => {
 });
 
 // Pipeline: Stripe webhook handler for payment_status
-// (Supplements existing webhook — updates pipeline fields)
-app.post('/api/pipeline/stripe-webhook', async (req, res) => {
+// NO AUTH — Stripe webhooks can't send tokens
+app.post('/api/stripe/pipeline-webhook', async (req, res) => {
     try {
         const event = req.body;
         if (event.type === 'checkout.session.completed') {
