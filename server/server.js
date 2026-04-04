@@ -6220,6 +6220,24 @@ function runQACheck(lead) {
             }
         }
         
+        // Check sqft match to subject (if available)
+        const subjectSqft = lead.sqft || lead.property_data?.sqft;
+        if (subjectSqft && c.sqft) {
+            const ratio = c.sqft / subjectSqft;
+            if (ratio < 0.60 || ratio > 1.50) {
+                issues.push(`SqFt mismatch: comp ${c.sqft} vs subject ${subjectSqft} (${Math.round(ratio*100)}%)`);
+            }
+        }
+        
+        // Check price reasonableness vs assessed
+        const subjectAssessed = parseFloat(String(lead.assessed_value || '0').replace(/[,$]/g, ''));
+        if (subjectAssessed && c.sale_price) {
+            const priceRatio = c.sale_price / subjectAssessed;
+            if (priceRatio < 0.15 || priceRatio > 5) {
+                issues.push(`Price mismatch: comp $${c.sale_price?.toLocaleString()} vs assessed $${subjectAssessed.toLocaleString()}`);
+            }
+        }
+        
         compChecks.push({
             index: i + 1,
             address: c.address,

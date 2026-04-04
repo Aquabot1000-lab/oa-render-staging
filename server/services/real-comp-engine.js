@@ -312,12 +312,27 @@ function parseCSVLine(line) {
 
 // ── VALIDATION ─────────────────────────────────────────────
 
-function validateComp(comp) {
+function validateComp(comp, subject) {
     if (!comp.address || comp.address === 'N/A' || comp.address.trim().length < 5) return false;
     if (!comp.sale_price || comp.sale_price <= 0) return false;
     if (!comp.sqft || comp.sqft <= 0) return false;
     if (!comp.source) return false;
-    // sale_date can be null for some sources but we'll flag it
+    
+    // If subject sqft provided, reject comps outside ±30%
+    if (subject && subject.sqft > 0) {
+        const sqftRatio = comp.sqft / subject.sqft;
+        if (sqftRatio < 0.60 || sqftRatio > 1.50) return false;
+    }
+    
+    // If subject price provided, reject wildly different prices (>5x or <0.1x)
+    if (subject && subject.assessedValue > 0) {
+        const priceRatio = comp.sale_price / subject.assessedValue;
+        if (priceRatio < 0.15 || priceRatio > 5) return false;
+    }
+    
+    // Reject comps with distance > 10 miles
+    if (comp.distance !== null && comp.distance !== undefined && comp.distance > 10) return false;
+    
     return true;
 }
 
@@ -495,12 +510,36 @@ async function fetchRealComps(lead) {
         dataSources.push({ source: 'redfin-mls', type: 'comparable-sales', comps_found: 0, reason: 'geocode-failed' });
     }
     
-    // ── STEP 4: Deduplicate & score ──
+    // ── STEP 4: Deduplicate, filter, & score ──
     const dedupedComps = deduplicateComps(allComps);
     log.push(`[DEDUP] ${allComps.length} raw → ${dedupedComps.length} unique comps`);
     
+    // Hard filter: reject comps outside ±30% sqft and wildly different price
+    const filteredComps = dedupedComps.filter(c => {
+        if (sqft > 0) {
+            const ratio = c.sqft / sqft;
+            if (ratio < 0.60 || ratio > 1.50) {
+                log.push(`[FILTER] Rejected ${c.address}: ${c.sqft}sqft is outside ±40% of subject ${sqft}sqft`);
+                return false;
+            }
+        }
+        if (assessedValue > 0) {
+            const priceRatio = c.sale_price / assessedValue;
+            if (priceRatio < 0.15 || priceRatio > 5) {
+                log.push(`[FILTER] Rejected ${c.address}: $${c.sale_price.toLocaleString()} is wildly different from assessed $${assessedValue.toLocaleString()}`);
+                return false;
+            }
+        }
+        if (c.distance !== null && c.distance !== undefined && c.distance > 5) {
+            log.push(`[FILTER] Rejected ${c.address}: ${c.distance.toFixed(1)} miles away (max 5)`);
+            return false;
+        }
+        return true;
+    });
+    log.push(`[FILTER] ${dedupedComps.length} → ${filteredComps.length} after quality filter`);
+    
     // Score and sort
-    const scoredComps = dedupedComps.map(c => ({
+    const scoredComps = filteredComps.map(c => ({
         ...c,
         comp_score: scoreComp(c, subject),
         ppsf: c.ppsf || (c.sale_price && c.sqft ? Math.round(c.sale_price / c.sqft) : null)
