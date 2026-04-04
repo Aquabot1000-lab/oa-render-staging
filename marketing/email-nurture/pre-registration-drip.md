@@ -136,7 +136,7 @@ HOW IT WORKS:
 1. We monitor your property's proposed value
 2. We build a custom evidence packet using AI + expert analysis
 3. We file your protest and handle the hearing
-4. You only pay 20% of what we save you — nothing upfront, ever
+4. You only pay 25% of what we save you — nothing upfront, ever
 
 No savings? No charge. That's our guarantee.
 
@@ -465,7 +465,7 @@ ONE THING WE NEED: Complete your signup so we can file on your behalf. Takes 2 m
 
 Complete Your Signup: https://overassessed.ai/signup?ref=drip5
 
-REMEMBER: You pay nothing upfront. 20% of savings. No reduction = no charge.
+REMEMBER: You pay nothing upfront. 25% of savings. No reduction = no charge.
 
 Deadline: May 15. Don't leave money on the table.
 

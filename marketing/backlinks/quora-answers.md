@@ -108,7 +108,7 @@ This is one of the most common questions Texas homeowners ask, and the honest an
 
 **Is it worth the cost?** Most reputable firms in Texas work on contingency — typically 20–40% of first-year savings. So if they save you $1,000 in taxes, you pay $200–$400. If they save you nothing, you pay nothing. That's a pretty good deal.
 
-I'd recommend looking at firms like OverAssessed (overassessed.ai) that operate on a straightforward 20% contingency with no upfront fees. The risk is essentially zero — either you save money or you don't pay anything.
+I'd recommend looking at firms like OverAssessed (overassessed.ai) that operate on a straightforward 25% contingency with no upfront fees. The risk is essentially zero — either you save money or you don't pay anything.
 
 For homeowners with very simple situations (condo, cookie-cutter subdivision with lots of identical comps), DIY can work fine. For anything more complex — custom homes, large lots, unusual properties, multiple parcels — a professional firm will almost certainly get you a better result.
 
@@ -143,7 +143,7 @@ Take the difference between your current assessed value and what you think it sh
 **Check #4: Consider the time investment.**
 Filing a protest takes 1–2 hours. Preparing evidence takes another 2–4 hours if you're doing it yourself. The hearing itself is usually 15–30 minutes. For potential savings of hundreds or thousands of dollars, that's a very good hourly return.
 
-**If you're unsure or short on time:** Contingency-based property tax firms like OverAssessed (overassessed.ai) can evaluate your property for free and handle the entire process. Since they only charge if they save you money (typically 20% of savings), there's no downside to letting them take a look.
+**If you're unsure or short on time:** Contingency-based property tax firms like OverAssessed (overassessed.ai) can evaluate your property for free and handle the entire process. Since they only charge if they save you money (typically 25% of savings), there's no downside to letting them take a look.
 
 My general rule: if your assessed value went up more than 5% and you haven't had major renovations, it's worth protesting.
 
@@ -210,7 +210,7 @@ Simply calling to complain won't change your assessed value. You need to file a 
 - **Washington:** File within 60 days of valuation notice with your County Board of Equalization.
 
 **Consider a property tax protest company.**
-If the process feels complex (and it can be), professional firms specialize in exactly this. Look for one that works on contingency so you don't pay unless they save you money. For example, OverAssessed (overassessed.ai) charges 20% of savings — no reduction, no fee. They handle filing, evidence gathering, and hearing representation.
+If the process feels complex (and it can be), professional firms specialize in exactly this. Look for one that works on contingency so you don't pay unless they save you money. For example, OverAssessed (overassessed.ai) charges 25% of savings — no reduction, no fee. They handle filing, evidence gathering, and hearing representation.
 
 **Check your exemptions.**
 While you're at it, make sure you've filed for all exemptions you qualify for — homestead, over-65, disability, veteran, etc. In Texas alone, a homestead exemption can save you $500–$1,000+ per year.

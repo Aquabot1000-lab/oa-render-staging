@@ -60,7 +60,7 @@ Why OverAssessed vs. the "big guys"?
 ❌ O'Connor charges 33%+
 ❌ Most firms charge $300+ upfront
 
-✅ OverAssessed: Only 20% of savings
+✅ OverAssessed: Only 25% of savings
 ✅ Zero upfront cost
 ✅ No savings = no fee
 
@@ -124,7 +124,7 @@ That's our guarantee.
 🏠 65%+ of TX protests succeed
 💰 Average savings: $1,500+/year
 ⏱️ Sign-up takes 2 minutes
-💵 Our fee: Just 20% of savings
+💵 Our fee: Just 25% of savings
 🚫 No win = no fee
 
 The math speaks for itself.

@@ -38,7 +38,7 @@ OverAssessed handles everything:
 📝 We file the formal protest
 🏛️ We represent you at the hearing
 
-You pay nothing unless we win. 20% of savings — that's it.
+You pay nothing unless we win. 25% of savings — that's it.
 
 TX deadline is May 15th. Takes 2 minutes to start.
 
@@ -86,7 +86,7 @@ Don't leave money on the table.
 
 → Free analysis in 2 minutes
 → No cost unless we save you money
-→ 20% of savings (competitors charge 25-35%)
+→ 25% of savings (competitors charge 25-35%)
 
 **Headline:** Deadline: May 15th — File Now
 **Description:** 2-minute signup. We handle everything.
@@ -96,17 +96,17 @@ Don't leave money on the table.
 
 ## AD 5: "Us vs Them" (Competitive — Ownwell Comparison)
 **Format:** Single Image
-**Image concept:** Simple comparison table graphic — "OverAssessed: 20% fee" vs "Competitors: 25-35% fee" with checkmarks/X marks.
+**Image concept:** Simple comparison table graphic — "OverAssessed: 25% fee" vs "Competitors: 25-35% fee" with checkmarks/X marks.
 **Primary Text:**
 Why pay more for the same service?
 
-Other property tax protest companies charge 25-35% of your savings. We charge 20%.
+Other property tax protest companies charge 25-35% of your savings. We charge 25%.
 
 On a $4,000 savings, that's $800 with us vs $1,000-$1,400 with them.
 
 Same result. More money in YOUR pocket.
 
-✅ 20% fee (lowest in Texas)
+✅ 25% fee (lowest in Texas)
 ✅ Real experts, not just algorithms
 ✅ No upfront cost, ever
 ✅ $50 cash referral bonus

@@ -27,7 +27,7 @@
 ### How to Beat This Ad
 1. **Counter their "$774"** with our real case numbers (Tracy Furlong $859, Tyler's home $4K+)
 2. **"Local" is our real advantage** — they're NYC-headquartered. We're actually in San Antonio.
-3. **Their fee is 25%+** — on $774 savings, client keeps ~$580. At our 20%, client keeps ~$619. We save them more AND charge less.
+3. **Their fee is 25%+** — on $774 savings, client keeps ~$580. At our 25%, client keeps ~$619. We save them more AND charge less.
 4. **Use real team photos** not stock — Tyler's face = authentic local business owner
 
 ---
@@ -43,13 +43,13 @@
 - **Generic** — no state/county specificity, no savings numbers
 - **No social proof** — no "saved $X for Y homeowners"
 - **No urgency** — no deadline mention (TX notices come mid-April!)
-- **No differentiation** — they charge 25%+, we charge 20%
+- **No differentiation** — they charge 25%+, we charge 25%
 - **Impersonal** — fun but doesn't build trust the way "real experts" does
 - **No local angle** — we can own "San Antonio" / "Texas" / specific counties
 
 ## OA Counter-Ad Concepts
 
-### Concept 1: "They Charge 25%. We Charge 20%."
+### Concept 1: "They Charge 25%. We Charge 25%."
 - Direct price comparison (factual, not naming Ownwell)
 - Subhead: "Same result. More money in your pocket."
 - CTA: "Get Your Free Analysis"
@@ -66,5 +66,5 @@
 
 ### Concept 4: "The Big Companies Charge 25-35%"
 - Position as the smarter local alternative
-- Subhead: "We charge 20%. No upfront fees. Real Texas experts."
+- Subhead: "We charge 25%. No upfront fees. Real Texas experts."
 - CTA: "Start Saving Today"

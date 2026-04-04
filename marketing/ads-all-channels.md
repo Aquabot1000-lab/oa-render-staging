@@ -11,10 +11,10 @@
 - Keywords: property tax protest, protest property taxes texas, property tax appeal san antonio, reduce property taxes TX
 ```
 Headline 1: Stop Overpaying Property Taxes
-Headline 2: Only 20% Fee — Lowest in Texas
+Headline 2: Only 25% Fee — Lowest in Texas
 Headline 3: No Upfront Cost | Pay If You Save
 Description 1: Expert property tax protests across 15 TX counties. We handle everything — analysis, filing, hearings. You keep 80% of savings. Free analysis.
-Description 2: Average TX homeowner saves $1,500+/yr. No upfront fees. We only charge 20% of what we save you — lowest rate in the state. Get started in 2 min.
+Description 2: Average TX homeowner saves $1,500+/yr. No upfront fees. We only charge 25% of what we save you — lowest rate in the state. Get started in 2 min.
 Display URL: https://disciplined-alignment-production.up.railway.app/lp/texas.html
 Sitelinks: Free Analysis | How It Works | Exemption Filing | Refer & Earn $50
 ```
@@ -25,7 +25,7 @@ Sitelinks: Free Analysis | How It Works | Exemption Filing | Refer & Earn $50
 Headline 1: San Antonio Property Tax Too High?
 Headline 2: We Protest for You — 20% Fee Only
 Headline 3: Free Analysis | No Upfront Cost
-Description 1: Bexar County experts protest your property taxes. We handle all paperwork & hearings. Pay nothing unless we save you money. 20% fee — lowest in TX.
+Description 1: Bexar County experts protest your property taxes. We handle all paperwork & hearings. Pay nothing unless we save you money. 25% fee — lowest in TX.
 Description 2: San Antonio homeowners save $1,500+ avg/year. Deadline approaching — file before May 15. Free property tax analysis in 2 minutes.
 Display URL: https://disciplined-alignment-production.up.railway.app/lp/san-antonio.html
 ```
@@ -74,7 +74,7 @@ Display URL: https://disciplined-alignment-production.up.railway.app/lp/georgia.
 **Primary Text:**
 Your neighbor is paying less property taxes than you. 🏠
 
-We helped San Antonio homeowners save an average of $1,500 last year — and we charge just 20%.
+We helped San Antonio homeowners save an average of $1,500 last year — and we charge just 25%.
 
 Other companies? 25-35%.
 
@@ -100,7 +100,7 @@ If your home value went up this year, you could be overpaying thousands in prope
 We protest for you:
 ✅ Free analysis
 ✅ We handle all paperwork & hearings
-✅ 20% fee — lowest in Texas
+✅ 25% fee — lowest in Texas
 ✅ You pay $0 if we don't save you money
 
 Don't miss the deadline.
@@ -205,7 +205,7 @@ Hey neighbors 👋 — just wanted to share something that saved us real money.
 
 We used OverAssessed to protest our property taxes and saved over $1,500 this year. They handle everything — analysis, paperwork, hearings.
 
-Their fee is only 20% of what they save you (lowest I could find). And if they don't save you money, you pay nothing.
+Their fee is only 25% of what they save you (lowest I could find). And if they don't save you money, you pay nothing.
 
 Plus they have a referral program — $50 cash per neighbor you refer.
 
@@ -246,7 +246,7 @@ That's where we come in. OverAssessed handles your entire property tax protest:
 → We represent you at hearings
 → You save money
 
-Our fee? Just 20% of what we save you. If we don't save you money, you pay $0.
+Our fee? Just 25% of what we save you. If we don't save you money, you pay $0.
 
 [GET YOUR FREE ANALYSIS →]
 

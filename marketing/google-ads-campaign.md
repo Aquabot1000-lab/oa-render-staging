@@ -31,7 +31,7 @@ Headlines:
 1. San Antonio Property Tax Protest
 2. Stop Overpaying Property Taxes
 3. Save $1,500-3,000 Per Year
-4. Only 20% Fee — Lowest in TX
+4. Only 25% Fee — Lowest in TX
 5. No Upfront Cost, Ever
 6. Free Property Tax Analysis
 7. Bexar County Tax Experts
@@ -45,10 +45,10 @@ Headlines:
 15. Get Your Free Analysis Today
 
 Descriptions:
-1. Our Bexar County experts protest your property taxes for just 20% of savings — lowest fee in Texas. No upfront cost. Get your free analysis today.
+1. Our Bexar County experts protest your property taxes for just 25% of savings — lowest fee in Texas. No upfront cost. Get your free analysis today.
 2. Average San Antonio homeowner saves $1,500-3,000/year. We handle all paperwork & hearings. You pay nothing unless we save you money.
 3. Stop overpaying property taxes in San Antonio. 85% success rate. Free analysis. We fight the appraisal district so you don't have to.
-4. San Antonio's #1 property tax protest service. 20% fee vs competitors' 33-50%. Free analysis, no risk. Call (210) 760-7236.
+4. San Antonio's #1 property tax protest service. 25% fee vs competitors' 33-50%. Free analysis, no risk. Call (210) 760-7236.
 
 **Responsive Search Ad 2:**
 Headlines:
@@ -69,15 +69,15 @@ Headlines:
 15. We Win 85% of Our Cases
 
 Descriptions:
-1. Don't let Bexar County overcharge you. Our team analyzes comps, files your protest, and represents you at hearings. 20% fee, lowest in market.
+1. Don't let Bexar County overcharge you. Our team analyzes comps, files your protest, and represents you at hearings. 25% fee, lowest in market.
 2. San Antonio property tax protest made easy. Submit your address, we do the rest. No upfront fees. Pay only when we save you money.
-3. Why pay O'Connor 50% or Ownwell 25%? OverAssessed charges just 20% of savings. Same results, you keep more. Free analysis.
+3. Why pay O'Connor 50% or Ownwell 25%? OverAssessed charges just 25% of savings. Same results, you keep more. Free analysis.
 4. Bexar County property owners: your assessment may be too high. Get a free analysis and see how much we can save you. Call today.
 
 **Responsive Search Ad 3:**
 Headlines:
 1. Property Tax Too High? We'll Fix It
-2. SA Tax Protest — Only 20% Fee
+2. SA Tax Protest — Only 25% Fee
 3. Save Thousands on Property Taxes
 4. Bexar County BCAD Appeals
 5. Free Analysis — No Obligation
@@ -96,7 +96,7 @@ Descriptions:
 1. Over-assessed property in San Antonio? We protest for 20% — half what O'Connor charges. Free analysis, no upfront cost, 85% success rate.
 2. Property tax protest service for Bexar County homeowners. We analyze your assessment, file your appeal, and fight to save you money.
 3. Get a free property tax analysis for your San Antonio home. Average savings $1,500-3,000/year. No risk — pay only if we win.
-4. Expert property tax protest for San Antonio & Bexar County. 20% contingency fee. We handle everything. Call (210) 760-7236.
+4. Expert property tax protest for San Antonio & Bexar County. 25% contingency fee. We handle everything. Call (210) 760-7236.
 
 ---
 
@@ -122,7 +122,7 @@ Headlines: (same pool as AG1 — customize 3-5 to focus on "lower/reduce" langua
 4. Cut Your Property Tax in Half*
 5. Lower Assessment = Lower Taxes
 6. Free Tax Reduction Analysis
-7. Only 20% of What We Save You
+7. Only 25% of What We Save You
 8. No Upfront Fees, Ever
 9. Average $2,000+ Savings Per Year
 10. Local Bexar County Experts
@@ -133,7 +133,7 @@ Headlines: (same pool as AG1 — customize 3-5 to focus on "lower/reduce" langua
 15. Get a Free Review Today
 
 Descriptions:
-1. Bexar County homeowners: our experts lower property taxes for just 20% of savings. Average client saves $1,500-3,000/year. Free analysis.
+1. Bexar County homeowners: our experts lower property taxes for just 25% of savings. Average client saves $1,500-3,000/year. Free analysis.
 2. Your property assessment is probably too high. We'll analyze comps, file your protest, and fight to reduce your tax bill. Zero upfront cost.
 3. Lower your San Antonio property taxes with the lowest-fee protest service in Texas. 20% vs competitors' 33-50%. Start with a free analysis.
 4. Reduce your Bexar County property tax assessment. 85% success rate. We handle everything. No savings, no fee. Call (210) 760-7236.
@@ -209,7 +209,7 @@ Headlines:
 1. Austin Property Tax Protest
 2. Travis County Tax Too High?
 3. Lower Your Austin Tax Bill
-4. Only 20% Fee — Lowest in TX
+4. Only 25% Fee — Lowest in TX
 5. No Upfront Cost, Ever
 6. Average Savings: $1,500-3,000
 7. Free Property Tax Analysis
@@ -223,9 +223,9 @@ Headlines:
 15. Submit Address, Start Saving
 
 Descriptions:
-1. Austin property tax protest for just 20% of savings — lowest fee in Texas. We analyze your assessment and fight to reduce your tax bill.
+1. Austin property tax protest for just 25% of savings — lowest fee in Texas. We analyze your assessment and fight to reduce your tax bill.
 2. Travis County homeowners save $1,500-3,000/year on average. No upfront cost. We handle all paperwork and hearings. Free analysis.
-3. Stop overpaying property taxes in Austin. Our expert team protests your assessment. 20% fee vs competitors' 33-50%. Get started free.
+3. Stop overpaying property taxes in Austin. Our expert team protests your assessment. 25% fee vs competitors' 33-50%. Get started free.
 4. Over-assessed in Austin? We'll protest your property tax with the lowest fee in Texas. 85% success rate. Call (210) 760-7236.
 
 ### Ad Group 2: Houston Property Tax Protest
@@ -295,7 +295,7 @@ Headlines:
 1. Commercial Property Tax Protest
 2. Save $5,000-$50,000+ Per Year
 3. Office, Retail & Industrial
-4. Only 20% Fee — Lowest in TX
+4. Only 25% Fee — Lowest in TX
 5. No Upfront Cost
 6. Expert Commercial Tax Appeals
 7. Multifamily Tax Protest
@@ -309,9 +309,9 @@ Headlines:
 15. Lower Your Tax Bill Today
 
 Descriptions:
-1. Commercial property tax protest for just 20% of savings. We handle office, retail, industrial, multifamily & land. Average savings $5K-$50K+.
+1. Commercial property tax protest for just 25% of savings. We handle office, retail, industrial, multifamily & land. Average savings $5K-$50K+.
 2. Your commercial property is probably over-assessed. Our experts file your protest and fight to reduce your tax bill. No upfront cost.
-3. Texas commercial property tax appeal experts. 20% fee — lowest in the market. We handle everything from analysis to hearing representation.
+3. Texas commercial property tax appeal experts. 25% fee — lowest in the market. We handle everything from analysis to hearing representation.
 4. Over-assessed commercial property? Get a free analysis and see how much we can save. Office, retail, industrial, apartments. Call today.
 
 **RSA 2 & 3:** (Vary headlines/descriptions — emphasize different property types)
@@ -354,7 +354,7 @@ Descriptions:
 Headlines:
 1. OverAssessed — Official Site
 2. Texas Property Tax Protest
-3. Only 20% Fee — Lowest in TX
+3. Only 25% Fee — Lowest in TX
 4. Free Property Tax Analysis
 5. No Upfront Cost, Ever
 6. 85% Success Rate
@@ -369,8 +369,8 @@ Headlines:
 15. Expert Tax Appeal Service
 
 Descriptions:
-1. OverAssessed — Texas property tax protest experts. 20% fee, lowest in the market. Free analysis, no upfront cost. Get started today.
-2. Official OverAssessed website. We protest your property taxes for just 20% of savings. Average homeowner saves $1,500-3,000/year.
+1. OverAssessed — Texas property tax protest experts. 25% fee, lowest in the market. Free analysis, no upfront cost. Get started today.
+2. Official OverAssessed website. We protest your property taxes for just 25% of savings. Average homeowner saves $1,500-3,000/year.
 3. Stop overpaying property taxes. OverAssessed handles your protest from start to finish. No savings, no fee. 85% success rate.
 4. Real experts, real results, guaranteed. OverAssessed is Texas's lowest-fee property tax protest service. Free analysis — start now.
 

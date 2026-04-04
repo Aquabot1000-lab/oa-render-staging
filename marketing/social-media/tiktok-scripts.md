@@ -5,7 +5,7 @@ HOOK (0-3s): "3 things Texas homeowners don't know about property taxes"
 
 1. You can protest your property taxes EVERY year. It's your legal right.
 2. Over 65% of protests in Texas result in a reduction. The odds are in your favor.
-3. You don't have to do it yourself. Companies like us handle everything for just 20% of your savings.
+3. You don't have to do it yourself. Companies like us handle everything for just 25% of your savings.
 
 CTA: "Link in bio for a free analysis. No win, no fee."
 
@@ -67,4 +67,4 @@ Your neighbor filed a protest, showed the county comparable sales data, and got 
 
 You can do the same thing. And you don't even need to do it yourself.
 
-CTA: "We handle everything. 20% of savings. No win, no fee. Link in bio."
+CTA: "We handle everything. 25% of savings. No win, no fee. Link in bio."

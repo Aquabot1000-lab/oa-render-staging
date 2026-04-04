@@ -8,7 +8,7 @@
 - **Switch to Business Account** after creation (Settings → Manage Account → Switch to Business)
 
 ## Profile
-- **Bio:** Texas property tax protest experts 🏠 No upfront cost • 20% of savings • We handle everything ⬇️ Free analysis
+- **Bio:** Texas property tax protest experts 🏠 No upfront cost • 25% of savings • We handle everything ⬇️ Free analysis
 - **Link:** https://overassessed.ai/pre-register
 - **Profile Pic:** Use the OA logo (same as Facebook)
 

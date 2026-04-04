@@ -52,7 +52,7 @@ What this means practically: come to the informal hearing prepared with good com
 
 Also — and this is something people miss — check your property class code on BCAD's website. If your home is classified incorrectly (e.g., "superior" condition when it's really "average"), that alone can be worth thousands in reduced value.
 
-For San Antonio homeowners who want a hands-off option, our team at overassessed.ai handles Bexar County protests on a 20% contingency. But whether you DIY or hire help, the key is: file every year, don't miss the May 15th deadline, and always bring data.
+For San Antonio homeowners who want a hands-off option, our team at overassessed.ai handles Bexar County protests on a 25% contingency. But whether you DIY or hire help, the key is: file every year, don't miss the May 15th deadline, and always bring data.
 
 ---
 

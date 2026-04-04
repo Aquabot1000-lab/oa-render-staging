@@ -6,7 +6,7 @@ Meet OverAssessed 🏠
 We're Texas property tax protest experts. We analyze your assessment, build your case, and file your protest — so you can save money without lifting a finger.
 
 ✅ No upfront cost
-✅ Only 20% of savings
+✅ Only 25% of savings
 ✅ No savings = no charge
 
 Link in bio for your free analysis 👆
@@ -43,7 +43,7 @@ It really is that simple. No win, no fee.
 ## Post 4 — Pricing Comparison
 Other companies charge 25-35% of your savings.
 
-We charge 20%.
+We charge 25%.
 
 Same result. More money stays with YOU 💪
 

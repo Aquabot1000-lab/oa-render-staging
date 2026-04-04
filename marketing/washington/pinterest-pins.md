@@ -12,7 +12,7 @@
 
 ## Pin 2 — Seattle Property Tax Savings Guide
 **Title:** Seattle Homeowners: Are You Overpaying Property Taxes?
-**Description:** King County home values have surged — and so have property tax assessments. But just because your neighborhood went up doesn't mean your home is worth what the county says. An $800K Seattle home over-assessed by 8% means $640/year in overpaid property taxes. OverAssessed provides free property tax analysis and handles the entire appeal for Washington homeowners. No upfront cost — you only pay 20% of actual savings. #Seattle #KingCounty #PropertyTax #WashingtonPropertyTax #HomeSavings #SeattleRealEstate #TaxReduction
+**Description:** King County home values have surged — and so have property tax assessments. But just because your neighborhood went up doesn't mean your home is worth what the county says. An $800K Seattle home over-assessed by 8% means $640/year in overpaid property taxes. OverAssessed provides free property tax analysis and handles the entire appeal for Washington homeowners. No upfront cost — you only pay 25% of actual savings. #Seattle #KingCounty #PropertyTax #WashingtonPropertyTax #HomeSavings #SeattleRealEstate #TaxReduction
 **Link:** overassessed.ai/washington
 
 ---

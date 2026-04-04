@@ -22,10 +22,10 @@
 | **Service Areas** | San Antonio TX, Houston TX, Dallas TX, Austin TX, Fort Worth TX, Atlanta GA, Seattle WA + all counties in TX, GA, WA |
 
 ### Standard Description (Short — 150 chars)
-> OverAssessed helps homeowners lower property taxes in TX, GA & WA. No upfront cost — pay only if we save you money. Fees as low as 20% of savings.
+> OverAssessed helps homeowners lower property taxes in TX, GA & WA. No upfront cost — pay only if we save you money. Fees as low as 25% of savings.
 
 ### Standard Description (Full)
-> OverAssessed helps homeowners in Texas, Georgia, and Washington lower their property taxes. We handle everything from analysis to filing to hearing representation. No upfront cost — you only pay if we save you money. Fees as low as 20% of your savings. Serving San Antonio, Houston, Dallas, Austin, Fort Worth, Atlanta, Seattle, and all counties in TX, GA, and WA.
+> OverAssessed helps homeowners in Texas, Georgia, and Washington lower their property taxes. We handle everything from analysis to filing to hearing representation. No upfront cost — you only pay if we save you money. Fees as low as 25% of your savings. Serving San Antonio, Houston, Dallas, Austin, Fort Worth, Atlanta, Seattle, and all counties in TX, GA, and WA.
 
 ---
 

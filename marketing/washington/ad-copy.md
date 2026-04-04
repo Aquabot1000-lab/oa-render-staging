@@ -9,7 +9,7 @@
 ### Ad 1 — King County: Savings Focus
 
 **Headline:** Seattle Homeowners: Your Property Taxes May Be Too High
-**Primary Text:** King County assesses your home at 100% of market value — but their "market value" could be wrong. With home values surging across Seattle, Bellevue, and the Eastside, thousands of homeowners are over-assessed and overpaying. OverAssessed analyzes your property, builds your case, and handles the entire appeal. No upfront cost — you only pay 20% of what we save you. No savings = no charge. Get your free analysis today.
+**Primary Text:** King County assesses your home at 100% of market value — but their "market value" could be wrong. With home values surging across Seattle, Bellevue, and the Eastside, thousands of homeowners are over-assessed and overpaying. OverAssessed analyzes your property, builds your case, and handles the entire appeal. No upfront cost — you only pay 25% of what we save you. No savings = no charge. Get your free analysis today.
 **Description:** Free property tax analysis for King County homeowners. Real experts. Real results. Guaranteed.
 **CTA Button:** Learn More → overassessed.ai/washington
 
@@ -41,7 +41,7 @@
 ### Ad 3 — King County: Social Proof / Results
 
 **Headline:** We've Helped Homeowners Save Thousands on Property Taxes
-**Primary Text:** Washington homeowners trust OverAssessed to fight their over-inflated property assessments — and win. The county uses mass appraisal. We use data-driven analysis with real comparable sales. An $800K King County home over-assessed by 8%? That's $640/year back in your pocket. We only charge 20% of what we save you. If we don't save you money, you pay nothing. Real Experts. Real Results. Guaranteed.
+**Primary Text:** Washington homeowners trust OverAssessed to fight their over-inflated property assessments — and win. The county uses mass appraisal. We use data-driven analysis with real comparable sales. An $800K King County home over-assessed by 8%? That's $640/year back in your pocket. We only charge 25% of what we save you. If we don't save you money, you pay nothing. Real Experts. Real Results. Guaranteed.
 **Description:** Data-driven property tax appeals for King County homeowners. No upfront cost.
 **CTA Button:** See If You Qualify → overassessed.ai/washington
 
@@ -61,7 +61,7 @@
 ### Ad 4 — Statewide: Education + CTA
 
 **Headline:** Washington Homeowners: Are You Overpaying Property Taxes?
-**Primary Text:** Washington assesses your home at 100% of market value. But what if the county got it wrong? With property values surging across the state — from Seattle to Tacoma to Vancouver — thousands of homeowners are over-assessed and don't even know it. OverAssessed uses data-driven analysis to find errors in your assessment and handles the entire appeal process. No upfront cost. You only pay 20% of your actual savings. No savings = no charge.
+**Primary Text:** Washington assesses your home at 100% of market value. But what if the county got it wrong? With property values surging across the state — from Seattle to Tacoma to Vancouver — thousands of homeowners are over-assessed and don't even know it. OverAssessed uses data-driven analysis to find errors in your assessment and handles the entire appeal process. No upfront cost. You only pay 25% of your actual savings. No savings = no charge.
 **Description:** Free property tax analysis for Washington homeowners. Appeal with confidence.
 **CTA Button:** Get Free Analysis → overassessed.ai/washington
 
@@ -77,7 +77,7 @@
 ### Ad 5 — Statewide: No-Risk Guarantee
 
 **Headline:** Appeal Your Property Taxes — $0 Unless We Save You Money
-**Primary Text:** Here's the deal: We analyze your Washington property assessment. We build your case using real comparable sales data. We file the appeal and handle everything — paperwork, hearings, all of it. If we reduce your assessment and save you money, you pay just 20% of the savings. If we don't? You pay absolutely nothing. No upfront cost. No hidden fees. No risk. That's our guarantee. Get started with a free analysis.
+**Primary Text:** Here's the deal: We analyze your Washington property assessment. We build your case using real comparable sales data. We file the appeal and handle everything — paperwork, hearings, all of it. If we reduce your assessment and save you money, you pay just 25% of the savings. If we don't? You pay absolutely nothing. No upfront cost. No hidden fees. No risk. That's our guarantee. Get started with a free analysis.
 **Description:** Zero-risk property tax appeals for Washington homeowners. Real experts handle everything.
 **CTA Button:** Start Free Analysis → overassessed.ai/washington
 

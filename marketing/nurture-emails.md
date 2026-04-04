@@ -23,7 +23,7 @@ Fort Bend has some of the highest property tax rates in Texas — and appraisal 
 Here's how it works:
 - We pull comparable sales from the appraisal district's own records
 - We file your protest and handle the entire process
-- You pay nothing upfront — our fee is just 20% of what we save you
+- You pay nothing upfront — our fee is just 25% of what we save you
 - If we don't reduce your taxes, you pay $0
 
 **Your next step:** Complete your free property analysis so we can start building your case before notices drop in April.
@@ -54,7 +54,7 @@ Harris County homeowners saw some of the steepest appraisal increases in Texas l
 Here's how it works:
 - We pull comparable sales from HCAD's own records
 - We file your protest and handle the entire process
-- You pay nothing upfront — our fee is just 20% of what we save you
+- You pay nothing upfront — our fee is just 25% of what we save you
 - If we don't reduce your taxes, you pay $0
 
 **Your next step:** Complete your free property analysis so we can start building your case before notices drop in April.
@@ -85,7 +85,7 @@ Travis County property values have surged in recent years, and TCAD has been agg
 Here's how it works:
 - We pull comparable sales from TCAD's own records
 - We file your protest and handle the entire process
-- You pay nothing upfront — our fee is just 20% of what we save you
+- You pay nothing upfront — our fee is just 25% of what we save you
 - If we don't reduce your taxes, you pay $0
 
 **Your next step:** Complete your free property analysis so we can start building your case before notices drop in April.
@@ -369,7 +369,7 @@ Appraisal notices are about to drop, and we're closing pre-season intake soon. A
 Quick recap:
 ✅ No upfront cost — ever
 ✅ We handle everything — filing, paperwork, hearing
-✅ 20% of savings (only if we win)
+✅ 25% of savings (only if we win)
 ✅ $0 if we don't reduce your value
 
 You pre-registered because you know your Fort Bend property taxes are too high. This is the easiest way to fix that.
@@ -395,7 +395,7 @@ Appraisal notices are about to drop, and we're closing pre-season intake soon. A
 Quick recap:
 ✅ No upfront cost — ever
 ✅ We handle everything — filing, paperwork, hearing
-✅ 20% of savings (only if we win)
+✅ 25% of savings (only if we win)
 ✅ $0 if we don't reduce your value
 
 You pre-registered because you know your Harris County property taxes are too high. This is the easiest way to fix that.
@@ -421,7 +421,7 @@ Appraisal notices are about to drop, and we're closing pre-season intake soon. A
 Quick recap:
 ✅ No upfront cost — ever
 ✅ We handle everything — filing, paperwork, hearing
-✅ 20% of savings (only if we win)
+✅ 25% of savings (only if we win)
 ✅ $0 if we don't reduce your value
 
 You pre-registered because you know your Travis County property taxes are too high. This is the easiest way to fix that.

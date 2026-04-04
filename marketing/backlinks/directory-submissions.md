@@ -24,13 +24,13 @@
 ## Pre-Written Descriptions
 
 ### Short Description (150 chars)
-Property tax protest experts. 20% contingency fee — no savings, no fee. Serving homeowners in TX, GA & WA. Visit overassessed.ai.
+Property tax protest experts. 25% contingency fee — no savings, no fee. Serving homeowners in TX, GA & WA. Visit overassessed.ai.
 
 ### Medium Description (300 chars)
-OverAssessed helps homeowners lower their property tax bills through expert protest and appeal services. We work on a 20% contingency fee — if we don't save you money, you don't pay a dime. Currently serving property owners across Texas, Georgia, and Washington State. Get started at overassessed.ai.
+OverAssessed helps homeowners lower their property tax bills through expert protest and appeal services. We work on a 25% contingency fee — if we don't save you money, you don't pay a dime. Currently serving property owners across Texas, Georgia, and Washington State. Get started at overassessed.ai.
 
 ### Full Description (500+ chars)
-OverAssessed LLC is a property tax protest firm dedicated to helping homeowners pay only what's fair. We handle the entire protest process — from filing the appeal to gathering comparable sales evidence and representing you at hearings. Our service is 100% contingency-based: we charge a 20% fee only on the savings we achieve. If we don't reduce your property tax assessment, you owe us nothing. We currently serve homeowners in Texas, Georgia, and Washington State, with deep expertise in county appraisal district processes, ARB hearings, and Board of Equalization appeals. Founded by Tyler Worthey, OverAssessed combines technology and local market knowledge to deliver real savings for property owners. Visit overassessed.ai to see how much you could save.
+OverAssessed LLC is a property tax protest firm dedicated to helping homeowners pay only what's fair. We handle the entire protest process — from filing the appeal to gathering comparable sales evidence and representing you at hearings. Our service is 100% contingency-based: we charge a 25% fee only on the savings we achieve. If we don't reduce your property tax assessment, you owe us nothing. We currently serve homeowners in Texas, Georgia, and Washington State, with deep expertise in county appraisal district processes, ARB hearings, and Board of Equalization appeals. Founded by Tyler Worthey, OverAssessed combines technology and local market knowledge to deliver real savings for property owners. Visit overassessed.ai to see how much you could save.
 
 ---
 

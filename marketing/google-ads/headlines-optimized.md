@@ -31,10 +31,10 @@
 
 ## Descriptions (90 Characters Max)
 
-1. **No-Win, No-Fee property tax appeals. Pay only 20% of savings. Texas & Georgia. File by May 15.**
+1. **No-Win, No-Fee property tax appeals. Pay only 25% of savings. Texas & Georgia. File by May 15.**
 
 2. **Lower fees than competitors—20% vs 25%. Expert appeals, personal service. Deadline May 15.**
 
 3. **Protest your property taxes with confidence. No upfront cost. Only pay if we reduce your bill.**
 
-4. **Texas & Georgia property tax experts. 20% contingency fee. Free if we don't win. Act now.**
+4. **Texas & Georgia property tax experts. 25% contingency fee. Free if we don't win. Act now.**

@@ -39,7 +39,7 @@ Pierce County homeowners — Tacoma's growth has been incredible, but it also me
 ---
 
 ## Caption 6 — The Guarantee
-Here's our deal: We analyze your property. We build your case. We file the appeal. We attend the hearing. If we save you money → you pay 20% of the savings. If we DON'T save you money → you pay $0. Zero upfront cost. Zero risk. Zero catch. That's how confident we are in our data-driven approach. overassessed.ai/washington
+Here's our deal: We analyze your property. We build your case. We file the appeal. We attend the hearing. If we save you money → you pay 25% of the savings. If we DON'T save you money → you pay $0. Zero upfront cost. Zero risk. Zero catch. That's how confident we are in our data-driven approach. overassessed.ai/washington
 
 #NoRisk #GuaranteedSavings #PropertyTax #WashingtonPropertyTax #OverAssessed #SeattleHomeowners #MoneyTok #FinTok #FreeAnalysis #PropertyTaxAppeal
 

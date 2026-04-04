@@ -27,7 +27,7 @@
 15. Start Your Free Analysis
 
 **Descriptions:**
-1. No upfront cost. We only charge 20% of your savings — and only if we win. Start free today.
+1. No upfront cost. We only charge 25% of your savings — and only if we win. Start free today.
 2. OverAssessed uses expert analysis to protest your Texas property taxes. Zero risk. Real savings.
 3. Join thousands of Texas homeowners saving money. Free analysis — no obligation, no fees upfront.
 4. Stop overpaying property taxes. We protest for you. Pay nothing unless your taxes go down.
@@ -110,7 +110,7 @@
 **Descriptions:**
 1. Texas homeowners trust OverAssessed to fight unfair property tax bills. $0 upfront, 20% if we win.
 2. Our technology analyzes comparable sales and finds assessment errors others miss. See your savings now.
-3. We've helped homeowners across Texas save thousands. No upfront fees. Pay only 20% of actual savings.
+3. We've helped homeowners across Texas save thousands. No upfront fees. Pay only 25% of actual savings.
 4. Don't protest alone. OverAssessed gives you expert-level analysis and representation at zero upfront cost.
 
 ---
@@ -119,7 +119,7 @@
 
 **Headlines:**
 1. Better Than Ownwell?
-2. Only 20% — If We Win
+2. Only 25% — If We Win
 3. AI-Powered Tax Protest
 4. Switch & Save More
 5. Compare Before You Choose
@@ -135,7 +135,7 @@
 15. Try OverAssessed Free
 
 **Descriptions:**
-1. Looking for an Ownwell alternative? OverAssessed charges just 20% of savings — only if we win.
+1. Looking for an Ownwell alternative? OverAssessed charges just 25% of savings — only if we win.
 2. Compare property tax protest services. OverAssessed offers data-driven analysis with zero upfront fees.
 3. Switching is easy. Get a free savings estimate from OverAssessed and see why homeowners are moving.
 4. Not all protest services are equal. OverAssessed uses expert analysis for smarter protests. No cost unless we win.
@@ -298,7 +298,7 @@
 
 **Descriptions:**
 1. Pre-register for OverAssessed and be first in line for 2026 property tax protest. Zero cost to join.
-2. Early access members get priority processing. Sign up now — no upfront cost, pay 20% only if we win.
+2. Early access members get priority processing. Sign up now — no upfront cost, pay 25% only if we win.
 3. The smart way to protest Texas property taxes is launching. Pre-register free and lock in your spot.
 4. Don't wait until deadline day. Pre-register with OverAssessed now and we'll start your analysis early.
 
@@ -327,4 +327,4 @@
 - Display phone number for direct calls (track as conversion)
 
 ### Price Extension
-- **Tax Protest Service:** $0 upfront / 20% of savings only if we win
+- **Tax Protest Service:** $0 upfront / 25% of savings only if we win

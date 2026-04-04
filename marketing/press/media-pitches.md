@@ -73,7 +73,7 @@ Hi [News4SA / WOAI Assignment Desk],
 
 Here's a consumer story your viewers will care about: **most San Antonio homeowners are overpaying on their property taxes**, and they have until May 15 to do something about it.
 
-I'm Tyler Worthey, founder of OverAssessed, a San Antonio-based property tax protest company. We help homeowners challenge inflated appraisals and lower their tax bills — and we charge the **lowest fee in Texas at just 20%** of savings (industry standard is 25–50%).
+I'm Tyler Worthey, founder of OverAssessed, a San Antonio-based property tax protest company. We help homeowners challenge inflated appraisals and lower their tax bills — and we charge the **lowest fee in Texas at just 25%** of savings (industry standard is 25–50%).
 
 **Why this story matters right now:**
 - 2026 appraisal notices are arriving in mailboxes across Bexar County
@@ -106,7 +106,7 @@ Hi [Reporter Name / City Desk],
 
 As Bexar County homeowners receive their 2026 property appraisal notices, I wanted to pitch a story about the growing property tax protest industry in San Antonio — and how a new local company is disrupting the fee structure.
 
-I'm Tyler Worthey, founder of **OverAssessed** (overassessed.ai), a San Antonio-based property tax protest service. We charge a **20% contingency fee — the lowest in Texas** — compared to the 25–50% that established firms like O'Connor & Associates and Ownwell charge. And like those companies, homeowners pay nothing if we don't save them money.
+I'm Tyler Worthey, founder of **OverAssessed** (overassessed.ai), a San Antonio-based property tax protest service. We charge a **25% contingency fee — the lowest in Texas** — compared to the 25–50% that established firms like O'Connor & Associates and Ownwell charge. And like those companies, homeowners pay nothing if we don't save them money.
 
 **Story angles:**
 - **Consumer savings:** The property tax protest industry has been charging 25–50% of savings for decades. OverAssessed is the first Texas company to bring that below 25%, meaning homeowners keep more of their savings.
@@ -135,7 +135,7 @@ Hi [Reporter Name / Editor],
 
 I'd like to pitch a story about a San Antonio startup that's taking on the entrenched property tax protest industry with a technology-first approach and the lowest fee structure in Texas.
 
-**OverAssessed** (overassessed.ai) is a property tax protest service I founded here in San Antonio. We charge a **20% contingency fee** — only paid when we successfully reduce a homeowner's taxes. That's significantly below the industry standard of 25–50%, including market leader Ownwell (25%) and legacy firms like O'Connor & Associates (up to 50%).
+**OverAssessed** (overassessed.ai) is a property tax protest service I founded here in San Antonio. We charge a **25% contingency fee** — only paid when we successfully reduce a homeowner's taxes. That's significantly below the industry standard of 25–50%, including market leader Ownwell (25%) and legacy firms like O'Connor & Associates (up to 50%).
 
 **Why the SABJ audience should care:**
 - **Market disruption:** The property tax protest industry in Texas is massive — millions of protests are filed annually. The fee structure has been static for years. OverAssessed is the first to meaningfully undercut it.
@@ -214,7 +214,7 @@ Hi [Reporter Name / Metro Desk],
 
 With the **May 15 property tax protest deadline** approaching, I wanted to pitch a story about the evolving landscape of property tax protest services in Texas — and why homeowners across the state should be paying attention to fee structures.
 
-I'm Tyler Worthey, founder of **OverAssessed** (overassessed.ai), a San Antonio-based property tax protest service. We charge a **20% contingency fee — the lowest in Texas**. That compares to 25% at Ownwell (Austin-based), up to 50% at O'Connor & Associates, and 30–50% at many smaller firms. If we don't save you money, you pay nothing.
+I'm Tyler Worthey, founder of **OverAssessed** (overassessed.ai), a San Antonio-based property tax protest service. We charge a **25% contingency fee — the lowest in Texas**. That compares to 25% at Ownwell (Austin-based), up to 50% at O'Connor & Associates, and 30–50% at many smaller firms. If we don't save you money, you pay nothing.
 
 **Angles for the Statesman audience:**
 - **Statewide relevance:** Property tax protests aren't just a big-city issue. Homeowners across Texas — from Austin to rural counties — have the right to protest, but most don't
@@ -242,7 +242,7 @@ overassessed.ai
 
 ### Key Talking Points for Tyler
 1. "The May 15 deadline is the most important date on every Texas homeowner's calendar — and most people don't even know it exists."
-2. "We charge 20% — the lowest in Texas — because we believe homeowners should keep more of their savings, not hand it over to the protest company."
+2. "We charge 25% — the lowest in Texas — because we believe homeowners should keep more of their savings, not hand it over to the protest company."
 3. "The technology exists to fight property taxes smarter and cheaper. The industry just hasn't had an incentive to lower fees — until now."
 4. "Whether someone uses OverAssessed, another company, or does it themselves — the worst thing they can do is nothing. You cannot be penalized for protesting in Texas."
 

@@ -12,7 +12,7 @@ Spoiler: they often do.
 We analyze your property, build your case, and handle the entire appeal process.
 
 ✅ No upfront cost
-✅ Only 20% of what we save you
+✅ Only 25% of what we save you
 ✅ No savings = no charge. Guaranteed.
 
 Get your free analysis → overassessed.ai/washington
@@ -194,7 +194,7 @@ Here's our guarantee:
 
 ✅ Free property analysis
 ✅ We handle the entire appeal — research, paperwork, hearings
-✅ You only pay 20% of what we actually save you
+✅ You only pay 25% of what we actually save you
 ✅ If we don't save you money — you pay $0
 
 There is literally no downside.

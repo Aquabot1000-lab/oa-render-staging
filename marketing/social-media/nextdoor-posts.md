@@ -7,7 +7,7 @@ Hi neighbors! I wanted to share something that's saved many homeowners in our ar
 
 Property tax notices come out mid-April, and most of us are overpaying without realizing it. The average Texas homeowner who protests saves $1,500+/year.
 
-My company OverAssessed handles the entire protest process — we analyze your property, build your evidence packet, and file on your behalf. No upfront cost, and you only pay 20% of what we save you. If we don't save you anything, it's free.
+My company OverAssessed handles the entire protest process — we analyze your property, build your evidence packet, and file on your behalf. No upfront cost, and you only pay 25% of what we save you. If we don't save you anything, it's free.
 
 Happy to answer any questions! overassessed.ai
 
@@ -58,6 +58,6 @@ Before you toss it aside, know this:
 • Most protests result in a reduction
 • You don't have to do it yourself
 
-We're a local San Antonio company that handles the entire process. No upfront cost, and we only charge 20% of your savings (lowest rate in Texas).
+We're a local San Antonio company that handles the entire process. No upfront cost, and we only charge 25% of your savings (lowest rate in Texas).
 
 Pre-register now and we'll analyze your property the moment notices drop: overassessed.ai

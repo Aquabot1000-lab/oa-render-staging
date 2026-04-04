@@ -135,7 +135,7 @@ That's $80,000 over-assessed
 
 At ~1% tax rate = $780/year in savings
 
-They paid us $156 (20% of savings)
+They paid us $156 (25% of savings)
 And kept $624
 
 Every. Single. Year. ✅

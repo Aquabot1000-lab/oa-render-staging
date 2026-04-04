@@ -6,7 +6,7 @@
 We believe every Texas homeowner deserves fair property taxes. That's why we handle the entire protest process — from analysis to hearing — so you don't have to.
 
 ✅ No upfront cost
-✅ Only 20% of savings (lowest in TX)
+✅ Only 25% of savings (lowest in TX)
 ✅ No savings = no charge
 
 Get your free analysis → overassessed.ai
@@ -64,7 +64,7 @@ Get started → overassessed.ai
 🏷️ Why pay more?
 
 Other protest companies: 25-35% of your savings
-OverAssessed: Only 20%
+OverAssessed: Only 25%
 
 On a $1,000 savings:
 • With us → you keep $800

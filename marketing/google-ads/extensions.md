@@ -19,7 +19,7 @@
 **URL:** https://overassessed.ai/ppc-dallas
 
 ### 5. Harris County Appeals
-**Description:** Houston area property tax protest services. 20% fee only
+**Description:** Houston area property tax protest services. 25% fee only
 **URL:** https://overassessed.ai/ppc-harris
 
 ### 6. Tarrant County Appeals
