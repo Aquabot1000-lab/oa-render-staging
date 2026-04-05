@@ -6623,6 +6623,9 @@ app.listen(PORT, async () => {
             await stripeRouter.initializeInitiationFeeProduct();
             console.log(`💰 Initiation fee ($79) product initialized`);
         }
+
+        // ── ORCHESTRATOR (inline background worker) ──
+        startOrchestrator();
     });
 
     // Run drip check every hour (pre-sign reminders)
@@ -6789,3 +6792,156 @@ ${['OverAssessed', 'Worthey Aquatics', 'MilePilot', 'Infrastructure'].map(sectio
     res.send(html);
 });
 // deploy trigger 1775355980
+
+// ══════════════════════════════════════════════════════════════
+// INLINE ORCHESTRATOR — Background job processor
+// ══════════════════════════════════════════════════════════════
+
+const ORCH_POLL = 5000;
+const ORCH_MAX_CONCURRENT = 3;
+const ORCH_WORKER_ID = `oa-server-${process.pid}`;
+const orchRunning = new Map();
+
+async function orchClaimJob() {
+    if (orchRunning.size >= ORCH_MAX_CONCURRENT) return null;
+    const { data: jobs } = await supabaseAdmin
+        .from('job_queue')
+        .select('*')
+        .eq('status', 'pending')
+        .order('priority', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(1);
+    if (!jobs?.length) return null;
+    const job = jobs[0];
+    const { data: claimed } = await supabaseAdmin
+        .from('job_queue')
+        .update({ status: 'running', assigned_worker: ORCH_WORKER_ID, started_at: new Date().toISOString() })
+        .eq('id', job.id)
+        .eq('status', 'pending')
+        .select()
+        .single();
+    return claimed || null;
+}
+
+async function orchExecuteJob(job) {
+    console.log(`[ORCH:EXEC] ${job.id.slice(0,8)} | ${job.job_type}`);
+    try {
+        let result = {};
+        if (job.job_type === 'analyze_lead') {
+            result = await orchAnalyzeLead(job.payload);
+        } else if (job.job_type === 'run_comps') {
+            result = await orchRunComps(job.payload);
+        } else {
+            throw new Error(`Unknown job_type: ${job.job_type}`);
+        }
+        await supabaseAdmin.from('job_queue').update({ status: 'done', result, completed_at: new Date().toISOString() }).eq('id', job.id);
+        console.log(`[ORCH:DONE] ${job.id.slice(0,8)} | ${JSON.stringify(result).slice(0,100)}`);
+    } catch (err) {
+        console.error(`[ORCH:FAIL] ${job.id.slice(0,8)} | ${err.message}`);
+        if (job.retries + 1 < job.max_retries) {
+            await supabaseAdmin.from('job_queue').update({ status: 'pending', assigned_worker: null, started_at: null, retries: job.retries + 1, error: err.message }).eq('id', job.id);
+        } else {
+            await supabaseAdmin.from('job_queue').update({ status: 'failed', error: err.message, completed_at: new Date().toISOString() }).eq('id', job.id);
+        }
+    } finally {
+        orchRunning.delete(job.id);
+    }
+}
+
+async function orchAnalyzeLead(payload) {
+    const { lead_id } = payload;
+    if (!lead_id) throw new Error('lead_id required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    
+    const addr = lead.property_address;
+    const state = lead.state || 'TX';
+    const key = process.env.RENTCAST_API_KEY || '3a0f6f09999b41cc9ef23aa9d5fbab57';
+    
+    // Fetch comps
+    const axios = require('axios');
+    const { data: avmData } = await axios.get('https://api.rentcast.io/v1/avm/value', {
+        params: { address: `${addr}, ${state}` },
+        headers: { 'X-Api-Key': key },
+        timeout: 15000
+    });
+    
+    const comps = [];
+    for (const c of (avmData.comparables || [])) {
+        const sd = (c.removedDate || c.lastSaleDate || c.listedDate || '').substring(0, 10);
+        if (!sd || !c.price) continue;
+        comps.push({
+            address: c.formattedAddress || c.addressLine1,
+            sale_price: c.price,
+            sale_date: sd,
+            sqft: c.squareFootage,
+            bedrooms: c.bedrooms,
+            bathrooms: c.bathrooms,
+            year_built: c.yearBuilt,
+            distance_miles: c.distance ? parseFloat(c.distance.toFixed(2)) : null,
+            correlation: c.correlation || 0,
+            source: 'rentcast-api'
+        });
+    }
+    comps.sort((a, b) => (b.correlation || 0) - (a.correlation || 0));
+    const top5 = comps.slice(0, 5);
+    
+    const prices = top5.filter(c => c.sale_price).map(c => c.sale_price);
+    const proposed = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
+    const assessed = parseFloat(String(lead.assessed_value || '0').replace(/[,$]/g, ''));
+    const taxRates = { 'bexar':0.0225,'kaufman':0.025,'tarrant':0.023,'collin':0.022,'dallas':0.023,'harris':0.023,'travis':0.021,'kitsap':0.0102,'king':0.010,'fort bend':0.023 };
+    const taxRate = taxRates[(lead.county||'').toLowerCase()] || 0.022;
+    const savings = Math.max(0, Math.round((assessed - proposed) * taxRate));
+    
+    // QA
+    const withDates = top5.filter(c => c.sale_date);
+    const qaPassed = withDates.length >= 3;
+    
+    let stage = 'Needs Analysis';
+    if (qaPassed && top5.length >= 3 && savings > 0) stage = 'Pending Approval';
+    else if (qaPassed && savings <= 0) stage = 'No Case';
+    
+    await supabaseAdmin.from('submissions').update({
+        comp_results: { comps: top5, avm: avmData.price, confidence: top5.length >= 3 ? 'high' : 'insufficient_data', fetched_at: new Date().toISOString(), data_sources: [{source:'rentcast-api',comps_found:top5.length}] },
+        estimated_savings: savings,
+        qa_status: qaPassed ? 'passed' : 'failed',
+        qa_run_at: new Date().toISOString(),
+        status: stage,
+        updated_at: new Date().toISOString()
+    }).eq('id', lead_id);
+    
+    console.log(`[ORCH:ANALYZE] ${lead.case_id} | ${top5.length} comps | $${savings}/yr | ${stage}`);
+    return { case_id: lead.case_id, comps: top5.length, savings, stage, qa: qaPassed };
+}
+
+async function orchRunComps(payload) {
+    return orchAnalyzeLead(payload); // Same logic for MVP
+}
+
+async function orchPoll() {
+    try {
+        // Reset stale running jobs (>5 min)
+        const staleTime = new Date(Date.now() - 5*60*1000).toISOString();
+        const { data: stale } = await supabaseAdmin.from('job_queue').select('id,retries,max_retries').eq('status','running').lt('started_at',staleTime);
+        for (const j of (stale||[])) {
+            if (j.retries+1 < j.max_retries) {
+                await supabaseAdmin.from('job_queue').update({status:'pending',assigned_worker:null,started_at:null,retries:j.retries+1,error:'Timeout'}).eq('id',j.id);
+            } else {
+                await supabaseAdmin.from('job_queue').update({status:'failed',error:'Timeout + max retries',completed_at:new Date().toISOString()}).eq('id',j.id);
+            }
+        }
+        // Claim and execute
+        while (orchRunning.size < ORCH_MAX_CONCURRENT) {
+            const job = await orchClaimJob();
+            if (!job) break;
+            orchRunning.set(job.id, true);
+            orchExecuteJob(job).catch(e => { console.error(`[ORCH:ERR] ${e.message}`); orchRunning.delete(job.id); });
+        }
+    } catch (e) { console.error('[ORCH:POLL]', e.message); }
+}
+
+function startOrchestrator() {
+    console.log(`\n\u2550\u2550 ORCHESTRATOR STARTED (${ORCH_WORKER_ID}) | poll=${ORCH_POLL}ms | max=${ORCH_MAX_CONCURRENT} \u2550\u2550`);
+    setInterval(orchPoll, ORCH_POLL);
+    setTimeout(orchPoll, 2000); // First poll 2s after startup
+}
