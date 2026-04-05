@@ -6635,6 +6635,9 @@ function runQACheck(lead) {
 // ===== LEAD DASHBOARD =====
 // ========== COMMAND CENTER (v2 — static dashboard) ==========
 app.get('/admin/command-center', (req, res) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.sendFile(require('path').join(__dirname, 'public', 'admin', 'command-center.html'));
 });
 
