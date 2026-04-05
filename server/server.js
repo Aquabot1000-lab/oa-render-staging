@@ -6823,14 +6823,36 @@ async function orchClaimJob() {
     return claimed || null;
 }
 
+// Worker name assignment based on job type
+const JOB_WORKER_MAP = {
+    'analyze_lead': 'analysis-worker',
+    'run_comps': 'analysis-worker',
+    'address_validate': 'data-worker',
+    'county_resolve': 'data-worker',
+    'county_import': 'data-worker',
+    'sales_data_ingest': 'data-worker',
+};
+
 async function orchExecuteJob(job) {
-    console.log(`[ORCH:EXEC] ${job.id.slice(0,8)} | ${job.job_type}`);
+    const workerName = JOB_WORKER_MAP[job.job_type] || 'unknown-worker';
+    const workerId = `${workerName}-${process.pid}`;
+    // Update assigned_worker to show which worker type is handling it
+    await supabaseAdmin.from('job_queue').update({ assigned_worker: workerId }).eq('id', job.id);
+    console.log(`[${workerName.toUpperCase()}] ${job.id.slice(0,8)} | ${job.job_type}`);
     try {
         let result = {};
         if (job.job_type === 'analyze_lead') {
             result = await orchAnalyzeLead(job.payload);
         } else if (job.job_type === 'run_comps') {
             result = await orchRunComps(job.payload);
+        } else if (job.job_type === 'address_validate') {
+            result = await orchAddressValidate(job.payload);
+        } else if (job.job_type === 'county_resolve') {
+            result = await orchCountyResolve(job.payload);
+        } else if (job.job_type === 'county_import') {
+            result = await orchCountyImport(job.payload);
+        } else if (job.job_type === 'sales_data_ingest') {
+            result = await orchSalesIngest(job.payload);
         } else {
             throw new Error(`Unknown job_type: ${job.job_type}`);
         }
@@ -6916,6 +6938,82 @@ async function orchAnalyzeLead(payload) {
 
 async function orchRunComps(payload) {
     return orchAnalyzeLead(payload); // Same logic for MVP
+}
+
+// ── DATA WORKER HANDLERS ──────────────────────────────────
+
+async function orchAddressValidate(payload) {
+    const { lead_id } = payload;
+    if (!lead_id) throw new Error('lead_id required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('id,case_id,owner_name,property_address,county,state').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    const addr = lead.property_address;
+    if (!addr || addr.length < 5) throw new Error(`Invalid address: "${addr}"`);
+    console.log(`[DATA-WORKER] Validating address: ${lead.case_id} — "${addr}"`);
+    const key = process.env.RENTCAST_API_KEY || '3a0f6f09999b41cc9ef23aa9d5fbab57';
+    const axios = require('axios');
+    const { data: props } = await axios.get('https://api.rentcast.io/v1/properties', {
+        params: { address: `${addr}, ${lead.state || ''}`.trim() },
+        headers: { 'X-Api-Key': key }, timeout: 15000
+    });
+    const p = Array.isArray(props) ? props[0] : props;
+    if (!p) throw new Error(`Address not found: "${addr}"`);
+    const updates = {};
+    if (p.formattedAddress) updates.property_address = p.formattedAddress;
+    if (p.county) updates.county = p.county;
+    if (p.state) updates.state = p.state;
+    if (p.squareFootage) updates.sqft = p.squareFootage;
+    if (p.bedrooms) updates.bedrooms = p.bedrooms;
+    if (p.bathrooms) updates.bathrooms = p.bathrooms;
+    if (p.yearBuilt) updates.year_built = p.yearBuilt;
+    if (p.lotSize) updates.lot_size = p.lotSize;
+    if (p.propertyType) updates.property_type = p.propertyType;
+    if (p.latitude) updates.latitude = p.latitude;
+    if (p.longitude) updates.longitude = p.longitude;
+    updates.address_validated = true;
+    updates.address_validated_at = new Date().toISOString();
+    updates.updated_at = new Date().toISOString();
+    await supabaseAdmin.from('submissions').update(updates).eq('id', lead_id);
+    console.log(`[DATA-WORKER] ${lead.case_id} validated: ${p.formattedAddress || 'ok'} | ${p.county} ${p.state} | ${p.squareFootage}sf`);
+    return { case_id: lead.case_id, address: p.formattedAddress, county: p.county, state: p.state, sqft: p.squareFootage, year_built: p.yearBuilt };
+}
+
+async function orchCountyResolve(payload) {
+    const { lead_id } = payload;
+    if (!lead_id) throw new Error('lead_id required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('id,case_id,property_address,county,state').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    if (lead.county && lead.county !== 'UNKNOWN') return { case_id: lead.case_id, county: lead.county, already_resolved: true };
+    console.log(`[DATA-WORKER] Resolving county: ${lead.case_id}`);
+    const key = process.env.RENTCAST_API_KEY || '3a0f6f09999b41cc9ef23aa9d5fbab57';
+    const axios = require('axios');
+    const { data: props } = await axios.get('https://api.rentcast.io/v1/properties', {
+        params: { address: `${lead.property_address}, ${lead.state || ''}`.trim() },
+        headers: { 'X-Api-Key': key }, timeout: 15000
+    });
+    const p = Array.isArray(props) ? props[0] : props;
+    if (!p?.county) throw new Error(`Could not resolve county for "${lead.property_address}"`);
+    await supabaseAdmin.from('submissions').update({ county: p.county, state: p.state || lead.state, updated_at: new Date().toISOString() }).eq('id', lead_id);
+    console.log(`[DATA-WORKER] ${lead.case_id} county resolved: ${p.county}, ${p.state}`);
+    return { case_id: lead.case_id, county: p.county, state: p.state };
+}
+
+async function orchCountyImport(payload) {
+    const { state, county } = payload;
+    if (!state || !county) throw new Error('state and county required');
+    console.log(`[DATA-WORKER] County import check: ${county}, ${state}`);
+    const { count } = await supabaseAdmin.from('county_properties').select('id', { count: 'exact', head: true }).eq('state', state).ilike('county', county);
+    console.log(`[DATA-WORKER] ${county}, ${state}: ${count || 0} existing records`);
+    return { county, state, existing_records: count || 0, action: count > 0 ? 'already_imported' : 'needs_manual_import' };
+}
+
+async function orchSalesIngest(payload) {
+    const { state, county } = payload;
+    if (!state || !county) throw new Error('state and county required');
+    console.log(`[DATA-WORKER] Sales ingest check: ${county}, ${state}`);
+    const { count } = await supabaseAdmin.from('county_sales').select('id', { count: 'exact', head: true }).eq('state', state).ilike('county', county);
+    console.log(`[DATA-WORKER] ${county}, ${state}: ${count || 0} existing sales records`);
+    return { county, state, existing_sales: count || 0, action: count > 0 ? 'already_imported' : 'needs_manual_import' };
 }
 
 async function orchPoll() {
