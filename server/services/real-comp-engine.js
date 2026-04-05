@@ -156,17 +156,22 @@ async function getRentCastComps(address, state) {
         
         const comps = [];
         for (const c of (data.comparables || [])) {
+            // Sale date priority: removedDate (actual close) > listedDate > lastSaleDate
+            const saleDate = c.removedDate || c.lastSaleDate || c.listedDate || null;
             const comp = {
                 address: c.formattedAddress || c.addressLine1 || null,
                 sale_price: c.lastSalePrice || c.price || null,
-                sale_date: c.lastSaleDate || null,
+                sale_date: saleDate ? saleDate.substring(0, 10) : null,
                 sqft: c.squareFootage || null,
                 bedrooms: c.bedrooms || null,
                 bathrooms: c.bathrooms || null,
                 year_built: c.yearBuilt || null,
-                distance: c.distance || null,
+                distance: c.distance ? parseFloat(c.distance.toFixed(2)) : null,
+                distance_miles: c.distance ? parseFloat(c.distance.toFixed(2)) : null,
                 lot_size: c.lotSize || null,
                 correlation: c.correlation || c.score || null,
+                days_on_market: c.daysOnMarket || null,
+                listing_type: c.listingType || null,
                 source: 'rentcast-api'
             };
             

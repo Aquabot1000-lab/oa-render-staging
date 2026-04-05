@@ -6353,6 +6353,12 @@ function runQACheck(lead) {
         errors.push({ field: 'comps', msg: `Only ${realComps.length} real comps — minimum 3 required for defensible analysis` });
     }
     
+    // Sale date is MANDATORY — comps without sale dates are not defensible
+    const compsWithDates = realComps.filter(c => c.sale_date);
+    if (compsWithDates.length < 3 && realComps.length >= 3) {
+        errors.push({ field: 'comps', msg: `Only ${compsWithDates.length} of ${realComps.length} comps have sale dates — minimum 3 with dates required` });
+    }
+    
     const assessed = parseFloat(String(lead.assessed_value || '0').replace(/[,$]/g, ''));
     const savings = lead.estimated_savings;
     if (assessed && savings) {
