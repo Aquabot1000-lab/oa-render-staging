@@ -31,6 +31,7 @@ const PORT = process.env.PORT || 3002;
 
 // Supabase routes (new database layer - runs alongside existing file-based routes)
 const { isSupabaseEnabled, supabaseAdmin } = require('./lib/supabase');
+const { getCountyStatus, classifyLead } = require('./county-timeline');
 const { normalizeAddress, normalizeStreet, addressesMatch } = require('./lib/normalize-address');
 const { validateIntakeFields } = require('./lib/validate-input');
 const clientsRouter = require('./routes/clients');
@@ -1733,19 +1734,25 @@ app.get('/api/admin/pending-approvals', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/admin/leads — ALL leads for Command Center (replaces direct Supabase calls)
+// GET /api/admin/leads — ALL leads for Command Center with timeline data
 app.get('/api/admin/leads', authenticateToken, async (req, res) => {
     try {
         const { data: leads } = await supabaseAdmin.from('submissions')
             .select('*')
             .is('deleted_at', null)
             .order('case_id');
-        // Ensure missing_data fields are populated
+        // Enrich each lead with county timeline + classification
         (leads || []).forEach(l => {
             if (!l.missing_data_reason && l.status === 'Blocked - Bad Data') l.missing_data_reason = 'NEEDS_INTERNAL_DATA';
             if (!l.missing_fields) l.missing_fields = [];
             if (!l.missing_notes) l.missing_notes = [];
-            if (!l.county_notice_status) l.county_notice_status = 'unknown';
+            
+            // County timeline engine
+            const classification = classifyLead(l);
+            l.county_timeline = classification.timeline;
+            l.recommended_action = classification.recommended_action;
+            l.lead_priority = classification.priority;
+            l.auto_trigger = classification.auto_trigger;
         });
         res.json(leads || []);
     } catch (e) {

@@ -237,6 +237,21 @@ function money(n){const v=parseFloat(n);if(isNaN(v)||v===null||v===undefined)ret
 function safeNum(n,fallback){const v=parseFloat(n);return isNaN(v)?fallback:v}
 function safeStr(s,fallback){return(s&&s!=='null'&&s!=='None'&&s!=='undefined')?s:(fallback||'—')}
 function canApprove(calc,comps){if(isNaN(safeNum(calc.assessed_value,NaN)))return false;if(!comps||comps.length<3)return false;if(comps.some(c=>!c.sale_date))return false;return true;}
+function timelineBadge(t){
+    if(!t||!t.status)return badge('Unknown','k');
+    const m={'WAITING_FOR_NOTICE':['\u23f3 Waiting','k'],'NOTICE_EXPECTED':['\ud83d\udd0d Expected','b'],'NOTICE_SENT':['\u2705 Released','g'],'DEADLINE_APPROACHING':['\u26a0\ufe0f '+t.days_to_deadline+'d left','o'],'DEADLINE_PASSED':['\u274c Passed','r'],'UNKNOWN':['? Unknown','k']};
+    const [txt,cls]=m[t.status]||['?','k'];
+    return badge(txt,cls);
+}
+function priorityBadge(p){
+    const m={'URGENT':['\ud83d\udea8 URGENT','r'],'HIGH':['\ud83d\udd25 HIGH','o'],'MEDIUM':['MEDIUM','b'],'LOW':['LOW','k'],'NORMAL':['NORMAL','k']};
+    const [txt,cls]=m[p]||['?','k'];
+    return badge(txt,cls);
+}
+function actionLabel(a){
+    const m={'WAIT':'\u23f3 Wait','MONITOR':'\ud83d\udd0d Monitor','TRIGGER_ANALYSIS':'\ud83d\udd04 Auto-Analyze','REVIEW_AND_FILE':'\u2705 Review & File','FILE_IMMEDIATELY':'\ud83d\udea8 FILE NOW','RUSH_ANALYSIS':'\u26a1 Rush Analysis','ALERT_TYLER':'\ud83d\udce2 Alert Tyler','ENRICH_DATA':'\ud83d\udd27 Enrich Data','CLOSE_FOR_YEAR':'\u274c Closed','MANUAL_REVIEW':'\ud83d\udc41 Manual Review','NO_ACTION':'\u2014'};
+    return m[a]||a;
+}
 function pct(n){return n!=null?Math.round(n*10)/10+'%':'—'}
 function card(num,lbl,cls,sub){return `<div class="card ${cls||''}"><div class="num ${cls?cls[0]:''}">${num}</div><div class="lbl">${lbl}</div>${sub?'<div class="sub">'+sub+'</div>':''}</div>`}
 
@@ -316,11 +331,12 @@ async function loadOA(){
             const dataTag=hasData?'':'<span class="data-warn">⚠️ MISSING DATA</span> ';
             
             // Desktop table row
+            const ct2=l.county_timeline||{};
             if(pBody)pBody.innerHTML+=`<tr>
                 <td><strong>${l.case_id||'?'}</strong></td>
                 <td>${safeStr(l.owner_name,'?').substring(0,20)}</td>
                 <td style="font-size:11px">${safeStr(l.property_address,'?').substring(0,30)}</td>
-                <td>${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}</td>
+                <td>${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}<br><span style="font-size:10px">${timelineBadge(ct2)} ${ct2.days_to_deadline!=null?ct2.days_to_deadline+'d':''}</span></td>
                 <td>${money(assessed)}</td>
                 <td>${money(proposed)}</td>
                 <td class="money">${money(s)}/yr</td>
@@ -332,10 +348,14 @@ async function loadOA(){
             </tr>`;
             
             // Mobile card
+            const ct=l.county_timeline||{};
             if(pCards)pCards.innerHTML+=`<div class="m-card">
                 <div class="m-hdr"><strong>${l.case_id} — ${safeStr(l.owner_name,'?')}</strong>${dataTag}</div>
                 <div class="m-row"><span class="m-lbl">🏠 Property</span><span class="m-val" style="font-size:11px">${safeStr(l.property_address,'?').substring(0,35)}</span></div>
                 <div class="m-row"><span class="m-lbl">📍 County</span><span class="m-val">${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}</span></div>
+                <div class="m-row"><span class="m-lbl">📅 Timeline</span><span class="m-val">${timelineBadge(ct)}</span></div>
+                <div class="m-row"><span class="m-lbl">⏰ Deadline</span><span class="m-val">${ct.deadline||'—'} ${ct.days_to_deadline!=null?'('+ct.days_to_deadline+'d)':''}</span></div>
+                <div class="m-row"><span class="m-lbl">🎯 Priority</span><span class="m-val">${priorityBadge(l.lead_priority||'NORMAL')}</span></div>
                 <div class="m-row"><span class="m-lbl">Assessed</span><span class="m-val">${money(assessed)}</span></div>
                 <div class="m-row"><span class="m-lbl">Market (avg)</span><span class="m-val">${money(proposed)}</span></div>
                 <div class="m-row"><span class="m-lbl">💰 Savings</span><span class="m-val" style="color:#3fb950;font-size:14px">${money(s)}/yr</span></div>
