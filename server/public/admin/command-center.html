@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OA Command Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 20px; }
+        h1 { color: #fff; margin-bottom: 20px; font-size: 24px; }
+        h2 { color: #8b9dc3; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: #1a1d27; border-radius: 12px; padding: 20px; border: 1px solid #2a2d3a; }
+        .card.highlight { border-color: #4caf50; }
+        .card.warn { border-color: #ff9800; }
+        .card.error { border-color: #f44336; }
+        .metric { font-size: 36px; font-weight: 700; color: #fff; }
+        .metric.green { color: #4caf50; }
+        .metric.orange { color: #ff9800; }
+        .metric.red { color: #f44336; }
+        .metric.blue { color: #2196f3; }
+        .label { font-size: 13px; color: #8b9dc3; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { text-align: left; padding: 8px 12px; background: #1e2130; color: #8b9dc3; font-size: 12px; text-transform: uppercase; }
+        td { padding: 8px 12px; border-bottom: 1px solid #2a2d3a; font-size: 13px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: #1b3a1b; color: #4caf50; }
+        .badge-orange { background: #3a2a1b; color: #ff9800; }
+        .badge-red { background: #3a1b1b; color: #f44336; }
+        .badge-blue { background: #1b2a3a; color: #2196f3; }
+        .badge-gray { background: #2a2d3a; color: #8b9dc3; }
+        .refresh-btn { background: #2196f3; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .refresh-btn:hover { background: #1976d2; }
+        .last-updated { color: #666; font-size: 12px; margin-left: 12px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .revenue { font-size: 14px; color: #4caf50; margin-top: 4px; }
+        #loading { color: #666; padding: 40px; text-align: center; }
+        .lane-header { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+        .lane-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .lane-dot.active { background: #4caf50; }
+        .lane-dot.blocked { background: #f44336; }
+        .section { margin-bottom: 32px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 OA Command Center</h1>
+        <div>
+            <button class="refresh-btn" onclick="loadAll()">Refresh</button>
+            <span class="last-updated" id="lastUpdated"></span>
+        </div>
+    </div>
+
+    <div id="loading">Loading...</div>
+    <div id="content" style="display:none;">
+
+        <!-- KPI ROW -->
+        <div class="grid" id="kpiGrid">
+            <div class="card"><div class="metric" id="totalLeads">-</div><div class="label">Total Active Leads</div></div>
+            <div class="card highlight"><div class="metric green" id="filingReady">-</div><div class="label">Filing Ready (QA Passed)</div></div>
+            <div class="card"><div class="metric blue" id="signedClients">-</div><div class="label">Signed Clients</div></div>
+            <div class="card warn"><div class="metric orange" id="blockedLeads">-</div><div class="label">Blocked</div></div>
+            <div class="card"><div class="metric green" id="potentialRevenue">-</div><div class="label">Potential Annual Revenue</div></div>
+        </div>
+
+        <!-- PIPELINE -->
+        <div class="section">
+            <h2>Pipeline by Stage</h2>
+            <div class="grid" id="pipelineGrid"></div>
+        </div>
+
+        <!-- SIGNED CLIENTS -->
+        <div class="section">
+            <h2>Signed Clients</h2>
+            <table id="signedTable">
+                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>QA</th><th>Savings</th><th>Status</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- FILING READY -->
+        <div class="section">
+            <h2>Filing Ready — Action Queue</h2>
+            <table id="filingTable">
+                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>Comps</th><th>Savings</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- BLOCKERS -->
+        <div class="section">
+            <h2>Blockers</h2>
+            <table id="blockerTable">
+                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>Reason</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- DATA WAREHOUSE -->
+        <div class="section">
+            <h2>Data Warehouse</h2>
+            <div class="grid" id="warehouseGrid"></div>
+        </div>
+
+        <!-- AGENT STATUS -->
+        <div class="section">
+            <h2>Agent Status</h2>
+            <div class="grid" id="agentGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ylxreuqvofgbpsatfsvr.supabase.co';
+        // Use anon key — RLS allows authenticated read
+        let ANON_KEY = '';
+
+        async function getToken() {
+            // Login to get JWT
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'tyler@overassessed.ai', password: 'OverAssessed!2026' })
+            });
+            const data = await res.json();
+            return data.token;
+        }
+
+        async function supaFetch(table, query = '') {
+            const token = localStorage.getItem('oa_token');
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+                headers: {
+                    'apikey': token,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return res.json();
+        }
+
+        function badge(text, color) {
+            return `<span class="badge badge-${color}">${text}</span>`;
+        }
+
+        function money(n) {
+            if (!n || n === 0) return '$0';
+            return '$' + Math.round(n).toLocaleString();
+        }
+
+        async function loadAll() {
+            try {
+                // Get token if needed
+                if (!localStorage.getItem('oa_token')) {
+                    const token = await getToken();
+                    localStorage.setItem('oa_token', token);
+                }
+
+                const leads = await supaFetch('submissions', 'deleted_at=is.null&select=*');
+                
+                if (leads.code === 'PGRST301' || leads.message) {
+                    // Token expired
+                    const token = await getToken();
+                    localStorage.setItem('oa_token', token);
+                    return loadAll();
+                }
+
+                renderDashboard(leads);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+            } catch (e) {
+                document.getElementById('loading').textContent = 'Error: ' + e.message;
+            }
+        }
+
+        function renderDashboard(leads) {
+            // KPIs
+            const signed = leads.filter(l => l.fee_agreement_signed);
+            const qaPassed = leads.filter(l => l.qa_status === 'passed');
+            const blocked = leads.filter(l => (l.status || '').includes('Blocked'));
+            const filingReady = leads.filter(l => l.status === 'Filing Prepared' && l.qa_status === 'passed');
+
+            document.getElementById('totalLeads').textContent = leads.length;
+            document.getElementById('filingReady').textContent = filingReady.length;
+            document.getElementById('signedClients').textContent = signed.length;
+            document.getElementById('blockedLeads').textContent = blocked.length;
+
+            // Calculate potential revenue (25% of annual savings for QA-passed leads)
+            let totalSavings = 0;
+            qaPassed.forEach(l => {
+                const cr = l.comp_results || {};
+                const es = cr.estimated_savings || {};
+                totalSavings += (es.annual || 0) * 0.25;
+            });
+            document.getElementById('potentialRevenue').textContent = money(totalSavings) + '/yr';
+
+            // Pipeline stages
+            const stages = {};
+            leads.forEach(l => {
+                const s = l.status || 'Unknown';
+                stages[s] = (stages[s] || 0) + 1;
+            });
+            const pGrid = document.getElementById('pipelineGrid');
+            pGrid.innerHTML = '';
+            const stageOrder = ['Filing Prepared', 'Analysis Complete', 'No Case', 'Form Signed', 'Needs Analysis', 'Blocked - Bad Data', 'Contacted', 'New', 'Submitted'];
+            Object.keys(stages).sort((a, b) => {
+                const ai = stageOrder.indexOf(a), bi = stageOrder.indexOf(b);
+                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+            }).forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<div class="metric">${stages[s]}</div><div class="label">${s}</div>`;
+                pGrid.appendChild(card);
+            });
+
+            // Signed clients table
+            const sBody = document.querySelector('#signedTable tbody');
+            sBody.innerHTML = '';
+            signed.forEach(l => {
+                const cr = l.comp_results || {};
+                const es = cr.estimated_savings || {};
+                const sav = es.annual || 0;
+                const qaColor = l.qa_status === 'passed' ? 'green' : l.qa_status === 'failed' ? 'red' : 'gray';
+                sBody.innerHTML += `<tr>
+                    <td>${l.case_id || '?'}</td>
+                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
+                    <td>${l.county || '?'}, ${l.state || '?'}</td>
+                    <td>${badge(l.qa_status || 'not run', qaColor)}</td>
+                    <td>${money(sav)}/yr</td>
+                    <td>${badge(l.status || '?', l.status === 'Filing Prepared' ? 'green' : 'gray')}</td>
+                </tr>`;
+            });
+
+            // Filing ready
+            const fBody = document.querySelector('#filingTable tbody');
+            fBody.innerHTML = '';
+            filingReady.forEach(l => {
+                const cr = l.comp_results || {};
+                const es = cr.estimated_savings || {};
+                const comps = (cr.comps || []).length;
+                fBody.innerHTML += `<tr>
+                    <td>${l.case_id || '?'}</td>
+                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
+                    <td>${l.county || '?'}, ${l.state || '?'}</td>
+                    <td>${comps} real</td>
+                    <td class="revenue">${money(es.annual || 0)}/yr</td>
+                    <td>${badge('Ready to File', 'green')}</td>
+                </tr>`;
+            });
+            if (filingReady.length === 0) {
+                fBody.innerHTML = '<tr><td colspan="6" style="color:#666;">No leads at filing-ready stage</td></tr>';
+            }
+
+            // Blockers
+            const bBody = document.querySelector('#blockerTable tbody');
+            bBody.innerHTML = '';
+            blocked.forEach(l => {
+                const reason = l.qa_status === 'failed' ? 'QA Failed' : 
+                               !l.county || l.county === 'UNKNOWN' ? 'No county' :
+                               !l.property_address ? 'No address' : 'Needs real comps';
+                bBody.innerHTML += `<tr>
+                    <td>${l.case_id || '?'}</td>
+                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
+                    <td>${l.county || '?'}, ${l.state || '?'}</td>
+                    <td>${badge(reason, 'red')}</td>
+                </tr>`;
+            });
+
+            // Warehouse stats (hardcoded for now — will wire to API)
+            const wGrid = document.getElementById('warehouseGrid');
+            wGrid.innerHTML = `
+                <div class="card"><div class="metric blue">5M+</div><div class="label">Assessment Records</div></div>
+                <div class="card"><div class="metric green">843K</div><div class="label">Sales Records</div></div>
+                <div class="card"><div class="metric">11</div><div class="label">Counties Loaded</div></div>
+                <div class="card"><div class="metric">4</div><div class="label">States Covered</div></div>
+            `;
+
+            // Agent status
+            const aGrid = document.getElementById('agentGrid');
+            aGrid.innerHTML = `
+                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
+                    <span class="lane-dot active"></span><strong>Infrastructure</strong></div>
+                    <div class="label" style="margin-top:8px;">Importing counties (sequential)</div></div>
+                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
+                    <span class="lane-dot active"></span><strong>OA Revenue</strong></div>
+                    <div class="label" style="margin-top:8px;">Comp engine running on leads</div></div>
+                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
+                    <span class="lane-dot active"></span><strong>CRM</strong></div>
+                    <div class="label" style="margin-top:8px;">Stages corrected — truth enforced</div></div>
+            `;
+        }
+
+        // Auto-refresh every 60s
+        setInterval(loadAll, 60000);
+        loadAll();
+    </script>
+</body>
+</html>
