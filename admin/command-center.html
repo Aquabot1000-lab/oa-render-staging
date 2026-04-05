@@ -278,16 +278,21 @@ async function loadOA(){
 
         let totalSav=0,totalRev=0;
         ready.forEach(l=>{const s=parseFloat(l.estimated_savings||0);totalSav+=s;totalRev+=s*0.25;});
+        
+        const waitCounty=leads.filter(l=>l.missing_data_reason==='WAITING_ON_COUNTY').length;
+        const needsEnrich=leads.filter(l=>l.missing_data_reason==='NEEDS_INTERNAL_DATA').length;
+        const needsContact=leads.filter(l=>l.missing_data_reason==='NEEDS_CUSTOMER_INPUT').length;
+        const pendingApproval=leads.filter(l=>l.status==='Pending Approval').length;
 
         $('#oa-kpi').innerHTML=[
             card(leads.length,'Total Leads','blue'),
-            card(ready.length,'Filing Ready','green'),
-            card(signed.length,'Signed','blue'),
-            card(blocked.length,'Blocked','red'),
-            card(needsA.length,'Needs Analysis','orange'),
+            card(pendingApproval,'⚠️ Pending Approval','orange'),
             card(noCase.length,'No Case',''),
+            card(blocked.length,'Blocked','red'),
             card(paid.length,'Paid $79','green'),
-            card(money(totalRev),'Potential Revenue','green',money(totalSav)+' total savings')
+            card(money(totalRev),'Potential Revenue','green',money(totalSav)+' savings'),
+            card(waitCounty,'⏳ Waiting County','',needsEnrich+' need enrichment'),
+            card(needsContact,'📩 Need Contact','red')
         ].join('');
 
         // Pending Approval table + mobile cards
@@ -394,27 +399,57 @@ async function loadOA(){
             </tr>`;
         });}
 
-// Blocked table
+// Blocked table + classification
         const bBody=$('#oa-blocked tbody');bBody.innerHTML='';
-        [...blocked,...needsA].forEach(l=>{
-            const qa=l.qa_status||'not_run';
-            const comps=(l.comp_results?.comps||[]).length;
-            let reason='';
-            if(!l.county||l.county==='None')reason='No county';
-            else if(!l.property_address||l.property_address.length<5)reason='No address';
-            else if(qa==='failed'&&comps<3)reason=comps+' comps (need 3+)';
-            else if(qa==='not_run')reason='Comp engine not run';
-            else reason='QA: '+qa;
-            bBody.innerHTML+=`<tr>
+        const bCards=$('#oa-blocked-cards');if(bCards)bCards.innerHTML='';
+        const allIssues=[...blocked,...needsA,...leads.filter(l=>l.missing_data_reason&&l.status!=='Pending Approval')];
+        const seen=new Set();const uniqueIssues=allIssues.filter(l=>{if(seen.has(l.id))return false;seen.add(l.id);return true;});
+        
+        uniqueIssues.forEach(l=>{
+            const mdr=l.missing_data_reason||'';
+            const mf=(l.missing_fields||[]);
+            const mn=(l.missing_notes||[]);
+            const cns=l.county_notice_status||'unknown';
+            const neu=l.next_expected_update||'\u2014';
+            const lcd=l.last_data_check?new Date(l.last_data_check).toLocaleDateString():'Never';
+            const classColors={'WAITING_ON_COUNTY':'p','NEEDS_INTERNAL_DATA':'o','NEEDS_CUSTOMER_INPUT':'r'};
+            const classLabels={'WAITING_ON_COUNTY':'\u23f3 County','NEEDS_INTERNAL_DATA':'\ud83d\udd27 Enrich','NEEDS_CUSTOMER_INPUT':'\ud83d\udce9 Contact'};
+            const classBadge=mdr?badge(classLabels[mdr]||mdr,classColors[mdr]||'k'):badge('Unclassified','k');
+            const missingList=mf.map(f=>f.label||f.field).join(', ')||'\u2014';
+            let nextAction='';
+            if(mdr==='WAITING_ON_COUNTY')nextAction=`\u23f3 Wait \u2014 deadline: ${neu}`;
+            else if(mdr==='NEEDS_INTERNAL_DATA')nextAction='\ud83d\udd04 Auto: Data Worker';
+            else if(mdr==='NEEDS_CUSTOMER_INPUT')nextAction='\ud83d\udce7 Contact (approval req)';
+            else nextAction='Review needed';
+            const latestNote=mn.length?mn[mn.length-1].text:'\u2014';
+            
+            if(bBody)bBody.innerHTML+=`<tr>
                 <td>${l.case_id||'?'}</td>
-                <td>${(l.owner_name||'?').substring(0,25)}</td>
-                <td>${l.county||'?'}, ${l.state||'?'}</td>
-                <td>${badge(l.status||'?',l.status?.includes('Blocked')?'r':'o')}</td>
-                <td>${reason}</td>
+                <td>${safeStr(l.owner_name,'?').substring(0,22)}</td>
+                <td>${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}</td>
+                <td>${badge(l.status||'?',l.status?.includes('Blocked')?'r':'o')} ${classBadge}</td>
+                <td style="font-size:11px"><strong>Missing:</strong> ${missingList}<br><strong>Action:</strong> ${nextAction}<br><span style="color:#484f58">Checked: ${lcd} | Notice: ${cns}</span></td>
             </tr>`;
+            
+            if(bCards)bCards.innerHTML+=`<div class="m-card">
+                <div class="m-hdr"><strong>${l.case_id||'?'} \u2014 ${safeStr(l.owner_name,'?')}</strong></div>
+                <div class="m-row"><span class="m-lbl">Status</span><span class="m-val">${l.status||'?'}</span></div>
+                <div class="m-row"><span class="m-lbl">Why</span><span class="m-val">${classBadge}</span></div>
+                <div class="m-row"><span class="m-lbl">Missing</span><span class="m-val" style="font-size:11px;text-align:right;max-width:60%">${missingList}</span></div>
+                <div class="m-row"><span class="m-lbl">Next</span><span class="m-val" style="font-size:11px">${nextAction}</span></div>
+                <div class="m-row"><span class="m-lbl">Notice</span><span class="m-val">${cns}</span></div>
+                <div class="m-row"><span class="m-lbl">Deadline</span><span class="m-val">${neu}</span></div>
+                <div class="m-row"><span class="m-lbl">Checked</span><span class="m-val">${lcd}</span></div>
+                ${latestNote!=='\u2014'?`<div style="font-size:11px;color:#8b949e;margin-top:6px;padding-top:6px;border-top:1px solid #21262d">\ud83d\udcdd ${latestNote}</div>`:''}
+            </div>`;
         });
+        if(uniqueIssues.length===0){
+            if(bBody)bBody.innerHTML='<tr><td colspan="5" style="color:#484f58">No issues</td></tr>';
+            if(bCards)bCards.innerHTML='<p style="color:#484f58">No issues</p>';
+        }
     }catch(e){$('#oa-kpi').innerHTML=card('Error','Failed to load OA data','red',e.message);}
 }
+
 
 async function loadWA(){
     try{

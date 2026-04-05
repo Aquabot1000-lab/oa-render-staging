@@ -1740,6 +1740,13 @@ app.get('/api/admin/leads', authenticateToken, async (req, res) => {
             .select('*')
             .is('deleted_at', null)
             .order('case_id');
+        // Ensure missing_data fields are populated
+        (leads || []).forEach(l => {
+            if (!l.missing_data_reason && l.status === 'Blocked - Bad Data') l.missing_data_reason = 'NEEDS_INTERNAL_DATA';
+            if (!l.missing_fields) l.missing_fields = [];
+            if (!l.missing_notes) l.missing_notes = [];
+            if (!l.county_notice_status) l.county_notice_status = 'unknown';
+        });
         res.json(leads || []);
     } catch (e) {
         res.status(500).json({ error: e.message });
