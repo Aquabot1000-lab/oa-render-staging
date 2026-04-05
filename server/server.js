@@ -32,6 +32,7 @@ const PORT = process.env.PORT || 3002;
 // Supabase routes (new database layer - runs alongside existing file-based routes)
 const { isSupabaseEnabled, supabaseAdmin } = require('./lib/supabase');
 const { getCountyStatus, classifyLead } = require('./county-timeline');
+const { calculatePriority, getNextFollowUp, enrichLead } = require('./priority-engine');
 const { normalizeAddress, normalizeStreet, addressesMatch } = require('./lib/normalize-address');
 const { validateIntakeFields } = require('./lib/validate-input');
 const clientsRouter = require('./routes/clients');
@@ -1751,8 +1752,15 @@ app.get('/api/admin/leads', authenticateToken, async (req, res) => {
             const classification = classifyLead(l);
             l.county_timeline = classification.timeline;
             l.recommended_action = classification.recommended_action;
-            l.lead_priority = classification.priority;
             l.auto_trigger = classification.auto_trigger;
+            
+            // Priority scoring engine
+            const enrichment = enrichLead(l);
+            l.priority_score = enrichment.priority.score;
+            l.priority_tag = enrichment.priority.tag;
+            l.priority_breakdown = enrichment.priority.breakdown;
+            l.lead_priority = enrichment.priority.tag; // Override timeline priority with scored priority
+            l.follow_up = enrichment.follow_up;
         });
         res.json(leads || []);
     } catch (e) {
