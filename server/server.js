@@ -1583,6 +1583,75 @@ app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/admin/pending-messages — messages awaiting Tyler's approval
+app.get('/api/admin/pending-messages', authenticateToken, async (req, res) => {
+    try {
+        const { data } = await supabaseAdmin.from('message_queue')
+            .select('*')
+            .in('status', ['pending_approval'])
+            .order('created_at', { ascending: false });
+        res.json(data || []);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/approve-message — approve or reject a queued message
+app.post('/api/admin/approve-message', authenticateToken, async (req, res) => {
+    try {
+        const { message_id, action, reason } = req.body;
+        if (!message_id || !action) return res.status(400).json({ error: 'message_id and action required' });
+        
+        if (action === 'approve') {
+            await supabaseAdmin.from('message_queue').update({
+                status: 'approved',
+                approved_by: req.user?.email || 'tyler',
+                approved_at: new Date().toISOString()
+            }).eq('id', message_id);
+            
+            // Queue send job
+            await supabaseAdmin.from('job_queue').insert({
+                job_type: 'send_approved',
+                payload: { message_id },
+                priority: 2,
+                status: 'pending'
+            });
+            
+            console.log(`[MSG] Approved: ${message_id}`);
+            res.json({ success: true, status: 'approved' });
+        } else if (action === 'reject') {
+            await supabaseAdmin.from('message_queue').update({
+                status: 'rejected',
+                rejected_reason: reason || 'Rejected by owner'
+            }).eq('id', message_id);
+            
+            // Audit log
+            const { data: msg } = await supabaseAdmin.from('message_queue').select('*').eq('id', message_id).single();
+            if (msg) {
+                await supabaseAdmin.from('communication_log').insert({
+                    lead_id: msg.lead_id, case_id: msg.case_id, lead_name: msg.lead_name,
+                    channel: msg.channel, message_type: msg.message_type, subject: msg.subject,
+                    body_preview: msg.body_text?.substring(0, 200), status: 'rejected'
+                });
+            }
+            
+            console.log(`[MSG] Rejected: ${message_id}`);
+            res.json({ success: true, status: 'rejected' });
+        } else {
+            res.status(400).json({ error: 'action must be approve or reject' });
+        }
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/admin/communication-log — audit trail
+app.get('/api/admin/communication-log', authenticateToken, async (req, res) => {
+    try {
+        const { data } = await supabaseAdmin.from('communication_log')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+        res.json(data || []);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/admin/pending-approvals — get all leads pending Tyler's review
 app.get('/api/admin/pending-approvals', authenticateToken, async (req, res) => {
     try {
@@ -6831,6 +6900,10 @@ const JOB_WORKER_MAP = {
     'county_resolve': 'data-worker',
     'county_import': 'data-worker',
     'sales_data_ingest': 'data-worker',
+    'stage_transition': 'crm-worker',
+    'generate_message': 'crm-worker',
+    'check_agreement': 'crm-worker',
+    'send_approved': 'crm-worker',
 };
 
 async function orchExecuteJob(job) {
@@ -6853,6 +6926,14 @@ async function orchExecuteJob(job) {
             result = await orchCountyImport(job.payload);
         } else if (job.job_type === 'sales_data_ingest') {
             result = await orchSalesIngest(job.payload);
+        } else if (job.job_type === 'stage_transition') {
+            result = await orchStageTransition(job.payload);
+        } else if (job.job_type === 'generate_message') {
+            result = await orchGenerateMessage(job.payload);
+        } else if (job.job_type === 'check_agreement') {
+            result = await orchCheckAgreement(job.payload);
+        } else if (job.job_type === 'send_approved') {
+            result = await orchSendApproved(job.payload);
         } else {
             throw new Error(`Unknown job_type: ${job.job_type}`);
         }
@@ -7014,6 +7095,212 @@ async function orchSalesIngest(payload) {
     const { count } = await supabaseAdmin.from('county_sales').select('id', { count: 'exact', head: true }).eq('state', state).ilike('county', county);
     console.log(`[DATA-WORKER] ${county}, ${state}: ${count || 0} existing sales records`);
     return { county, state, existing_sales: count || 0, action: count > 0 ? 'already_imported' : 'needs_manual_import' };
+}
+
+// ── CRM WORKER HANDLERS ───────────────────────────────────
+
+const CRM_TEMPLATES = {
+    'analysis_complete_legacy': {
+        subject: 'Your Property Tax Analysis is Ready — Case {{case_id}}',
+        body: 'Hi {{owner_name}},\n\nYour property tax analysis for {{property_address}} is complete.\n\nBased on our review of {{comp_count}} comparable sales in {{county}} County, we believe your assessed value of ${{assessed_value}} may be reduced.\n\nEstimated annual savings: {{savings_range}}\n\nAs an existing client, your protest is covered under your current agreement — no additional fees to get started.\n\nNext step: We\'ll prepare your filing package and keep you updated.\n\nQuestions? Reply or call (210) 760-7236.\n\n— OverAssessed Team',
+        sms: 'OverAssessed: Your analysis for {{property_address}} is ready. Est. savings: {{savings_range}}/yr. We\'ll prepare your filing. Reply STOP to opt out.'
+    },
+    'analysis_complete_new': {
+        subject: 'Your Property Tax Analysis is Ready — Case {{case_id}}',
+        body: 'Hi {{owner_name}},\n\nYour property tax analysis for {{property_address}} is complete.\n\nBased on our review of {{comp_count}} comparable sales in {{county}} County, we believe your assessed value of ${{assessed_value}} may be reduced.\n\nEstimated annual savings: {{savings_range}}\n\nTo proceed with your protest:\n1. Review and sign the fee agreement\n2. Pay the $79 initiation fee (credited toward your 25% success fee)\n3. We handle everything from there\n\nGet started: {{agreement_url}}\n\nQuestions? Reply or call (210) 760-7236.\n\n— OverAssessed Team',
+        sms: 'OverAssessed: Your analysis for {{property_address}} is ready. Est. savings: {{savings_range}}/yr. Get started ($79): {{agreement_url}} Reply STOP to opt out.'
+    },
+    'no_case': {
+        subject: 'Property Tax Review Complete — Case {{case_id}}',
+        body: 'Hi {{owner_name}},\n\nWe\'ve completed our analysis of {{property_address}} in {{county}} County.\n\nAfter reviewing {{comp_count}} comparable sales, your current assessed value of ${{assessed_value}} appears in line with market data. A protest is unlikely to result in meaningful savings at this time.\n\nWe\'ll continue monitoring. If values change, we\'ll reach out.\n\nNo action needed.\n\n— OverAssessed Team',
+        sms: 'OverAssessed: We reviewed {{property_address}}. Your value appears fair based on current comps. No action needed. We\'ll monitor for changes. Reply STOP to opt out.'
+    },
+    'filing_approved': {
+        subject: 'Your Protest is Being Filed — Case {{case_id}}',
+        body: 'Hi {{owner_name}},\n\nGreat news — your property tax protest for {{property_address}} has been approved for filing.\n\nWe\'re submitting to {{county}} County with {{comp_count}} comparable sales supporting a reduced value.\n\nYou don\'t need to do anything. We\'ll notify you when filed and when we receive a response.\n\n— OverAssessed Team',
+        sms: 'OverAssessed: Your protest for {{property_address}} is being filed with {{county}} County. We\'ll keep you updated. Reply STOP to opt out.'
+    }
+};
+
+function renderCrmTemplate(templateId, data) {
+    const tmpl = CRM_TEMPLATES[templateId];
+    if (!tmpl) throw new Error(`Unknown template: ${templateId}`);
+    const render = (text) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => data[k] !== undefined ? String(data[k]) : m);
+    return { subject: render(tmpl.subject), body_text: render(tmpl.body), sms_text: render(tmpl.sms) };
+}
+
+function validateCrmEvidence(lead) {
+    const errors = [];
+    if (lead.qa_status !== 'passed') errors.push('QA not passed');
+    const comps = lead.comp_results?.comps || [];
+    const real = comps.filter(c => c.source !== 'synthetic' && c.source !== 'synthetic-estimate');
+    if (real.length < 3) errors.push(`Only ${real.length} real comps (need 3)`);
+    const withDates = real.filter(c => c.sale_date);
+    if (withDates.length < 3) errors.push(`Only ${withDates.length} comps with sale dates (need 3)`);
+    if (!lead.agreement_type) errors.push('Agreement type not set');
+    return { valid: errors.length === 0, errors };
+}
+
+async function orchStageTransition(payload) {
+    const { lead_id, target_stage, reason } = payload;
+    if (!lead_id || !target_stage) throw new Error('lead_id and target_stage required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    
+    console.log(`[CRM-WORKER] Stage transition: ${lead.case_id} ${lead.status} → ${target_stage}`);
+    
+    // Evidence enforcement
+    const evidence = validateCrmEvidence(lead);
+    if (['Filing Prepared','Pending Approval','Approved','Filed'].includes(target_stage)) {
+        if (!evidence.valid) {
+            console.log(`[CRM-WORKER] BLOCKED: ${lead.case_id} → ${target_stage}: ${evidence.errors.join(', ')}`);
+            return { case_id: lead.case_id, blocked: true, reason: evidence.errors };
+        }
+    }
+    
+    // Filing gate for Filed stage
+    if (target_stage === 'Filed' || target_stage === 'Approved') {
+        const gate = canFile(lead);
+        if (!gate.allowed) {
+            console.log(`[CRM-WORKER] FILING GATE: ${lead.case_id} blocked: ${gate.reason}`);
+            return { case_id: lead.case_id, blocked: true, reason: [gate.reason] };
+        }
+        if (!lead.filing_approved && target_stage === 'Filed') {
+            return { case_id: lead.case_id, blocked: true, reason: ['Filing not approved by owner'] };
+        }
+    }
+    
+    await supabaseAdmin.from('submissions').update({ status: target_stage, updated_at: new Date().toISOString() }).eq('id', lead_id);
+    console.log(`[CRM-WORKER] ${lead.case_id} → ${target_stage}`);
+    return { case_id: lead.case_id, previous: lead.status, current: target_stage, blocked: false };
+}
+
+async function orchGenerateMessage(payload) {
+    const { lead_id, message_type } = payload;
+    if (!lead_id || !message_type) throw new Error('lead_id and message_type required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    
+    // Evidence check for analysis messages
+    if (['analysis_complete_legacy','analysis_complete_new','filing_approved'].includes(message_type)) {
+        const ev = validateCrmEvidence(lead);
+        if (!ev.valid) throw new Error(`Evidence check failed: ${ev.errors.join(', ')}`);
+    }
+    
+    // Determine template
+    let templateId = message_type;
+    if (message_type === 'analysis_complete') {
+        templateId = lead.agreement_type === 'legacy_terms' ? 'analysis_complete_legacy' : 'analysis_complete_new';
+    }
+    
+    const comps = lead.comp_results?.comps || [];
+    const savings = lead.estimated_savings || 0;
+    const assessed = lead.assessed_value || 0;
+    const baseUrl = process.env.APP_URL || 'https://disciplined-alignment-production.up.railway.app';
+    
+    const data = {
+        case_id: lead.case_id,
+        owner_name: lead.owner_name,
+        property_address: lead.property_address,
+        county: lead.county,
+        assessed_value: parseInt(assessed).toLocaleString(),
+        comp_count: comps.length,
+        savings_range: savings > 0 ? `$${savings.toLocaleString()}` : '$0',
+        agreement_url: `${baseUrl}/sign-agreement.html?lead=${lead_id}`
+    };
+    
+    const rendered = renderCrmTemplate(templateId, data);
+    
+    // Insert into message_queue with pending_approval status
+    // NEVER auto-send
+    const channel = lead.email && lead.phone ? 'both' : (lead.email ? 'email' : 'sms');
+    
+    const { data: msg } = await supabaseAdmin.from('message_queue').insert({
+        lead_id: lead_id,
+        case_id: lead.case_id,
+        lead_name: lead.owner_name,
+        channel: channel,
+        recipient_email: lead.email,
+        recipient_phone: lead.phone,
+        subject: rendered.subject,
+        body_text: rendered.body_text,
+        template_id: templateId,
+        message_type: message_type,
+        agreement_type: lead.agreement_type,
+        fee_structure: {
+            type: lead.agreement_type,
+            initiation_fee: lead.agreement_type === 'new_terms' ? 79 : 0,
+            success_fee_pct: 25,
+            estimated_savings: savings,
+            estimated_fee: Math.round(savings * 0.25)
+        },
+        status: 'pending_approval',
+        metadata: { sms_text: rendered.sms_text, comp_count: comps.length, savings }
+    }).select().single();
+    
+    console.log(`[CRM-WORKER] Message queued for approval: ${lead.case_id} | ${templateId} | ${channel}`);
+    return { case_id: lead.case_id, message_id: msg?.id, template: templateId, status: 'pending_approval', channel };
+}
+
+async function orchCheckAgreement(payload) {
+    const { lead_id } = payload;
+    if (!lead_id) throw new Error('lead_id required');
+    const { data: lead } = await supabaseAdmin.from('submissions').select('id,case_id,agreement_type,fee_agreement_signed,initiation_paid,initiation_fee_paid').eq('id', lead_id).single();
+    if (!lead) throw new Error('Lead not found');
+    return {
+        case_id: lead.case_id,
+        agreement_type: lead.agreement_type,
+        signed: !!lead.fee_agreement_signed,
+        paid: !!(lead.initiation_paid || lead.initiation_fee_paid),
+        can_file: lead.agreement_type === 'legacy_terms' || (lead.fee_agreement_signed && (lead.initiation_paid || lead.initiation_fee_paid))
+    };
+}
+
+async function orchSendApproved(payload) {
+    const { message_id } = payload;
+    if (!message_id) throw new Error('message_id required');
+    const { data: msg } = await supabaseAdmin.from('message_queue').select('*').eq('id', message_id).single();
+    if (!msg) throw new Error('Message not found');
+    if (msg.status !== 'approved') throw new Error(`Message status is ${msg.status}, not approved`);
+    
+    let sent = false;
+    let sendError = null;
+    
+    try {
+        // Send email
+        if ((msg.channel === 'email' || msg.channel === 'both') && msg.recipient_email) {
+            sendClientEmail(msg.recipient_email, msg.subject, brandedEmailWrapper(msg.subject, '', msg.body_text.replace(/\n/g, '<br>')));
+            sent = true;
+        }
+        // Send SMS
+        if ((msg.channel === 'sms' || msg.channel === 'both') && msg.recipient_phone) {
+            const smsText = msg.metadata?.sms_text || msg.body_text.substring(0, 160);
+            sendClientSMS(msg.recipient_phone, smsText);
+            sent = true;
+        }
+    } catch (e) {
+        sendError = e.message;
+    }
+    
+    const finalStatus = sent ? 'sent' : 'failed';
+    await supabaseAdmin.from('message_queue').update({ status: finalStatus, sent_at: sent ? new Date().toISOString() : null, send_error: sendError }).eq('id', message_id);
+    
+    // Audit log
+    await supabaseAdmin.from('communication_log').insert({
+        lead_id: msg.lead_id,
+        case_id: msg.case_id,
+        lead_name: msg.lead_name,
+        channel: msg.channel,
+        message_type: msg.message_type,
+        subject: msg.subject,
+        body_preview: msg.body_text.substring(0, 200),
+        status: finalStatus,
+        approved_by: msg.approved_by,
+        sent_at: sent ? new Date().toISOString() : null
+    });
+    
+    console.log(`[CRM-WORKER] Message ${finalStatus}: ${msg.case_id} | ${msg.message_type} | ${msg.channel}`);
+    return { message_id, case_id: msg.case_id, status: finalStatus, error: sendError };
 }
 
 async function orchPoll() {

@@ -68,6 +68,7 @@
         <button class="tab" onclick="showTab('mkt')">Marketing</button>
         <button class="tab" onclick="showTab('infra')">Infrastructure</button>
         <button class="tab" onclick="showTab('agents')">Agents</button>
+        <button class="tab" onclick="showTab('msgs')">Messages</button>
         <button class="tab" onclick="showTab('mp')">MilePilot</button>
     </div>
 
@@ -141,6 +142,19 @@
         <div class="section">
             <h2>Agent Status</h2>
             <div class="grid grid-wide" id="agent-cards"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ MESSAGES ═══════════════ -->
+    <div class="panel" id="p-msgs">
+        <div class="section">
+            <h2>⚠️ Messages Pending Approval</h2>
+            <div class="grid" id="msg-kpi"></div>
+            <div id="msg-pending"></div>
+        </div>
+        <div class="section">
+            <h2>📝 Communication Log</h2>
+            <table id="msg-log"><thead><tr><th>Time</th><th>Case</th><th>Name</th><th>Type</th><th>Channel</th><th>Status</th><th>Preview</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 
@@ -398,6 +412,82 @@ async function loadInfra(){
     }catch(e){$('#infra-kpi').innerHTML=card('Error','Load failed','red',e.message);}
 }
 
+async function loadMessages(){
+    const token=await getToken();
+    // Pending messages
+    try{
+        const pRes=await fetch('/api/admin/pending-messages',{headers:{'Authorization':'Bearer '+token}});
+        const pending=await pRes.json();
+        const kpi=$('#msg-kpi');
+        if(kpi)kpi.innerHTML=card(pending.length,'Pending Approval','yellow');
+        const container=$('#msg-pending');
+        if(container){
+            if(!pending.length){container.innerHTML='<p style="color:#484f58">No messages pending approval</p>';}
+            else{
+                container.innerHTML=pending.map(m=>{
+                    const fee=m.fee_structure||{};
+                    return `<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                            <strong>${m.case_id||'?'} — ${m.lead_name||'?'}</strong>
+                            <span style="color:#d29922;font-size:12px">⚠️ PENDING</span>
+                        </div>
+                        <div style="font-size:12px;color:#8b949e;margin-bottom:8px">
+                            Channel: ${m.channel} | Template: ${m.template_id} | Agreement: ${m.agreement_type||'?'}
+                            ${fee.estimated_savings?'| Savings: $'+fee.estimated_savings.toLocaleString():''}
+                            ${fee.estimated_fee?'| Fee: $'+fee.estimated_fee.toLocaleString():''}
+                        </div>
+                        <div style="font-size:12px;color:#8b949e;margin-bottom:4px">To: ${m.recipient_email||''} ${m.recipient_phone||''}</div>
+                        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${m.subject||''}</div>
+                        <pre style="background:#0d1117;border:1px solid #21262d;border-radius:4px;padding:12px;font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto;color:#c9d1d9">${(m.body_text||'').substring(0,500)}</pre>
+                        <div style="margin-top:8px;display:flex;gap:8px">
+                            <button onclick="approveMsg('${m.id}','approve')" style="background:#238636;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:600">✅ Approve & Send</button>
+                            <button onclick="approveMsg('${m.id}','reject')" style="background:#da3633;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:600">❌ Reject</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+    }catch(e){console.error('loadMessages error:',e);}
+    // Communication log
+    try{
+        const lRes=await fetch('/api/admin/communication-log',{headers:{'Authorization':'Bearer '+token}});
+        const logs=await lRes.json();
+        const tbody=$('#msg-log tbody');
+        if(tbody){
+            tbody.innerHTML='';
+            if(!logs.length){tbody.innerHTML='<tr><td colspan="7" style="color:#484f58">No communications yet</td></tr>';}
+            logs.forEach(l=>{
+                const statusColor={'sent':'#3fb950','rejected':'#f85149','approved':'#58a6ff','pending_approval':'#d29922'}[l.status]||'#8b949e';
+                const time=l.sent_at?new Date(l.sent_at).toLocaleString():new Date(l.created_at).toLocaleString();
+                tbody.innerHTML+=`<tr>
+                    <td style="font-size:11px">${time}</td>
+                    <td>${l.case_id||'?'}</td>
+                    <td>${(l.lead_name||'?').substring(0,15)}</td>
+                    <td>${l.message_type||'?'}</td>
+                    <td>${l.channel||'?'}</td>
+                    <td style="color:${statusColor};font-weight:600">${(l.status||'?').toUpperCase()}</td>
+                    <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${(l.body_preview||'').substring(0,60)}</td>
+                </tr>`;
+            });
+        }
+    }catch(e){console.error('loadLog error:',e);}
+}
+
+async function approveMsg(id,action){
+    const token=await getToken();
+    const body={message_id:id,action};
+    if(action==='reject'){const r=prompt('Rejection reason:');if(!r)return;body.reason=r;}
+    try{
+        const res=await fetch('/api/admin/approve-message',{
+            method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body:JSON.stringify(body)
+        });
+        const d=await res.json();
+        if(d.success){alert((action==='approve'?'✅ Approved — sending now':'❌ Rejected'));loadAll();}
+        else alert('Error: '+(d.error||'Unknown'));
+    }catch(e){alert('Error: '+e.message);}
+}
+
 async function loadQueue(){
     const {data:jobs}=await sb.from('job_queue').select('*').order('created_at',{ascending:false}).limit(20);
     const kpi=$('#queue-kpi');
@@ -505,7 +595,7 @@ function loadMP(){
 
 async function loadAll(){
     $('#ts').textContent='Refreshing...';
-    await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadQueue(),loadAgents()]);
+    await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadQueue(),loadAgents(),loadMessages()]);
     loadMP();
     $('#ts').textContent='Updated '+new Date().toLocaleTimeString();
 }
