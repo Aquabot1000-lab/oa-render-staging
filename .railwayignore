@@ -11,3 +11,13 @@ node_modules/
 marketing/
 blog/images/
 assets/logos/
+*.pdf
+*.png
+*.jpg
+*.gif
+*.mp4
+filing-packages/
+memory/
+drafts/
+docs/
+tests/
