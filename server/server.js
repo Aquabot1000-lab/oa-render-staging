@@ -935,12 +935,19 @@ async function sendClientSMS(phone, message, { email, customerName, context } = 
 }
 
 async function sendNotificationEmail(subject, html, toEmail) {
+    // HARD RULE: SendGrid only. No fallbacks. No silent failures.
     if (!process.env.SENDGRID_API_KEY) {
-        console.log('Email skipped - missing config');
-        return;
+        const err = 'SENDGRID_API_KEY missing — email BLOCKED (no fallback allowed)';
+        console.error(`[EMAIL HARD FAIL] ${err}`);
+        logComm({ event: 'hard_fail', channel: 'email', to: toEmail, subject, error: err });
+        throw new Error(err);
     }
     const to = toEmail || process.env.NOTIFY_EMAIL;
-    if (!to) { console.log('Email skipped - no recipient'); return; }
+    if (!to) {
+        const err = 'No recipient — email BLOCKED';
+        console.error(`[EMAIL HARD FAIL] ${err}`);
+        throw new Error(err);
+    }
     try {
         const msg = {
             to,
@@ -956,11 +963,14 @@ async function sendNotificationEmail(subject, html, toEmail) {
             msg.bcc = [{ email: tylerEmail }];
         }
         await sgMail.send(msg);
-        console.log(`Email sent to ${to}${msg.bcc ? ' (BCC: Tyler)' : ''}`);
+        console.log(`[EMAIL OK] Sent to ${to}${msg.bcc ? ' (BCC: Tyler)' : ''}`);
         logComm({ event: 'sent', channel: 'email', to, subject });
     } catch (error) {
-        console.error('Email failed:', error.message);
-        logComm({ event: 'failed', channel: 'email', to, subject, error: error.message });
+        // HARD FAIL — no retry, no fallback, no silent swallow
+        const errMsg = `SendGrid FAILED: ${error.message}`;
+        console.error(`[EMAIL HARD FAIL] ${errMsg} | to=${to} | subject=${subject}`);
+        logComm({ event: 'hard_fail', channel: 'email', to, subject, error: errMsg });
+        throw new Error(errMsg); // Propagate up so caller knows send failed
     }
 }
 
