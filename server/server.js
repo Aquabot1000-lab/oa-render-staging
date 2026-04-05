@@ -1460,6 +1460,92 @@ if (isSupabaseEnabled()) {
     console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email');
 }
 
+// ==================== AGREEMENT SIGNING + FILING GATE ====================
+
+// POST /api/agreements/sign — sign v2 agreement, create/update submission, redirect to Stripe
+app.post('/api/agreements/sign', async (req, res) => {
+    try {
+        const { name, email, phone, address, signature, agreement_version, agreed_terms, signed_at } = req.body;
+        if (!name || !email || !address) return res.status(400).json({ error: 'name, email, address required' });
+        if (!signature) return res.status(400).json({ error: 'Signature required' });
+
+        // Find or create submission
+        let { data: existing } = await supabaseAdmin.from('submissions')
+            .select('id, case_id').eq('email', email).is('deleted_at', null).limit(1);
+        
+        let submissionId;
+        if (existing && existing.length > 0) {
+            submissionId = existing[0].id;
+            await supabaseAdmin.from('submissions').update({
+                fee_agreement_signed: true,
+                fee_agreement_date: signed_at || new Date().toISOString(),
+                agreement_type: 'new_terms',
+                agreement_version: agreement_version || 'v2',
+                fee_model: '79_credit_25_percent',
+                initiation_fee_required: true,
+                initiation_fee_amount: 79,
+                signature_data: signature,
+                updated_at: new Date().toISOString()
+            }).eq('id', submissionId);
+        } else {
+            // Parse county/state from address
+            const stateMatch = address.match(/,\s*([A-Z]{2})\s*\d{5}/);
+            const state = stateMatch ? stateMatch[1] : '';
+            const { data: newSub } = await supabaseAdmin.from('submissions').insert({
+                owner_name: name,
+                email: email,
+                phone: phone || null,
+                property_address: address,
+                state: state,
+                status: 'Form Signed',
+                fee_agreement_signed: true,
+                fee_agreement_date: signed_at || new Date().toISOString(),
+                agreement_type: 'new_terms',
+                agreement_version: agreement_version || 'v2',
+                fee_model: '79_credit_25_percent',
+                initiation_fee_required: true,
+                initiation_fee_amount: 79,
+                signature_data: signature,
+                source: 'web-agreement-v2'
+            }).select('id, case_id').single();
+            submissionId = newSub.id;
+        }
+
+        // Create Stripe checkout session
+        let checkout_url = null;
+        try {
+            const stripeRes = await fetch(`http://localhost:${PORT}/api/stripe/initiation-checkout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer internal' },
+                body: JSON.stringify({
+                    submission_id: submissionId,
+                    client_name: name,
+                    client_email: email,
+                    property_address: address
+                })
+            });
+            const stripeData = await stripeRes.json();
+            checkout_url = stripeData.checkout_url;
+        } catch (e) {
+            console.error('[Agreement] Stripe checkout creation failed:', e.message);
+        }
+
+        console.log(`[Agreement] v2 signed: ${name} (${email}) → ${submissionId}`);
+        res.json({ success: true, submission_id: submissionId, checkout_url });
+    } catch (e) {
+        console.error('[Agreement] Sign error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// FILING GATE — enforced on all filing transitions
+function canFile(lead) {
+    if (lead.agreement_type === 'legacy_terms') return { allowed: true };
+    if (!lead.fee_agreement_signed) return { allowed: false, reason: 'Agreement not signed' };
+    if (!lead.initiation_paid && !lead.initiation_fee_paid) return { allowed: false, reason: 'Initiation fee not paid ($79)' };
+    return { allowed: true };
+}
+
 // ==================== ROUTES ====================
 
 // ==================== OUTCOME MONITOR ROUTES ====================
@@ -5458,6 +5544,9 @@ const PIPELINE_RULES = {
     'Filed': (lead) => {
         const errors = PIPELINE_RULES['Payment Received'](lead);
         if (lead.filing_status === 'not_filed') errors.push('Filing not submitted');
+        // v2 Filing Gate
+        const gate = canFile(lead);
+        if (!gate.allowed) errors.push('FILING GATE: ' + gate.reason);
         return errors;
     }
 };

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverAssessed — Sign Fee Agreement</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#1a1a1a;padding:0}
+        .container{max-width:720px;margin:0 auto;padding:24px}
+        h1{font-size:22px;text-align:center;margin-bottom:4px}
+        .sub{text-align:center;color:#666;font-size:13px;margin-bottom:24px}
+        .agreement-box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:24px;margin-bottom:24px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7}
+        .agreement-box h3{font-size:15px;margin:16px 0 8px;color:#1a5fb4}
+        .agreement-box h3:first-child{margin-top:0}
+        .highlight{background:#f0f7ff;border:1px solid #cce0ff;border-radius:6px;padding:12px;margin:12px 0}
+        .form-section{background:#fff;border:1px solid #ddd;border-radius:8px;padding:24px;margin-bottom:16px}
+        label{display:block;font-weight:600;font-size:13px;margin-bottom:4px;color:#333}
+        input[type="text"],input[type="email"],input[type="tel"]{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:12px}
+        .sig-pad{border:2px solid #1a5fb4;border-radius:8px;background:#fff;cursor:crosshair;touch-action:none}
+        .sig-label{font-size:11px;color:#666;margin-top:4px}
+        .checkbox-row{display:flex;align-items:flex-start;gap:8px;margin:16px 0}
+        .checkbox-row input{margin-top:3px}
+        .checkbox-row label{font-weight:400;font-size:13px}
+        .btn{display:block;width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;text-align:center}
+        .btn-primary{background:#1a5fb4;color:#fff}.btn-primary:hover{background:#164d94}
+        .btn-primary:disabled{background:#999;cursor:not-allowed}
+        .error{color:#dc3545;font-size:13px;display:none;margin-bottom:8px}
+        .success{background:#d4edda;color:#155724;border:1px solid #c3e6cb;padding:16px;border-radius:8px;text-align:center;display:none}
+        .step{display:none}.step.active{display:block}
+        .fee-box{background:#f0f7ff;border:2px solid #1a5fb4;border-radius:8px;padding:16px;text-align:center;margin:16px 0}
+        .fee-box .amount{font-size:28px;font-weight:700;color:#1a5fb4}
+        .fee-box .label{font-size:12px;color:#666}
+        .clear-btn{font-size:12px;color:#1a5fb4;cursor:pointer;border:none;background:none;text-decoration:underline;margin-top:4px}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Property Tax Protest — Fee Agreement</h1>
+    <p class="sub">OverAssessed, LLC</p>
+
+    <!-- STEP 1: Agreement -->
+    <div class="step active" id="step1">
+        <div class="agreement-box">
+            <h3>1. Services</h3>
+            <p>OverAssessed, LLC ("Company") will analyze your property's assessed value, prepare and file a property tax protest, and represent you at hearings if applicable.</p>
+
+            <h3>2. Fee Structure</h3>
+            <div class="highlight">
+                <p><strong>Initiation Fee: $79.00</strong> — Due before filing. Non-refundable. Credited in full toward your success fee.</p>
+                <p style="margin-top:8px"><strong>Success Fee: 25%</strong> of first year's tax savings achieved through protest.</p>
+                <p style="margin-top:8px"><strong>Example:</strong> $2,000 savings → $500 fee − $79 credit = <strong>$421 due</strong></p>
+            </div>
+            <p>If the protest does not result in savings, no success fee is owed. The $79 initiation fee is non-refundable.</p>
+
+            <h3>3. Authorization</h3>
+            <p>By signing, you authorize the Company to act as your representative for property tax protest purposes, access property records, file protests, and communicate with appraisal districts on your behalf.</p>
+
+            <h3>4. No Guarantee</h3>
+            <p>The Company makes no guarantee of a specific outcome. Results depend on market conditions, appraisal district policies, and comparable data.</p>
+
+            <h3>5. Payment Terms</h3>
+            <p>The $79 initiation fee is due immediately after signing. The success fee is due within 30 days of successful protest notification.</p>
+
+            <h3>6. Term</h3>
+            <p>This agreement covers the current tax year. Either party may terminate in writing. Filed protests and achieved savings remain subject to fees.</p>
+        </div>
+
+        <div class="form-section">
+            <label>Full Name *</label>
+            <input type="text" id="fullName" placeholder="Your full legal name" required>
+            <label>Email *</label>
+            <input type="email" id="email" placeholder="you@email.com" required>
+            <label>Phone</label>
+            <input type="tel" id="phone" placeholder="(210) 555-1234">
+            <label>Property Address *</label>
+            <input type="text" id="address" placeholder="123 Main St, San Antonio, TX 78201" required>
+
+            <label>Signature *</label>
+            <canvas id="sigCanvas" class="sig-pad" width="680" height="120"></canvas>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="sig-label">Sign above with mouse or finger</span>
+                <button class="clear-btn" onclick="clearSig()">Clear signature</button>
+            </div>
+
+            <div class="checkbox-row">
+                <input type="checkbox" id="agree">
+                <label for="agree">I have read and agree to the Fee Agreement above, including the $79 non-refundable initiation fee and 25% success fee terms.</label>
+            </div>
+
+            <div class="error" id="error"></div>
+            <button class="btn btn-primary" id="signBtn" onclick="submitAgreement()">Sign Agreement & Proceed to Payment →</button>
+        </div>
+    </div>
+
+    <!-- STEP 2: Redirecting to payment -->
+    <div class="step" id="step2">
+        <div class="success" style="display:block">
+            <h2 style="margin-bottom:8px">✅ Agreement Signed</h2>
+            <p>Redirecting to secure payment...</p>
+            <div class="fee-box">
+                <div class="amount">$79</div>
+                <div class="label">Initiation Fee — Credited Toward Your Success Fee</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas=document.getElementById('sigCanvas');
+const ctx=canvas.getContext('2d');
+let drawing=false,hasSig=false;
+
+function getPos(e){
+    const r=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:t.clientX-r.left,y:t.clientY-r.top};
+}
+canvas.addEventListener('mousedown',e=>{drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove',e=>{if(!drawing)return;const p=getPos(e);ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#1a1a1a';ctx.lineTo(p.x,p.y);ctx.stroke();hasSig=true;});
+canvas.addEventListener('mouseup',()=>drawing=false);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!drawing)return;const p=getPos(e);ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#1a1a1a';ctx.lineTo(p.x,p.y);ctx.stroke();hasSig=true;},{passive:false});
+canvas.addEventListener('touchend',()=>drawing=false);
+
+function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);hasSig=false;}
+
+async function submitAgreement(){
+    const name=document.getElementById('fullName').value.trim();
+    const email=document.getElementById('email').value.trim();
+    const phone=document.getElementById('phone').value.trim();
+    const address=document.getElementById('address').value.trim();
+    const agreed=document.getElementById('agree').checked;
+    const err=document.getElementById('error');
+
+    if(!name||!email||!address){err.textContent='Please fill in all required fields.';err.style.display='block';return;}
+    if(!hasSig){err.textContent='Please sign above.';err.style.display='block';return;}
+    if(!agreed){err.textContent='Please check the agreement checkbox.';err.style.display='block';return;}
+    err.style.display='none';
+
+    document.getElementById('signBtn').disabled=true;
+    document.getElementById('signBtn').textContent='Processing...';
+
+    try{
+        // Save agreement to server
+        const sig=canvas.toDataURL('image/png');
+        const res=await fetch('/api/agreements/sign',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({name,email,phone,address,signature:sig,agreement_version:'v2',agreed_terms:'79_credit_25_percent',signed_at:new Date().toISOString()})
+        });
+        const data=await res.json();
+        if(!data.success){throw new Error(data.error||'Failed to save agreement');}
+
+        // Show success, redirect to Stripe
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+
+        if(data.checkout_url){
+            setTimeout(()=>window.location.href=data.checkout_url,2000);
+        }
+    }catch(e){
+        err.textContent='Error: '+e.message;err.style.display='block';
+        document.getElementById('signBtn').disabled=false;
+        document.getElementById('signBtn').textContent='Sign Agreement & Proceed to Payment →';
+    }
+}
+</script>
+</body>
+</html>
