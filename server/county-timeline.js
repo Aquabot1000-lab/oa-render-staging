@@ -223,7 +223,7 @@ function classifyLead(lead) {
   const timeline = getCountyStatus(state, county);
   
   // Customer notice status (separate from county-level)
-  const customerNotice = lead.customer_notice_status || 'UNKNOWN';
+  const customerNotice = (lead.customer_notice_status && lead.customer_notice_status !== 'null') ? lead.customer_notice_status : 'UNKNOWN';
   timeline.customer_notice_status = customerNotice;
   timeline.customer_notice_confirmed_at = lead.customer_notice_confirmed_at || null;
   
