@@ -3,294 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OA Command Center</title>
+    <title>Worthey Enterprise — Command Center</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 20px; }
-        h1 { color: #fff; margin-bottom: 20px; font-size: 24px; }
-        h2 { color: #8b9dc3; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .card { background: #1a1d27; border-radius: 12px; padding: 20px; border: 1px solid #2a2d3a; }
-        .card.highlight { border-color: #4caf50; }
-        .card.warn { border-color: #ff9800; }
-        .card.error { border-color: #f44336; }
-        .metric { font-size: 36px; font-weight: 700; color: #fff; }
-        .metric.green { color: #4caf50; }
-        .metric.orange { color: #ff9800; }
-        .metric.red { color: #f44336; }
-        .metric.blue { color: #2196f3; }
-        .label { font-size: 13px; color: #8b9dc3; margin-top: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th { text-align: left; padding: 8px 12px; background: #1e2130; color: #8b9dc3; font-size: 12px; text-transform: uppercase; }
-        td { padding: 8px 12px; border-bottom: 1px solid #2a2d3a; font-size: 13px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .badge-green { background: #1b3a1b; color: #4caf50; }
-        .badge-orange { background: #3a2a1b; color: #ff9800; }
-        .badge-red { background: #3a1b1b; color: #f44336; }
-        .badge-blue { background: #1b2a3a; color: #2196f3; }
-        .badge-gray { background: #2a2d3a; color: #8b9dc3; }
-        .refresh-btn { background: #2196f3; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .refresh-btn:hover { background: #1976d2; }
-        .last-updated { color: #666; font-size: 12px; margin-left: 12px; }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .revenue { font-size: 14px; color: #4caf50; margin-top: 4px; }
-        #loading { color: #666; padding: 40px; text-align: center; }
-        .lane-header { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
-        .lane-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .lane-dot.active { background: #4caf50; }
-        .lane-dot.blocked { background: #f44336; }
-        .section { margin-bottom: 32px; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0c10;color:#c9d1d9;padding:12px;font-size:14px}
+        .header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 16px}
+        h1{color:#fff;font-size:20px}
+        h2{color:#58a6ff;font-size:14px;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 10px;padding:8px 0;border-bottom:1px solid #21262d}
+        .refresh-bar{display:flex;align-items:center;gap:10px}
+        .refresh-btn{background:#238636;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+        .refresh-btn:hover{background:#2ea043}
+        .ts{color:#484f58;font-size:11px}
+        .live-dot{width:8px;height:8px;border-radius:50%;background:#3fb950;display:inline-block;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+        /* Grid */
+        .section{margin-bottom:24px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+        .grid-wide{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+        .card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px}
+        .card.green{border-color:#238636}
+        .card.orange{border-color:#d29922}
+        .card.red{border-color:#da3633}
+        .card.blue{border-color:#1f6feb}
+        .num{font-size:28px;font-weight:700;color:#fff;line-height:1.2}
+        .num.g{color:#3fb950}.num.o{color:#d29922}.num.r{color:#da3633}.num.b{color:#58a6ff}.num.p{color:#bc8cff}
+        .lbl{font-size:11px;color:#8b949e;margin-top:2px}
+        .sub{font-size:11px;color:#484f58;margin-top:4px}
+
+        /* Tables */
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th{text-align:left;padding:6px 8px;background:#161b22;color:#8b949e;font-size:11px;text-transform:uppercase;border-bottom:1px solid #21262d}
+        td{padding:6px 8px;border-bottom:1px solid #21262d}
+        .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
+        .bg{background:#1b3a1b;color:#3fb950}.bo{background:#3a2a1b;color:#d29922}.br{background:#3a1b1b;color:#da3633}
+        .bb{background:#1b2a3a;color:#58a6ff}.bk{background:#21262d;color:#8b949e}.bp{background:#2a1b3a;color:#bc8cff}
+        .money{color:#3fb950;font-weight:600}
+
+        /* Mobile */
+        @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.num{font-size:22px}body{padding:8px}}
+
+        /* Tabs */
+        .tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+        .tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:#21262d;color:#8b949e;white-space:nowrap;border:none}
+        .tab.active{background:#1f6feb;color:#fff}
+        .panel{display:none}.panel.active{display:block}
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🎯 OA Command Center</h1>
-        <div>
-            <button class="refresh-btn" onclick="loadAll()">Refresh</button>
-            <span class="last-updated" id="lastUpdated"></span>
+        <div style="display:flex;align-items:center;gap:10px">
+            <h1>🎯 Command Center</h1>
+            <span class="live-dot"></span>
+        </div>
+        <div class="refresh-bar">
+            <span class="ts" id="ts"></span>
+            <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
         </div>
     </div>
 
-    <div id="loading">Loading...</div>
-    <div id="content" style="display:none;">
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('oa')">OverAssessed</button>
+        <button class="tab" onclick="showTab('wa')">Worthey Aquatics</button>
+        <button class="tab" onclick="showTab('mkt')">Marketing</button>
+        <button class="tab" onclick="showTab('infra')">Infrastructure</button>
+        <button class="tab" onclick="showTab('agents')">Agents</button>
+        <button class="tab" onclick="showTab('mp')">MilePilot</button>
+    </div>
 
-        <!-- KPI ROW -->
-        <div class="grid" id="kpiGrid">
-            <div class="card"><div class="metric" id="totalLeads">-</div><div class="label">Total Active Leads</div></div>
-            <div class="card highlight"><div class="metric green" id="filingReady">-</div><div class="label">Filing Ready (QA Passed)</div></div>
-            <div class="card"><div class="metric blue" id="signedClients">-</div><div class="label">Signed Clients</div></div>
-            <div class="card warn"><div class="metric orange" id="blockedLeads">-</div><div class="label">Blocked</div></div>
-            <div class="card"><div class="metric green" id="potentialRevenue">-</div><div class="label">Potential Annual Revenue</div></div>
-        </div>
-
-        <!-- PIPELINE -->
+    <!-- ═══════════════ OA ═══════════════ -->
+    <div class="panel active" id="p-oa">
         <div class="section">
-            <h2>Pipeline by Stage</h2>
-            <div class="grid" id="pipelineGrid"></div>
+            <h2>Pipeline</h2>
+            <div class="grid" id="oa-kpi"></div>
         </div>
-
-        <!-- SIGNED CLIENTS -->
         <div class="section">
-            <h2>Signed Clients</h2>
-            <table id="signedTable">
-                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>QA</th><th>Savings</th><th>Status</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <h2>Revenue-Ready Leads</h2>
+            <table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table>
         </div>
-
-        <!-- FILING READY -->
         <div class="section">
-            <h2>Filing Ready — Action Queue</h2>
-            <table id="filingTable">
-                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>Comps</th><th>Savings</th><th>Action</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <h2>Blocked / Needs Data</h2>
+            <table id="oa-blocked"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Status</th><th>Reason</th></tr></thead><tbody></tbody></table>
         </div>
+    </div>
 
-        <!-- BLOCKERS -->
+    <!-- ═══════════════ WA ═══════════════ -->
+    <div class="panel" id="p-wa">
         <div class="section">
-            <h2>Blockers</h2>
-            <table id="blockerTable">
-                <thead><tr><th>Case</th><th>Name</th><th>County</th><th>Reason</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <h2>Pipeline</h2>
+            <div class="grid" id="wa-kpi"></div>
         </div>
-
-        <!-- DATA WAREHOUSE -->
         <div class="section">
-            <h2>Data Warehouse</h2>
-            <div class="grid" id="warehouseGrid"></div>
+            <h2>Hot Leads</h2>
+            <div id="wa-leads" style="color:#8b949e;padding:12px;">Loading from WortheyFlow CRM...</div>
         </div>
+    </div>
 
-        <!-- AGENT STATUS -->
+    <!-- ═══════════════ MARKETING ═══════════════ -->
+    <div class="panel" id="p-mkt">
+        <div class="section">
+            <h2>Ad Performance</h2>
+            <div class="grid grid-wide" id="mkt-ads"></div>
+        </div>
+        <div class="section">
+            <h2>Organic / Social</h2>
+            <div class="grid grid-wide" id="mkt-social"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ INFRA ═══════════════ -->
+    <div class="panel" id="p-infra">
+        <div class="section">
+            <h2>County Data Warehouse</h2>
+            <div class="grid" id="infra-kpi"></div>
+        </div>
+        <div class="section">
+            <h2>Counties</h2>
+            <table id="infra-counties"><thead><tr><th>County</th><th>Records</th><th>PID%</th><th>Value%</th><th>SqFt%</th><th>Year%</th><th>Sales</th></tr></thead><tbody></tbody></table>
+        </div>
+    </div>
+
+    <!-- ═══════════════ AGENTS ═══════════════ -->
+    <div class="panel" id="p-agents">
         <div class="section">
             <h2>Agent Status</h2>
-            <div class="grid" id="agentGrid"></div>
+            <div class="grid grid-wide" id="agent-cards"></div>
         </div>
     </div>
 
-    <script>
-        const SUPABASE_URL = 'https://ylxreuqvofgbpsatfsvr.supabase.co';
-        // Use anon key — RLS allows authenticated read
-        let ANON_KEY = '';
+    <!-- ═══════════════ MILEPILOT ═══════════════ -->
+    <div class="panel" id="p-mp">
+        <div class="section">
+            <h2>MVP Status</h2>
+            <div class="grid" id="mp-kpi"></div>
+        </div>
+        <div class="section">
+            <h2>Launch Blockers</h2>
+            <div id="mp-blockers"></div>
+        </div>
+    </div>
 
-        async function getToken() {
-            // Login to get JWT
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: 'tyler@overassessed.ai', password: 'OverAssessed!2026' })
+<script>
+const SB='https://ylxreuqvofgbpsatfsvr.supabase.co';
+const OA='https://disciplined-alignment-production.up.railway.app';
+const MC='https://mission-control-production-8225.up.railway.app';
+let tk='';
+
+function showTab(id){
+    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',t.textContent.toLowerCase().includes(id)||
+        (id==='oa'&&i===0)||(id==='wa'&&i===1)||(id==='mkt'&&i===2)||(id==='infra'&&i===3)||(id==='agents'&&i===4)||(id==='mp'&&i===5)));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    const el=document.getElementById('p-'+id);if(el)el.classList.add('active');
+}
+document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['oa','wa','mkt','infra','agents','mp'];
+    t.onclick=()=>showTab(ids[i]);
+});
+
+function $(s){return document.querySelector(s)}
+function badge(t,c){return `<span class="badge b${c}">${t}</span>`}
+function money(n){return n?'$'+Math.round(n).toLocaleString():'$0'}
+function pct(n){return n!=null?Math.round(n*10)/10+'%':'—'}
+function card(num,lbl,cls,sub){return `<div class="card ${cls||''}"><div class="num ${cls?cls[0]:''}">${num}</div><div class="lbl">${lbl}</div>${sub?'<div class="sub">'+sub+'</div>':''}</div>`}
+
+async function getToken(){
+    if(tk)return tk;
+    try{
+        const r=await fetch(OA+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'tyler@overassessed.ai',password:'OverAssessed!2026'})});
+        const d=await r.json();tk=d.token;return tk;
+    }catch(e){return'';}
+}
+
+async function sbFetch(table,q=''){
+    const t=await getToken();
+    const r=await fetch(`${SB}/rest/v1/${table}?${q}`,{headers:{apikey:t,Authorization:'Bearer '+t}});
+    const d=await r.json();
+    if(d.code==='PGRST301'){tk='';const t2=await getToken();const r2=await fetch(`${SB}/rest/v1/${table}?${q}`,{headers:{apikey:t2,Authorization:'Bearer '+t2}});return r2.json();}
+    return d;
+}
+
+async function loadOA(){
+    try{
+        const leads=await sbFetch('submissions','deleted_at=is.null&select=*&order=case_id');
+        if(!Array.isArray(leads))return;
+
+        const signed=leads.filter(l=>l.fee_agreement_signed);
+        const ready=leads.filter(l=>l.status==='Filing Prepared');
+        const blocked=leads.filter(l=>(l.status||'').includes('Blocked'));
+        const noCase=leads.filter(l=>l.status==='No Case');
+        const needsA=leads.filter(l=>l.status==='Needs Analysis');
+        const paid=leads.filter(l=>l.initiation_paid||l.initiation_fee_paid);
+
+        let totalSav=0,totalRev=0;
+        ready.forEach(l=>{const s=parseFloat(l.estimated_savings||0);totalSav+=s;totalRev+=s*0.25;});
+
+        $('#oa-kpi').innerHTML=[
+            card(leads.length,'Total Leads','blue'),
+            card(ready.length,'Filing Ready','green'),
+            card(signed.length,'Signed','blue'),
+            card(blocked.length,'Blocked','red'),
+            card(needsA.length,'Needs Analysis','orange'),
+            card(noCase.length,'No Case',''),
+            card(paid.length,'Paid $79','green'),
+            card(money(totalRev),'Potential Revenue','green',money(totalSav)+' total savings')
+        ].join('');
+
+        // Revenue-ready table
+        const rBody=$('#oa-ready tbody');rBody.innerHTML='';
+        ready.sort((a,b)=>(parseFloat(b.estimated_savings||0))-(parseFloat(a.estimated_savings||0))).forEach(l=>{
+            const s=parseFloat(l.estimated_savings||0);
+            const isPaid=l.initiation_paid||l.initiation_fee_paid;
+            const isSigned=l.fee_agreement_signed;
+            const legacy=l.agreement_type==='legacy_terms';
+            rBody.innerHTML+=`<tr>
+                <td>${l.case_id||'?'}</td>
+                <td>${(l.owner_name||'?').substring(0,25)}</td>
+                <td>${l.county||'?'}, ${l.state||'?'}</td>
+                <td class="money">${money(s)}/yr</td>
+                <td class="money">${money(s*0.25)}</td>
+                <td>${isSigned?badge('SIGNED','g'):badge('unsigned','k')}</td>
+                <td>${legacy?badge('LEGACY','p'):isPaid?badge('PAID','g'):badge('UNPAID','o')}</td>
+            </tr>`;
+        });
+
+        // Blocked table
+        const bBody=$('#oa-blocked tbody');bBody.innerHTML='';
+        [...blocked,...needsA].forEach(l=>{
+            const qa=l.qa_status||'not_run';
+            const comps=(l.comp_results?.comps||[]).length;
+            let reason='';
+            if(!l.county||l.county==='None')reason='No county';
+            else if(!l.property_address||l.property_address.length<5)reason='No address';
+            else if(qa==='failed'&&comps<3)reason=comps+' comps (need 3+)';
+            else if(qa==='not_run')reason='Comp engine not run';
+            else reason='QA: '+qa;
+            bBody.innerHTML+=`<tr>
+                <td>${l.case_id||'?'}</td>
+                <td>${(l.owner_name||'?').substring(0,25)}</td>
+                <td>${l.county||'?'}, ${l.state||'?'}</td>
+                <td>${badge(l.status||'?',l.status?.includes('Blocked')?'r':'o')}</td>
+                <td>${reason}</td>
+            </tr>`;
+        });
+    }catch(e){$('#oa-kpi').innerHTML=card('Error','Failed to load OA data','red',e.message);}
+}
+
+async function loadWA(){
+    try{
+        const r=await fetch('https://wortheyflow-production.up.railway.app/api/health');
+        const ok=r.ok;
+        // Try to get lead data
+        let leadCount='?',hotCount='?',proposalCount='?',followupCount='?';
+        try{
+            const r2=await fetch('https://wortheyflow-production.up.railway.app/api/leads/stats');
+            if(r2.ok){const d=await r2.json();leadCount=d.total||'?';hotCount=d.hot||'?';proposalCount=d.proposals||'?';followupCount=d.followups||'?';}
+        }catch(e){}
+
+        $('#wa-kpi').innerHTML=[
+            card(ok?'Online':'Offline','CRM Status',ok?'green':'red'),
+            card(leadCount,'Total Leads','blue'),
+            card(hotCount,'Hot Leads','green'),
+            card(proposalCount,'Proposals Out','orange'),
+            card(followupCount,'Follow-ups Due','orange'),
+            card('3','Sales Team Members','')
+        ].join('');
+
+        $('#wa-leads').innerHTML=ok?
+            '<p style="color:#8b949e">WortheyFlow CRM is online. Lead-level data requires API endpoints. Current access: health check only.</p><p style="margin-top:8px"><a href="https://wortheyflow-production.up.railway.app" target="_blank" style="color:#58a6ff">Open WortheyFlow →</a></p>':
+            '<p style="color:#da3633">WortheyFlow CRM is offline.</p>';
+    }catch(e){$('#wa-kpi').innerHTML=card('Offline','CRM Status','red');}
+}
+
+async function loadMarketing(){
+    $('#mkt-ads').innerHTML=[
+        card('No API','Google Ads','orange','Account 351-343-8695 — needs API key or browser export'),
+        card('No API','Meta Ads','orange','Need token refresh for performance data'),
+        card('—','WA LSA','orange','No programmatic access')
+    ].join('');
+
+    $('#mkt-social').innerHTML=[
+        card('18','County Landing Pages','green','TX, WA, GA, CO, AZ'),
+        card('8','Blog Posts','blue','Need compliance update for $79 pricing'),
+        card('45+','Files Need Fix','red','Non-compliant "no cost" language'),
+        card('Paused','Social Posting','orange','Awaiting reconnect + Tyler approval')
+    ].join('');
+}
+
+async function loadInfra(){
+    try{
+        // Get county_properties stats
+        const cp=await sbFetch('county_properties','select=state,county&limit=1');
+        // Use RPC or direct count — for now use known data
+        const counties=[
+            {county:'Dallas',state:'TX',records:858590,pid:100,val:100,sqft:100,yr:100,sales:0},
+            {county:'Tarrant',state:'TX',records:728779,pid:100,val:100,sqft:86.9,yr:87.4,sales:0},
+            {county:'Bexar',state:'TX',records:661980,pid:100,val:100,sqft:88.7,yr:88.6,sales:0},
+            {county:'King',state:'WA',records:573446,pid:100,val:99.9,sqft:100,yr:0,sales:0},
+            {county:'Collin',state:'TX',records:425359,pid:100,val:0,sqft:100,yr:0,sales:0},
+            {county:'Fort Bend',state:'TX',records:372663,pid:100,val:100,sqft:0,yr:0,sales:0},
+            {county:'Fulton',state:'GA',records:372716,pid:100,val:100,sqft:0,yr:0,sales:0},
+            {county:'Pierce',state:'WA',records:328851,pid:100,val:100,sqft:0,yr:0,sales:0},
+            {county:'Snohomish',state:'WA',records:316260,pid:100,val:100,sqft:100,yr:100,sales:0},
+            {county:'Williamson',state:'TX',records:285151,pid:100,val:100,sqft:0,yr:0,sales:0},
+            {county:'Denver',state:'CO',records:212281,pid:100,val:100,sqft:0,yr:96.8,sales:0},
+            {county:'Maricopa (sales)',state:'AZ',records:843202,pid:100,val:0,sqft:0,yr:0,sales:843202}
+        ];
+        const totalProp=counties.filter(c=>!c.county.includes('sales')).reduce((s,c)=>s+c.records,0);
+        const totalSales=counties.reduce((s,c)=>s+c.sales,0);
+
+        $('#infra-kpi').innerHTML=[
+            card(totalProp.toLocaleString(),'Assessment Records','blue'),
+            card(totalSales.toLocaleString(),'Sales Records','green'),
+            card('11','Counties (Assessments)',''),
+            card('1','Counties (Sales)','orange','Maricopa AZ only'),
+            card('4','States',''),
+            card('psql COPY','Import Method','green','200K chunks, ~15s each')
+        ].join('');
+
+        const tBody=$('#infra-counties tbody');tBody.innerHTML='';
+        counties.forEach(c=>{
+            tBody.innerHTML+=`<tr>
+                <td><strong>${c.county}</strong>, ${c.state}</td>
+                <td>${c.records.toLocaleString()}</td>
+                <td>${pct(c.pid)}</td><td>${pct(c.val)}</td>
+                <td>${pct(c.sqft)}</td><td>${pct(c.yr)}</td>
+                <td>${c.sales?c.sales.toLocaleString()+'  '+badge('YES','g'):badge('NO','k')}</td>
+            </tr>`;
+        });
+    }catch(e){$('#infra-kpi').innerHTML=card('Error','Load failed','red',e.message);}
+}
+
+async function loadAgents(){
+    try{
+        let agents=[];
+        try{const r=await fetch(MC+'/api/agents');if(r.ok)agents=await r.json();}catch(e){}
+
+        const lanes=[
+            {name:'Infrastructure',icon:'🏗️',task:'County warehouse build — Williamson complete, next: King WA sales',status:'active',queue:2},
+            {name:'OA Revenue',icon:'💰',task:'51 leads classified — 16 PREVIEW_READY',status:'active',queue:0},
+            {name:'CRM Truth',icon:'📊',task:'All stages corrected to data truth',status:'idle',queue:0},
+            {name:'Marketing',icon:'📢',task:'45+ files need $79 pricing compliance update',status:'blocked',queue:45},
+            {name:'MilePilot',icon:'📱',task:'Build #98 ready — MVP ~75%',status:'idle',queue:3}
+        ];
+
+        if(agents.length){
+            // Merge MC data
+            agents.forEach(a=>{
+                const lane=lanes.find(l=>l.name.toLowerCase().includes((a.name||'').toLowerCase()));
+                if(lane){lane.task=a.current_task||lane.task;lane.status=a.status||lane.status;lane.queue=a.queue_size||lane.queue;}
             });
-            const data = await res.json();
-            return data.token;
         }
 
-        async function supaFetch(table, query = '') {
-            const token = localStorage.getItem('oa_token');
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-                headers: {
-                    'apikey': token,
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res.json();
-        }
+        $('#agent-cards').innerHTML=lanes.map(l=>{
+            const sc=l.status==='active'?'green':l.status==='blocked'?'red':'';
+            const bc=l.status==='active'?'g':l.status==='blocked'?'r':'k';
+            return `<div class="card ${sc}">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                    <span>${l.icon}</span><strong>${l.name}</strong>
+                    ${badge(l.status.toUpperCase(),bc)}
+                </div>
+                <div class="lbl">${l.task}</div>
+                ${l.queue?'<div class="sub">Queue: '+l.queue+' items</div>':''}
+            </div>`;
+        }).join('');
+    }catch(e){$('#agent-cards').innerHTML=card('Error','Load failed','red');}
+}
 
-        function badge(text, color) {
-            return `<span class="badge badge-${color}">${text}</span>`;
-        }
+function loadMP(){
+    const features=[
+        {name:'Trip tracking + auto-detect',done:true},
+        {name:'Cost calculator + vehicle profiles',done:true},
+        {name:'Profit dashboard',done:true},
+        {name:'Trip classification',done:true},
+        {name:'Zone heat map',done:true},
+        {name:'Onboarding flow',done:true},
+        {name:'Supabase integration',done:true},
+        {name:'Revenue entry per trip',done:false},
+        {name:'IRS mileage export (PDF/CSV)',done:false},
+        {name:'App Store submission',done:false}
+    ];
+    const done=features.filter(f=>f.done).length;
+    const pctDone=Math.round(100*done/features.length);
 
-        function money(n) {
-            if (!n || n === 0) return '$0';
-            return '$' + Math.round(n).toLocaleString();
-        }
+    $('#mp-kpi').innerHTML=[
+        card(pctDone+'%','MVP Complete','green'),
+        card('#98','Latest Build','blue','iOS store distribution'),
+        card('SDK 54','Expo Version',''),
+        card(done+'/'+features.length,'Features Done','')
+    ].join('');
 
-        async function loadAll() {
-            try {
-                // Get token if needed
-                if (!localStorage.getItem('oa_token')) {
-                    const token = await getToken();
-                    localStorage.setItem('oa_token', token);
-                }
+    $('#mp-blockers').innerHTML=`<table>
+        <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+        <tbody>${features.map(f=>`<tr><td>${f.name}</td><td>${f.done?badge('DONE','g'):badge('TODO','o')}</td></tr>`).join('')}</tbody>
+    </table>
+    <div style="margin-top:12px">
+        <h2 style="font-size:12px">Next 3 Launch Tasks</h2>
+        <ol style="padding-left:20px;margin-top:8px;color:#c9d1d9;font-size:12px">
+            <li>Verify revenue-per-trip flow end-to-end</li>
+            <li>Generate TestFlight build + device test</li>
+            <li>App Store listing + screenshots</li>
+        </ol>
+    </div>`;
+}
 
-                const leads = await supaFetch('submissions', 'deleted_at=is.null&select=*');
-                
-                if (leads.code === 'PGRST301' || leads.message) {
-                    // Token expired
-                    const token = await getToken();
-                    localStorage.setItem('oa_token', token);
-                    return loadAll();
-                }
+async function loadAll(){
+    $('#ts').textContent='Refreshing...';
+    await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadAgents()]);
+    loadMP();
+    $('#ts').textContent='Updated '+new Date().toLocaleTimeString();
+}
 
-                renderDashboard(leads);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
-                document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-            } catch (e) {
-                document.getElementById('loading').textContent = 'Error: ' + e.message;
-            }
-        }
-
-        function renderDashboard(leads) {
-            // KPIs
-            const signed = leads.filter(l => l.fee_agreement_signed);
-            const qaPassed = leads.filter(l => l.qa_status === 'passed');
-            const blocked = leads.filter(l => (l.status || '').includes('Blocked'));
-            const filingReady = leads.filter(l => l.status === 'Filing Prepared' && l.qa_status === 'passed');
-
-            document.getElementById('totalLeads').textContent = leads.length;
-            document.getElementById('filingReady').textContent = filingReady.length;
-            document.getElementById('signedClients').textContent = signed.length;
-            document.getElementById('blockedLeads').textContent = blocked.length;
-
-            // Calculate potential revenue (25% of annual savings for QA-passed leads)
-            let totalSavings = 0;
-            qaPassed.forEach(l => {
-                const cr = l.comp_results || {};
-                const es = cr.estimated_savings || {};
-                totalSavings += (es.annual || 0) * 0.25;
-            });
-            document.getElementById('potentialRevenue').textContent = money(totalSavings) + '/yr';
-
-            // Pipeline stages
-            const stages = {};
-            leads.forEach(l => {
-                const s = l.status || 'Unknown';
-                stages[s] = (stages[s] || 0) + 1;
-            });
-            const pGrid = document.getElementById('pipelineGrid');
-            pGrid.innerHTML = '';
-            const stageOrder = ['Filing Prepared', 'Analysis Complete', 'No Case', 'Form Signed', 'Needs Analysis', 'Blocked - Bad Data', 'Contacted', 'New', 'Submitted'];
-            Object.keys(stages).sort((a, b) => {
-                const ai = stageOrder.indexOf(a), bi = stageOrder.indexOf(b);
-                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-            }).forEach(s => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<div class="metric">${stages[s]}</div><div class="label">${s}</div>`;
-                pGrid.appendChild(card);
-            });
-
-            // Signed clients table
-            const sBody = document.querySelector('#signedTable tbody');
-            sBody.innerHTML = '';
-            signed.forEach(l => {
-                const cr = l.comp_results || {};
-                const es = cr.estimated_savings || {};
-                const sav = es.annual || 0;
-                const qaColor = l.qa_status === 'passed' ? 'green' : l.qa_status === 'failed' ? 'red' : 'gray';
-                sBody.innerHTML += `<tr>
-                    <td>${l.case_id || '?'}</td>
-                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
-                    <td>${l.county || '?'}, ${l.state || '?'}</td>
-                    <td>${badge(l.qa_status || 'not run', qaColor)}</td>
-                    <td>${money(sav)}/yr</td>
-                    <td>${badge(l.status || '?', l.status === 'Filing Prepared' ? 'green' : 'gray')}</td>
-                </tr>`;
-            });
-
-            // Filing ready
-            const fBody = document.querySelector('#filingTable tbody');
-            fBody.innerHTML = '';
-            filingReady.forEach(l => {
-                const cr = l.comp_results || {};
-                const es = cr.estimated_savings || {};
-                const comps = (cr.comps || []).length;
-                fBody.innerHTML += `<tr>
-                    <td>${l.case_id || '?'}</td>
-                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
-                    <td>${l.county || '?'}, ${l.state || '?'}</td>
-                    <td>${comps} real</td>
-                    <td class="revenue">${money(es.annual || 0)}/yr</td>
-                    <td>${badge('Ready to File', 'green')}</td>
-                </tr>`;
-            });
-            if (filingReady.length === 0) {
-                fBody.innerHTML = '<tr><td colspan="6" style="color:#666;">No leads at filing-ready stage</td></tr>';
-            }
-
-            // Blockers
-            const bBody = document.querySelector('#blockerTable tbody');
-            bBody.innerHTML = '';
-            blocked.forEach(l => {
-                const reason = l.qa_status === 'failed' ? 'QA Failed' : 
-                               !l.county || l.county === 'UNKNOWN' ? 'No county' :
-                               !l.property_address ? 'No address' : 'Needs real comps';
-                bBody.innerHTML += `<tr>
-                    <td>${l.case_id || '?'}</td>
-                    <td>${(l.owner_name || '?').substring(0, 30)}</td>
-                    <td>${l.county || '?'}, ${l.state || '?'}</td>
-                    <td>${badge(reason, 'red')}</td>
-                </tr>`;
-            });
-
-            // Warehouse stats (hardcoded for now — will wire to API)
-            const wGrid = document.getElementById('warehouseGrid');
-            wGrid.innerHTML = `
-                <div class="card"><div class="metric blue">5M+</div><div class="label">Assessment Records</div></div>
-                <div class="card"><div class="metric green">843K</div><div class="label">Sales Records</div></div>
-                <div class="card"><div class="metric">11</div><div class="label">Counties Loaded</div></div>
-                <div class="card"><div class="metric">4</div><div class="label">States Covered</div></div>
-            `;
-
-            // Agent status
-            const aGrid = document.getElementById('agentGrid');
-            aGrid.innerHTML = `
-                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
-                    <span class="lane-dot active"></span><strong>Infrastructure</strong></div>
-                    <div class="label" style="margin-top:8px;">Importing counties (sequential)</div></div>
-                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
-                    <span class="lane-dot active"></span><strong>OA Revenue</strong></div>
-                    <div class="label" style="margin-top:8px;">Comp engine running on leads</div></div>
-                <div class="card"><div style="display:flex;align-items:center;gap:8px;">
-                    <span class="lane-dot active"></span><strong>CRM</strong></div>
-                    <div class="label" style="margin-top:8px;">Stages corrected — truth enforced</div></div>
-            `;
-        }
-
-        // Auto-refresh every 60s
-        setInterval(loadAll, 60000);
-        loadAll();
-    </script>
+setInterval(loadAll,15000);
+loadAll();
+</script>
 </body>
 </html>
