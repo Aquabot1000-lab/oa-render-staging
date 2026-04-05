@@ -214,7 +214,7 @@ tr.us td{background:rgba(108,92,231,0.04)}
                 <a href="/exemptions">Exemptions</a>
                 <a href="/referrals">Refer &amp; Earn</a>
                 <a href="/faq">FAQ</a>
-                <a href="#lp-form" class="nav-cta">analysis for $79 (credited toward your success fee)</a>
+                <a href="#lp-form" class="nav-cta">Get Your Analysis →</a>
             </nav>
             <button class="mobile-menu-toggle" aria-label="Toggle menu">
                 <span></span><span></span><span></span>
@@ -242,7 +242,7 @@ tr.us td{background:rgba(108,92,231,0.04)}
                 <div class="stat"><div class="num">$1.5K+</div><div class="label">Avg Savings Potential</div></div>
             </div>
             <div class="trust fade-in fade-in-delay-3">
-                <div class="trust-badge">🛡️ $79 to get started (credited toward your success fee)</div>
+                <div class="trust-badge">🛡️ Just $79 to Start</div>
                 <div class="trust-badge">💰 Only 25% Fee</div>
                 <div class="trust-badge">🌵 Arizona Experts</div>
                 <div class="trust-badge">📋 Remote Service - No Attendance</div>
@@ -387,7 +387,7 @@ tr.us td{background:rgba(108,92,231,0.04)}
                     <div class="fg"><label for="email">Email *</label><input type="email" id="email" required placeholder="you@example.com"></div>
                     <div class="fg"><label for="assessedValue">Current Assessed Value (Optional)</label><input type="text" id="assessedValue" placeholder="$500,000"></div>
                     <div class="fg"><label for="notificationPref">How would you like updates?</label><select id="notificationPref"><option value="both">Text &amp; Email</option><option value="sms">Text Only</option><option value="email">Email Only</option></select></div>
-                    <button type="submit" class="submit-btn" id="submitBtn">Get My analysis for $79 (credited toward your success fee) →</button>
+                    <button type="submit" class="submit-btn" id="submitBtn">Get My Get Your Analysis → →</button>
                     <p class="form-note">By submitting, you agree to be contacted by OverAssessed, LLC.</p>
                 </form>
                 <div id="formSuccess" style="display:none;text-align:center;padding:32px 16px"><div style="font-size:3rem">✅</div><h3>Analysis Request Received!</h3><p style="color:var(--text-secondary)">We'll contact you within 24 hours.</p></div>
@@ -468,7 +468,7 @@ tr.us td{background:rgba(108,92,231,0.04)}
         const data={propertyAddress:document.getElementById('propertyAddress').value,propertyType:document.getElementById('propertyType').value,ownerName:document.getElementById('ownerName').value,phone:document.getElementById('phone').value,email:document.getElementById('email').value,assessedValue:document.getElementById('assessedValue').value,county:document.getElementById('county').value,state:'AZ',notificationPref:document.getElementById('notificationPref').value,source:'organic-coconino-county',utm_data:JSON.stringify(utm)};
         try{const r=await fetch('/api/intake',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
         if(r.ok){const res=await r.json();document.getElementById('lpForm').style.display='none';const s=document.getElementById('formSuccess');s.style.display='block';if(res.caseId)s.innerHTML=`<div style="font-size:3rem">✅</div><h3>You're In! Case ${res.caseId}</h3><p style="color:var(--text-secondary)">Check your email for next steps.</p>`;if(typeof gtag!=='undefined')gtag('event','conversion',{'send_to':'AW-17990551503/az-intake'})}else throw new Error('fail')}
-        catch(err){alert('Sorry, there was an error. Please try again or email info@overassessed.ai.');btn.disabled=false;btn.textContent='Get My analysis for $79 (credited toward your success fee) →'}
+        catch(err){alert('Sorry, there was an error. Please try again or email info@overassessed.ai.');btn.disabled=false;btn.textContent='Get My Get Your Analysis → →'}
     });
     // Sticky header
     (function(){const h=document.getElementById('mainHeader');if(!h)return;let t=false;window.addEventListener('scroll',()=>{if(!t){requestAnimationFrame(()=>{h.classList.toggle('scrolled',window.scrollY>20);t=false});t=true}},{passive:true})})();

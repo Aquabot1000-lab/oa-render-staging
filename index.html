@@ -391,7 +391,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                 <a href="/referrals">Refer &amp; Earn</a>
                 <a href="#compare">Compare</a>
                 <a href="/faq">FAQ</a>
-                <a href="#intake-form" class="nav-cta">analysis for $79 (credited toward your success fee)</a>
+                <a href="#intake-form" class="nav-cta">Get Your Analysis →</a>
             </nav>
             <button class="mobile-menu-toggle" aria-label="Toggle menu">
                 <span></span><span></span><span></span>
@@ -684,7 +684,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
     <section id="intake-form" class="form-section">
         <div class="container">
             <div class="form-wrap fade-in">
-                <h2 class="form-title">Get Your analysis for $79 (credited toward your success fee)</h2>
+                <h2 class="form-title">Get Your Get Your Analysis →</h2>
                 <p class="form-subtitle">Takes less than 2 minutes. Just $79 to start - credited toward your fee.</p>
                 <div id="duplicateBanner" class="duplicate-banner"></div>
                 <form id="intakeForm" class="intake-form">
@@ -832,7 +832,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                     </div>
                     <button type="submit" class="submit-btn" id="submitBtn">
                         <div class="spinner" id="submitSpinner"></div>
-                        <span class="btn-text" id="btnText">Get My analysis for $79 (credited toward your success fee)</span>
+                        <span class="btn-text" id="btnText">Get My Get Your Analysis →</span>
                     </button>
                     <p class="form-disclaimer">
                         By submitting this form, you agree to be contacted by OverAssessed, LLC. 
@@ -1619,7 +1619,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
         if (!phoneResult.valid) {
             V.setFeedback('phone', 'error', 'Please enter a valid 10-digit US phone number');
             btn.disabled = false; submitting = false;
-            if (btnText) btnText.textContent = 'Get My analysis for $79 (credited toward your success fee)';
+            if (btnText) btnText.textContent = 'Get My Get Your Analysis →';
             if (spinner) spinner.style.display = 'none';
             return;
         }
@@ -1696,7 +1696,7 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
                 document.getElementById('duplicateBanner').textContent = data.message;
                 document.getElementById('duplicateBanner').style.display = 'block';
                 btn.disabled = false; submitting = false;
-                if (btnText) btnText.textContent = 'Get My analysis for $79 (credited toward your success fee)';
+                if (btnText) btnText.textContent = 'Get My Get Your Analysis →';
                 if (spinner) spinner.style.display = 'none';
             } else if (res.ok) {
                 document.getElementById('intakeForm').style.display = 'none';
@@ -1707,13 +1707,13 @@ a.service-card-link{text-decoration:none;color:inherit;display:block}
             } else {
                 alert(data.error || 'Something went wrong. Please try again.');
                 btn.disabled = false; submitting = false;
-                if (btnText) btnText.textContent = 'Get My analysis for $79 (credited toward your success fee)';
+                if (btnText) btnText.textContent = 'Get My Get Your Analysis →';
                 if (spinner) spinner.style.display = 'none';
             }
         } catch (err) {
             alert('Something went wrong. Please try again.');
             btn.disabled = false; submitting = false;
-            if (btnText) btnText.textContent = 'Get My analysis for $79 (credited toward your success fee)';
+            if (btnText) btnText.textContent = 'Get My Get Your Analysis →';
             if (spinner) spinner.style.display = 'none';
         }
     });

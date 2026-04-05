@@ -402,7 +402,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                 <a href="/exemptions">Exemptions</a>
                 <a href="/referrals">Refer &amp; Earn</a>
                 <a href="/faq">FAQ</a>
-                <a href="#lp-form" class="nav-cta">analysis for $79 (credited toward your success fee)</a>
+                <a href="#lp-form" class="nav-cta">Get Your Analysis →</a>
             </nav>
             <button class="mobile-menu-toggle" aria-label="Toggle menu">
                 <span></span><span></span><span></span>
@@ -419,7 +419,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                 <div class="stat"><div class="num">25%</div><div class="label">Lowest Fee in Texas</div></div>
             </div>
             <div class="trust">
-                <div class="trust-badge">🛡️ $79 to get started (credited toward your success fee)</div>
+                <div class="trust-badge">🛡️ Just $79 to Start</div>
                 <div class="trust-badge">💰 Pay Only If You Save</div>
                 <div class="trust-badge">📊 Expert Analysis</div>
                 <div class="trust-badge">🏆 Lowest Fee in Market</div>
@@ -495,7 +495,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
     <section class="form-section" id="lp-form">
         <div class="container">
             <div class="form-wrap">
-                <h2>Get Your property tax Analysis</h2>
+                <h2>Get Your Property Tax Analysis</h2>
                 <p class="fsub">Takes less than 2 minutes. Just $79 to start - credited toward your fee.</p>
                 <form id="lpForm">
                     <div class="fg"><label for="propertyAddress">Property Address *</label><input type="text" id="propertyAddress" required="" placeholder="123 Main St, City, TX 78XXX"></div>
@@ -507,12 +507,12 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
                     <div class="fg"><label for="email">Email *</label><input type="email" id="email" required="" placeholder="you@example.com"></div>
                     <div class="fg"><label for="assessedValue">Current Assessed Value (Optional)</label><input type="text" id="assessedValue" placeholder="$350,000"></div>
                     <div class="fg"><label for="notificationPref">How would you like updates?</label><select id="notificationPref"><option value="both">Text &amp; Email</option><option value="sms">Text Only</option><option value="email">Email Only</option></select></div>
-                    <button type="submit" class="submit-btn" id="submitBtn">Get My analysis for $79 (credited toward your success fee) →</button>
+                    <button type="submit" class="submit-btn" id="submitBtn">Get My Get Your Analysis → →</button>
                     <p class="form-note">By submitting, you agree to be contacted by OverAssessed, LLC.</p>
                 </form>
                 <div class="form-success" id="formSuccess"><div style="font-size:3rem">✅</div><h3>Analysis Request Received!</h3><p>We'll contact you within 24 hours.</p></div>
             </div>
-            <div style="text-align:center"><a href="https://overassessed.ai/#intake-form" class="phone-cta">🏠 Start analysis for $79 (credited toward your success fee)</a></div>
+            <div style="text-align:center"><a href="https://overassessed.ai/#intake-form" class="phone-cta">🏠 Start Get Your Analysis →</a></div>
         </div>
     </section>
 
@@ -526,7 +526,7 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
         const data={propertyAddress:document.getElementById('propertyAddress').value,propertyType:document.getElementById('propertyType').value,ownerName:document.getElementById('ownerName').value,phone:document.getElementById('phone').value,email:document.getElementById('email').value,assessedValue:document.getElementById('assessedValue').value,notificationPref:document.getElementById('notificationPref').value,source:'google-ads-tx',utm_data:JSON.stringify(utm)};
         try{const r=await fetch('/api/intake',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
         if(r.ok){const res=await r.json();document.getElementById('lpForm').style.display='none';const s=document.getElementById('formSuccess');s.style.display='block';if(res.caseId)s.innerHTML=`<div style="font-size:3rem">✅</div><h3>You're In! Case ${res.caseId}</h3><p>Check your email for next steps.</p>`;if(typeof gtag!=='undefined')gtag('event','conversion',{'send_to':'AW-CONVERSION_ID/CONVERSION_LABEL'})}else throw new Error('fail')}
-        catch(err){alert('Sorry, there was an error. Please try again or email info@overassessed.ai.');btn.disabled=false;btn.textContent='Get My analysis for $79 (credited toward your success fee) →'}
+        catch(err){alert('Sorry, there was an error. Please try again or email info@overassessed.ai.');btn.disabled=false;btn.textContent='Get My Get Your Analysis → →'}
     });
     </script>
 
