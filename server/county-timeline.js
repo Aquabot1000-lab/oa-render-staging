@@ -222,6 +222,11 @@ function classifyLead(lead) {
   const county = (lead.county || '').trim();
   const timeline = getCountyStatus(state, county);
   
+  // Customer notice status (separate from county-level)
+  const customerNotice = lead.customer_notice_status || 'UNKNOWN';
+  timeline.customer_notice_status = customerNotice;
+  timeline.customer_notice_confirmed_at = lead.customer_notice_confirmed_at || null;
+  
   let recommended_action = 'WAIT';
   let priority = 'NORMAL';
   let auto_trigger = null;
