@@ -6269,8 +6269,13 @@ function runQACheck(lead) {
 // ===== END REAL COMP ENGINE =====
 
 // ===== LEAD DASHBOARD =====
-// ========== COMMAND CENTER ==========
-app.get('/admin/command-center', authenticateToken, async (req, res) => {
+// ========== COMMAND CENTER (v2 — static dashboard) ==========
+app.get('/admin/command-center', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'public', 'admin', 'command-center.html'));
+});
+
+// ========== COMMAND CENTER (v1 — legacy server-rendered) ==========
+app.get('/admin/command-center-legacy', authenticateToken, async (req, res) => {
     try {
         const { data: leads } = await supabaseAdmin.from('submissions')
             .select('*').is('deleted_at', null).order('estimated_savings', { ascending: false });
