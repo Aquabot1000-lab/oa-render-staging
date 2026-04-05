@@ -44,7 +44,7 @@ body{font-family:var(--font);color:var(--text);line-height:1.6}
 <div class="container">
 <h1>Jefferson County: Your Assessment Is <em>Too High</em></h1>
 <p class="sub">2025 reassessment year. Median home <strong>$620,000</strong>. Notices mail May 1 - protest by <strong>June 8, 2026</strong>. We handle everything remotely. Only 25% fee.</p>
-<a href="#form" class="btn">Get Free Analysis →</a>
+<a href="#form" class="btn">Get analysis for $79 (credited toward your success fee) →</a>
 </div>
 </div>
 
@@ -69,7 +69,7 @@ body{font-family:var(--font);color:var(--text);line-height:1.6}
 </div>
 <div class="fg"><label>Email *</label><input type="email" id="email" required></div>
 <div class="fg"><label>Assessed Value (Optional)</label><input type="text" id="assessedValue" placeholder="$620,000"></div>
-<button type="submit" class="submit-btn" id="submitBtn">Get Free Analysis →</button>
+<button type="submit" class="submit-btn" id="submitBtn">Get analysis for $79 (credited toward your success fee) →</button>
 <p style="text-align:center;font-size:0.75rem;color:#666;margin-top:12px">Just $79 to start - credited toward your fee. Pay only if we save you money.</p>
 </form>
 <div id="formSuccess" style="display:none;text-align:center;padding:32px"><div style="font-size:3rem">✅</div><h3>Request Received!</h3><p>We'll contact you within 24 hours.</p></div>
@@ -86,7 +86,7 @@ e.preventDefault();const btn=document.getElementById('submitBtn');btn.disabled=t
 const data={propertyAddress:document.getElementById('propertyAddress').value,propertyType:document.getElementById('propertyType').value,ownerName:document.getElementById('ownerName').value,phone:document.getElementById('phone').value,email:document.getElementById('email').value,assessedValue:document.getElementById('assessedValue').value,county:'Jefferson',state:'CO',source:'organic-co-jefferson'};
 try{const r=await fetch('/api/intake',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 if(r.ok){document.getElementById('lpForm').style.display='none';document.getElementById('formSuccess').style.display='block';if(typeof gtag!=='undefined')gtag('event','conversion',{'send_to':'AW-17990551503/co-intake'})}else throw new Error('fail')}
-catch(err){alert('Error. Please try again or call (888) 282-9165.');btn.disabled=false;btn.textContent='Get Free Analysis →'}
+catch(err){alert('Error. Please try again or call (888) 282-9165.');btn.disabled=false;btn.textContent='Get analysis for $79 (credited toward your success fee) →'}
 });
 </script>
 </body>

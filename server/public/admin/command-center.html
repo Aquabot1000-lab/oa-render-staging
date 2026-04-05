@@ -82,6 +82,10 @@
             <table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="section">
+            <h2>Ready to Contact</h2>
+            <table id="oa-contact"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Terms</th><th>Contact</th><th>Next Action</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="section">
             <h2>Blocked / Needs Data</h2>
             <table id="oa-blocked"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Status</th><th>Reason</th></tr></thead><tbody></tbody></table>
         </div>
@@ -226,7 +230,32 @@ async function loadOA(){
             </tr>`;
         });
 
-        // Blocked table
+        
+        // Ready to contact table
+        const cBody=$('#oa-contact tbody');if(cBody){cBody.innerHTML='';
+        ready.forEach(l=>{
+            const s=parseFloat(l.estimated_savings||0);
+            const hasEmail=!!l.email;const hasPhone=!!l.phone;
+            const legacy=l.agreement_type==='legacy_terms';
+            const isSigned=l.fee_agreement_signed;
+            const isPaid=l.initiation_paid||l.initiation_fee_paid;
+            let nextAction='';
+            if(legacy&&isSigned)nextAction=badge('FILE NOW','g');
+            else if(!isSigned&&!legacy)nextAction=badge('SEND V2 + $79','o');
+            else if(isSigned&&!legacy&&!isPaid)nextAction=badge('COLLECT $79','o');
+            else nextAction=badge('SIGN + PAY','o');
+            cBody.innerHTML+=`<tr>
+                <td>${l.case_id||'?'}</td>
+                <td>${(l.owner_name||'?').substring(0,25)}</td>
+                <td>${l.county||'?'}, ${l.state||'?'}</td>
+                <td class="money">${money(s)}/yr</td>
+                <td>${legacy?badge('LEGACY','p'):badge('NEW v2','b')}</td>
+                <td>${hasEmail?'\u{1F4E7}':''}${hasPhone?' \u{1F4F1}':''}</td>
+                <td>${nextAction}</td>
+            </tr>`;
+        });}
+
+// Blocked table
         const bBody=$('#oa-blocked tbody');bBody.innerHTML='';
         [...blocked,...needsA].forEach(l=>{
             const qa=l.qa_status||'not_run';

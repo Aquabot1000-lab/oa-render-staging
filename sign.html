@@ -383,7 +383,7 @@
                             <p><strong>Contingency Fee:</strong></p>
                             <ul>
                                 <li>A contingency fee of <strong id="legalFeeRate"></strong> of the tax savings achieved will be charged.</li>
-                                <li>"No win, no fee" applies: If no tax savings are achieved, no fee will be charged for the appeal services rendered by OverAssessed LLC.</li>
+                                <li>"No win, $79 initiation fee (credited)" applies: If no tax savings are achieved, $79 initiation fee (credited) will be charged for the appeal services rendered by OverAssessed LLC.</li>
                                 <li>Taxes savings are calculated as the reduction in property tax liability for the tax year(s) the appeal is successful.</li>
                                 <li>The fee is earned upon successful reduction of your property tax liability.</li>
                             </ul>
@@ -495,13 +495,13 @@
 
         function getFeeRateText(state, rate) {
             // If a per-client discounted_rate was set, use it first
-            if (rate) return `${rate}% contingency fee - no win, no fee`;
-            if (!state) return `25% contingency fee - no win, no fee`;
+            if (rate) return `${rate}% contingency fee - no win, $79 initiation fee (credited)`;
+            if (!state) return `25% contingency fee - no win, $79 initiation fee (credited)`;
             const feeMap = {
                 'TX': 25, 'GA': 25, 'WA': 25, 'AZ': 25, 'CO': 25
             };
             const fee = feeMap[state.toUpperCase()] || 25;
-            return `${fee}% contingency fee - no win, no fee`;
+            return `${fee}% contingency fee - no win, $79 initiation fee (credited)`;
         }
 
         function setButtonState() {
