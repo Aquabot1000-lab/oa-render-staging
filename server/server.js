@@ -944,8 +944,8 @@ async function sendNotificationEmail(subject, html, toEmail) {
     try {
         const msg = {
             to,
-            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
-            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+            from: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey \u2014 OverAssessed' },
+            replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
             subject,
             html,
             trackingSettings: { clickTracking: { enable: true }, openTracking: { enable: true } }
@@ -1078,6 +1078,11 @@ function brandedEmailWrapper(title, subtitle, bodyHtml) {
         </div>
         <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; color: #2d3436;">
             ${bodyHtml}
+        </div>
+        <div style="padding: 20px 30px; border: 1px solid #e2e8f0; border-top: none; color: #2d3436; font-size: 14px;">
+            <strong>Tyler Worthey</strong><br>
+            OverAssessed<br>
+            <a href="https://overassessed.ai" style="color: #6c5ce7;">overassessed.ai</a>
         </div>
         <div style="background-color: #1a1a2e; color: #ffffff; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px;">
             OverAssessed, LLC - San Antonio, Texas<br>
