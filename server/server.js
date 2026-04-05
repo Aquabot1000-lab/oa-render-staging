@@ -1733,6 +1733,32 @@ app.get('/api/admin/pending-approvals', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/admin/leads — ALL leads for Command Center (replaces direct Supabase calls)
+app.get('/api/admin/leads', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads } = await supabaseAdmin.from('submissions')
+            .select('*')
+            .is('deleted_at', null)
+            .order('case_id');
+        res.json(leads || []);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET /api/admin/queue — job queue for Command Center
+app.get('/api/admin/queue', authenticateToken, async (req, res) => {
+    try {
+        const { data: jobs } = await supabaseAdmin.from('job_queue')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(100);
+        res.json(jobs || []);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ==================== ROUTES ====================
 
 // ==================== OUTCOME MONITOR ROUTES ====================

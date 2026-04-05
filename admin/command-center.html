@@ -201,18 +201,26 @@ async function getToken(){
     }catch(e){return'';}
 }
 
+async function apiFetch(path){
+    const t=await getToken();
+    const r=await fetch(OA+path,{headers:{'Authorization':'Bearer '+t}});
+    return r.json();
+}
+
+// Legacy sbFetch kept for any remaining callers - now routes through server API
 async function sbFetch(table,q=''){
+    if(table==='submissions') return apiFetch('/api/admin/leads');
+    if(table==='job_queue') return apiFetch('/api/admin/queue');
+    // Fallback for other tables
     const t=await getToken();
     const r=await fetch(`${SB}/rest/v1/${table}?${q}`,{headers:{apikey:t,Authorization:'Bearer '+t}});
-    const d=await r.json();
-    if(d.code==='PGRST301'){tk='';const t2=await getToken();const r2=await fetch(`${SB}/rest/v1/${table}?${q}`,{headers:{apikey:t2,Authorization:'Bearer '+t2}});return r2.json();}
-    return d;
+    return r.json();
 }
 
 async function loadOA(){
     try{
-        const leads=await sbFetch('submissions','deleted_at=is.null&select=*&order=case_id');
-        if(!Array.isArray(leads))return;
+        const leads=await apiFetch('/api/admin/leads');
+        if(!Array.isArray(leads)){console.error('loadOA: leads not array',leads);return;}
 
         const signed=leads.filter(l=>l.fee_agreement_signed);
         const ready=leads.filter(l=>l.status==='Filing Prepared');
@@ -568,7 +576,7 @@ async function approveMsg(id,action){
 }
 
 async function loadQueue(){
-    const {data:jobs}=await sb.from('job_queue').select('*').order('created_at',{ascending:false}).limit(20);
+    const jobs=await apiFetch('/api/admin/queue');
     const kpi=$('#queue-kpi');
     if(!kpi)return;
     const pending=(jobs||[]).filter(j=>j.status==='pending').length;
