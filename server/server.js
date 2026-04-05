@@ -2832,6 +2832,29 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         setTimeout(async () => {
             try {
                 console.log(`[AutoAnalysis] Starting auto-analysis for new case ${caseId}`);
+                // Run real comp engine + QA (no synthetic data)
+                try {
+                    const realResult = await fetchRealComps({ id: submission.id, property_address: propertyAddress, county: county || '', state: state || '', assessed_value: assessedValue });
+                    const comps = realResult.comps || [];
+                    const sav = realResult.estimated_savings?.annual || 0;
+                    await supabaseAdmin.from('submissions').update({
+                        comp_results: { comps: realResult.comps, value_range: realResult.value_range, confidence: realResult.confidence, fetched_at: realResult.fetched_at, data_sources: realResult.data_sources },
+                        estimated_savings: sav,
+                        data_sources: realResult.data_sources,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', submission.id);
+                    // Run QA
+                    const updatedForQA = await findSubmission(submission.id);
+                    if (updatedForQA) {
+                        const qaResult = runQACheck(updatedForQA);
+                        let autoStage = 'Needs Analysis';
+                        if (qaResult.passed && comps.length >= 3 && sav > 0) autoStage = 'Filing Prepared';
+                        else if (qaResult.passed && sav <= 0) autoStage = 'No Case';
+                        else if (comps.length < 3) autoStage = 'Needs Analysis';
+                        await supabaseAdmin.from('submissions').update({ qa_status: qaResult.passed ? 'passed' : 'failed', qa_result: qaResult, qa_run_at: new Date().toISOString(), status: autoStage }).eq('id', submission.id);
+                        console.log(`[AutoAnalysis] Real comp engine: ${comps.length} comps, $${sav}/yr, stage=${autoStage} for ${caseId}`);
+                    }
+                } catch (realErr) { console.error(`[AutoAnalysis] Real comp engine failed for ${caseId}:`, realErr.message); }
                 await runFullAnalysis(submission.id);
                 console.log(`[AutoAnalysis] Complete for ${caseId}`);
                 // Notify Tyler that analysis is ready
