@@ -119,7 +119,7 @@
             <div class="grid" id="oa-kpi"></div>
         </div>
         <div class="section">
-            <h2>⚠️ Pending Approval</h2>
+            <h2>📊 Active Pipeline</h2>
             <div id="oa-pending-cards"></div>
             <div class="table-wrap"><table id="oa-pending"><thead><tr><th>Case</th><th>Name</th><th>Property</th><th>County</th><th>Assessed</th><th>Proposed</th><th>Savings</th><th>Comps</th><th>Action</th></tr></thead><tbody></tbody></table></div>
         </div>
@@ -302,42 +302,37 @@ async function loadOA(){
         if(!Array.isArray(leads)){console.error('loadOA: leads not array',leads);return;}
 
         const signed=leads.filter(l=>l.fee_agreement_signed);
-        const ready=leads.filter(l=>l.status==='Filing Prepared');
+        const msgSent=leads.filter(l=>l.status==='Message Sent');
+        const incomplete=leads.filter(l=>l.status==='Incomplete Data');
         const blocked=leads.filter(l=>(l.status||'').includes('Blocked'));
         const noCase=leads.filter(l=>l.status==='No Case');
-        const needsA=leads.filter(l=>l.status==='Needs Analysis');
+        const pendingApproval=leads.filter(l=>l.status==='Pending Approval').length;
         const paid=leads.filter(l=>l.initiation_paid||l.initiation_fee_paid);
 
+        // Revenue from all viable leads (Message Sent + Pending)
         let totalSav=0,totalRev=0;
-        ready.forEach(l=>{const s=parseFloat(l.estimated_savings||0);totalSav+=s;totalRev+=s*0.25;});
-        
-        const waitCounty=leads.filter(l=>l.missing_data_reason==='WAITING_ON_COUNTY').length;
-        const needsEnrich=leads.filter(l=>l.missing_data_reason==='NEEDS_INTERNAL_DATA').length;
-        const pendingApproval=leads.filter(l=>l.status==='Pending Approval').length;
-        const highPri=leads.filter(l=>l.priority_tag==='HIGH').length;
-        const medPri=leads.filter(l=>l.priority_tag==='MEDIUM').length;
-        const avgScore=leads.length?Math.round(leads.reduce((s,l)=>s+(l.priority_score||0),0)/leads.length):0;
-        const fuOverdue=leads.filter(l=>l.follow_up&&l.follow_up.next_date&&new Date(l.follow_up.next_date)<new Date()).length;
+        leads.filter(l=>['Message Sent','Pending Approval'].includes(l.status)).forEach(l=>{const s=parseFloat(l.estimated_savings||0);totalSav+=s;totalRev+=s*0.25;});
 
         $('#oa-kpi').innerHTML=[
             card(leads.length,'Total Leads','blue'),
+            card(msgSent.length,'✉️ Messages Sent','green'),
             card(pendingApproval,'⚠️ Pending Approval','orange'),
-            card(highPri,'🔥 High Priority','red',medPri+' medium'),
-            card(avgScore+'/100','Avg Score',''),
+            card(incomplete.length,'🔧 Incomplete Data','red'),
             card(paid.length,'Paid $79','green'),
-            card(money(totalRev),'Potential Revenue','green',money(totalSav)+' savings'),
-            card(waitCounty,'⏳ Waiting County','',needsEnrich+' enrichment'),
-            card(fuOverdue,'🔔 Follow-Ups Due','orange')
+            card(money(totalRev),'Pipeline Revenue','green',money(totalSav)+' savings'),
+            card(noCase.length,'No Case',''),
+            card(blocked.length,'Blocked','red')
         ].join('');
 
-        // Pending Approval table + mobile cards
-        const pending=leads.filter(l=>l.status==='Pending Approval');
+        // Active leads: Message Sent + Pending Approval
+        const pending=leads.filter(l=>['Pending Approval','Message Sent','Incomplete Data'].includes(l.status));
+        pending.sort((a,b)=>(b.priority_score||0)-(a.priority_score||0));
         const pBody=$('#oa-pending tbody');const pCards=$('#oa-pending-cards');
         if(pBody){pBody.innerHTML='';}
         if(pCards){pCards.innerHTML='';}
         if(pending.length===0){
-            if(pBody)pBody.innerHTML='<tr><td colspan="9" style="color:#484f58">No cases pending approval</td></tr>';
-            if(pCards)pCards.innerHTML='<p style="color:#484f58">No cases pending approval</p>';
+            if(pBody)pBody.innerHTML='<tr><td colspan="9" style="color:#484f58">No active cases</td></tr>';
+            if(pCards)pCards.innerHTML='<p style="color:#484f58">No active cases</p>';
         }
         pending.forEach(l=>{
             const s=safeNum(l.estimated_savings,0);
@@ -349,11 +344,13 @@ async function loadOA(){
             const compList=comps.slice(0,5).map((c,i)=>`${i+1}. ${safeStr(c.address,'?').substring(0,35)} $${safeNum(c.sale_price,0).toLocaleString()} ${safeStr(c.sqft,'?')}sf`).join('<br>');
             const hasData=!isNaN(assessed)&&comps.length>=3&&!comps.some(c=>!c.sale_date);
             const dataTag=hasData?'':'<span class="data-warn">⚠️ MISSING DATA</span> ';
+            const statusColors={'Message Sent':'#3fb950','Pending Approval':'#d29922','Incomplete Data':'#f85149','No Case':'#484f58','Blocked - Bad Data':'#f85149'};
+            const stBadge=`<span style="background:${statusColors[l.status]||'#484f58'};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">${l.status||'?'}</span>`;
             
             // Desktop table row
             const ct2=l.county_timeline||{};
             if(pBody)pBody.innerHTML+=`<tr>
-                <td><strong>${l.case_id||'?'}</strong></td>
+                <td><strong>${l.case_id||'?'}</strong><br>${stBadge}</td>
                 <td>${safeStr(l.owner_name,'?').substring(0,20)}</td>
                 <td style="font-size:11px">${safeStr(l.property_address,'?').substring(0,30)}</td>
                 <td>${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}<br><span style="font-size:10px">${timelineBadge(ct2)} ${noticeBadge(ct2.customer_notice_status||'UNKNOWN')}</span><br>${scoreBar(l.priority_score||0)}</td>
