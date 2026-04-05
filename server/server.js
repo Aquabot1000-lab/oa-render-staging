@@ -1546,6 +1546,57 @@ function canFile(lead) {
     return { allowed: true };
 }
 
+// POST /api/admin/approve-filing — Tyler approves a lead for filing
+app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
+    try {
+        const { lead_id, action } = req.body; // action: 'approve' or 'reject'
+        if (!lead_id || !action) return res.status(400).json({ error: 'lead_id and action required' });
+        
+        const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
+        if (!lead) return res.status(404).json({ error: 'Lead not found' });
+        
+        if (action === 'approve') {
+            await supabaseAdmin.from('submissions').update({
+                status: 'Approved',
+                filing_approved: true,
+                filing_approved_at: new Date().toISOString(),
+                filing_approved_by: req.user?.email || 'tyler',
+                updated_at: new Date().toISOString()
+            }).eq('id', lead_id);
+            console.log(`[Approval] ✅ ${lead.case_id} ${lead.owner_name} APPROVED for filing`);
+            res.json({ success: true, status: 'Approved', lead_name: lead.owner_name });
+        } else if (action === 'reject') {
+            const { reason } = req.body;
+            await supabaseAdmin.from('submissions').update({
+                status: 'Needs Revision',
+                filing_approved: false,
+                review_reason: reason || 'Sent back for revision',
+                updated_at: new Date().toISOString()
+            }).eq('id', lead_id);
+            console.log(`[Approval] ❌ ${lead.case_id} ${lead.owner_name} REJECTED: ${reason}`);
+            res.json({ success: true, status: 'Needs Revision', lead_name: lead.owner_name });
+        } else {
+            res.status(400).json({ error: 'action must be approve or reject' });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET /api/admin/pending-approvals — get all leads pending Tyler's review
+app.get('/api/admin/pending-approvals', authenticateToken, async (req, res) => {
+    try {
+        const { data: leads } = await supabaseAdmin.from('submissions')
+            .select('id,case_id,owner_name,property_address,county,state,assessed_value,estimated_savings,comp_results,qa_status,agreement_type,fee_agreement_signed,initiation_paid')
+            .in('status', ['Pending Approval', 'Filing Prepared'])
+            .is('deleted_at', null)
+            .order('estimated_savings', { ascending: false });
+        res.json(leads || []);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ==================== ROUTES ====================
 
 // ==================== OUTCOME MONITOR ROUTES ====================

@@ -78,6 +78,10 @@
             <div class="grid" id="oa-kpi"></div>
         </div>
         <div class="section">
+            <h2>⚠️ Pending Approval</h2>
+            <table id="oa-pending"><thead><tr><th>Case</th><th>Name</th><th>Property</th><th>County</th><th>Assessed</th><th>Proposed</th><th>Savings</th><th>Comps</th><th>Action</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="section">
             <h2>Revenue-Ready Leads</h2>
             <table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table>
         </div>
@@ -211,6 +215,33 @@ async function loadOA(){
             card(paid.length,'Paid $79','green'),
             card(money(totalRev),'Potential Revenue','green',money(totalSav)+' total savings')
         ].join('');
+
+        // Pending Approval table
+        const pending=leads.filter(l=>l.status==='Pending Approval');
+        const pBody=$('#oa-pending tbody');if(pBody){pBody.innerHTML='';
+        if(pending.length===0){pBody.innerHTML='<tr><td colspan="9" style="color:#484f58">No cases pending approval</td></tr>';}
+        pending.forEach(l=>{
+            const s=parseFloat(l.estimated_savings||0);
+            const cr=l.comp_results||{};
+            const comps=(cr.comps||[]);
+            const prices=comps.filter(c=>c.sale_price).map(c=>c.sale_price);
+            const proposed=prices.length?Math.round(prices.reduce((a,b)=>a+b,0)/prices.length):0;
+            const compList=comps.slice(0,5).map((c,i)=>`${i+1}. ${(c.address||'?').substring(0,35)} $${(c.sale_price||0).toLocaleString()} ${c.sqft||'?'}sf`).join('<br>');
+            pBody.innerHTML+=`<tr>
+                <td><strong>${l.case_id||'?'}</strong></td>
+                <td>${(l.owner_name||'?').substring(0,20)}</td>
+                <td style="font-size:11px">${(l.property_address||'?').substring(0,30)}</td>
+                <td>${l.county||'?'}, ${l.state||'?'}</td>
+                <td>${money(l.assessed_value)}</td>
+                <td>${money(proposed)}</td>
+                <td class="money">${money(s)}/yr</td>
+                <td style="font-size:11px">${compList}</td>
+                <td style="white-space:nowrap">
+                    <button class="btn-approve" onclick="approveCase('${l.id}','approve')" style="background:#238636;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">✅ Approve</button>
+                    <button onclick="approveCase('${l.id}','reject')" style="background:#da3633;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-top:4px">↩ Revise</button>
+                </td>
+            </tr>`;
+        });}
 
         // Revenue-ready table
         const rBody=$('#oa-ready tbody');rBody.innerHTML='';
@@ -440,6 +471,22 @@ async function loadAll(){
     await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadAgents()]);
     loadMP();
     $('#ts').textContent='Updated '+new Date().toLocaleTimeString();
+}
+
+async function approveCase(id,action){
+    const token=await getToken();
+    const body={lead_id:id,action};
+    if(action==='reject'){const r=prompt('Revision reason:');if(!r)return;body.reason=r;}
+    try{
+        const res=await fetch('/api/admin/approve-filing',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body:JSON.stringify(body)
+        });
+        const d=await res.json();
+        if(d.success){alert((action==='approve'?'\u2705 Approved: ':'\u21a9 Sent back: ')+d.lead_name);loadAll();}
+        else alert('Error: '+(d.error||'Unknown'));
+    }catch(e){alert('Error: '+e.message);}
 }
 
 setInterval(loadAll,15000);
