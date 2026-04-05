@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverAssessed — Property Tax Protest Fee Agreement (v2)</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Georgia,'Times New Roman',serif;background:#fff;color:#1a1a1a;max-width:800px;margin:0 auto;padding:40px 24px;font-size:15px;line-height:1.7}
+        h1{font-size:22px;text-align:center;margin-bottom:4px;color:#1a1a1a}
+        .subtitle{text-align:center;color:#666;font-size:13px;margin-bottom:32px}
+        h2{font-size:16px;margin:28px 0 12px;color:#1a1a1a;border-bottom:1px solid #ddd;padding-bottom:4px}
+        .section{margin-bottom:20px}
+        .highlight{background:#f0f7ff;border:1px solid #cce0ff;border-radius:6px;padding:16px;margin:16px 0}
+        .highlight strong{color:#1a5fb4}
+        .fee-box{background:#f8f9fa;border:2px solid #1a5fb4;border-radius:8px;padding:20px;margin:20px 0;text-align:center}
+        .fee-box .amount{font-size:32px;font-weight:700;color:#1a5fb4}
+        .fee-box .label{font-size:13px;color:#666;margin-top:4px}
+        .terms{margin:16px 0;padding-left:20px}
+        .terms li{margin-bottom:8px}
+        .sig-block{margin-top:40px;border-top:2px solid #1a1a1a;padding-top:20px}
+        .sig-row{display:flex;gap:40px;margin-bottom:24px}
+        .sig-field{flex:1}
+        .sig-line{border-bottom:1px solid #999;min-height:30px;margin-top:8px}
+        .sig-label{font-size:11px;color:#666;margin-top:4px}
+        .legal{font-size:12px;color:#666;margin-top:32px;border-top:1px solid #ddd;padding-top:16px}
+        .version{text-align:center;font-size:11px;color:#999;margin-top:24px}
+        @media print{body{padding:20px}@page{margin:0.75in}}
+        .field{display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;margin:0 4px}
+        .field-sm{min-width:100px}
+    </style>
+</head>
+<body>
+
+<h1>Property Tax Protest Fee Agreement</h1>
+<p class="subtitle">OverAssessed, LLC — Service Agreement</p>
+
+<div class="section">
+    <h2>1. Parties</h2>
+    <p>This Agreement is entered into between:</p>
+    <p><strong>Service Provider:</strong> OverAssessed, LLC ("Company")</p>
+    <p><strong>Client:</strong> <span class="field" id="clientName"></span> ("Client")</p>
+    <p><strong>Property Address:</strong> <span class="field" id="propertyAddress"></span></p>
+    <p><strong>County / State:</strong> <span class="field field-sm" id="county"></span> / <span class="field field-sm" id="state"></span></p>
+</div>
+
+<div class="section">
+    <h2>2. Services</h2>
+    <p>The Company will provide property tax protest services for the Client's property identified above, including:</p>
+    <ol class="terms">
+        <li>Analysis of the property's assessed value against comparable properties</li>
+        <li>Preparation and filing of a property tax protest with the appropriate appraisal district</li>
+        <li>Representation at informal and/or formal hearings, if applicable</li>
+        <li>Notification of protest outcome</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>3. Fee Structure</h2>
+
+    <div class="fee-box">
+        <div class="amount">$79</div>
+        <div class="label">Initiation Fee — Due Before Filing</div>
+    </div>
+
+    <div class="highlight">
+        <p><strong>Initiation Fee:</strong> A one-time fee of <strong>$79.00</strong> is required before the Company will file a property tax protest on the Client's behalf. This fee covers case setup, property analysis, and filing preparation.</p>
+        <p style="margin-top:8px"><strong>Credit:</strong> The $79.00 initiation fee is <strong>credited in full</strong> toward the Client's success fee upon a successful protest resulting in tax savings.</p>
+    </div>
+
+    <div class="highlight">
+        <p><strong>Success Fee:</strong> If the protest results in a reduction of the Client's assessed property value, the Client agrees to pay a success fee equal to <strong>25% of the first year's tax savings</strong> achieved through the protest.</p>
+        <p style="margin-top:8px"><strong>Credit Applied:</strong> The $79.00 initiation fee already paid will be deducted from the success fee. The Client will only owe the remaining balance.</p>
+    </div>
+
+    <p><strong>Example:</strong></p>
+    <ul class="terms">
+        <li>If tax savings = $2,000/year → Success fee = $500</li>
+        <li>Less initiation fee credit = −$79</li>
+        <li><strong>Remaining balance due = $421</strong></li>
+    </ul>
+    <ul class="terms">
+        <li>If tax savings = $0 (protest unsuccessful) → No success fee owed</li>
+        <li>The $79 initiation fee is <strong>non-refundable</strong> regardless of outcome</li>
+    </ul>
+</div>
+
+<div class="section">
+    <h2>4. Payment Terms</h2>
+    <ol class="terms">
+        <li>The <strong>$79.00 initiation fee</strong> is due upon execution of this Agreement and before any filing occurs.</li>
+        <li>The <strong>success fee</strong> (less the $79 credit) is due within 30 days of written notification of a successful protest outcome.</li>
+        <li>Payment may be made via credit card, ACH, or other methods accepted by the Company.</li>
+        <li>If the success fee is not paid within 30 days, the Company reserves the right to charge the credit card on file.</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>5. Authorization</h2>
+    <p>By signing this Agreement, the Client authorizes the Company to:</p>
+    <ol class="terms">
+        <li>Act as the Client's authorized representative for property tax protest purposes</li>
+        <li>Access property records and assessment data related to the property identified above</li>
+        <li>File protests, attend hearings, and negotiate on the Client's behalf</li>
+        <li>Communicate with the applicable appraisal district or tax authority regarding the Client's property</li>
+    </ol>
+</div>
+
+<div class="section">
+    <h2>6. No Guarantee</h2>
+    <p>The Company makes no guarantee of a specific outcome. Property tax protest results depend on multiple factors including local market conditions, appraisal district policies, and available comparable data. The Company will use commercially reasonable efforts to achieve a reduction.</p>
+</div>
+
+<div class="section">
+    <h2>7. Term and Termination</h2>
+    <p>This Agreement covers the current tax year's protest cycle. Either party may terminate this Agreement in writing at any time. If the Client terminates after the initiation fee has been paid and a protest has been filed, the initiation fee remains non-refundable. If a successful outcome has already been achieved, the success fee remains due.</p>
+</div>
+
+<div class="sig-block">
+    <h2>Signatures</h2>
+    <div class="sig-row">
+        <div class="sig-field">
+            <div class="sig-line" id="clientSig"></div>
+            <div class="sig-label">Client Signature</div>
+        </div>
+        <div class="sig-field">
+            <div class="sig-line" id="clientDate"></div>
+            <div class="sig-label">Date</div>
+        </div>
+    </div>
+    <div class="sig-row">
+        <div class="sig-field">
+            <div class="sig-line">Client Name (Printed): <span id="clientPrint"></span></div>
+            <div class="sig-label"></div>
+        </div>
+        <div class="sig-field">
+            <div class="sig-line">Email: <span id="clientEmail"></span></div>
+            <div class="sig-label"></div>
+        </div>
+    </div>
+    <div class="sig-row">
+        <div class="sig-field">
+            <div class="sig-line"></div>
+            <div class="sig-label">OverAssessed, LLC — Authorized Representative</div>
+        </div>
+        <div class="sig-field">
+            <div class="sig-line"></div>
+            <div class="sig-label">Date</div>
+        </div>
+    </div>
+</div>
+
+<div class="legal">
+    <p>This Agreement constitutes the entire agreement between the parties with respect to the subject matter hereof. This Agreement shall be governed by the laws of the State of Texas. Any disputes arising under this Agreement shall be resolved in Bexar County, Texas.</p>
+</div>
+
+<div class="version">Agreement Version: v2.0 — Effective April 2026</div>
+
+</body>
+</html>
