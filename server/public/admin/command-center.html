@@ -40,8 +40,48 @@
         .bb{background:#1b2a3a;color:#58a6ff}.bk{background:#21262d;color:#8b949e}.bp{background:#2a1b3a;color:#bc8cff}
         .money{color:#3fb950;font-weight:600}
 
+        /* Tables responsive */
+        .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
+        table{min-width:500px}
+        
+        /* Mobile card view */
+        .m-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;margin-bottom:10px;display:none}
+        .m-card .m-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .m-card .m-hdr strong{font-size:14px}
+        .m-card .m-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #21262d}
+        .m-card .m-row:last-child{border:none}
+        .m-card .m-lbl{color:#8b949e}
+        .m-card .m-val{color:#c9d1d9;font-weight:600;text-align:right}
+        .m-card .m-actions{display:flex;gap:8px;margin-top:10px}
+        .m-card .m-actions button{flex:1;padding:12px;border-radius:6px;border:none;font-weight:700;font-size:14px;cursor:pointer}
+        .m-card details{margin-top:8px}
+        .m-card details summary{color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer}
+        .m-card .comp-item{background:#0d1117;border:1px solid #21262d;border-radius:4px;padding:8px;margin-top:6px;font-size:11px}
+        
+        /* NaN/missing data warning */
+        .data-warn{background:#3a1b1b;color:#f85149;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}
+        .data-ok{color:#3fb950}
+        
+        /* Sticky action bar for mobile message approval */
+        .sticky-actions{position:sticky;bottom:0;background:#0d1117;border-top:1px solid #21262d;padding:10px;margin:0 -14px -14px;border-radius:0 0 8px 8px}
+        .sticky-actions button{width:100%;padding:14px;border-radius:6px;border:none;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:6px}
+        .sticky-actions button:last-child{margin-bottom:0}
+
         /* Mobile */
-        @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.num{font-size:22px}body{padding:8px}}
+        @media(max-width:768px){
+            .grid{grid-template-columns:repeat(2,1fr)}
+            .num{font-size:22px}
+            body{padding:8px}
+            table{display:none !important}
+            thead{display:none !important}
+            .m-card{display:block}
+            .tabs{gap:2px}
+            .tab{padding:5px 10px;font-size:11px}
+            h2{font-size:13px}
+        }
+        @media(min-width:769px){
+            .m-card{display:none !important}
+        }
 
         /* Tabs */
         .tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
@@ -80,19 +120,23 @@
         </div>
         <div class="section">
             <h2>⚠️ Pending Approval</h2>
-            <table id="oa-pending"><thead><tr><th>Case</th><th>Name</th><th>Property</th><th>County</th><th>Assessed</th><th>Proposed</th><th>Savings</th><th>Comps</th><th>Action</th></tr></thead><tbody></tbody></table>
+            <div id="oa-pending-cards"></div>
+            <div class="table-wrap"><table id="oa-pending"><thead><tr><th>Case</th><th>Name</th><th>Property</th><th>County</th><th>Assessed</th><th>Proposed</th><th>Savings</th><th>Comps</th><th>Action</th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="section">
             <h2>Revenue-Ready Leads</h2>
-            <table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table>
+            <div id="oa-ready-cards"></div>
+            <div class="table-wrap"><table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="section">
             <h2>Ready to Contact</h2>
-            <table id="oa-contact"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Terms</th><th>Contact</th><th>Next Action</th></tr></thead><tbody></tbody></table>
+            <div id="oa-contact-cards"></div>
+            <div class="table-wrap"><table id="oa-contact"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Terms</th><th>Contact</th><th>Next Action</th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="section">
             <h2>Blocked / Needs Data</h2>
-            <table id="oa-blocked"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Status</th><th>Reason</th></tr></thead><tbody></tbody></table>
+            <div id="oa-blocked-cards"></div>
+            <div class="table-wrap"><table id="oa-blocked"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Status</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
         </div>
     </div>
 
@@ -189,7 +233,10 @@ document.querySelectorAll('.tab').forEach((t,i)=>{
 
 function $(s){return document.querySelector(s)}
 function badge(t,c){return `<span class="badge b${c}">${t}</span>`}
-function money(n){return n?'$'+Math.round(n).toLocaleString():'$0'}
+function money(n){const v=parseFloat(n);if(isNaN(v)||v===null||v===undefined)return '<span class="data-warn">Missing</span>';return '$'+Math.round(v).toLocaleString()}
+function safeNum(n,fallback){const v=parseFloat(n);return isNaN(v)?fallback:v}
+function safeStr(s,fallback){return(s&&s!=='null'&&s!=='None'&&s!=='undefined')?s:(fallback||'—')}
+function canApprove(calc,comps){if(isNaN(safeNum(calc.assessed_value,NaN)))return false;if(!comps||comps.length<3)return false;if(comps.some(c=>!c.sale_date))return false;return true;}
 function pct(n){return n!=null?Math.round(n*10)/10+'%':'—'}
 function card(num,lbl,cls,sub){return `<div class="card ${cls||''}"><div class="num ${cls?cls[0]:''}">${num}</div><div class="lbl">${lbl}</div>${sub?'<div class="sub">'+sub+'</div>':''}</div>`}
 
@@ -243,32 +290,66 @@ async function loadOA(){
             card(money(totalRev),'Potential Revenue','green',money(totalSav)+' total savings')
         ].join('');
 
-        // Pending Approval table
+        // Pending Approval table + mobile cards
         const pending=leads.filter(l=>l.status==='Pending Approval');
-        const pBody=$('#oa-pending tbody');if(pBody){pBody.innerHTML='';
-        if(pending.length===0){pBody.innerHTML='<tr><td colspan="9" style="color:#484f58">No cases pending approval</td></tr>';}
+        const pBody=$('#oa-pending tbody');const pCards=$('#oa-pending-cards');
+        if(pBody){pBody.innerHTML='';}
+        if(pCards){pCards.innerHTML='';}
+        if(pending.length===0){
+            if(pBody)pBody.innerHTML='<tr><td colspan="9" style="color:#484f58">No cases pending approval</td></tr>';
+            if(pCards)pCards.innerHTML='<p style="color:#484f58">No cases pending approval</p>';
+        }
         pending.forEach(l=>{
-            const s=parseFloat(l.estimated_savings||0);
+            const s=safeNum(l.estimated_savings,0);
             const cr=l.comp_results||{};
             const comps=(cr.comps||[]);
             const prices=comps.filter(c=>c.sale_price).map(c=>c.sale_price);
             const proposed=prices.length?Math.round(prices.reduce((a,b)=>a+b,0)/prices.length):0;
-            const compList=comps.slice(0,5).map((c,i)=>`${i+1}. ${(c.address||'?').substring(0,35)} $${(c.sale_price||0).toLocaleString()} ${c.sqft||'?'}sf`).join('<br>');
-            pBody.innerHTML+=`<tr>
+            const assessed=safeNum(l.assessed_value,NaN);
+            const compList=comps.slice(0,5).map((c,i)=>`${i+1}. ${safeStr(c.address,'?').substring(0,35)} $${safeNum(c.sale_price,0).toLocaleString()} ${safeStr(c.sqft,'?')}sf`).join('<br>');
+            const hasData=!isNaN(assessed)&&comps.length>=3&&!comps.some(c=>!c.sale_date);
+            const dataTag=hasData?'':'<span class="data-warn">⚠️ MISSING DATA</span> ';
+            
+            // Desktop table row
+            if(pBody)pBody.innerHTML+=`<tr>
                 <td><strong>${l.case_id||'?'}</strong></td>
-                <td>${(l.owner_name||'?').substring(0,20)}</td>
-                <td style="font-size:11px">${(l.property_address||'?').substring(0,30)}</td>
-                <td>${l.county||'?'}, ${l.state||'?'}</td>
-                <td>${money(l.assessed_value)}</td>
+                <td>${safeStr(l.owner_name,'?').substring(0,20)}</td>
+                <td style="font-size:11px">${safeStr(l.property_address,'?').substring(0,30)}</td>
+                <td>${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}</td>
+                <td>${money(assessed)}</td>
                 <td>${money(proposed)}</td>
                 <td class="money">${money(s)}/yr</td>
                 <td style="font-size:11px">${compList}</td>
-                <td style="white-space:nowrap">
-                    <button class="btn-approve" onclick="approveCase('${l.id}','approve')" style="background:#238636;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">✅ Approve</button>
+                <td style="white-space:nowrap">${dataTag}
+                    <button onclick="approveCase('${l.id}','approve')" style="background:${hasData?'#238636':'#484f58'};color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600" ${hasData?'':' disabled title="Fix missing data first"'}>✅ Approve</button>
                     <button onclick="approveCase('${l.id}','reject')" style="background:#da3633;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-top:4px">↩ Revise</button>
                 </td>
             </tr>`;
-        });}
+            
+            // Mobile card
+            if(pCards)pCards.innerHTML+=`<div class="m-card">
+                <div class="m-hdr"><strong>${l.case_id} — ${safeStr(l.owner_name,'?')}</strong>${dataTag}</div>
+                <div class="m-row"><span class="m-lbl">🏠 Property</span><span class="m-val" style="font-size:11px">${safeStr(l.property_address,'?').substring(0,35)}</span></div>
+                <div class="m-row"><span class="m-lbl">📍 County</span><span class="m-val">${safeStr(l.county,'?')}, ${safeStr(l.state,'?')}</span></div>
+                <div class="m-row"><span class="m-lbl">Assessed</span><span class="m-val">${money(assessed)}</span></div>
+                <div class="m-row"><span class="m-lbl">Market (avg)</span><span class="m-val">${money(proposed)}</span></div>
+                <div class="m-row"><span class="m-lbl">💰 Savings</span><span class="m-val" style="color:#3fb950;font-size:14px">${money(s)}/yr</span></div>
+                <div class="m-row"><span class="m-lbl">Comps</span><span class="m-val">${comps.length} (need 3+)</span></div>
+                <div class="m-row"><span class="m-lbl">QA</span><span class="m-val" style="color:${l.qa_status==='passed'?'#3fb950':'#f85149'}">${(l.qa_status||'?').toUpperCase()}</span></div>
+                <details>
+                    <summary>🏠 View ${comps.length} Comps</summary>
+                    ${comps.map((c,i)=>`<div class="comp-item">
+                        <strong>${i+1}.</strong> ${safeStr(c.address,'?').substring(0,40)}<br>
+                        💵 $${safeNum(c.sale_price,0).toLocaleString()} | 📅 ${c.sale_date||'<span class="data-warn">❌ NO DATE</span>'} | ${safeStr(c.sqft,'?')}sf | ${safeStr(c.distance_miles,'?')}mi<br>
+                        <span style="color:#8b949e">Source: ${safeStr(c.source,'?')}</span>
+                    </div>`).join('')}
+                </details>
+                <div class="sticky-actions">
+                    <button onclick="approveCase('${l.id}','approve')" style="background:${hasData?'#238636':'#484f58'};color:#fff" ${hasData?'':' disabled'}>✅ Approve Filing</button>
+                    <button onclick="approveCase('${l.id}','reject')" style="background:#da3633;color:#fff">↩ Revise</button>
+                </div>
+            </div>`;            
+        });
 
         // Revenue-ready table
         const rBody=$('#oa-ready tbody');rBody.innerHTML='';
@@ -442,93 +523,94 @@ async function loadMessages(){
                     const agr=cd.agreement||{};
                     const reviewTag=cd.review_status==='VERIFIED'?'<span style="background:#238636;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">✅ VERIFIED</span>':'<span style="background:#d29922;color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">🔍 AUTO</span>';
                     
-                    // Comps table
-                    const compRows=comps.map((c,i)=>`<tr style="font-size:11px">
-                        <td>${i+1}</td>
-                        <td>${(c.address||'?').substring(0,40)}</td>
-                        <td>$${(c.sale_price||0).toLocaleString()}</td>
-                        <td>${c.sale_date||'❌ MISSING'}</td>
-                        <td>${c.sqft||'?'}</td>
-                        <td>${c.distance_miles||'?'}mi</td>
-                        <td style="color:${c.source==='rentcast-api'?'#3fb950':'#d29922'}">${c.source||'?'}</td>
-                    </tr>`).join('');
+                    // NaN-safe values
+                    const assessedVal=safeNum(calc.assessed_value,0);
+                    const proposedVal=safeNum(calc.proposed_value,0);
+                    const overPct=safeNum(calc.over_assessed_pct,0);
+                    const savingsVal=safeNum(calc.estimated_savings,0);
+                    const avmVal=safeNum(calc.avm,0);
+                    const avmLow=safeNum(calc.avm_low,0);
+                    const avmHigh=safeNum(calc.avm_high,0);
+                    const feeInit=safeNum(fee.initiation_fee,0);
+                    const feePct=safeNum(fee.success_fee_pct,25);
+                    const feeEst=safeNum(fee.estimated_fee,0);
+                    const feeSav=safeNum(fee.estimated_savings,0);
                     
-                    return `<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                            <div><strong style="font-size:15px">${m.case_id||'?'} — ${m.lead_name||'?'}</strong> ${reviewTag}</div>
-                            <span style="color:#d29922;font-size:12px">⚠️ PENDING APPROVAL</span>
+                    // Approval gate: block if missing critical data
+                    const approvable=canApprove(calc,comps);
+                    const blockReason=!approvable?(!isNaN(safeNum(calc.assessed_value,NaN))?comps.length<3?`Only ${comps.length} comps (need 3+)`:comps.some(c=>!c.sale_date)?'Missing sale dates on comps':'Unknown':'Missing assessed value'):'';
+                    
+                    return `<div style="background:#161b22;border:1px solid ${approvable?'#30363d':'#da3633'};border-radius:8px;padding:14px;margin-bottom:16px">
+                        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px">
+                            <div><strong style="font-size:14px">${m.case_id||'?'} — ${safeStr(m.lead_name,'?')}</strong> ${reviewTag}</div>
+                            <span style="color:#d29922;font-size:11px">⚠️ PENDING</span>
                         </div>
+                        ${!approvable?`<div style="background:#3a1b1b;border:1px solid #f85149;border-radius:4px;padding:8px;margin-bottom:10px;font-size:12px;color:#f85149;font-weight:600">⛔ CANNOT APPROVE: ${blockReason}</div>`:''}
                         
                         <!-- SUBJECT PROPERTY -->
-                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:12px;margin-bottom:10px">
-                            <div style="font-size:12px;font-weight:600;color:#58a6ff;margin-bottom:6px">📍 Subject Property</div>
-                            <div style="font-size:13px;font-weight:600">${subj.address||'?'}</div>
-                            <div style="font-size:12px;color:#8b949e;margin-top:4px">
-                                ${subj.county||'?'}, ${subj.state||'?'} | ${subj.sqft||'?'}sf | ${subj.bedrooms||'?'}bd/${subj.bathrooms||'?'}ba | Built ${subj.year_built||'?'} | ${subj.property_type||'?'}
+                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:8px">
+                            <div style="font-size:11px;font-weight:600;color:#58a6ff;margin-bottom:4px">📍 Subject Property</div>
+                            <div style="font-size:13px;font-weight:600">${safeStr(subj.address,'?')}</div>
+                            <div style="font-size:11px;color:#8b949e;margin-top:3px">
+                                ${safeStr(subj.county,'?')}, ${safeStr(subj.state,'?')} | ${safeStr(subj.sqft,'?')}sf | ${safeStr(subj.bedrooms,'?')}bd/${safeStr(subj.bathrooms,'?')}ba | Built ${safeStr(subj.year_built,'?')}
                             </div>
                         </div>
                         
                         <!-- SAVINGS CALCULATION -->
-                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:12px;margin-bottom:10px">
-                            <div style="font-size:12px;font-weight:600;color:#58a6ff;margin-bottom:6px">💰 Savings Calculation</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:12px">
-                                <div><span style="color:#8b949e">Assessed:</span><br><strong>$${(calc.assessed_value||0).toLocaleString()}</strong></div>
-                                <div><span style="color:#8b949e">Market (comps avg):</span><br><strong>$${(calc.proposed_value||0).toLocaleString()}</strong></div>
-                                <div><span style="color:#8b949e">Over-assessed:</span><br><strong style="color:${calc.over_assessed_pct>0?'#f85149':'#3fb950'}">${calc.over_assessed_pct||0}%</strong></div>
-                                <div><span style="color:#8b949e">Est. Savings:</span><br><strong style="color:#3fb950;font-size:16px">$${(calc.estimated_savings||0).toLocaleString()}/yr</strong></div>
+                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:8px">
+                            <div style="font-size:11px;font-weight:600;color:#58a6ff;margin-bottom:4px">💰 Savings</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+                                <div><span style="color:#8b949e">Assessed:</span><br><strong>${money(assessedVal)}</strong></div>
+                                <div><span style="color:#8b949e">Market:</span><br><strong>${money(proposedVal)}</strong></div>
+                                <div><span style="color:#8b949e">Over-assessed:</span><br><strong style="color:${overPct>0?'#f85149':'#3fb950'}">${overPct}%</strong></div>
+                                <div><span style="color:#8b949e">Savings:</span><br><strong style="color:#3fb950;font-size:15px">${money(savingsVal)}/yr</strong></div>
                             </div>
-                            <div style="font-size:11px;color:#8b949e;margin-top:6px">
-                                AVM: $${(calc.avm||0).toLocaleString()} (range: $${(calc.avm_low||0).toLocaleString()} – $${(calc.avm_high||0).toLocaleString()}) | Confidence: ${calc.confidence||'?'} | Sources: ${(calc.data_sources||[]).join(', ')||'none'}
-                            </div>
-                        </div>
-                        
-                        <!-- COMPS TABLE -->
-                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:12px;margin-bottom:10px">
-                            <div style="font-size:12px;font-weight:600;color:#58a6ff;margin-bottom:6px">🏠 Comparable Sales (${comps.length})</div>
-                            <table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#8b949e;border-bottom:1px solid #21262d">
-                                <th style="text-align:left;padding:4px">#</th>
-                                <th style="text-align:left;padding:4px">Address</th>
-                                <th style="text-align:left;padding:4px">Price</th>
-                                <th style="text-align:left;padding:4px">Sale Date</th>
-                                <th style="text-align:left;padding:4px">SqFt</th>
-                                <th style="text-align:left;padding:4px">Dist</th>
-                                <th style="text-align:left;padding:4px">Source</th>
-                            </tr></thead><tbody>${compRows||'<tr><td colspan="7" style="color:#f85149">NO COMPS</td></tr>'}</tbody></table>
-                        </div>
-                        
-                        <!-- QA + AGREEMENT -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;font-size:12px">
-                                <div style="font-weight:600;color:#58a6ff;margin-bottom:4px">✅ QA Status</div>
-                                <span style="color:${qa.status==='passed'?'#3fb950':'#f85149'};font-weight:600">${(qa.status||'?').toUpperCase()}</span>
-                            </div>
-                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;font-size:12px">
-                                <div style="font-weight:600;color:#58a6ff;margin-bottom:4px">📝 Agreement</div>
-                                Type: <strong>${agr.type||'?'}</strong> | Signed: ${agr.signed?'✅':'❌'} | Paid: ${agr.paid?'✅':'N/A'}
+                            <div style="font-size:10px;color:#8b949e;margin-top:4px">
+                                AVM: ${money(avmVal)} (${money(avmLow)}–${money(avmHigh)}) | ${safeStr(calc.confidence,'?')} | ${(calc.data_sources||[]).join(', ')||'none'}
                             </div>
                         </div>
                         
-                        <!-- FEE BREAKDOWN -->
-                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px">
-                            <div style="font-weight:600;color:#58a6ff;margin-bottom:4px">💳 Fee Structure</div>
-                            Initiation: <strong>$${fee.initiation_fee||0}</strong> | Success Fee: <strong>${fee.success_fee_pct||25}%</strong> | Est. Fee: <strong>$${(fee.estimated_fee||0).toLocaleString()}</strong> | Savings: <strong>$${(fee.estimated_savings||0).toLocaleString()}/yr</strong>
+                        <!-- COMPS -->
+                        <details style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:8px" ${comps.length<=5?'open':''}>
+                            <summary style="font-size:11px;font-weight:600;color:#58a6ff;cursor:pointer">🏠 ${comps.length} Comparable Sales</summary>
+                            <div style="margin-top:6px">
+                            ${comps.map((c,i)=>`<div class="comp-item" style="background:#161b22;border:1px solid #21262d;border-radius:4px;padding:8px;margin-top:4px;font-size:11px">
+                                <strong>${i+1}.</strong> ${safeStr(c.address,'?').substring(0,40)}<br>
+                                💵 $${safeNum(c.sale_price,0).toLocaleString()} | 📅 ${c.sale_date||'<span class="data-warn">❌ NO DATE</span>'} | ${safeStr(c.sqft,'?')}sf | ${safeStr(c.distance_miles,'?')}mi
+                                <span style="color:${c.source==='rentcast-api'?'#3fb950':'#d29922'}"> | ${safeStr(c.source,'?')}</span>
+                            </div>`).join('')||'<div style="color:#f85149;font-size:12px">NO COMPS FOUND</div>'}
+                            </div>
+                        </details>
+                        
+                        <!-- QA + AGREEMENT row -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;font-size:11px">
+                                <span style="color:#58a6ff;font-weight:600">QA:</span> <span style="color:${qa.status==='passed'?'#3fb950':'#f85149'};font-weight:600">${safeStr(qa.status,'?').toUpperCase()}</span>
+                            </div>
+                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;font-size:11px">
+                                <span style="color:#58a6ff;font-weight:600">Agreement:</span> ${safeStr(agr.type,'?')} ${agr.signed?'✅':'❌'}
+                            </div>
+                        </div>
+                        
+                        <!-- FEE -->
+                        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;margin-bottom:8px;font-size:11px">
+                            <span style="color:#58a6ff;font-weight:600">💳</span> Init: <strong>$${feeInit}</strong> | ${feePct}% | Fee: <strong>${money(feeEst)}</strong> | Savings: <strong>${money(feeSav)}/yr</strong>
                         </div>
                         
                         <!-- MESSAGE PREVIEW -->
-                        <details style="margin-bottom:10px">
-                            <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#58a6ff">📧 Message Preview (${m.channel})</summary>
-                            <div style="margin-top:8px">
-                                <div style="font-size:12px;color:#8b949e;margin-bottom:4px">To: ${m.recipient_email||''} ${m.recipient_phone||''}</div>
-                                <div style="font-size:13px;font-weight:600;margin-bottom:4px">${m.subject||''}</div>
-                                <pre style="background:#010409;border:1px solid #21262d;border-radius:4px;padding:12px;font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto;color:#c9d1d9">${(m.body_text||'').substring(0,800)}</pre>
+                        <details style="margin-bottom:8px">
+                            <summary style="cursor:pointer;font-size:11px;font-weight:600;color:#58a6ff">📧 Message Preview</summary>
+                            <div style="margin-top:6px">
+                                <div style="font-size:11px;color:#8b949e">To: ${safeStr(m.recipient_email,'')} ${safeStr(m.recipient_phone,'')}</div>
+                                <div style="font-size:12px;font-weight:600;margin:4px 0">${safeStr(m.subject,'')}</div>
+                                <pre style="background:#010409;border:1px solid #21262d;border-radius:4px;padding:10px;font-size:10px;white-space:pre-wrap;max-height:180px;overflow-y:auto;color:#c9d1d9">${safeStr(m.body_text,'').substring(0,800)}</pre>
                             </div>
                         </details>
                         
                         <!-- ACTIONS -->
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <button onclick="approveMsg('${m.id}','approve')" style="background:#238636;color:#fff;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">✅ Approve & Send</button>
-                            <button onclick="approveMsg('${m.id}','reject')" style="background:#da3633;color:#fff;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">❌ Reject</button>
-                            <span style="font-size:11px;color:#8b949e;margin-left:8px">Template: ${m.template_id}</span>
+                        <div class="sticky-actions">
+                            <button onclick="approveMsg('${m.id}','approve')" style="background:${approvable?'#238636':'#484f58'};color:#fff" ${approvable?'':' disabled title="Fix data issues before approving"'}>✅ Approve & Send</button>
+                            <button onclick="approveMsg('${m.id}','reject')" style="background:#da3633;color:#fff">❌ Reject</button>
                         </div>
                     </div>`;
                 }).join('');
