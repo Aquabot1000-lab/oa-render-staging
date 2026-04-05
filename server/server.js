@@ -1583,14 +1583,81 @@ app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/admin/pending-messages — messages awaiting Tyler's approval
+// GET /api/admin/pending-messages — messages awaiting Tyler's approval WITH full case data
 app.get('/api/admin/pending-messages', authenticateToken, async (req, res) => {
     try {
-        const { data } = await supabaseAdmin.from('message_queue')
+        const { data: msgs } = await supabaseAdmin.from('message_queue')
             .select('*')
             .in('status', ['pending_approval'])
             .order('created_at', { ascending: false });
-        res.json(data || []);
+        
+        // Enrich each message with full case data
+        const enriched = [];
+        for (const msg of (msgs || [])) {
+            const { data: lead } = await supabaseAdmin.from('submissions')
+                .select('id,case_id,owner_name,property_address,county,state,assessed_value,sqft,bedrooms,bathrooms,year_built,lot_size,property_type,estimated_savings,comp_results,qa_status,qa_result,agreement_type,fee_agreement_signed,initiation_paid,address_validated,data_sources')
+                .eq('id', msg.lead_id)
+                .single();
+            
+            if (lead) {
+                const comps = lead.comp_results?.comps || [];
+                const prices = comps.filter(c => c.sale_price).map(c => c.sale_price);
+                const proposedValue = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
+                const assessed = parseFloat(String(lead.assessed_value||'0').replace(/[,$]/g,''));
+                const overPct = assessed && proposedValue ? ((assessed - proposedValue) / assessed * 100).toFixed(1) : 0;
+                
+                msg.case_data = {
+                    subject_property: {
+                        address: lead.property_address,
+                        county: lead.county,
+                        state: lead.state,
+                        assessed_value: assessed,
+                        sqft: lead.sqft,
+                        bedrooms: lead.bedrooms,
+                        bathrooms: lead.bathrooms,
+                        year_built: lead.year_built,
+                        lot_size: lead.lot_size,
+                        property_type: lead.property_type
+                    },
+                    comps: comps.map(c => ({
+                        address: c.address,
+                        sale_price: c.sale_price,
+                        sale_date: c.sale_date,
+                        sqft: c.sqft,
+                        distance_miles: c.distance_miles,
+                        correlation: c.correlation,
+                        source: c.source,
+                        bedrooms: c.bedrooms,
+                        bathrooms: c.bathrooms,
+                        year_built: c.year_built
+                    })),
+                    calculation: {
+                        assessed_value: assessed,
+                        proposed_value: proposedValue,
+                        over_assessed_pct: parseFloat(overPct),
+                        estimated_savings: lead.estimated_savings || 0,
+                        data_sources: (lead.comp_results?.data_sources || []).map(d => d.source),
+                        avm: lead.comp_results?.avm || null,
+                        avm_low: lead.comp_results?.avm_low || null,
+                        avm_high: lead.comp_results?.avm_high || null,
+                        confidence: lead.comp_results?.confidence || 'unknown'
+                    },
+                    qa: {
+                        status: lead.qa_status,
+                        result: lead.qa_result
+                    },
+                    agreement: {
+                        type: lead.agreement_type,
+                        signed: !!lead.fee_agreement_signed,
+                        paid: !!lead.initiation_paid
+                    },
+                    review_status: 'AUTO'
+                };
+            }
+            enriched.push(msg);
+        }
+        
+        res.json(enriched);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
