@@ -2879,6 +2879,17 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             console.error('[Intake] Failed to create Stripe checkout:', stripeErr.message);
         }
 
+        // Queue analysis job for the worker system
+        try {
+            await supabaseAdmin.from('job_queue').insert({
+                job_type: 'analyze_lead',
+                payload: { lead_id: submission.id, case_id: caseId, address: propertyAddress, county: county || '', state: state || '' },
+                priority: 3,
+                status: 'pending'
+            });
+            console.log(`[Intake] Queued analyze_lead job for ${caseId}`);
+        } catch (qErr) { console.error(`[Intake] Queue insert failed:`, qErr.message); }
+
         // Auto-trigger full analysis pipeline (async, don't block response)
         setTimeout(async () => {
             try {

@@ -1,0 +1,14 @@
+{
+  "name": "oa-workers",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "orchestrator": "node orchestrator.js",
+    "worker:analysis": "WORKER_TYPE=analysis node worker.js",
+    "start": "node orchestrator.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.0"
+  }
+}

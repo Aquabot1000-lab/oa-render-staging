@@ -134,6 +134,11 @@
     <!-- ═══════════════ AGENTS ═══════════════ -->
     <div class="panel" id="p-agents">
         <div class="section">
+            <h2>Job Queue</h2>
+            <div class="grid" id="queue-kpi"></div>
+            <table id="queue-table"><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Lead</th><th>Worker</th><th>Retries</th><th>Created</th><th>Result</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="section">
             <h2>Agent Status</h2>
             <div class="grid grid-wide" id="agent-cards"></div>
         </div>
@@ -393,6 +398,38 @@ async function loadInfra(){
     }catch(e){$('#infra-kpi').innerHTML=card('Error','Load failed','red',e.message);}
 }
 
+async function loadQueue(){
+    const {data:jobs}=await sb.from('job_queue').select('*').order('created_at',{ascending:false}).limit(20);
+    const kpi=$('#queue-kpi');
+    if(!kpi)return;
+    const pending=(jobs||[]).filter(j=>j.status==='pending').length;
+    const running=(jobs||[]).filter(j=>j.status==='running').length;
+    const done=(jobs||[]).filter(j=>j.status==='done').length;
+    const failed=(jobs||[]).filter(j=>j.status==='failed').length;
+    kpi.innerHTML=card(pending,'Pending','yellow')+card(running,'Running','blue')+card(done,'Done','green')+card(failed,'Failed','red');
+    const tbody=$('#queue-table tbody');
+    if(tbody){
+        tbody.innerHTML='';
+        if(!jobs||jobs.length===0){tbody.innerHTML='<tr><td colspan="8" style="color:#484f58">No jobs in queue</td></tr>';}
+        (jobs||[]).forEach(j=>{
+            const statusColor={'pending':'#d29922','running':'#58a6ff','done':'#3fb950','failed':'#f85149'}[j.status]||'#8b949e';
+            const lead=j.payload?.case_id||j.payload?.lead_id?.slice(0,8)||'-';
+            const created=j.created_at?new Date(j.created_at).toLocaleTimeString():'-';
+            const res=j.result?JSON.stringify(j.result).slice(0,60):j.error||'-';
+            tbody.innerHTML+=`<tr>
+                <td style="font-size:11px">${j.id.slice(0,8)}</td>
+                <td><strong>${j.job_type}</strong></td>
+                <td style="color:${statusColor};font-weight:600">${j.status.toUpperCase()}</td>
+                <td>${lead}</td>
+                <td style="font-size:11px">${j.assigned_worker||'-'}</td>
+                <td>${j.retries}/${j.max_retries}</td>
+                <td style="font-size:11px">${created}</td>
+                <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${res}</td>
+            </tr>`;
+        });
+    }
+}
+
 async function loadAgents(){
     try{
         let agents=[];
@@ -468,7 +505,7 @@ function loadMP(){
 
 async function loadAll(){
     $('#ts').textContent='Refreshing...';
-    await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadAgents()]);
+    await Promise.all([loadOA(),loadWA(),loadMarketing(),loadInfra(),loadQueue(),loadAgents()]);
     loadMP();
     $('#ts').textContent='Updated '+new Date().toLocaleTimeString();
 }
