@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OA — Document Review Queue</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0e0; padding: 20px; }
+        h1 { color: #fff; margin-bottom: 8px; }
+        .subtitle { color: #888; margin-bottom: 24px; }
+        .summary { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat { background: #1a1a2e; border-radius: 12px; padding: 16px 24px; min-width: 160px; }
+        .stat .number { font-size: 32px; font-weight: 700; color: #4fc3f7; }
+        .stat .label { color: #888; font-size: 13px; margin-top: 4px; }
+        .stat.warn .number { color: #ff9800; }
+        .stat.ready .number { color: #66bb6a; }
+        table { width: 100%; border-collapse: collapse; background: #1a1a2e; border-radius: 12px; overflow: hidden; }
+        th { background: #252540; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; }
+        td { padding: 12px 16px; border-bottom: 1px solid #252540; font-size: 14px; }
+        tr:hover { background: #252540; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-nocase { background: #333; color: #aaa; }
+        .badge-incomplete { background: #4a3000; color: #ff9800; }
+        .badge-blocked { background: #4a0000; color: #ef5350; }
+        .badge-revision { background: #1a237e; color: #7986cb; }
+        .badge-analysis { background: #1b5e20; color: #66bb6a; }
+        .missing { color: #ef5350; font-size: 12px; }
+        .action { color: #4fc3f7; font-size: 12px; }
+        .filters { margin-bottom: 16px; display: flex; gap: 8px; }
+        .filters button { background: #252540; border: none; color: #e0e0e0; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .filters button.active { background: #4fc3f7; color: #000; }
+        #loading { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>📋 Document Review Queue</h1>
+    <p class="subtitle">Cases requiring review, approval, or customer contact</p>
+    
+    <div class="summary" id="summary"></div>
+    
+    <div class="filters" id="filters">
+        <button class="active" onclick="filterBy('all')">All</button>
+        <button onclick="filterBy('No Case')">No Case</button>
+        <button onclick="filterBy('Incomplete Data')">Incomplete</button>
+        <button onclick="filterBy('Blocked - Bad Data')">Blocked</button>
+        <button onclick="filterBy('Needs Revision')">Needs Revision</button>
+        <button onclick="filterBy('Analysis Complete')">Ready for Signing</button>
+    </div>
+    
+    <div id="loading">Loading review queue...</div>
+    <table id="table" style="display:none">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>County</th>
+                <th>Source</th>
+                <th>Date</th>
+                <th>Missing</th>
+                <th>Action Needed</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+<script>
+const OA = window.location.origin;
+let allQueue = [];
+let token = localStorage.getItem('oa_token');
+
+async function login() {
+    const r = await fetch(OA + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'tyler@overassessed.ai', password: 'OverAssessed!2026' })
+    });
+    const d = await r.json();
+    token = d.token;
+    localStorage.setItem('oa_token', token);
+}
+
+function badgeClass(status) {
+    if (status === 'No Case') return 'badge-nocase';
+    if (status === 'Incomplete Data') return 'badge-incomplete';
+    if (status === 'Blocked - Bad Data') return 'badge-blocked';
+    if (status === 'Needs Revision') return 'badge-revision';
+    if (status === 'Analysis Complete') return 'badge-analysis';
+    return '';
+}
+
+function render(queue) {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = queue.map(q => `
+        <tr>
+            <td><strong>${q.owner_name || 'N/A'}</strong><br><span style="color:#888;font-size:12px">${q.email || 'no email'}</span></td>
+            <td><span class="badge ${badgeClass(q.status)}">${q.status}</span></td>
+            <td>${q.county || '—'}</td>
+            <td>${q.source || '—'}</td>
+            <td>${q.created_at ? q.created_at.substring(0, 10) : '—'}</td>
+            <td>${q.missing_fields.length ? '<span class="missing">⚠ ' + q.missing_fields.join(', ') + '</span>' : '✅'}</td>
+            <td><span class="action">${q.review_action}</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('table').style.display = 'table';
+    document.getElementById('loading').style.display = 'none';
+}
+
+function renderSummary(summary) {
+    document.getElementById('summary').innerHTML = `
+        <div class="stat"><div class="number">${summary.total_needing_review}</div><div class="label">Total Needing Review</div></div>
+        <div class="stat warn"><div class="number">${summary.needs_customer_contact}</div><div class="label">Need Customer Contact</div></div>
+        <div class="stat ready"><div class="number">${summary.ready_for_signing}</div><div class="label">Ready for Signing</div></div>
+        ${Object.entries(summary.by_status).map(([k,v]) => `<div class="stat"><div class="number">${v}</div><div class="label">${k}</div></div>`).join('')}
+    `;
+}
+
+function filterBy(status) {
+    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    if (status === 'all') render(allQueue);
+    else render(allQueue.filter(q => q.status === status));
+}
+
+async function load() {
+    if (!token) await login();
+    try {
+        const r = await fetch(OA + '/api/admin/review-queue', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (r.status === 401 || r.status === 403) { await login(); return load(); }
+        const d = await r.json();
+        allQueue = d.queue;
+        renderSummary(d.summary);
+        render(allQueue);
+    } catch (e) {
+        document.getElementById('loading').textContent = 'Error: ' + e.message;
+    }
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

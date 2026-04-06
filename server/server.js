@@ -7464,3 +7464,62 @@ function startOrchestrator() {
     setTimeout(orchPoll, 2000); // First poll 2s after startup
 }
 // Build: 1775431663
+
+// ===== DOCUMENT REVIEW QUEUE =====
+app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
+    try {
+        const { data: submissions, error } = await supabaseAdmin
+            .from('submissions')
+            .select('*')
+            .in('status', ['No Case', 'Incomplete Data', 'Blocked - Bad Data', 'Needs Revision', 'Analysis Complete'])
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        const queue = submissions.map(s => {
+            const missing = [];
+            if (!s.email) missing.push('email');
+            if (!s.phone) missing.push('phone');
+            if (!s.property_address) missing.push('address');
+            if (!s.county) missing.push('county');
+            
+            let reviewAction = 'Review needed';
+            if (s.status === 'No Case') reviewAction = 'Needs analysis or data collection';
+            if (s.status === 'Incomplete Data') reviewAction = 'Missing required fields';
+            if (s.status === 'Blocked - Bad Data') reviewAction = 'Invalid data - verify with customer';
+            if (s.status === 'Needs Revision') reviewAction = 'Revision requested - check notes';
+            if (s.status === 'Analysis Complete') reviewAction = 'Ready for customer review/signing';
+            
+            return {
+                id: s.id,
+                owner_name: s.owner_name,
+                email: s.email,
+                phone: s.phone,
+                property_address: s.property_address,
+                county: s.county,
+                status: s.status,
+                source: s.source,
+                created_at: s.created_at,
+                missing_fields: missing,
+                review_action: reviewAction,
+                needs_customer_contact: missing.length > 0 || ['Incomplete Data', 'Blocked - Bad Data'].includes(s.status)
+            };
+        });
+        
+        const summary = {
+            total_needing_review: queue.length,
+            by_status: {},
+            needs_customer_contact: queue.filter(q => q.needs_customer_contact).length,
+            ready_for_signing: queue.filter(q => q.status === 'Analysis Complete').length
+        };
+        
+        queue.forEach(q => {
+            summary.by_status[q.status] = (summary.by_status[q.status] || 0) + 1;
+        });
+        
+        res.json({ summary, queue });
+    } catch (err) {
+        console.error('[Review Queue]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
