@@ -74,6 +74,9 @@ async function findVerifiedComps(subject, caseData) {
 
     // ─── SOURCE 1: LOCAL BULK DATA (Bexar, Harris, etc.) ────────────
     const localData = getCountyData(county);
+    if (localData && !localData.isLoaded() && localData.loadData) {
+        try { await localData.loadData(); } catch(e) { /* non-fatal */ }
+    }
     if (localData && localData.isLoaded()) {
         console.log(`[VerifiedComp] Using local bulk data for ${county}`);
         dataSource = 'local-cad-bulk';
@@ -82,7 +85,7 @@ async function findVerifiedComps(subject, caseData) {
         const subjectResults = localData.searchByAddress(address);
         if (subjectResults.length > 0) {
             subjectVerified = true;
-            subjectParcelId = subjectResults[0].accountNumber || subjectResults[0].propertyId;
+            subjectParcelId = subjectResults[0].accountNumber || subjectResults[0].propertyId || subjectResults[0].parcelNumber;
             console.log(`[VerifiedComp] ✅ Subject verified in CAD: ${subjectParcelId}`);
 
             // Enrich subject with CAD data
@@ -104,11 +107,11 @@ async function findVerifiedComps(subject, caseData) {
         // Convert to standard format and VALIDATE each comp
         for (const c of rawComps) {
             if (!c.address || !c.appraisedValue || c.appraisedValue <= 0) continue;
-            if (!c.accountNumber && !c.propertyId) continue; // Must have parcel ID
+            if (!c.accountNumber && !c.propertyId && !c.parcelNumber) continue; // Must have parcel ID
 
             comps.push({
                 source: 'verified-cad',
-                parcelId: c.accountNumber || c.propertyId,
+                parcelId: c.accountNumber || c.propertyId || c.parcelNumber,
                 address: c.address,
                 assessedValue: c.appraisedValue,
                 landValue: c.landValue,
@@ -124,6 +127,11 @@ async function findVerifiedComps(subject, caseData) {
     }
 
     // ─── SOURCE 2: TARRANT CAD (special handler) ────────────────────
+    if (comps.length < MIN_COMPS && county === 'tarrant') {
+        if (!tarrantData.isLoaded() && tarrantData.loadData) {
+            try { await tarrantData.loadData(); } catch(e) { /* non-fatal */ }
+        }
+    }
     if (comps.length < MIN_COMPS && county === 'tarrant' && tarrantData.isLoaded()) {
         console.log(`[VerifiedComp] Using Tarrant CAD data`);
         dataSource = dataSource || 'tarrant-cad';
