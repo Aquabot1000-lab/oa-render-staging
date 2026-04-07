@@ -1317,8 +1317,8 @@ async function runContactedFollowUp() {
             const sub = submissions[i];
             
             // Only process Contacted leads
-            // Follow up on ALL leads that have received results (not just status='Contacted')
-            if (!['Contacted', 'Analysis Complete', 'Message Sent'].includes(sub.status)) continue;
+            // Follow up ONLY on leads where results have been sent (post-approval)
+            if (!['Results Sent', 'Contacted'].includes(sub.status)) continue;
             
             // Skip if customer replied (stop automation)
             if (sub.customerReplied) continue;
@@ -1339,14 +1339,34 @@ async function runContactedFollowUp() {
             const savings = sub.estimatedSavings || 0;
             const savingsStr = savings > 0 ? `$${savings.toLocaleString()}/year` : 'significant';
 
-            // Day 2: Gentle follow-up
+            const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
+
+            // Day 1: Quick check-in
+            if (daysSince >= 1 && !followUp.day1) {
+                console.log(`[FollowUp] Day 1 follow-up → ${sub.email} (${sub.caseId})`);
+                await sendClientEmail(sub.email, `Did you see your savings estimate? — ${savingsStr}`,
+                    brandedEmailWrapper('Quick Check-In', `Case ${sub.caseId}`, `
+                        <p>Hi ${sub.ownerName},</p>
+                        <p>Just a quick check-in — we sent your property tax analysis yesterday for <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>Your estimated savings: <strong>${savingsStr}</strong></p>
+                        <p>If you want us to handle the protest, sign your authorization (takes 60 seconds):</p>
+                        <div style="text-align:center;margin:25px 0;">
+                            <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Authorization →</a>
+                        </div>
+                        <p style="font-size:13px;color:#6b7280;">No upfront fees. We only get paid if we save you money.</p>
+                    `)
+                );
+                followUp.day1 = new Date().toISOString();
+                changed = true;
+            }
+
+            // Day 2: Personal follow-up
             if (daysSince >= 2 && !followUp.day2) {
                 console.log(`[FollowUp] Day 2 follow-up → ${sub.email} (${sub.caseId})`);
-                const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
                 await sendClientEmail(sub.email, `Quick follow-up — ${savingsStr} in savings waiting`,
                     brandedEmailWrapper('Quick Follow-Up', `Case ${sub.caseId}`, `
                         <p>Hi ${sub.ownerName},</p>
-                        <p>Just checking in — we sent your property tax analysis a couple days ago showing <strong>${savingsStr} in potential savings</strong> on <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>Just checking in — we sent your property tax analysis showing <strong>${savingsStr} in potential savings</strong> on <strong>${sub.propertyAddress}</strong>.</p>
                         <p>Want us to move forward with your protest? We handle everything — filing, evidence, and the hearing.</p>
                         <div style="text-align:center;margin:25px 0;">
                             <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Yes, Move Forward →</a>
@@ -1359,39 +1379,47 @@ async function runContactedFollowUp() {
                 changed = true;
             }
 
-            // Day 5: Urgency follow-up
-            if (daysSince >= 5 && !followUp.day5) {
-                console.log(`[FollowUp] Day 5 final nudge → ${sub.email} (${sub.caseId})`);
-                const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
-                await sendClientEmail(sub.email, `Last call — protest deadlines are approaching`,
-                    brandedEmailWrapper('Don\'t Miss Out', `Case ${sub.caseId}`, `
+            // Day 3: Urgency
+            if (daysSince >= 3 && !followUp.day3) {
+                console.log(`[FollowUp] Day 3 urgency → ${sub.email} (${sub.caseId})`);
+                await sendClientEmail(sub.email, `Deadline reminder — your ${savingsStr} protest window`,
+                    brandedEmailWrapper('Time-Sensitive Reminder', `Case ${sub.caseId}`, `
                         <p>Hi ${sub.ownerName},</p>
-                        <p>This is our last reminder about your property tax analysis for <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>Protest filing deadlines are coming up for <strong>${sub.propertyAddress}</strong>.</p>
                         <div style="background:#fff3e0;border-left:4px solid #e67e22;padding:16px 20px;margin:20px 0;border-radius:4px;">
-                            <p style="font-weight:700;color:#e67e22;margin:0;">⏰ Protest filing deadlines are approaching.</p>
-                            <p style="margin:8px 0 0;color:#4a4a68;">Once the deadline passes, you'll have to wait another full year — and pay the higher tax amount in the meantime.</p>
+                            <p style="font-weight:700;color:#e67e22;margin:0;">⏰ Your protest window is limited.</p>
+                            <p style="margin:8px 0 0;color:#4a4a68;">Once the deadline passes, you’ll pay the higher tax amount for another full year.</p>
                         </div>
-                        <p>Your estimated savings: <strong>${savingsStr}</strong>. We handle the entire process at no upfront cost.</p>
+                        <p>Your estimated savings: <strong>${savingsStr}</strong>. We handle everything at no upfront cost.</p>
                         <div style="text-align:center;margin:25px 0;">
                             <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">File My Protest →</a>
                         </div>
-                        <p>Reply YES or click the button above. If you have questions, just reply to this email.</p>
                     `)
                 );
-                // Also alert Tyler
-                sendTelegramAlert(`⚠️ Day 5 — Lead going cold\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Email:</b> ${sub.email}\n<b>Phone:</b> ${sub.phone || 'none'}\n\nFinal nudge email sent. Consider a personal call.`);
-                followUp.day5 = new Date().toISOString();
+                sendTelegramAlert(`⚠️ Day 3 urgency sent\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Phone:</b> ${sub.phone || 'none'}`);
+                followUp.day3 = new Date().toISOString();
                 changed = true;
             }
 
-            // Day 7: Mark as COLD
-            if (daysSince >= 7 && !followUp.day7) {
-                console.log(`[FollowUp] Day 7 — marking ${sub.caseId} as COLD`);
+            // Day 5: Final follow-up, then Cold
+            if (daysSince >= 5 && !followUp.day5) {
+                console.log(`[FollowUp] Day 5 final → ${sub.email} (${sub.caseId})`);
+                await sendClientEmail(sub.email, `Last chance — ${savingsStr} in tax savings`,
+                    brandedEmailWrapper('Final Notice', `Case ${sub.caseId}`, `
+                        <p>Hi ${sub.ownerName},</p>
+                        <p>This is our final follow-up regarding your property tax protest for <strong>${sub.propertyAddress}</strong>.</p>
+                        <p>We found <strong>${savingsStr} in potential savings</strong>, but we need your signed authorization to file.</p>
+                        <div style="text-align:center;margin:25px 0;">
+                            <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign & Save →</a>
+                        </div>
+                        <p>If you have questions or concerns, reply to this email — we’re happy to help.</p>
+                        <p style="font-size:13px;color:#6b7280;">If we don’t hear back, we’ll close your file. You can always reach out later.</p>
+                    `)
+                );
+                sendTelegramAlert(`❄️ Day 5 final follow-up sent\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n\nMoving to Cold if no reply.`);
                 submissions[i].followUpStage = 'cold';
                 submissions[i].status = 'Cold';
-                followUp.day7 = new Date().toISOString();
-                
-                sendTelegramAlert(`❄️ Lead marked COLD\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n\nNo reply after 7 days. Moved to Cold. Will re-check next protest season.`);
+                followUp.day5 = new Date().toISOString();
                 changed = true;
             }
 
@@ -1426,14 +1454,14 @@ async function runContactedFollowUp() {
     }
 }
 
-// ── Results Delivery System ──
-// Sends analysis results to full-intake leads whose analysis completed but never received results.
-// Runs every 2 hours. Updates status to 'Analysis Complete' and enters leads into follow-up engine.
-async function runResultsDelivery() {
-    console.log('[ResultsDelivery] Checking for undelivered results...');
+// ── Approval Gate System ──
+// Moves analyzed leads with savings to 'Pending Approval' for manual review.
+// NO results are sent without explicit approval via /api/approve/:id
+async function runApprovalGate() {
+    console.log('[ApprovalGate] Checking for leads needing approval...');
     try {
         const submissions = await readAllSubmissions();
-        let delivered = 0;
+        let moved = 0;
 
         for (const sub of submissions) {
             // Skip if already signed, deleted, or duplicate
@@ -1448,56 +1476,68 @@ async function runResultsDelivery() {
             if (!['Evidence Generated', 'Complete', 'Analysis Complete'].includes(analysis)) continue;
             if (savings <= 0) continue;
 
-            // Skip if results already delivered
-            const drip = sub.dripState || sub.drip_state || {};
-            if (drip.resultsDelivered) continue;
+            // Skip if already in approval flow or past it
+            if (['Pending Approval', 'Approved', 'Results Sent', 'Form Signed', 'Filing Prepared',
+                 'Protest Filed', 'Submitted', 'Hearing Scheduled', 'Won', 'Lost', 'Resolved', 'Cold'].includes(sub.status)) continue;
 
-            // Skip if status is already past results stage
-            if (['Form Signed', 'Filing Prepared', 'Protest Filed', 'Submitted', 'Hearing Scheduled', 'Won', 'Lost', 'Resolved', 'Cold', 'Contacted'].includes(sub.status)) continue;
-
-            // This lead needs results delivered
-            const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
-            const savingsFormatted = `$${savings.toLocaleString()}`;
-
-            // Send results email
-            const template = buildStatusEmail(sub, 'Analysis Complete', {});
-            if (template && sub.email) {
-                sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
-                console.log(`[ResultsDelivery] Results email → ${sub.email} (${sub.caseId}, savings: ${savingsFormatted}/yr)`);
-            }
-
-            // Send SMS if phone available
-            if (sub.phone && sub.phone !== 'unknown' && sub.phone.length > 5) {
-                sendClientSMS(sub.phone, `OverAssessed: Your property tax analysis is ready — estimated savings: ${savingsFormatted}/yr! Sign your authorization: ${signUrl}`, { email: sub.email, customerName: sub.ownerName, context: 'results_delivery' });
-            }
-
-            // Update status and mark results as delivered
+            // Move to Pending Approval (NO email/SMS sent)
             const now = new Date().toISOString();
-            const updatedDrip = { ...drip, resultsDelivered: now, firstContactedAt: drip.firstContactedAt || now };
-
             if (isSupabaseEnabled()) {
                 await supabaseAdmin.from('submissions').update({
-                    status: 'Analysis Complete',
-                    drip_state: updatedDrip,
-                    last_contact_at: now,
+                    status: 'Pending Approval',
                     updated_at: now
                 }).eq('id', sub.id);
             }
-
-            // Alert Tyler for high-value leads
-            if (savings >= 2000) {
-                sendTelegramAlert(`\uD83D\uDCE7 Results delivered to high-value lead\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsFormatted}/yr\n<b>Property:</b> ${sub.propertyAddress}\n<b>Email:</b> ${sub.email}\n<b>Phone:</b> ${sub.phone || 'none'}\n\nResults email + SMS sent. Follow-up engine will engage Day 2/5/7.`);
-            }
-
-            delivered++;
+            console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → Pending Approval (savings: $${savings.toLocaleString()}/yr)`);
+            moved++;
         }
 
-        console.log(`[ResultsDelivery] Delivered results to ${delivered} leads`);
-        return delivered;
+        if (moved > 0) {
+            console.log(`[ApprovalGate] Moved ${moved} leads to Pending Approval`);
+            sendTelegramAlert(`📋 <b>${moved} lead(s) ready for approval review</b>\n\nCheck the approval queue at ${getBaseUrl()}/admin to review savings and approve results delivery.`);
+        } else {
+            console.log('[ApprovalGate] No new leads to move');
+        }
+        return moved;
     } catch (error) {
-        console.error('[ResultsDelivery] Error:', error.message);
+        console.error('[ApprovalGate] Error:', error.message);
         return 0;
     }
+}
+
+// ── Send Results (called ONLY after manual approval) ──
+async function sendApprovedResults(sub) {
+    const savings = sub.estimatedSavings || sub.estimated_savings || 0;
+    const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
+    const savingsFormatted = `$${savings.toLocaleString()}`;
+    const now = new Date().toISOString();
+
+    // Send results email
+    const template = buildStatusEmail(sub, 'Analysis Complete', {});
+    if (template && sub.email) {
+        sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
+        console.log(`[Approved] Results email → ${sub.email} (${sub.caseId}, savings: ${savingsFormatted}/yr)`);
+    }
+
+    // Send SMS if phone available
+    if (sub.phone && sub.phone !== 'unknown' && sub.phone.length > 5) {
+        sendClientSMS(sub.phone, `OverAssessed: Your property tax analysis is ready — estimated savings: ${savingsFormatted}/yr! Sign your authorization: ${signUrl}`, { email: sub.email, customerName: sub.ownerName, context: 'approved_results' });
+    }
+
+    // Update status to Results Sent + record timestamps
+    const drip = sub.dripState || sub.drip_state || {};
+    const updatedDrip = { ...drip, resultsDelivered: now, approvedAt: drip.approvedAt || now, firstContactedAt: drip.firstContactedAt || now };
+
+    if (isSupabaseEnabled()) {
+        await supabaseAdmin.from('submissions').update({
+            status: 'Results Sent',
+            drip_state: updatedDrip,
+            last_contact_at: now,
+            updated_at: now
+        }).eq('id', sub.id);
+    }
+
+    return { sent: true, email: sub.email, savings: savingsFormatted };
 }
 
 // ── Reply Detection: Stop automation when customer replies ──
@@ -4234,7 +4274,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         
         // Multi-signal pipeline classification using status + analysis_status + flags
         // Dashboard cards: New, Analysis Complete, Form Signed, Protest Filed, Hearing Scheduled, Resolved
-        const pipeline = { 'New': 0, 'Analysis Complete': 0, 'Form Signed': 0, 'Protest Filed': 0, 'Hearing Scheduled': 0, 'Resolved': 0 };
+        const pipeline = { 'New': 0, 'Pending Approval': 0, 'Results Sent': 0, 'Analysis Complete': 0, 'Form Signed': 0, 'Protest Filed': 0, 'Hearing Scheduled': 0, 'Resolved': 0 };
         submissions.forEach(s => {
             if (s.status === 'Deleted' || s.status === 'Duplicate') return;
             const status = s.status || '';
@@ -4251,7 +4291,11 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
                 pipeline['Protest Filed']++;
             } else if (['Form Signed', 'Filing Prepared'].includes(status) || signed) {
                 pipeline['Form Signed']++;
-            } else if (['Analysis Complete', 'Analyzed'].includes(status) || ['Complete', 'Analysis Complete', 'Evidence Generated'].includes(analysis)) {
+            } else if (status === 'Pending Approval') {
+                pipeline['Pending Approval']++;
+            } else if (status === 'Results Sent' || status === 'Contacted') {
+                pipeline['Results Sent']++;
+            } else if (['Analysis Complete', 'Analyzed', 'Approved'].includes(status) || ['Complete', 'Analysis Complete', 'Evidence Generated'].includes(analysis)) {
                 pipeline['Analysis Complete']++;
             } else {
                 // New = intake, incomplete data, blocked, needs revision, contacted, awaiting notice, etc.
@@ -4271,6 +4315,198 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         res.json({ pipeline, totalEstimatedSavings, totalFees, signed, notices, total: submissions.length });
     } catch (error) {
         res.status(500).json({ error: 'Failed to compute pipeline stats' });
+    }
+});
+
+// ==================== APPROVAL QUEUE ====================
+
+// GET /api/approval-queue — all leads in Pending Approval status
+app.get('/api/approval-queue', authenticateToken, async (req, res) => {
+    try {
+        const allSubmissions = await readAllSubmissions();
+        const queue = allSubmissions
+            .filter(s => s.status === 'Pending Approval')
+            .map(s => ({
+                id: s.id,
+                caseId: s.caseId || s.case_id,
+                ownerName: s.ownerName || s.owner_name,
+                email: s.email,
+                phone: s.phone,
+                propertyAddress: s.propertyAddress || s.property_address,
+                propertyType: s.propertyType || s.property_type,
+                county: s.county,
+                state: s.state,
+                estimatedSavings: s.estimatedSavings || s.estimated_savings || 0,
+                assessedValue: s.assessedValue || s.assessed_value,
+                analysisStatus: s.analysisStatus || s.analysis_status,
+                evidencePackage: s.evidencePackage || s.evidence_package || null,
+                compsUsed: s.compsUsed || s.comps_used || null,
+                createdAt: s.createdAt || s.created_at,
+                source: s.source
+            }))
+            .sort((a, b) => (b.estimatedSavings || 0) - (a.estimatedSavings || 0));
+
+        res.json({
+            count: queue.length,
+            totalPotentialSavings: queue.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0),
+            leads: queue
+        });
+    } catch (error) {
+        console.error('[ApprovalQueue] Error:', error.message);
+        res.status(500).json({ error: 'Failed to load approval queue' });
+    }
+});
+
+// POST /api/approve/:id — approve a lead and send results
+app.post('/api/approve/:id', authenticateToken, async (req, res) => {
+    try {
+        const sub = await findSubmission(req.params.id);
+        if (!sub) return res.status(404).json({ error: 'Lead not found' });
+        if (sub.status !== 'Pending Approval') {
+            return res.status(400).json({ error: `Lead is in '${sub.status}', not Pending Approval` });
+        }
+
+        // Mark as Approved first
+        const now = new Date().toISOString();
+        const drip = sub.dripState || sub.drip_state || {};
+        drip.approvedAt = now;
+        drip.approvedBy = req.body.approvedBy || 'admin';
+        if (isSupabaseEnabled()) {
+            await supabaseAdmin.from('submissions').update({
+                status: 'Approved',
+                drip_state: drip,
+                updated_at: now
+            }).eq('id', sub.id);
+        }
+
+        // Send results to customer
+        sub.dripState = drip;
+        const result = await sendApprovedResults(sub);
+
+        console.log(`[Approve] ${sub.caseId} approved → results sent to ${sub.email}`);
+        sendTelegramAlert(`✅ <b>Lead approved & results sent</b>\n\n<b>Case:</b> ${sub.caseId}\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> $${(sub.estimatedSavings || sub.estimated_savings || 0).toLocaleString()}/yr\n<b>Email:</b> ${sub.email}`);
+
+        res.json({ success: true, action: 'approved_and_sent', caseId: sub.caseId, ...result });
+    } catch (error) {
+        console.error('[Approve] Error:', error.message);
+        res.status(500).json({ error: 'Failed to approve lead' });
+    }
+});
+
+// POST /api/approve-batch — approve multiple leads at once
+app.post('/api/approve-batch', authenticateToken, async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'ids array required' });
+        }
+
+        const results = [];
+        for (const id of ids) {
+            try {
+                const sub = await findSubmission(id);
+                if (!sub || sub.status !== 'Pending Approval') {
+                    results.push({ id, success: false, reason: sub ? `status: ${sub.status}` : 'not found' });
+                    continue;
+                }
+
+                const now = new Date().toISOString();
+                const drip = sub.dripState || sub.drip_state || {};
+                drip.approvedAt = now;
+                drip.approvedBy = req.body.approvedBy || 'admin';
+                if (isSupabaseEnabled()) {
+                    await supabaseAdmin.from('submissions').update({
+                        status: 'Approved',
+                        drip_state: drip,
+                        updated_at: now
+                    }).eq('id', sub.id);
+                }
+
+                sub.dripState = drip;
+                const result = await sendApprovedResults(sub);
+                results.push({ id, caseId: sub.caseId, success: true, ...result });
+            } catch (err) {
+                results.push({ id, success: false, reason: err.message });
+            }
+        }
+
+        const approved = results.filter(r => r.success).length;
+        console.log(`[ApproveBatch] ${approved}/${ids.length} approved and sent`);
+        if (approved > 0) {
+            sendTelegramAlert(`✅ <b>Batch approved: ${approved} leads</b>\n\nResults sent to ${approved} customers.`);
+        }
+
+        res.json({ success: true, approved, total: ids.length, results });
+    } catch (error) {
+        console.error('[ApproveBatch] Error:', error.message);
+        res.status(500).json({ error: 'Batch approval failed' });
+    }
+});
+
+// POST /api/reject/:id — reject a lead (set back to Analysis Complete or close)
+app.post('/api/reject/:id', authenticateToken, async (req, res) => {
+    try {
+        const sub = await findSubmission(req.params.id);
+        if (!sub) return res.status(404).json({ error: 'Lead not found' });
+
+        const { reason, newStatus } = req.body;
+        const targetStatus = newStatus || 'No Case';
+        const now = new Date().toISOString();
+        const drip = sub.dripState || sub.drip_state || {};
+        drip.rejectedAt = now;
+        drip.rejectedReason = reason || 'Manual rejection';
+
+        if (isSupabaseEnabled()) {
+            await supabaseAdmin.from('submissions').update({
+                status: targetStatus,
+                drip_state: drip,
+                updated_at: now
+            }).eq('id', sub.id);
+        }
+
+        console.log(`[Reject] ${sub.caseId} rejected → ${targetStatus} (${reason || 'no reason'})`);
+        res.json({ success: true, action: 'rejected', caseId: sub.caseId || sub.case_id, newStatus: targetStatus });
+    } catch (error) {
+        console.error('[Reject] Error:', error.message);
+        res.status(500).json({ error: 'Failed to reject lead' });
+    }
+});
+
+// GET /api/workflow-status — 3-bucket view: Pending Approval / Approved Not Sent / Sent Awaiting Response
+app.get('/api/workflow-status', authenticateToken, async (req, res) => {
+    try {
+        const allSubmissions = await readAllSubmissions();
+        const active = allSubmissions.filter(s => 
+            s.status !== 'Deleted' && s.status !== 'Duplicate' &&
+            s.source !== 'stephen-benchmark'
+        );
+
+        const buckets = {
+            pendingApproval: active.filter(s => s.status === 'Pending Approval').map(s => ({
+                caseId: s.caseId || s.case_id, ownerName: s.ownerName || s.owner_name,
+                savings: s.estimatedSavings || s.estimated_savings || 0,
+                email: s.email, phone: s.phone, property: s.propertyAddress || s.property_address
+            })),
+            approvedNotSent: active.filter(s => s.status === 'Approved').map(s => ({
+                caseId: s.caseId || s.case_id, ownerName: s.ownerName || s.owner_name,
+                savings: s.estimatedSavings || s.estimated_savings || 0,
+                email: s.email
+            })),
+            sentAwaitingResponse: active.filter(s => ['Results Sent', 'Contacted'].includes(s.status)).map(s => {
+                const drip = s.dripState || s.drip_state || {};
+                return {
+                    caseId: s.caseId || s.case_id, ownerName: s.ownerName || s.owner_name,
+                    savings: s.estimatedSavings || s.estimated_savings || 0,
+                    email: s.email, sentAt: drip.resultsDelivered || null,
+                    followUps: Object.keys(drip.contacted || {}).filter(k => k.startsWith('day'))
+                };
+            })
+        };
+
+        res.json(buckets);
+    } catch (error) {
+        console.error('[WorkflowStatus] Error:', error.message);
+        res.status(500).json({ error: 'Failed to load workflow status' });
     }
 });
 
@@ -6925,9 +7161,9 @@ app.listen(PORT, async () => {
     setInterval(runDripCheck, 60 * 60 * 1000);
     setTimeout(runDripCheck, 30000);
     
-    // Run results delivery every 2 hours (sends analysis results to leads who haven't received them)
-    setInterval(runResultsDelivery, 2 * 60 * 60 * 1000);
-    setTimeout(runResultsDelivery, 45000); // 45s after startup
+    // Run approval gate every 2 hours (moves analyzed leads to Pending Approval — NO auto-send)
+    setInterval(runApprovalGate, 2 * 60 * 60 * 1000);
+    setTimeout(runApprovalGate, 45000); // 45s after startup
 
     // Run follow-up for all contacted/analyzed leads every 4 hours
     setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
