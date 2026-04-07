@@ -118,6 +118,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(uploadsDir));
 app.use('/evidence-packets', express.static(path.join(__dirname, 'evidence-packets')));
 app.use('/filing-packages', express.static(path.join(__dirname, 'filing-packages')));
+
+// Explicit route for filing package HTML files (bypass static middleware file permission issues)
+app.get('/filing-packages/:filename', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'filing-packages', req.params.filename);
+        const content = await fs.readFile(filePath, 'utf8');
+        const ext = path.extname(req.params.filename).toLowerCase();
+        res.type(ext === '.html' ? 'text/html' : ext === '.pdf' ? 'application/pdf' : 'application/octet-stream');
+        res.send(content);
+    } catch (e) {
+        res.status(404).send('File not found');
+    }
+});
 app.use('/generated-forms', express.static(path.join(__dirname, 'generated-forms')));
 app.use('/data/automation-screenshots', express.static(path.join(__dirname, '..', 'data', 'automation-screenshots')));
 // Serve images with correct MIME types
