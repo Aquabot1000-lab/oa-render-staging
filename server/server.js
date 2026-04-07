@@ -366,6 +366,10 @@ app.post('/api/estimate', async (req, res) => {
     }
 });
 
+// Serve HTML pages BEFORE generic static middleware (prevents directory redirect loops)
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
+app.get('/admin/', (req, res) => res.redirect(301, '/admin'));
+
 app.use(express.static(path.join(__dirname, '..'), { index: false, redirect: false }));
 
 // File paths
