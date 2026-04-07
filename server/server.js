@@ -113,6 +113,11 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
+
+// Serve HTML pages EARLY (before static middleware which causes directory redirect loops)
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
+app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(uploadsDir));
@@ -365,10 +370,6 @@ app.post('/api/estimate', async (req, res) => {
         });
     }
 });
-
-// Serve HTML pages BEFORE generic static middleware (prevents directory redirect loops)
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
-app.get('/admin/', (req, res) => res.redirect(301, '/admin'));
 
 app.use(express.static(path.join(__dirname, '..'), { index: false, redirect: false }));
 
