@@ -1498,6 +1498,10 @@ async function runContactedFollowUp() {
 // Moves analyzed leads with savings to 'Pending Approval' for manual review.
 // NO results are sent without explicit approval via /api/approve/:id
 async function runApprovalGate() {
+    // ⛔ APPROVAL GATE FROZEN — data integrity freeze 2026-04-07
+    // All analysis data is under review. No leads should move through pipeline.
+    console.log('[ApprovalGate] ⛔ FROZEN — data integrity review');
+    return;
     console.log('[ApprovalGate] Checking for leads needing approval...');
     try {
         const submissions = await readAllSubmissions();
@@ -2121,7 +2125,9 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
 
 // ==================== RENTCAST ANALYSIS ROUTES ====================
 // POST /api/analysis/run - full RentCast + ArcGIS analysis for any address
+// ⛔ FROZEN — data integrity freeze 2026-04-07
 app.post('/api/analysis/run', authenticateToken, async (req, res) => {
+    return res.status(503).json({ error: 'Analysis engine FROZEN — data integrity review in progress. No analysis may run until validation layer is built.' });
     try {
         const { address } = req.body;
         if (!address) return res.status(400).json({ error: 'Address is required' });
@@ -3245,7 +3251,11 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             console.log(`[Intake] Queued analyze_lead job for ${caseId}`);
         } catch (qErr) { console.error(`[Intake] Queue insert failed:`, qErr.message); }
 
-        // Auto-trigger full analysis pipeline (async, don't block response)
+        // ⛔ AUTO-ANALYSIS DISABLED — Tyler directive 2026-04-07
+        // System-wide data integrity failure: analysis engine generates fake comp addresses
+        // DO NOT re-enable until validation layer is built and verified
+        console.log(`[AutoAnalysis] ⛔ DISABLED for ${caseId} — data integrity freeze`);
+        if (false) { // FROZEN
         setTimeout(async () => {
             try {
                 console.log(`[AutoAnalysis] Starting auto-analysis for new case ${caseId}`);
@@ -3294,6 +3304,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 console.error(`[AutoAnalysis] Failed for ${caseId}:`, err.message);
             }
         }, 2000);
+        } // END FROZEN auto-analysis block
 
         res.json({
             success: true,
@@ -3407,7 +3418,9 @@ app.post('/api/commercial-intake', async (req, res) => {
         const welcomeHtml = buildWelcomeEmail(submission);
         sendClientEmail(email, `Welcome to OverAssessed - Case ${caseId}`, welcomeHtml);
 
-        // Auto-trigger analysis (async)
+        // ⛔ AUTO-ANALYSIS DISABLED — data integrity freeze 2026-04-07
+        console.log(`[AutoAnalysis] ⛔ DISABLED for commercial ${caseId}`);
+        if (false) { // FROZEN
         setTimeout(async () => {
             try {
                 console.log(`[AutoAnalysis] Starting auto-analysis for commercial case ${caseId}`);
@@ -3418,6 +3431,7 @@ app.post('/api/commercial-intake', async (req, res) => {
                 console.error(`[AutoAnalysis] Failed for commercial ${caseId}:`, err.message);
             }
         }, 2000);
+        } // END FROZEN commercial auto-analysis
 
         console.log(`[Commercial] New lead: ${caseId} - ${name} (${propertyType}) at ${propertyAddress}`);
         res.json({ success: true, caseId, message: 'Commercial intake received' });
@@ -7294,7 +7308,7 @@ app.post('/api/email-queue/:id/reject', (req, res) => {
 
 // Version check
 app.get('/api/version', (req, res) => {
-    res.json({ version: '2.6.1-fix-admin', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
+    res.json({ version: '2.7.0-FROZEN', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
 });
 
 // ===== INTERNAL SYSTEMS DIRECTORY =====
