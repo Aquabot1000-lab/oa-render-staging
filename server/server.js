@@ -119,6 +119,17 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/evidence-packets', express.static(path.join(__dirname, 'evidence-packets')));
 app.use('/filing-packages', express.static(path.join(__dirname, 'filing-packages')));
 
+// Serve filing packages via /view/ route (bypasses SPA catch-all)
+app.get('/view/filing/:filename', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'filing-packages', req.params.filename);
+        const content = await fs.readFile(filePath, 'utf8');
+        res.type('text/html').send(content);
+    } catch (e) {
+        res.status(404).send('Filing package not found');
+    }
+});
+
 // Explicit route for filing package HTML files (bypass static middleware file permission issues)
 app.get('/filing-packages/:filename', async (req, res) => {
     try {
@@ -7278,17 +7289,6 @@ app.post('/api/email-queue/:id/reject', (req, res) => {
 // Version check
 app.get('/api/version', (req, res) => {
     res.json({ version: '2.6.0-v2', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
-});
-
-// ===== SERVE FILING PACKAGES VIA API (bypass SPA catch-all) =====
-app.get('/api/filing-package/:filename', async (req, res) => {
-    try {
-        const filePath = path.join(__dirname, 'filing-packages', req.params.filename);
-        const content = await fs.readFile(filePath, 'utf8');
-        res.type('text/html').send(content);
-    } catch (e) {
-        res.status(404).send('Filing package not found');
-    }
 });
 
 // ===== INTERNAL SYSTEMS DIRECTORY =====
