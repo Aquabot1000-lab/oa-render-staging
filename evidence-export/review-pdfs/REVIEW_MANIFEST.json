@@ -1,0 +1,180 @@
+[
+  {
+    "caseId": "OA-0022",
+    "group": "A-SIGNED",
+    "address": "2022 Avondown Rd",
+    "county": "kaufman",
+    "pid": "193957",
+    "assessedValue": 418156,
+    "recommendedValue": 389130,
+    "savings": 668,
+    "oldSavings": 2822,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0022_review.pdf"
+  },
+  {
+    "caseId": "OA-0007",
+    "group": "B-RESULTS_SENT",
+    "address": "18236 Crimson Apple Way, Pflugerville, TX 78660",
+    "county": "travis",
+    "pid": "000000858722",
+    "assessedValue": 545000,
+    "recommendedValue": 545000,
+    "savings": 0,
+    "oldSavings": 824,
+    "confidence": "LOW",
+    "flags": [
+      "⚠️ COMP VALUES GROSSLY MISMATCHED: avg comp $52,162,470 vs subject $545,000 (96x)",
+      "$0 savings — property appears fairly assessed or under-assessed"
+    ],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0007_review.pdf"
+  },
+  {
+    "caseId": "OA-0015",
+    "group": "B-RESULTS_SENT",
+    "address": "902 Summit Rd ",
+    "county": "bexar",
+    "pid": "01792-020-0231",
+    "assessedValue": 912000,
+    "recommendedValue": 684000,
+    "savings": 5130,
+    "oldSavings": 6156,
+    "confidence": "LOW",
+    "flags": [
+      "⚠️ COMP VALUES FAR FROM SUBJECT: avg comp $339,455 vs subject $912,000",
+      "Weakest comp score: 25/100"
+    ],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0015_review.pdf"
+  },
+  {
+    "caseId": "OA-0016",
+    "group": "B-RESULTS_SENT",
+    "address": "2318 Andros pl",
+    "county": "bexar",
+    "pid": "15597-004-0240",
+    "assessedValue": 273761,
+    "recommendedValue": 205321,
+    "savings": 1540,
+    "oldSavings": 309,
+    "confidence": "LOW",
+    "flags": [
+      "⚠️ COMP VALUES FAR FROM SUBJECT: avg comp $138,203 vs subject $273,761"
+    ],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0016_review.pdf"
+  },
+  {
+    "caseId": "OA-0025",
+    "group": "B-RESULTS_SENT",
+    "address": "6 Davenport Ln",
+    "county": "bexar",
+    "pid": "34753-109-1030",
+    "assessedValue": 3234370,
+    "recommendedValue": 2862170,
+    "savings": 8375,
+    "oldSavings": 197065,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0025_review.pdf"
+  },
+  {
+    "caseId": "OA-0033",
+    "group": "B-RESULTS_SENT",
+    "address": "6324 Torrey Pines Dr, North Richland Hills, TX",
+    "county": "tarrant",
+    "pid": "40256278",
+    "assessedValue": 459799,
+    "recommendedValue": 445000,
+    "savings": 355,
+    "oldSavings": 0,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0033_review.pdf"
+  },
+  {
+    "caseId": "OA-0005",
+    "group": "C-PIPELINE",
+    "address": "2208 SEVILLE CT., Fort Worth, TX",
+    "county": "tarrant",
+    "pid": "00033928",
+    "assessedValue": 166000,
+    "recommendedValue": 161068,
+    "savings": 118,
+    "oldSavings": 0,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0005_review.pdf"
+  },
+  {
+    "caseId": "OA-0019",
+    "group": "C-PIPELINE",
+    "address": "15103 Bandera Road, Helotes, TX 78023",
+    "county": "bexar",
+    "pid": "04524-300-0490",
+    "assessedValue": 425000,
+    "recommendedValue": 356950,
+    "savings": 1531,
+    "oldSavings": 2391,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 5,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0019_review.pdf"
+  },
+  {
+    "caseId": "OA-0021",
+    "group": "C-PIPELINE",
+    "address": "4137 Lovell Ave.",
+    "county": "tarrant",
+    "pid": "03442551",
+    "assessedValue": 340000,
+    "recommendedValue": 304489,
+    "savings": 852,
+    "oldSavings": 2295,
+    "confidence": "HIGH",
+    "flags": [],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0021_review.pdf"
+  },
+  {
+    "caseId": "OA-0026",
+    "group": "C-PIPELINE",
+    "address": "19310 Terra Brk",
+    "county": "bexar",
+    "pid": "04565-103-1030",
+    "assessedValue": 835000,
+    "recommendedValue": 835000,
+    "savings": 0,
+    "oldSavings": 1407,
+    "confidence": "HIGH",
+    "flags": [
+      "$0 savings — property appears fairly assessed or under-assessed"
+    ],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0026_review.pdf"
+  },
+  {
+    "caseId": "OA-0027",
+    "group": "C-PIPELINE",
+    "address": "24209 Scenic Loop Rd",
+    "county": "bexar",
+    "pid": "04703-010-0050",
+    "assessedValue": 854820,
+    "recommendedValue": 854820,
+    "savings": 0,
+    "oldSavings": 2009,
+    "confidence": "LOW",
+    "flags": [
+      "⚠️ COMP VALUES FAR FROM SUBJECT: avg comp $2,252,655 vs subject $854,820",
+      "$0 savings — property appears fairly assessed or under-assessed"
+    ],
+    "comps": 10,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/review-pdfs/OA-0027_review.pdf"
+  }
+]

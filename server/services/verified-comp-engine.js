@@ -14,7 +14,7 @@
  * If < 3 verified comps: INSUFFICIENT DATA (no report generated)
  * ZERO synthetic fallback. System FAILS, never FABRICATES.
  * 
- * @version 1.0.0 — 2026-04-07
+ * @version 1.1.0 — 2026-04-07 (Tyler review fixes)
  */
 
 const { getBISClient, isBISCounty } = require('./bis-client');
@@ -23,14 +23,26 @@ const tarrantData = require('./tarrant-data');
 
 // County tax rates
 const COUNTY_TAX_RATES = {
-    'bexar': 0.0225, 'harris': 0.0230, 'travis': 0.0210,
+    'bexar': 0.0225, 'harris': 0.0230,
     'fort bend': 0.0250, 'tarrant': 0.0240, 'hunt': 0.0225,
     'dallas': 0.0230, 'collin': 0.0220, 'denton': 0.0230,
     'williamson': 0.0220, 'kaufman': 0.0230
+    // Travis DISABLED — bulk data corrupted ($52M values)
 };
+
+// Counties with known-bad data — block entirely
+const BLOCKED_COUNTIES = new Set(['travis']);
 
 const MIN_COMPS = 3;
 const MAX_EVIDENCE_COMPS = 10;
+
+// ─── QUALITY GATES (Tyler directive 2026-04-07) ─────────────────
+// Value band: comp must be within this % of subject assessed value
+const VALUE_BAND_RATIO = 0.50; // comps must be 50%-150% of subject
+// Outlier detection: reject single comp if this far from subject
+const OUTLIER_RATIO = 3.0; // comp > 3x or < 0.33x subject = outlier
+// Minimum average comp quality score to pass
+const MIN_AVG_QUALITY_SCORE = 50;
 
 /**
  * Find VERIFIED comparable properties for a subject.
@@ -57,6 +69,9 @@ async function findVerifiedComps(subject, caseData) {
     }
     if (!county) {
         return insufficientData('No county identified');
+    }
+    if (BLOCKED_COUNTIES.has(county)) {
+        return insufficientData(`${county} county is BLOCKED — data source corrupted/unverified. Manual rebuild required.`);
     }
     if (!subject?.assessedValue && !caseData?.assessed_value) {
         return insufficientData('No assessed value available — need verified CAD value');
@@ -245,6 +260,38 @@ async function findVerifiedComps(subject, caseData) {
         return true;
     });
 
+    // ─── VALUE BAND FILTER (Tyler directive) ────────────────────────
+    // Remove comps outside acceptable value range of subject
+    const preBandCount = comps.length;
+    const valueLow = assessedValue * (1 - VALUE_BAND_RATIO);
+    const valueHigh = assessedValue * (1 + VALUE_BAND_RATIO);
+    comps = comps.filter(c => {
+        if (!c.assessedValue || c.assessedValue <= 0) return false;
+        // Outlier detection: reject extreme values
+        if (c.assessedValue > assessedValue * OUTLIER_RATIO || c.assessedValue < assessedValue / OUTLIER_RATIO) {
+            console.log(`[VerifiedComp] 🚫 OUTLIER REJECTED: ${c.address} ($${c.assessedValue.toLocaleString()}) — ${(c.assessedValue / assessedValue).toFixed(1)}x subject`);
+            return false;
+        }
+        // Value band: must be within 50%-150% of subject
+        if (c.assessedValue < valueLow || c.assessedValue > valueHigh) {
+            console.log(`[VerifiedComp] ⚠️ VALUE BAND REJECTED: ${c.address} ($${c.assessedValue.toLocaleString()}) — outside ${(VALUE_BAND_RATIO*100).toFixed(0)}% band of $${assessedValue.toLocaleString()}`);
+            return false;
+        }
+        return true;
+    });
+    if (preBandCount !== comps.length) {
+        console.log(`[VerifiedComp] Value band filter: ${preBandCount} → ${comps.length} comps (removed ${preBandCount - comps.length})`);
+    }
+
+    // Re-check minimum after filtering
+    if (comps.length < MIN_COMPS) {
+        return insufficientData(
+            `Only ${comps.length} comp(s) remain after value band filtering for ${address} in ${county}. ` +
+            `${preBandCount - comps.length} comps rejected as outliers/out-of-band. ` +
+            `Minimum ${MIN_COMPS} required. Data source: ${dataSource || 'none'}.`
+        );
+    }
+
     // ─── SCORING ────────────────────────────────────────────────────
     const scored = comps.map(c => {
         let score = 100;
@@ -281,6 +328,15 @@ async function findVerifiedComps(subject, caseData) {
 
     // Sort by score (best first)
     scored.sort((a, b) => b.score - a.score);
+
+    // ─── MINIMUM QUALITY SCORE CHECK (Tyler directive) ──────────────
+    const avgScore = scored.reduce((s, c) => s + c.score, 0) / scored.length;
+    if (avgScore < MIN_AVG_QUALITY_SCORE) {
+        return insufficientData(
+            `Average comp quality score ${avgScore.toFixed(0)}/100 is below minimum ${MIN_AVG_QUALITY_SCORE}. ` +
+            `Comps exist but are too dissimilar. Address: ${address}, County: ${county}.`
+        );
+    }
 
     // Select evidence comps (prefer lower-valued ones that support protest)
     const lowerComps = scored.filter(c => c.assessedValue < assessedValue);
@@ -352,11 +408,12 @@ async function findVerifiedComps(subject, caseData) {
             `Recommended protest value: $${actualRecommended.toLocaleString()}.`,
 
         analyzedAt: new Date().toISOString(),
-        engineVersion: '1.0.0-verified'
+        engineVersion: '1.1.0-verified'
     };
 
     console.log(`[VerifiedComp] ✅ Analysis complete: ${evidenceComps.length} verified comps, ` +
-        `recommended $${actualRecommended.toLocaleString()} (reduction $${reduction.toLocaleString()})`);
+        `recommended $${actualRecommended.toLocaleString()} (reduction $${reduction.toLocaleString()}) ` +
+        `[avg score: ${avgScore.toFixed(0)}, value band: ${(VALUE_BAND_RATIO*100)}%]`);
 
     return result;
 }
@@ -377,7 +434,7 @@ function insufficientData(reason) {
         reduction: null,
         estimatedSavings: null,
         analyzedAt: new Date().toISOString(),
-        engineVersion: '1.0.0-verified'
+        engineVersion: '1.1.0-verified'
     };
 }
 

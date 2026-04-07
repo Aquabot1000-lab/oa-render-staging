@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #222; font-size: 13px; }
+    .header { border-bottom: 3px solid #1a5276; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { font-size: 22px; color: #1a5276; }
+    .header .subtitle { color: #666; font-size: 12px; margin-top: 4px; }
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; color: white; }
+    .badge-high { background: #27ae60; }
+    .badge-medium { background: #f39c12; }
+    .badge-low { background: #e74c3c; }
+    .badge-group-a { background: #8e44ad; }
+    .badge-group-b { background: #2980b9; }
+    .badge-group-c { background: #7f8c8d; }
+    .section { margin-bottom: 18px; }
+    .section h2 { font-size: 14px; color: #1a5276; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+    th { background: #ecf0f1; text-align: left; padding: 6px 8px; font-weight: 600; border: 1px solid #ddd; }
+    td { padding: 6px 8px; border: 1px solid #ddd; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .kv-table td:first-child { font-weight: 600; width: 200px; background: #f5f5f5; }
+    .flags { background: #fef9e7; border: 1px solid #f0e68c; padding: 10px; border-radius: 4px; margin-top: 8px; }
+    .flags li { margin-left: 18px; margin-bottom: 3px; }
+    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 80px; color: rgba(200, 0, 0, 0.06); font-weight: bold; z-index: -1; pointer-events: none; }
+    .savings-box { background: #eafaf1; border: 2px solid #27ae60; padding: 12px; border-radius: 6px; text-align: center; margin: 10px 0; }
+    .savings-box .amount { font-size: 28px; font-weight: bold; color: #27ae60; }
+    .footer { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 10px; color: #999; }
+    a { color: #2980b9; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="watermark">INTERNAL REVIEW ONLY</div>
+
+<div class="header">
+    <h1>Property Tax Protest — Verified Analysis</h1>
+    <div class="subtitle">
+        OA-0025 | BEXAR County | Generated April 7, 2026
+        &nbsp;&nbsp;
+        <span class="badge badge-high">HIGH CONFIDENCE</span>
+        <span class="badge badge-group-b">B-RESULTS_SENT</span>
+    </div>
+</div>
+
+<div class="section">
+    <h2>Subject Property</h2>
+    <table class="kv-table">
+        <tr><td>Address</td><td>6 Davenport Ln</td></tr>
+        <tr><td>County</td><td>Bexar</td></tr>
+        <tr><td>Parcel / Property ID</td><td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=34753-109-1030">34753-109-1030</a></td></tr>
+        <tr><td>Current Assessed Value</td><td>$3,234,370</td></tr>
+        <tr><td>Recommended Protest Value</td><td>$2,862,170</td></tr>
+        <tr><td>Reduction</td><td>$372,200 (11.5%)</td></tr>
+        <tr><td>Tax Rate Used</td><td>2.25%</td></tr>
+        <tr><td>Data Source</td><td>local-cad-bulk</td></tr>
+        <tr><td>Subject Verified in CAD</td><td>✅ Yes</td></tr>
+    </table>
+</div>
+
+<div class="savings-box">
+    <div style="font-size:12px; color:#666;">Estimated Annual Tax Savings</div>
+    <div class="amount">$8,375/yr</div>
+    <div style="font-size:11px; color:#999; margin-top:4px;">Previous (unverified): $197,065/yr | Change: $-188,690</div>
+</div>
+
+<div class="section">
+    <h2>Comparable Properties (Top 5 of 10)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Address</th>
+                <th>Parcel ID</th>
+                <th>Assessed Value</th>
+                <th>Score</th>
+                <th>Source Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr>
+                <td>1</td>
+                <td>512  TERRELL RD </td>
+                <td>05644-000-0090</td>
+                <td>$3,125,000</td>
+                <td>90/100</td>
+                <td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=05644-000-0090">View</a></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>204  NEWBURY TER </td>
+                <td>05890-000-0020</td>
+                <td>$3,215,000</td>
+                <td>88/100</td>
+                <td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=05890-000-0020">View</a></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>25007  MIRANDA RDG </td>
+                <td>04671-107-0460</td>
+                <td>$3,097,450</td>
+                <td>85/100</td>
+                <td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=04671-107-0460">View</a></td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>38  GALLERIA DR </td>
+                <td>34753-105-0230</td>
+                <td>$3,043,460</td>
+                <td>83/100</td>
+                <td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=34753-105-0230">View</a></td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>7  DAVENPORT LN </td>
+                <td>34753-109-0980</td>
+                <td>$2,650,000</td>
+                <td>80/100</td>
+                <td><a href="https://bexar.trueautomation.com/clientdb/Property.aspx?prop_id=34753-109-0980">View</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Analysis Summary</h2>
+    <p>Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 17 with lower appraised values. Median: $3,043,460, Average: $2,862,170. Recommended protest value: $2,862,170.</p>
+    <p style="margin-top:8px;"><strong>Total comps evaluated:</strong> 30 | <strong>Lower than subject:</strong> 17 | <strong>Evidence comps:</strong> 10</p>
+</div>
+
+
+
+<div class="footer">
+    <strong>INTERNAL REVIEW ONLY</strong> — This document is for Tyler Worthey's review. Do not distribute to customers.<br>
+    Engine version: 1.0.0-verified | Analysis timestamp: Tue Apr 07 2026 11:40:26 GMT-0500 (Central Daylight Time)
+</div>
+</body>
+</html>
