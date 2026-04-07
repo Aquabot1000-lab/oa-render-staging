@@ -4156,16 +4156,40 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
             !(s.email && (s.email.includes('benchmark@') || s.email.includes('test@')))
         );
         
-        // Use ACTUAL DB stages — no remapping
-        const statuses = ['New', 'Contacted', 'Analysis Complete', 'Form Signed', 'Filing Prepared', 'Submitted', 'Needs Data', 'Duplicate', 'Hearing Scheduled', 'Won', 'Lost'];
-        const pipeline = {};
-        statuses.forEach(s => pipeline[s] = 0);
+        // Map actual DB statuses → dashboard pipeline stages
+        // Dashboard cards: New, Analysis Complete, Form Signed, Protest Filed, Hearing Scheduled, Resolved
+        const stageMap = {
+            // → New (intake/needs work)
+            'New': 'New',
+            'No Case': 'New',
+            'Incomplete Data': 'New',
+            'Needs Data': 'New',
+            'Blocked - Bad Data': 'New',
+            'Needs Revision': 'New',
+            'Message Sent': 'New',
+            'Contacted': 'New',
+            // → Analysis Complete
+            'Analysis Complete': 'Analysis Complete',
+            'Analyzed': 'Analysis Complete',
+            // → Form Signed
+            'Form Signed': 'Form Signed',
+            // → Protest Filed (filed/submitted)
+            'Protest Filed': 'Protest Filed',
+            'Filing Prepared': 'Protest Filed',
+            'Submitted': 'Protest Filed',
+            'Filed': 'Protest Filed',
+            // → Hearing Scheduled
+            'Hearing Scheduled': 'Hearing Scheduled',
+            // → Resolved (won/lost/complete)
+            'Resolved': 'Resolved',
+            'Won': 'Resolved',
+            'Lost': 'Resolved',
+        };
+        const pipeline = { 'New': 0, 'Analysis Complete': 0, 'Form Signed': 0, 'Protest Filed': 0, 'Hearing Scheduled': 0, 'Resolved': 0 };
         submissions.forEach(s => {
-            if (s.status === 'Deleted') return;
-            if (pipeline[s.status] !== undefined) {
-                pipeline[s.status]++;
-            }
-            // Don't remap or bucket unknown stages — just skip
+            if (s.status === 'Deleted' || s.status === 'Duplicate') return;
+            const mapped = stageMap[s.status] || 'New'; // unmapped statuses default to New
+            pipeline[mapped]++;
         });
 
         const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || s.estimated_savings || 0), 0);
