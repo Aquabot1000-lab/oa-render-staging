@@ -36,13 +36,25 @@ const BLOCKED_COUNTIES = new Set(['travis']);
 const MIN_COMPS = 3;
 const MAX_EVIDENCE_COMPS = 10;
 
-// ─── QUALITY GATES (Tyler directive 2026-04-07) ─────────────────
-// Value band: comp must be within this % of subject assessed value
-const VALUE_BAND_RATIO = 0.50; // comps must be 50%-150% of subject
-// Outlier detection: reject single comp if this far from subject
-const OUTLIER_RATIO = 3.0; // comp > 3x or < 0.33x subject = outlier
+// ─── QUALITY GATES v2 (Tyler strict directive 2026-04-07 12:10) ────
+// Value band: comp must be within 70%-130% of subject assessed value
+const VALUE_BAND_LOW = 0.70;
+const VALUE_BAND_HIGH = 1.30;
+// Sqft similarity: within ±25%
+const SQFT_TOLERANCE = 0.25;
+// Year built: within ±15 years
+const YEAR_TOLERANCE = 15;
+// Property type: exact match required
+const REQUIRE_PROPERTY_TYPE_MATCH = true;
+// Outlier detection: reject if > 2x median or < 0.5x median
+const OUTLIER_MEDIAN_HIGH = 2.0;
+const OUTLIER_MEDIAN_LOW = 0.5;
 // Minimum average comp quality score to pass
 const MIN_AVG_QUALITY_SCORE = 50;
+// Maximum variance % before LOW confidence flag
+const MAX_VARIANCE_PCT = 25;
+// NO FALLBACKS: never widen filters to force comps
+const NO_FALLBACK = true;
 
 /**
  * Find VERIFIED comparable properties for a subject.
@@ -260,35 +272,99 @@ async function findVerifiedComps(subject, caseData) {
         return true;
     });
 
-    // ─── VALUE BAND FILTER (Tyler directive) ────────────────────────
-    // Remove comps outside acceptable value range of subject
-    const preBandCount = comps.length;
-    const valueLow = assessedValue * (1 - VALUE_BAND_RATIO);
-    const valueHigh = assessedValue * (1 + VALUE_BAND_RATIO);
+    // ─── STRICT QUALITY FILTERS (Tyler directive v2) ───────────────
+    const preFilterCount = comps.length;
+    const valueLow = assessedValue * VALUE_BAND_LOW;
+    const valueHigh = assessedValue * VALUE_BAND_HIGH;
+    const subjectSqft = subject.sqft || null;
+    const subjectYear = subject.yearBuilt || null;
+    const subjectPropType = (subject.propertyType || '').toUpperCase();
+    let rejectedReasons = { value: 0, sqft: 0, year: 0, propType: 0 };
+
     comps = comps.filter(c => {
         if (!c.assessedValue || c.assessedValue <= 0) return false;
-        // Outlier detection: reject extreme values
-        if (c.assessedValue > assessedValue * OUTLIER_RATIO || c.assessedValue < assessedValue / OUTLIER_RATIO) {
-            console.log(`[VerifiedComp] 🚫 OUTLIER REJECTED: ${c.address} ($${c.assessedValue.toLocaleString()}) — ${(c.assessedValue / assessedValue).toFixed(1)}x subject`);
-            return false;
-        }
-        // Value band: must be within 50%-150% of subject
+
+        // 1. VALUE BAND: 70%-130% of subject
         if (c.assessedValue < valueLow || c.assessedValue > valueHigh) {
-            console.log(`[VerifiedComp] ⚠️ VALUE BAND REJECTED: ${c.address} ($${c.assessedValue.toLocaleString()}) — outside ${(VALUE_BAND_RATIO*100).toFixed(0)}% band of $${assessedValue.toLocaleString()}`);
+            console.log(`[VerifiedComp] ⚠️ VALUE BAND: ${c.address} ($${c.assessedValue.toLocaleString()}) — outside 70-130% of $${assessedValue.toLocaleString()}`);
+            rejectedReasons.value++;
             return false;
         }
+
+        // 2. SQFT SIMILARITY: ±25%
+        if (subjectSqft && c.sqft) {
+            const sqftDiff = Math.abs(c.sqft - subjectSqft) / subjectSqft;
+            if (sqftDiff > SQFT_TOLERANCE) {
+                console.log(`[VerifiedComp] ⚠️ SQFT: ${c.address} (${c.sqft}sqft vs ${subjectSqft}sqft — ${(sqftDiff*100).toFixed(0)}% diff)`);
+                rejectedReasons.sqft++;
+                return false;
+            }
+        }
+
+        // 3. YEAR BUILT: ±15 years
+        if (subjectYear && c.yearBuilt) {
+            const yearDiff = Math.abs(c.yearBuilt - subjectYear);
+            if (yearDiff > YEAR_TOLERANCE) {
+                console.log(`[VerifiedComp] ⚠️ YEAR: ${c.address} (${c.yearBuilt} vs ${subjectYear} — ${yearDiff}yr diff)`);
+                rejectedReasons.year++;
+                return false;
+            }
+        }
+
+        // 4. PROPERTY TYPE: exact match (when both available)
+        if (REQUIRE_PROPERTY_TYPE_MATCH && subjectPropType && c.propertyType) {
+            const compType = (c.propertyType || '').toUpperCase();
+            // Normalize common aliases
+            const normalize = (t) => {
+                if (/SINGLE|SFR|A1|RESIDENCE/.test(t)) return 'SFR';
+                if (/TOWN|ATTACH/.test(t)) return 'TOWNHOME';
+                if (/CONDO|UNIT/.test(t)) return 'CONDO';
+                if (/MULTI|DUPLEX|TRIPLEX|QUAD/.test(t)) return 'MULTI';
+                return t;
+            };
+            if (normalize(subjectPropType) !== normalize(compType)) {
+                console.log(`[VerifiedComp] ⚠️ TYPE: ${c.address} (${compType} vs ${subjectPropType})`);
+                rejectedReasons.propType++;
+                return false;
+            }
+        }
+
         return true;
     });
-    if (preBandCount !== comps.length) {
-        console.log(`[VerifiedComp] Value band filter: ${preBandCount} → ${comps.length} comps (removed ${preBandCount - comps.length})`);
+
+    if (preFilterCount !== comps.length) {
+        console.log(`[VerifiedComp] Strict filters: ${preFilterCount} → ${comps.length} comps ` +
+            `(value:${rejectedReasons.value} sqft:${rejectedReasons.sqft} year:${rejectedReasons.year} type:${rejectedReasons.propType})`);
     }
 
-    // Re-check minimum after filtering
+    // 7. OUTLIER REJECTION: remove if > 2x median or < 0.5x median
+    if (comps.length >= 3) {
+        const sortedVals = comps.map(c => c.assessedValue).sort((a, b) => a - b);
+        const median = sortedVals[Math.floor(sortedVals.length / 2)];
+        const preOutlierCount = comps.length;
+        comps = comps.filter(c => {
+            if (c.assessedValue > median * OUTLIER_MEDIAN_HIGH) {
+                console.log(`[VerifiedComp] 🚫 OUTLIER: ${c.address} ($${c.assessedValue.toLocaleString()}) > 2x median $${median.toLocaleString()}`);
+                return false;
+            }
+            if (c.assessedValue < median * OUTLIER_MEDIAN_LOW) {
+                console.log(`[VerifiedComp] 🚫 OUTLIER: ${c.address} ($${c.assessedValue.toLocaleString()}) < 0.5x median $${median.toLocaleString()}`);
+                return false;
+            }
+            return true;
+        });
+        if (preOutlierCount !== comps.length) {
+            console.log(`[VerifiedComp] Median outlier filter: ${preOutlierCount} → ${comps.length}`);
+        }
+    }
+
+    // Re-check minimum after ALL filtering — NO FALLBACKS
     if (comps.length < MIN_COMPS) {
         return insufficientData(
-            `Only ${comps.length} comp(s) remain after value band filtering for ${address} in ${county}. ` +
-            `${preBandCount - comps.length} comps rejected as outliers/out-of-band. ` +
-            `Minimum ${MIN_COMPS} required. Data source: ${dataSource || 'none'}.`
+            `Only ${comps.length} comp(s) remain after strict filtering for ${address} in ${county}. ` +
+            `Rejected: value-band=${rejectedReasons.value}, sqft=${rejectedReasons.sqft}, ` +
+            `year=${rejectedReasons.year}, type=${rejectedReasons.propType}. ` +
+            `Started with ${preFilterCount}. Minimum ${MIN_COMPS} required. NO FALLBACK.`
         );
     }
 
@@ -329,7 +405,7 @@ async function findVerifiedComps(subject, caseData) {
     // Sort by score (best first)
     scored.sort((a, b) => b.score - a.score);
 
-    // ─── MINIMUM QUALITY SCORE CHECK (Tyler directive) ──────────────
+    // ─── MINIMUM QUALITY SCORE CHECK ────────────────────────────
     const avgScore = scored.reduce((s, c) => s + c.score, 0) / scored.length;
     if (avgScore < MIN_AVG_QUALITY_SCORE) {
         return insufficientData(
@@ -344,10 +420,19 @@ async function findVerifiedComps(subject, caseData) {
         ? lowerComps.slice(0, MAX_EVIDENCE_COMPS)
         : scored.slice(0, MAX_EVIDENCE_COMPS);
 
-    // ─── CALCULATE RECOMMENDED VALUE ────────────────────────────────
+    // ─── QUALITY METRICS (Tyler output requirement) ────────────────
     const compValues = evidenceComps.map(c => c.assessedValue).sort((a, b) => a - b);
-    const median = compValues[Math.floor(compValues.length / 2)];
-    const average = Math.round(compValues.reduce((a, b) => a + b, 0) / compValues.length);
+    const avgCompValue = Math.round(compValues.reduce((a, b) => a + b, 0) / compValues.length);
+    const medianCompValue = compValues[Math.floor(compValues.length / 2)];
+    const variancePct = avgCompValue > 0 ? Math.round((Math.max(...compValues) - Math.min(...compValues)) / avgCompValue * 100) : 0;
+    let confidenceLevel = 'HIGH';
+    if (variancePct > MAX_VARIANCE_PCT) confidenceLevel = 'LOW';
+    else if (variancePct > 15 || evidenceComps.length < 5 || avgScore < 70) confidenceLevel = 'MEDIUM';
+
+    // ─── CALCULATE RECOMMENDED VALUE ────────────────────────────────
+    // compValues, medianCompValue, avgCompValue already computed above
+    const median = medianCompValue;
+    const average = avgCompValue;
     const recommendedValue = Math.min(median, average);
 
     // Cap: don't recommend more than 25% reduction
@@ -400,20 +485,40 @@ async function findVerifiedComps(subject, caseData) {
         estimatedSavings,
         taxRate,
 
+        // Quality metrics (Tyler output requirement)
+        quality: {
+            compCount: evidenceComps.length,
+            avgCompValue,
+            medianCompValue,
+            variancePct,
+            avgQualityScore: Math.round(avgScore),
+            confidenceLevel,
+            filtersApplied: {
+                valueBand: `${VALUE_BAND_LOW*100}%-${VALUE_BAND_HIGH*100}%`,
+                sqftTolerance: `±${SQFT_TOLERANCE*100}%`,
+                yearTolerance: `±${YEAR_TOLERANCE}yr`,
+                propertyTypeMatch: REQUIRE_PROPERTY_TYPE_MATCH,
+                outlierMedian: `${OUTLIER_MEDIAN_LOW}x-${OUTLIER_MEDIAN_HIGH}x`,
+                rejected: rejectedReasons
+            }
+        },
+
         methodology: `Market comparison using ${evidenceComps.length} VERIFIED comparable properties ` +
             `from ${county.charAt(0).toUpperCase() + county.slice(1)} County CAD records. ` +
             `All comp addresses verified against county parcel database (source: ${dataSource}). ` +
             `${scored.length} total comps evaluated, ${lowerComps.length} with lower appraised values. ` +
             `Median: $${median.toLocaleString()}, Average: $${average.toLocaleString()}. ` +
+            `Variance: ${variancePct}%. Confidence: ${confidenceLevel}. ` +
+            `Filters: value-band ${VALUE_BAND_LOW*100}-${VALUE_BAND_HIGH*100}%, sqft ±${SQFT_TOLERANCE*100}%, year ±${YEAR_TOLERANCE}yr. ` +
             `Recommended protest value: $${actualRecommended.toLocaleString()}.`,
 
         analyzedAt: new Date().toISOString(),
-        engineVersion: '1.1.0-verified'
+        engineVersion: '1.2.0-strict'
     };
 
-    console.log(`[VerifiedComp] ✅ Analysis complete: ${evidenceComps.length} verified comps, ` +
-        `recommended $${actualRecommended.toLocaleString()} (reduction $${reduction.toLocaleString()}) ` +
-        `[avg score: ${avgScore.toFixed(0)}, value band: ${(VALUE_BAND_RATIO*100)}%]`);
+    console.log(`[VerifiedComp] ✅ Analysis complete: ${evidenceComps.length} comps, ` +
+        `$${actualRecommended.toLocaleString()} (reduction $${reduction.toLocaleString()}) ` +
+        `[confidence: ${confidenceLevel}, variance: ${variancePct}%, avg score: ${avgScore.toFixed(0)}]`);
 
     return result;
 }
@@ -434,7 +539,7 @@ function insufficientData(reason) {
         reduction: null,
         estimatedSavings: null,
         analyzedAt: new Date().toISOString(),
-        engineVersion: '1.1.0-verified'
+        engineVersion: '1.2.0-strict'
     };
 }
 
