@@ -7294,7 +7294,7 @@ app.post('/api/email-queue/:id/reject', (req, res) => {
 
 // Version check
 app.get('/api/version', (req, res) => {
-    res.json({ version: '2.6.0-v2', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
+    res.json({ version: '2.6.1-fix-admin', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
 });
 
 // ===== INTERNAL SYSTEMS DIRECTORY =====
