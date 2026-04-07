@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "04565-103-1030",
+  "subject": {
+    "address": "19310 Terra Brk",
+    "county": "bexar",
+    "assessedValue": 835000,
+    "sqft": 3161,
+    "yearBuilt": 2015,
+    "landValue": 162860,
+    "improvementValue": 672140
+  },
+  "comps": [
+    {
+      "parcelId": "04565-102-0860",
+      "address": "20027  TERRA CYN ",
+      "assessedValue": 850000,
+      "sqft": 3107,
+      "yearBuilt": 2015,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-103-0180",
+      "address": "19411  TERRA MONT ",
+      "assessedValue": 853000,
+      "sqft": 3086,
+      "yearBuilt": 2013,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-102-0440",
+      "address": "8615  TERRA DL ",
+      "assessedValue": 854000,
+      "sqft": 3337,
+      "yearBuilt": 2011,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-102-0130",
+      "address": "19611  TERRA MONT ",
+      "assessedValue": 864610,
+      "sqft": 3015,
+      "yearBuilt": 2016,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-102-0800",
+      "address": "20018  TERRA CYN ",
+      "assessedValue": 798000,
+      "sqft": 2971,
+      "yearBuilt": 2012,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-103-0010",
+      "address": "19943  TERRA CYN ",
+      "assessedValue": 917470,
+      "sqft": 3214,
+      "yearBuilt": 2012,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-103-0750",
+      "address": "19523  TERRA ELM ",
+      "assessedValue": 891320,
+      "sqft": 3000,
+      "yearBuilt": 2010,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-103-0920",
+      "address": "19411  TERRA STONE ",
+      "assessedValue": 910000,
+      "sqft": 3389,
+      "yearBuilt": 2018,
+      "neighborhoodCode": "99750",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-102-0360",
+      "address": "8626  TERRA DL ",
+      "assessedValue": 861460,
+      "sqft": 3531,
+      "yearBuilt": 2019,
+      "neighborhoodCode": "99750",
+      "score": 95,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04565-103-1250",
+      "address": "8806  TERRA CLF ",
+      "assessedValue": 910000,
+      "sqft": 3402,
+      "yearBuilt": 2009,
+      "neighborhoodCode": "99750",
+      "score": 95,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 2,
+  "recommendedValue": 835000,
+  "currentAssessedValue": 835000,
+  "reduction": 0,
+  "estimatedSavings": 0,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 2 with lower appraised values. Median: $864,610, Average: $870,986. Recommended protest value: $835,000.",
+  "analyzedAt": "2026-04-07T16:27:14.245Z",
+  "engineVersion": "1.0.0-verified"
+}

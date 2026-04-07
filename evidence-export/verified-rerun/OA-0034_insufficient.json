@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 405 Deerpath St, Leander TX78641 in williamson. Minimum 3 required. Data source: local-cad-bulk.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:27:15.803Z",
+  "engineVersion": "1.0.0-verified"
+}

@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 123 Test Property Lane, San Antonio, TX 78257 in bexar. Minimum 3 required. Data source: local-cad-bulk.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:27:16.717Z",
+  "engineVersion": "1.0.0-verified"
+}

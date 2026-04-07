@@ -1,0 +1,1206 @@
+{
+  "description": "Signed agreements with invalid/fabricated analysis",
+  "cases": [
+    {
+      "case_id": "OA-0013",
+      "customer_name": "Shabir Hasanali Rupani",
+      "email": "arupani4@gmail.com",
+      "phone": "(662) 786-0176",
+      "property_address": "708 Santa Lucia Dr Anna Texas 75409",
+      "county": "Collin",
+      "state": "TX",
+      "current_status": "Hold - Data Integrity Issue",
+      "prior_status": null,
+      "assessed_value": "399042",
+      "has_analysis": true,
+      "analysis_summary": {
+        "estimated_reduction": null,
+        "estimated_savings": null,
+        "current_assessed": null,
+        "estimated_market": null,
+        "methodology": null,
+        "strategy": null,
+        "recommendation": null,
+        "generated_at": null,
+        "comp_count": 0
+      },
+      "fabricated_comps": [
+        {
+          "address": "740 Santa Lucia Dr, Anna, TX 75409",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 1777
+        },
+        {
+          "address": "901 Portina Dr, Anna, TX 75409",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 1777
+        },
+        {
+          "address": "924 Amenduni Ln, Anna, TX 75409",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 1777
+        },
+        {
+          "address": "1201 Century Tree Ln, Anna, TX 75409",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2366
+        },
+        {
+          "address": "221 Santa Lucia Dr, Anna, TX 75409",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 1799
+        }
+      ],
+      "fabricated_comp_count": 5,
+      "drip_state": {
+        "reminder24": "2026-03-16T21:45:31.609Z",
+        "reminder48": "2026-03-17T22:05:00.557Z",
+        "reminder72": "2026-03-18T22:16:41.303Z"
+      },
+      "last_contact_at": null,
+      "follow_up_date": null,
+      "follow_up_note": null,
+      "signature": true,
+      "fee_agreement_signed": true,
+      "fee_agreement_signed_at": "2026-03-29T02:05:06.812+00:00",
+      "filing_status": "not_filed",
+      "payment_status": "unpaid",
+      "source": "website",
+      "created_at": "2026-03-15T21:26:50.831+00:00",
+      "updated_at": "2026-04-07T13:20:51.328+00:00",
+      "notes": "HOLD per Tyler 2026-04-07. Prior analysis used 5 non-existent comp addresses. Assessed value conflict ($399,042 vs $279,990). Collin CAD 2025 values not yet released for AnaCapri subdivision. Do NOT file or send to client until resolved.",
+      "full_analysis_report": {
+        "INVALIDATED": true,
+        "invalidatedAt": "2026-04-07T15:10:00Z",
+        "priorComparables": [
+          {
+            "status": "ADDRESS DOES NOT EXIST IN COLLIN COUNTY",
+            "address": "8092 Santa Lucia Dr"
+          },
+          {
+            "status": "ADDRESS DOES NOT EXIST IN COLLIN COUNTY",
+            "address": "1584 Santa Lucia Dr"
+          },
+          {
+            "status": "ADDRESS DOES NOT EXIST IN COLLIN COUNTY",
+            "address": "4929 Santa Lucia Dr"
+          },
+          {
+            "status": "ADDRESS DOES NOT EXIST IN COLLIN COUNTY",
+            "address": "2183 Santa Lucia Dr"
+          },
+          {
+            "status": "ADDRESS DOES NOT EXIST IN COLLIN COUNTY",
+            "address": "6669 Santa Lucia Dr"
+          }
+        ],
+        "invalidatedReason": "5 comp addresses do not exist in Collin County. currentAssessedValue ($279,990) does not match customer-submitted value ($399,042). All data in prior analysis is unreliable."
+      },
+      "full_comp_results": {
+        "avm": 378000,
+        "comps": [
+          {
+            "sqft": 1777,
+            "source": "rentcast-api",
+            "address": "740 Santa Lucia Dr, Anna, TX 75409",
+            "bedrooms": 3,
+            "bathrooms": 2.5,
+            "sale_date": "2025-11-08",
+            "sale_price": 359000,
+            "year_built": 2024,
+            "correlation": 0.9702,
+            "distance_miles": 0.05
+          },
+          {
+            "sqft": 1777,
+            "source": "rentcast-api",
+            "address": "901 Portina Dr, Anna, TX 75409",
+            "bedrooms": 3,
+            "bathrooms": 2.5,
+            "sale_date": "2025-11-08",
+            "sale_price": 367500,
+            "year_built": 2024,
+            "correlation": 0.9683,
+            "distance_miles": 0.16
+          },
+          {
+            "sqft": 1777,
+            "source": "rentcast-api",
+            "address": "924 Amenduni Ln, Anna, TX 75409",
+            "bedrooms": 3,
+            "bathrooms": 2.5,
+            "sale_date": "2026-04-01",
+            "sale_price": 368900,
+            "year_built": 2024,
+            "correlation": 0.9681,
+            "distance_miles": 0.2
+          },
+          {
+            "sqft": 2366,
+            "source": "rentcast-api",
+            "address": "1201 Century Tree Ln, Anna, TX 75409",
+            "bedrooms": 3,
+            "bathrooms": 3,
+            "sale_date": "2026-03-30",
+            "sale_price": 484990,
+            "year_built": 2025,
+            "correlation": 0.9538,
+            "distance_miles": 0.63
+          },
+          {
+            "sqft": 1799,
+            "source": "rentcast-api",
+            "address": "221 Santa Lucia Dr, Anna, TX 75409",
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "sale_date": "2026-02-22",
+            "sale_price": 375000,
+            "year_built": 2023,
+            "correlation": 0.9396,
+            "distance_miles": 0.17
+          }
+        ],
+        "confidence": "high",
+        "fetched_at": "2026-04-05T15:15:57.874Z",
+        "data_sources": [
+          {
+            "source": "rentcast-api",
+            "comps_found": 5
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "OA-0022",
+      "customer_name": "Jason Michael Matthews",
+      "email": "jasonmatthews41@aol.com",
+      "phone": "(469) 358-0812",
+      "property_address": "2022 Avondown Rd",
+      "county": "Kaufman",
+      "state": "TX",
+      "current_status": "Hold - Data Integrity Review",
+      "prior_status": "Form Signed",
+      "assessed_value": "418156",
+      "has_analysis": true,
+      "analysis_summary": {
+        "estimated_reduction": 125400,
+        "estimated_savings": 2822,
+        "current_assessed": 418000,
+        "estimated_market": 292600,
+        "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $292,600. Subject $/sqft: $105.2/sqft vs. Median comp $/sqft: $100.35/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+        "strategy": "equal_and_uniform",
+        "recommendation": "PROTEST RECOMMENDED \u2014 Strong basis for reduction based on comparable sales analysis.",
+        "generated_at": "2026-03-22T05:12:51.307Z",
+        "comp_count": 5
+      },
+      "fabricated_comps": [
+        {
+          "address": "1017 Knoxbridge Rd, Forney, TX 75126",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2296
+        },
+        {
+          "address": "1057 Canterbury Ln, Forney, TX 75126",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2314
+        },
+        {
+          "address": "2216 Perrymead Dr, Forney, TX 75126",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2780
+        },
+        {
+          "address": "2217 Heaton St, Forney, TX 75126",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2780
+        },
+        {
+          "address": "745 Brockwell Bnd, Forney, TX 75126",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2742
+        }
+      ],
+      "fabricated_comp_count": 5,
+      "drip_state": {
+        "reminder24": "2026-03-23T05:49:45.896Z",
+        "reminder48": "2026-03-24T05:46:27.102Z"
+      },
+      "last_contact_at": "2026-04-05T22:57:18.488236+00:00",
+      "follow_up_date": null,
+      "follow_up_note": null,
+      "signature": true,
+      "fee_agreement_signed": true,
+      "fee_agreement_signed_at": "2026-03-23T21:50:00+00:00",
+      "filing_status": "not_filed",
+      "payment_status": "unpaid",
+      "source": "website-intake",
+      "created_at": "2026-03-22T05:12:43.428+00:00",
+      "updated_at": "2026-04-07T13:20:27.869+00:00",
+      "notes": "FROZEN 2026-04-07. Prior analysis used synthetic/fake comp addresses. All data under review. Previous status: Form Signed",
+      "full_analysis_report": {
+        "taxRate": 0.0225,
+        "reportHtml": "\n<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; color: #1a1a2e;\">\n    <div style=\"background: #6c5ce7; padding: 14px 20px; border-radius: 8px 8px 0 0;\">\n        <span style=\"color: white; font-weight: 700; font-size: 15px;\">OVERASSESSED</span>\n        <span style=\"color: rgba(255,255,255,0.7); font-size: 11px; margin-left: 6px;\">Evidence Packet</span>\n    </div>\n    <div style=\"border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 20px;\">\n\n        <!-- Property Info -->\n        <table style=\"width: 100%; font-size: 12px; margin-bottom: 12px; border-collapse: collapse;\">\n            <tr>\n                <td style=\"padding: 2px 0; color: #7c7c96; width: 50%;\">Owner: <strong style=\"color: #1a1a2e;\">Jason Michael Matthews</strong></td>\n                <td style=\"padding: 2px 0; color: #7c7c96; text-align: right;\">Case: <strong style=\"color: #1a1a2e;\">OA-0022</strong></td>\n            </tr>\n            <tr>\n                <td style=\"padding: 2px 0; color: #7c7c96;\">Address: <strong style=\"color: #1a1a2e;\">2022 Avondown Rd</strong></td>\n                <td style=\"padding: 2px 0; color: #7c7c96; text-align: right;\">3/22/2026</td>\n            </tr>\n        </table>\n\n        <!-- Value Summary -->\n        <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 12px;\">\n            <tr>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Current Assessed</div>\n                    <div style=\"font-size: 16px; font-weight: 800; margin-top: 2px;\">$418,000</div>\n                </td>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Recommended</div>\n                    <div style=\"font-size: 16px; font-weight: 800; color: #0984e3; margin-top: 2px;\">$292,600</div>\n                </td>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Reduction</div>\n                    <div style=\"font-size: 16px; font-weight: 800; color: #00b894; margin-top: 2px;\">$125,400</div>\n                </td>\n                <td style=\"background: #00b894; padding: 8px 10px; border: 1px solid #00b894; width: 25%; text-align: center; color: white;\">\n                    <div style=\"font-size: 9px; opacity: 0.85; text-transform: uppercase;\">Tax Savings</div>\n                    <div style=\"font-size: 18px; font-weight: 900; margin-top: 2px;\">$2,822</div>\n                    <div style=\"font-size: 8px; opacity: 0.7;\">/year</div>\n                </td>\n            </tr>\n        </table>\n\n        <!-- Comparables Table -->\n        <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 4px;\">Comparable Properties</div>\n        <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;\">\n            <thead><tr style=\"background: #6c5ce7; color: white;\">\n                \n                <th style=\"padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600;\">Address</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Assessed</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Adjusted</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Sq Ft</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Yr Built</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">$/SqFt</th>\n                <th style=\"padding: 5px 6px; text-align: center; font-size: 10px; font-weight: 600;\">Score</th>\n            </tr></thead>\n            <tbody>\n                <tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">1952 Avondown Rd</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$339,404</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$338,171</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,946</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2022</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$115</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: #f7f7fc;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">7251 Avondown Rd</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$331,065</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$299,734</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">3,252</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2021</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$102</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">5011 Avondown Rd</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$424,408</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$376,722</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">3,327</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2020</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$128</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">97</td>\n                </tr><tr style=\"background: #f7f7fc;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">3316 Avondown Rd</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$394,696</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$355,180</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">3,242</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2024</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$122</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">97</td>\n                </tr><tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">9481 Avondown Rd</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$351,000</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$311,381</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">3,339</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2019</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$105</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">94</td>\n                </tr>\n            </tbody>\n        </table>\n\n        <!-- Equal & Uniform Section -->\n        \n        <div style=\"margin-bottom: 12px;\">\n            <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 4px; color: #6c5ce7;\">\n                Equal & Uniform Analysis (\u00a742.26) \u2605 PRIMARY\n            </div>\n            \n            <!-- E&U Metrics -->\n            <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 8px;\">\n                <tr>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">Subject $/SqFt</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #e17055; margin-top: 2px;\">$105.2</div>\n                    </td>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">Median Comp $/SqFt</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #00b894; margin-top: 2px;\">$100.35</div>\n                    </td>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">E&U Recommended</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #0984e3; margin-top: 2px;\">$292,600</div>\n                    </td>\n                </tr>\n            </table>\n\n            \n            <div style=\"background: #fff3e0; border-left: 3px solid #ff9800; padding: 6px 12px; margin-bottom: 8px; font-size: 10px;\">\n                <strong>Equity Argument:</strong> Subject is assessed $4.85/sqft higher than the median of 15 comparable properties\n                 (5.0% above median).\n                This constitutes unequal appraisal under TX Tax Code \u00a742.26.\n            </div>\n            \n\n            <!-- E&U Comps Table -->\n            \n            <div style=\"font-size: 10px; color: #7c7c96; margin-bottom: 3px;\">15 comps selected from 15 evaluated</div>\n            <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;\">\n                <thead><tr style=\"background: #6c5ce7; color: white;\">\n                    <th style=\"padding: 4px 5px; text-align: left; font-size: 9px;\">Address</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Sq Ft</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">$/SqFt</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Adj Value</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Size Adj</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Age Adj</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Land Adj</th>\n                </tr></thead>\n                <tbody>\n                    <tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">9522 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,449</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$128.33</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$341,403</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$34,071</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$8,709</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$4,391</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">2877 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,800</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$112.85</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$330,482</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$10,157</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$4,892</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$2,698</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">8489 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,519</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$112.11</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$327,572</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$25,842</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$1,541</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$19,074</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">724 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,833</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$107.54</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$302,040</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$7,904</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,126</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$11,887</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">5863 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,728</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$107.55</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$301,336</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$13,552</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$9,209</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$10,718</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">1952 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,946</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$91.98</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$298,172</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$1,564</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$8,176</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$36,057</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">6128 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,638</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$106.3</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$295,858</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$18,178</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$13,437</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$13,851</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">8881 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,515</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$107.24</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$291,274</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$24,933</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,893</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,239</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">5011 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,327</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$94.3</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$282,138</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$16,362</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$4,461</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$6,161</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">3316 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,242</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$90.29</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$269,930</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$11,828</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$11,236</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$2,531</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">6785 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,317</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$85.56</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$260,865</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$14,418</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$10,776</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,442</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">9481 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,339</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$80.97</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$251,449</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$14,535</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$2,558</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$23,866</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">3898 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,802</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$100.35</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$249,674</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$8,931</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$1,450</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$8,962</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">7251 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,252</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$73.71</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$234,971</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$10,024</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,742</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$13,130</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">2521 Avondown Rd</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">3,288</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$78.22</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$228,998</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$12,046</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$11,031</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$4,123</td>\n                    </tr>\n                </tbody>\n            </table>\n            \n        </div>\n\n        <!-- Methodology -->\n        <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 3px;\">Methodology</div>\n        <p style=\"color: #4a4a68; font-size: 11px; line-height: 1.5; margin: 0 0 12px;\">Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $292,600. Subject $/sqft: $105.2/sqft vs. Median comp $/sqft: $100.35/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.</p>\n\n        <!-- Dual Strategy Summary -->\n        \n        <div style=\"background: #f0eeff; border: 1px solid #d5d0f5; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px;\">\n            <div style=\"font-weight: 700; font-size: 11px; color: #6c5ce7; margin-bottom: 6px;\">DUAL STRATEGY COMPARISON</div>\n            <table style=\"width: 100%; font-size: 10px; border-collapse: collapse;\">\n                <tr>\n                    <td style=\"padding: 3px 0; color: #4a4a68;\">Market Value Approach:</td>\n                    <td style=\"padding: 3px 0; text-align: right; font-weight: 600;\">$336,178 <span style=\"color: #00b894;\">(\u2212$81,822)</span></td>\n                </tr>\n                <tr>\n                    <td style=\"padding: 3px 0; color: #4a4a68;\">Equal & Uniform (\u00a742.26):</td>\n                    <td style=\"padding: 3px 0; text-align: right; font-weight: 600;\">$292,600 <span style=\"color: #00b894;\">(\u2212$125,400)</span></td>\n                </tr>\n                <tr style=\"border-top: 1px solid #d5d0f5;\">\n                    <td style=\"padding: 5px 0 2px; color: #6c5ce7; font-weight: 700;\">\u2605 Primary Strategy:</td>\n                    <td style=\"padding: 5px 0 2px; text-align: right; font-weight: 700; color: #6c5ce7;\">Equal & Uniform (\u00a742.26)</td>\n                </tr>\n            </table>\n        </div>\n        \n\n        <!-- Recommendation Badge -->\n        <div style=\"background: #e6faf4; border-left: 4px solid #00b894; padding: 8px 14px; border-radius: 4px; margin-bottom: 10px;\">\n            <strong style=\"color: #00b894;\">\u2713 PROTEST RECOMMENDED</strong>\n            <span style=\"color: #7c7c96; font-size: 10px; float: right; margin-top: 2px;\">Strategy: Equal & Uniform (\u00a742.26)</span>\n        </div>\n\n        <p style=\"color: #7c7c96; font-size: 9px; text-align: center; margin: 6px 0 0;\">\n            Prepared by OverAssessed LLC | overassessed.ai | Confidential\n        </p>\n    </div>\n</div>",
+        "comparables": [
+          {
+            "sqft": 2946,
+            "score": 100,
+            "value": 339404,
+            "address": "1952 Avondown Rd",
+            "yearBuilt": 2022,
+            "pricePerSqft": 115,
+            "adjustedValue": 338171
+          },
+          {
+            "sqft": 3252,
+            "score": 100,
+            "value": 331065,
+            "address": "7251 Avondown Rd",
+            "yearBuilt": 2021,
+            "pricePerSqft": 102,
+            "adjustedValue": 299734
+          },
+          {
+            "sqft": 3327,
+            "score": 97,
+            "value": 424408,
+            "address": "5011 Avondown Rd",
+            "yearBuilt": 2020,
+            "pricePerSqft": 128,
+            "adjustedValue": 376722
+          },
+          {
+            "sqft": 3242,
+            "score": 97,
+            "value": 394696,
+            "address": "3316 Avondown Rd",
+            "yearBuilt": 2024,
+            "pricePerSqft": 122,
+            "adjustedValue": 355180
+          },
+          {
+            "sqft": 3339,
+            "score": 94,
+            "value": 351000,
+            "address": "9481 Avondown Rd",
+            "yearBuilt": 2019,
+            "pricePerSqft": 105,
+            "adjustedValue": 311381
+          }
+        ],
+        "generatedAt": "2026-03-22T05:12:51.307Z",
+        "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $292,600. Subject $/sqft: $105.2/sqft vs. Median comp $/sqft: $100.35/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+        "propertyType": "Single Family Home",
+        "recommendation": "PROTEST RECOMMENDED \u2014 Strong basis for reduction based on comparable sales analysis.",
+        "primaryStrategy": "equal_and_uniform",
+        "propertyAddress": "2022 Avondown Rd",
+        "estimatedReduction": 125400,
+        "estimatedTaxSavings": 2822,
+        "marketValueAnalysis": {
+          "comps": [
+            {
+              "sqft": 2946,
+              "score": 100,
+              "value": 339404,
+              "address": "1952 Avondown Rd",
+              "yearBuilt": 2022,
+              "pricePerSqft": 115,
+              "adjustedValue": 338171
+            },
+            {
+              "sqft": 3252,
+              "score": 100,
+              "value": 331065,
+              "address": "7251 Avondown Rd",
+              "yearBuilt": 2021,
+              "pricePerSqft": 102,
+              "adjustedValue": 299734
+            },
+            {
+              "sqft": 3327,
+              "score": 97,
+              "value": 424408,
+              "address": "5011 Avondown Rd",
+              "yearBuilt": 2020,
+              "pricePerSqft": 128,
+              "adjustedValue": 376722
+            },
+            {
+              "sqft": 3242,
+              "score": 97,
+              "value": 394696,
+              "address": "3316 Avondown Rd",
+              "yearBuilt": 2024,
+              "pricePerSqft": 122,
+              "adjustedValue": 355180
+            },
+            {
+              "sqft": 3339,
+              "score": 94,
+              "value": 351000,
+              "address": "9481 Avondown Rd",
+              "yearBuilt": 2019,
+              "pricePerSqft": 105,
+              "adjustedValue": 311381
+            }
+          ],
+          "reduction": 81822,
+          "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $336,238, median: $338,171, weighted: $336,178). Recommended protest value: $336,178.",
+          "estimatedSavings": 1841,
+          "recommendedValue": 336178
+        },
+        "currentAssessedValue": 418000,
+        "equalUniformAnalysis": {
+          "comps": [
+            {
+              "sqft": 2449,
+              "address": "9522 Avondown Rd",
+              "compPSF": 128.33,
+              "yearBuilt": 2012,
+              "adjustments": {
+                "age": 8709,
+                "land": 4391,
+                "pool": -17657,
+                "size": 34071,
+                "features": -2385
+              },
+              "adjustedValue": 341403,
+              "assessedValue": 414383,
+              "improvementValue": 314274
+            },
+            {
+              "sqft": 2800,
+              "address": "2877 Avondown Rd",
+              "compPSF": 112.85,
+              "yearBuilt": 2012,
+              "adjustments": {
+                "age": 4892,
+                "land": 2698,
+                "pool": 0,
+                "size": 10157,
+                "features": -3248
+              },
+              "adjustedValue": 330482,
+              "assessedValue": 417785,
+              "improvementValue": 315983
+            },
+            {
+              "sqft": 2519,
+              "address": "8489 Avondown Rd",
+              "compPSF": 112.11,
+              "yearBuilt": 2016,
+              "adjustments": {
+                "age": 1541,
+                "land": 19074,
+                "pool": 0,
+                "size": 25842,
+                "features": -1295
+              },
+              "adjustedValue": 327572,
+              "assessedValue": 367836,
+              "improvementValue": 282410
+            },
+            {
+              "sqft": 2833,
+              "address": "724 Avondown Rd",
+              "compPSF": 107.54,
+              "yearBuilt": 2015,
+              "adjustments": {
+                "age": 3126,
+                "land": 11887,
+                "pool": -23785,
+                "size": 7904,
+                "features": -1739
+              },
+              "adjustedValue": 302040,
+              "assessedValue": 397260,
+              "improvementValue": 304647
+            },
+            {
+              "sqft": 2728,
+              "address": "5863 Avondown Rd",
+              "compPSF": 107.55,
+              "yearBuilt": 2009,
+              "adjustments": {
+                "age": 9209,
+                "land": -10718,
+                "pool": 0,
+                "size": 13552,
+                "features": -4108
+              },
+              "adjustedValue": 301336,
+              "assessedValue": 408619,
+              "improvementValue": 293401
+            },
+            {
+              "sqft": 2946,
+              "address": "1952 Avondown Rd",
+              "compPSF": 91.98,
+              "yearBuilt": 2022,
+              "adjustments": {
+                "age": -8176,
+                "land": 36057,
+                "pool": 0,
+                "size": 1564,
+                "features": -2234
+              },
+              "adjustedValue": 298172,
+              "assessedValue": 339404,
+              "improvementValue": 270961
+            },
+            {
+              "sqft": 2638,
+              "address": "6128 Avondown Rd",
+              "compPSF": 106.3,
+              "yearBuilt": 2024,
+              "adjustments": {
+                "age": -13437,
+                "land": 13851,
+                "pool": 0,
+                "size": 18178,
+                "features": -3165
+              },
+              "adjustedValue": 295858,
+              "assessedValue": 371080,
+              "improvementValue": 280431
+            },
+            {
+              "sqft": 2515,
+              "address": "8881 Avondown Rd",
+              "compPSF": 107.24,
+              "yearBuilt": 2021,
+              "adjustments": {
+                "age": -5893,
+                "land": 3239,
+                "pool": 0,
+                "size": 24933,
+                "features": -715
+              },
+              "adjustedValue": 291274,
+              "assessedValue": 370971,
+              "improvementValue": 269710
+            },
+            {
+              "sqft": 3327,
+              "address": "5011 Avondown Rd",
+              "compPSF": 94.3,
+              "yearBuilt": 2020,
+              "adjustments": {
+                "age": -4461,
+                "land": -6161,
+                "pool": 0,
+                "size": -16362,
+                "features": -4625
+              },
+              "adjustedValue": 282138,
+              "assessedValue": 424408,
+              "improvementValue": 313747
+            },
+            {
+              "sqft": 3242,
+              "address": "3316 Avondown Rd",
+              "compPSF": 90.29,
+              "yearBuilt": 2024,
+              "adjustments": {
+                "age": -11236,
+                "land": 2531,
+                "pool": 0,
+                "size": -11828,
+                "features": -2264
+              },
+              "adjustedValue": 269930,
+              "assessedValue": 394696,
+              "improvementValue": 292727
+            },
+            {
+              "sqft": 3317,
+              "address": "6785 Avondown Rd",
+              "compPSF": 85.56,
+              "yearBuilt": 2023,
+              "adjustments": {
+                "age": -10776,
+                "land": 3442,
+                "pool": 0,
+                "size": -14418,
+                "features": -1199
+              },
+              "adjustedValue": 260865,
+              "assessedValue": 384874,
+              "improvementValue": 283816
+            },
+            {
+              "sqft": 3339,
+              "address": "9481 Avondown Rd",
+              "compPSF": 80.97,
+              "yearBuilt": 2019,
+              "adjustments": {
+                "age": -2558,
+                "land": 23866,
+                "pool": -20812,
+                "size": -14535,
+                "features": -4878
+              },
+              "adjustedValue": 251449,
+              "assessedValue": 351000,
+              "improvementValue": 270366
+            },
+            {
+              "sqft": 2802,
+              "address": "3898 Avondown Rd",
+              "compPSF": 100.35,
+              "yearBuilt": 2016,
+              "adjustments": {
+                "age": -1450,
+                "land": -8962,
+                "pool": -25732,
+                "size": 8931,
+                "features": -4280
+              },
+              "adjustedValue": 249674,
+              "assessedValue": 394629,
+              "improvementValue": 281167
+            },
+            {
+              "sqft": 3252,
+              "address": "7251 Avondown Rd",
+              "compPSF": 73.71,
+              "yearBuilt": 2021,
+              "adjustments": {
+                "age": -5742,
+                "land": 13130,
+                "pool": 0,
+                "size": -10024,
+                "features": -2088
+              },
+              "adjustedValue": 234971,
+              "assessedValue": 331065,
+              "improvementValue": 239695
+            },
+            {
+              "sqft": 3288,
+              "address": "2521 Avondown Rd",
+              "compPSF": 78.22,
+              "yearBuilt": 2024,
+              "adjustments": {
+                "age": -11031,
+                "land": -4123,
+                "pool": 0,
+                "size": -12046,
+                "features": -986
+              },
+              "adjustedValue": 228998,
+              "assessedValue": 365807,
+              "improvementValue": 257184
+            }
+          ],
+          "compsUsed": 15,
+          "medianPSF": 100.35,
+          "reduction": 125400,
+          "subjectPSF": 105.2,
+          "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $292,600. Subject $/sqft: $105.2/sqft vs. Median comp $/sqft: $100.35/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+          "psfDifference": 4.85,
+          "compsEvaluated": 15,
+          "recommendation": "EQUAL_AND_UNIFORM",
+          "estimatedSavings": 2822,
+          "recommendedValue": 292600,
+          "psfOverassessedPct": 0.05
+        },
+        "estimatedMarketValue": 292600
+      },
+      "full_comp_results": {
+        "avm": 363000,
+        "comps": [
+          {
+            "sqft": 2296,
+            "source": "rentcast-api",
+            "address": "1017 Knoxbridge Rd, Forney, TX 75126",
+            "bedrooms": 4,
+            "bathrooms": 2,
+            "sale_date": "2025-08-15",
+            "sale_price": 350000,
+            "year_built": 2015,
+            "correlation": 0.9653,
+            "distance_miles": 0.23
+          },
+          {
+            "sqft": 2314,
+            "source": "rentcast-api",
+            "address": "1057 Canterbury Ln, Forney, TX 75126",
+            "bedrooms": 4,
+            "bathrooms": 2,
+            "sale_date": "2026-02-12",
+            "sale_price": 372500,
+            "year_built": 2020,
+            "correlation": 0.9614,
+            "distance_miles": 0.48
+          },
+          {
+            "sqft": 2780,
+            "source": "rentcast-api",
+            "address": "2216 Perrymead Dr, Forney, TX 75126",
+            "bedrooms": 4,
+            "bathrooms": 2.5,
+            "sale_date": "2025-10-30",
+            "sale_price": 325000,
+            "year_built": 2018,
+            "correlation": 0.956,
+            "distance_miles": 0.44
+          },
+          {
+            "sqft": 2780,
+            "source": "rentcast-api",
+            "address": "2217 Heaton St, Forney, TX 75126",
+            "bedrooms": 4,
+            "bathrooms": 2.5,
+            "sale_date": "2026-01-15",
+            "sale_price": 299000,
+            "year_built": 2018,
+            "correlation": 0.9547,
+            "distance_miles": 0.52
+          },
+          {
+            "sqft": 2742,
+            "source": "rentcast-api",
+            "address": "745 Brockwell Bnd, Forney, TX 75126",
+            "bedrooms": 4,
+            "bathrooms": 2.5,
+            "sale_date": "2026-03-28",
+            "sale_price": 324900,
+            "year_built": 2020,
+            "correlation": 0.9518,
+            "distance_miles": 0.59
+          }
+        ],
+        "confidence": "high",
+        "fetched_at": "2026-04-05T15:16:10.411Z",
+        "data_sources": [
+          {
+            "source": "rentcast-api",
+            "comps_found": 5
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "OA-0030",
+      "customer_name": "Tung Tran",
+      "email": "tungtran.tt@gmail.com",
+      "phone": "(404) 822-7364",
+      "property_address": "294 hascall rd nw",
+      "county": "Fulton",
+      "state": "GA",
+      "current_status": "Hold - Data Integrity Review",
+      "prior_status": "Form Signed",
+      "assessed_value": null,
+      "has_analysis": true,
+      "analysis_summary": {
+        "estimated_reduction": 90000,
+        "estimated_savings": 2025,
+        "current_assessed": 300000,
+        "estimated_market": 210000,
+        "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $210,000. Subject $/sqft: $93.75/sqft vs. Median comp $/sqft: $85.84/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+        "strategy": "equal_and_uniform",
+        "recommendation": "PROTEST RECOMMENDED \u2014 Strong basis for reduction based on comparable sales analysis.",
+        "generated_at": "2026-03-25T19:37:18.627Z",
+        "comp_count": 5
+      },
+      "fabricated_comps": [
+        {
+          "address": "430 Hascall Rd NW, Atlanta, GA 30309",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2502
+        },
+        {
+          "address": "48 25th St NW, Atlanta, GA 30309",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 3785
+        },
+        {
+          "address": "1821 Huntington Hills Ln NW, Atlanta, GA 30309",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2712
+        },
+        {
+          "address": "76 28th St NW, Atlanta, GA 30309",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 2717
+        },
+        {
+          "address": "37 26th St NW, Atlanta, GA 30309",
+          "assessed_value": null,
+          "distance": null,
+          "sqft": 3041
+        }
+      ],
+      "fabricated_comp_count": 5,
+      "drip_state": null,
+      "last_contact_at": null,
+      "follow_up_date": null,
+      "follow_up_note": null,
+      "signature": true,
+      "fee_agreement_signed": true,
+      "fee_agreement_signed_at": "2026-03-25T19:43:55.293+00:00",
+      "filing_status": "not_filed",
+      "payment_status": "unpaid",
+      "source": "website-intake",
+      "created_at": "2026-03-25T19:37:08.396+00:00",
+      "updated_at": "2026-04-07T13:20:57.147+00:00",
+      "notes": "FROZEN 2026-04-07. Prior analysis used synthetic/fake comp addresses. All data under review. Previous status: Form Signed",
+      "full_analysis_report": {
+        "taxRate": 0.0225,
+        "reportHtml": "\n<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; color: #1a1a2e;\">\n    <div style=\"background: #6c5ce7; padding: 14px 20px; border-radius: 8px 8px 0 0;\">\n        <span style=\"color: white; font-weight: 700; font-size: 15px;\">OVERASSESSED</span>\n        <span style=\"color: rgba(255,255,255,0.7); font-size: 11px; margin-left: 6px;\">Evidence Packet</span>\n    </div>\n    <div style=\"border: 1px solid #e0e0e8; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 20px;\">\n\n        <!-- Property Info -->\n        <table style=\"width: 100%; font-size: 12px; margin-bottom: 12px; border-collapse: collapse;\">\n            <tr>\n                <td style=\"padding: 2px 0; color: #7c7c96; width: 50%;\">Owner: <strong style=\"color: #1a1a2e;\">Tung Tran</strong></td>\n                <td style=\"padding: 2px 0; color: #7c7c96; text-align: right;\">Case: <strong style=\"color: #1a1a2e;\">OA-0030</strong></td>\n            </tr>\n            <tr>\n                <td style=\"padding: 2px 0; color: #7c7c96;\">Address: <strong style=\"color: #1a1a2e;\">294 hascall rd nw</strong></td>\n                <td style=\"padding: 2px 0; color: #7c7c96; text-align: right;\">3/25/2026</td>\n            </tr>\n        </table>\n\n        <!-- Value Summary -->\n        <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 12px;\">\n            <tr>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Current Assessed</div>\n                    <div style=\"font-size: 16px; font-weight: 800; margin-top: 2px;\">$300,000</div>\n                </td>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Recommended</div>\n                    <div style=\"font-size: 16px; font-weight: 800; color: #0984e3; margin-top: 2px;\">$210,000</div>\n                </td>\n                <td style=\"background: #f7f7fc; padding: 8px 10px; border: 1px solid #e0e0e8; width: 25%; text-align: center;\">\n                    <div style=\"font-size: 9px; color: #7c7c96; text-transform: uppercase;\">Reduction</div>\n                    <div style=\"font-size: 16px; font-weight: 800; color: #00b894; margin-top: 2px;\">$90,000</div>\n                </td>\n                <td style=\"background: #00b894; padding: 8px 10px; border: 1px solid #00b894; width: 25%; text-align: center; color: white;\">\n                    <div style=\"font-size: 9px; opacity: 0.85; text-transform: uppercase;\">Tax Savings</div>\n                    <div style=\"font-size: 18px; font-weight: 900; margin-top: 2px;\">$2,025</div>\n                    <div style=\"font-size: 8px; opacity: 0.7;\">/year</div>\n                </td>\n            </tr>\n        </table>\n\n        <!-- Comparables Table -->\n        <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 4px;\">Comparable Properties</div>\n        <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;\">\n            <thead><tr style=\"background: #6c5ce7; color: white;\">\n                \n                <th style=\"padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600;\">Address</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Assessed</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Adjusted</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Sq Ft</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">Yr Built</th>\n                <th style=\"padding: 5px 6px; text-align: right; font-size: 10px; font-weight: 600;\">$/SqFt</th>\n                <th style=\"padding: 5px 6px; text-align: center; font-size: 10px; font-weight: 600;\">Score</th>\n            </tr></thead>\n            <tbody>\n                <tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">2237 hascall rd nw</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$303,114</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$294,930</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,437</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">1984</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$124</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: #f7f7fc;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">6940 hascall rd nw</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$289,348</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$285,944</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,465</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">1975</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$117</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">660 hascall rd nw</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$263,941</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$269,811</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,383</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">1975</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$111</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: #f7f7fc;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">2556 hascall rd nw</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$269,140</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$261,981</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,436</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">1984</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$110</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr><tr style=\"background: white;\">\n                    \n                    <td style=\"padding: 4px 6px; font-size: 10px;\">9767 hascall rd nw</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$249,186</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px; font-weight: 700; color: #00b894;\">$254,954</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">2,402</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">1972</td>\n                    <td style=\"padding: 4px 6px; text-align: right; font-size: 10px;\">$104</td>\n                    <td style=\"padding: 4px 6px; text-align: center; font-size: 10px; font-weight: 700; color: #6c5ce7;\">100</td>\n                </tr>\n            </tbody>\n        </table>\n\n        <!-- Equal & Uniform Section -->\n        \n        <div style=\"margin-bottom: 12px;\">\n            <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 4px; color: #6c5ce7;\">\n                Equal & Uniform Analysis (\u00a742.26) \u2605 PRIMARY\n            </div>\n            \n            <!-- E&U Metrics -->\n            <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 8px;\">\n                <tr>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">Subject $/SqFt</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #e17055; margin-top: 2px;\">$93.75</div>\n                    </td>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">Median Comp $/SqFt</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #00b894; margin-top: 2px;\">$85.84</div>\n                    </td>\n                    <td style=\"background: #f0eeff; padding: 6px 10px; border: 1px solid #d5d0f5; width: 33%; text-align: center;\">\n                        <div style=\"font-size: 8px; color: #7c7c96; text-transform: uppercase;\">E&U Recommended</div>\n                        <div style=\"font-size: 14px; font-weight: 800; color: #0984e3; margin-top: 2px;\">$210,000</div>\n                    </td>\n                </tr>\n            </table>\n\n            \n            <div style=\"background: #fff3e0; border-left: 3px solid #ff9800; padding: 6px 12px; margin-bottom: 8px; font-size: 10px;\">\n                <strong>Equity Argument:</strong> Subject is assessed $7.91/sqft higher than the median of 15 comparable properties\n                 (9.0% above median).\n                This constitutes unequal appraisal under TX Tax Code \u00a742.26.\n            </div>\n            \n\n            <!-- E&U Comps Table -->\n            \n            <div style=\"font-size: 10px; color: #7c7c96; margin-bottom: 3px;\">15 comps selected from 15 evaluated</div>\n            <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;\">\n                <thead><tr style=\"background: #6c5ce7; color: white;\">\n                    <th style=\"padding: 4px 5px; text-align: left; font-size: 9px;\">Address</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Sq Ft</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">$/SqFt</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Adj Value</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Size Adj</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Age Adj</th>\n                    <th style=\"padding: 4px 5px; text-align: right; font-size: 9px;\">Land Adj</th>\n                </tr></thead>\n                <tbody>\n                    <tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">3268 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">1,925</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$99.15</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$227,451</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$23,547</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$8,576</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$21,937</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">3279 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,041</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$98.12</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$215,711</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$17,613</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$6,536</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$24,444</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">2125 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,012</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$102.69</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$214,095</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$19,923</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$3,398</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,366</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">6539 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,484</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$77.06</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$206,909</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$3,237</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$1,882</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$21,622</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">2237 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,437</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$94.87</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$206,702</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$1,755</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,736</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,089</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">6940 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,465</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$89.01</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$206,350</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$2,893</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$5,413</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$5,061</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">238 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,133</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$94.25</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$205,394</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$12,582</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$8,544</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,506</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">3676 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">1,976</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$108.61</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$202,118</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$23,026</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$2,376</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$427</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">660 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,383</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$80.63</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$198,534</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$685</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$2,892</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,203</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">2556 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,436</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$85.84</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$193,445</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$1,545</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,189</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$14,975</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">4887 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,849</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$76.13</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$190,511</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$17,092</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$4,995</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$1,776</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">4557 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,666</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$80.25</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$185,989</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$10,673</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$5,082</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$8,533</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">5706 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,314</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$81.53</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$185,643</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$3,506</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$961</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$20,989</td>\n                    </tr><tr style=\"background: #f7f7fc;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">9767 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,402</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$72.65</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$178,350</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$73</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$5,233</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #00b894;\">+$324</td>\n                    </tr><tr style=\"background: white;\">\n                        <td style=\"padding: 3px 5px; font-size: 9px;\">6470 hascall rd nw</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">2,758</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px;\">$72.54</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; font-weight: 600; color: #00b894;\">$176,344</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$12,984</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$2,806</td>\n                        <td style=\"padding: 3px 5px; text-align: right; font-size: 9px; color: #e17055;\">$6,702</td>\n                    </tr>\n                </tbody>\n            </table>\n            \n        </div>\n\n        <!-- Methodology -->\n        <div style=\"font-weight: 700; font-size: 12px; margin-bottom: 3px;\">Methodology</div>\n        <p style=\"color: #4a4a68; font-size: 11px; line-height: 1.5; margin: 0 0 12px;\">Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $210,000. Subject $/sqft: $93.75/sqft vs. Median comp $/sqft: $85.84/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.</p>\n\n        <!-- Dual Strategy Summary -->\n        \n        <div style=\"background: #f0eeff; border: 1px solid #d5d0f5; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px;\">\n            <div style=\"font-weight: 700; font-size: 11px; color: #6c5ce7; margin-bottom: 6px;\">DUAL STRATEGY COMPARISON</div>\n            <table style=\"width: 100%; font-size: 10px; border-collapse: collapse;\">\n                <tr>\n                    <td style=\"padding: 3px 0; color: #4a4a68;\">Market Value Approach:</td>\n                    <td style=\"padding: 3px 0; text-align: right; font-weight: 600;\">$269,811 <span style=\"color: #00b894;\">(\u2212$30,189)</span></td>\n                </tr>\n                <tr>\n                    <td style=\"padding: 3px 0; color: #4a4a68;\">Equal & Uniform (\u00a742.26):</td>\n                    <td style=\"padding: 3px 0; text-align: right; font-weight: 600;\">$210,000 <span style=\"color: #00b894;\">(\u2212$90,000)</span></td>\n                </tr>\n                <tr style=\"border-top: 1px solid #d5d0f5;\">\n                    <td style=\"padding: 5px 0 2px; color: #6c5ce7; font-weight: 700;\">\u2605 Primary Strategy:</td>\n                    <td style=\"padding: 5px 0 2px; text-align: right; font-weight: 700; color: #6c5ce7;\">Equal & Uniform (\u00a742.26)</td>\n                </tr>\n            </table>\n        </div>\n        \n\n        <!-- Recommendation Badge -->\n        <div style=\"background: #e6faf4; border-left: 4px solid #00b894; padding: 8px 14px; border-radius: 4px; margin-bottom: 10px;\">\n            <strong style=\"color: #00b894;\">\u2713 PROTEST RECOMMENDED</strong>\n            <span style=\"color: #7c7c96; font-size: 10px; float: right; margin-top: 2px;\">Strategy: Equal & Uniform (\u00a742.26)</span>\n        </div>\n\n        <p style=\"color: #7c7c96; font-size: 9px; text-align: center; margin: 6px 0 0;\">\n            Prepared by OverAssessed LLC | overassessed.ai | Confidential\n        </p>\n    </div>\n</div>",
+        "comparables": [
+          {
+            "sqft": 2437,
+            "score": 100,
+            "value": 303114,
+            "address": "2237 hascall rd nw",
+            "yearBuilt": 1984,
+            "pricePerSqft": 124,
+            "adjustedValue": 294930
+          },
+          {
+            "sqft": 2465,
+            "score": 100,
+            "value": 289348,
+            "address": "6940 hascall rd nw",
+            "yearBuilt": 1975,
+            "pricePerSqft": 117,
+            "adjustedValue": 285944
+          },
+          {
+            "sqft": 2383,
+            "score": 100,
+            "value": 263941,
+            "address": "660 hascall rd nw",
+            "yearBuilt": 1975,
+            "pricePerSqft": 111,
+            "adjustedValue": 269811
+          },
+          {
+            "sqft": 2436,
+            "score": 100,
+            "value": 269140,
+            "address": "2556 hascall rd nw",
+            "yearBuilt": 1984,
+            "pricePerSqft": 110,
+            "adjustedValue": 261981
+          },
+          {
+            "sqft": 2402,
+            "score": 100,
+            "value": 249186,
+            "address": "9767 hascall rd nw",
+            "yearBuilt": 1972,
+            "pricePerSqft": 104,
+            "adjustedValue": 254954
+          }
+        ],
+        "generatedAt": "2026-03-25T19:37:18.627Z",
+        "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $210,000. Subject $/sqft: $93.75/sqft vs. Median comp $/sqft: $85.84/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+        "propertyType": "Single Family Home",
+        "recommendation": "PROTEST RECOMMENDED \u2014 Strong basis for reduction based on comparable sales analysis.",
+        "primaryStrategy": "equal_and_uniform",
+        "propertyAddress": "294 hascall rd nw",
+        "estimatedReduction": 90000,
+        "estimatedTaxSavings": 2025,
+        "marketValueAnalysis": {
+          "comps": [
+            {
+              "sqft": 2437,
+              "score": 100,
+              "value": 303114,
+              "address": "2237 hascall rd nw",
+              "yearBuilt": 1984,
+              "pricePerSqft": 124,
+              "adjustedValue": 294930
+            },
+            {
+              "sqft": 2465,
+              "score": 100,
+              "value": 289348,
+              "address": "6940 hascall rd nw",
+              "yearBuilt": 1975,
+              "pricePerSqft": 117,
+              "adjustedValue": 285944
+            },
+            {
+              "sqft": 2383,
+              "score": 100,
+              "value": 263941,
+              "address": "660 hascall rd nw",
+              "yearBuilt": 1975,
+              "pricePerSqft": 111,
+              "adjustedValue": 269811
+            },
+            {
+              "sqft": 2436,
+              "score": 100,
+              "value": 269140,
+              "address": "2556 hascall rd nw",
+              "yearBuilt": 1984,
+              "pricePerSqft": 110,
+              "adjustedValue": 261981
+            },
+            {
+              "sqft": 2402,
+              "score": 100,
+              "value": 249186,
+              "address": "9767 hascall rd nw",
+              "yearBuilt": 1972,
+              "pricePerSqft": 104,
+              "adjustedValue": 254954
+            }
+          ],
+          "reduction": 30189,
+          "methodology": "Market comparison approach using 5 comparable properties from the appraisal district's own records. Values adjusted for differences in square footage, age, lot size, and location. Analysis uses weighted average of adjusted comparable values (average: $273,524, median: $269,811, weighted: $273,524). Recommended protest value: $269,811.",
+          "estimatedSavings": 679,
+          "recommendedValue": 269811
+        },
+        "currentAssessedValue": 300000,
+        "equalUniformAnalysis": {
+          "comps": [
+            {
+              "sqft": 1925,
+              "address": "3268 hascall rd nw",
+              "compPSF": 99.15,
+              "yearBuilt": 1987,
+              "adjustments": {
+                "age": -8576,
+                "land": 21937,
+                "pool": 0,
+                "size": 23547,
+                "features": -314
+              },
+              "adjustedValue": 227451,
+              "assessedValue": 243920,
+              "improvementValue": 190857
+            },
+            {
+              "sqft": 2041,
+              "address": "3279 hascall rd nw",
+              "compPSF": 98.12,
+              "yearBuilt": 1985,
+              "adjustments": {
+                "age": -6536,
+                "land": 24444,
+                "pool": -19801,
+                "size": 17613,
+                "features": -277
+              },
+              "adjustedValue": 215711,
+              "assessedValue": 250824,
+              "improvementValue": 200268
+            },
+            {
+              "sqft": 2012,
+              "address": "2125 hascall rd nw",
+              "compPSF": 102.69,
+              "yearBuilt": 1981,
+              "adjustments": {
+                "age": -3398,
+                "land": -5366,
+                "pool": 0,
+                "size": 19923,
+                "features": -3684
+              },
+              "adjustedValue": 214095,
+              "assessedValue": 286986,
+              "improvementValue": 206620
+            },
+            {
+              "sqft": 2484,
+              "address": "6539 hascall rd nw",
+              "compPSF": 77.06,
+              "yearBuilt": 1981,
+              "adjustments": {
+                "age": -1882,
+                "land": 21622,
+                "pool": 0,
+                "size": -3237,
+                "features": -1017
+              },
+              "adjustedValue": 206909,
+              "assessedValue": 244801,
+              "improvementValue": 191423
+            },
+            {
+              "sqft": 2437,
+              "address": "2237 hascall rd nw",
+              "compPSF": 94.87,
+              "yearBuilt": 1984,
+              "adjustments": {
+                "age": -5736,
+                "land": 3089,
+                "pool": -18033,
+                "size": -1755,
+                "features": -2066
+              },
+              "adjustedValue": 206702,
+              "assessedValue": 303114,
+              "improvementValue": 231203
+            },
+            {
+              "sqft": 2465,
+              "address": "6940 hascall rd nw",
+              "compPSF": 89.01,
+              "yearBuilt": 1975,
+              "adjustments": {
+                "age": 5413,
+                "land": 5061,
+                "pool": -17529,
+                "size": -2893,
+                "features": -3111
+              },
+              "adjustedValue": 206350,
+              "assessedValue": 289348,
+              "improvementValue": 219409
+            },
+            {
+              "sqft": 2133,
+              "address": "238 hascall rd nw",
+              "compPSF": 94.25,
+              "yearBuilt": 1986,
+              "adjustments": {
+                "age": -8544,
+                "land": 3506,
+                "pool": 0,
+                "size": 12582,
+                "features": -3178
+              },
+              "adjustedValue": 205394,
+              "assessedValue": 272522,
+              "improvementValue": 201028
+            },
+            {
+              "sqft": 1976,
+              "address": "3676 hascall rd nw",
+              "compPSF": 108.61,
+              "yearBuilt": 1980,
+              "adjustments": {
+                "age": -2376,
+                "land": -427,
+                "pool": -28234,
+                "size": 23026,
+                "features": -4494
+              },
+              "adjustedValue": 202118,
+              "assessedValue": 290050,
+              "improvementValue": 214623
+            },
+            {
+              "sqft": 2383,
+              "address": "660 hascall rd nw",
+              "compPSF": 80.63,
+              "yearBuilt": 1975,
+              "adjustments": {
+                "age": 2892,
+                "land": 3203,
+                "pool": 0,
+                "size": 685,
+                "features": -390
+              },
+              "adjustedValue": 198534,
+              "assessedValue": 263941,
+              "improvementValue": 192144
+            },
+            {
+              "sqft": 2436,
+              "address": "2556 hascall rd nw",
+              "compPSF": 85.84,
+              "yearBuilt": 1984,
+              "adjustments": {
+                "age": -5189,
+                "land": 14975,
+                "pool": -22408,
+                "size": -1545,
+                "features": -1503
+              },
+              "adjustedValue": 193445,
+              "assessedValue": 269140,
+              "improvementValue": 209115
+            },
+            {
+              "sqft": 2849,
+              "address": "4887 hascall rd nw",
+              "compPSF": 76.13,
+              "yearBuilt": 1983,
+              "adjustments": {
+                "age": -4995,
+                "land": -1776,
+                "pool": 0,
+                "size": -17092,
+                "features": -2528
+              },
+              "adjustedValue": 190511,
+              "assessedValue": 293678,
+              "improvementValue": 216902
+            },
+            {
+              "sqft": 2666,
+              "address": "4557 hascall rd nw",
+              "compPSF": 80.25,
+              "yearBuilt": 1983,
+              "adjustments": {
+                "age": -5082,
+                "land": -8533,
+                "pool": 0,
+                "size": -10673,
+                "features": -3659
+              },
+              "adjustedValue": 185989,
+              "assessedValue": 297469,
+              "improvementValue": 213936
+            },
+            {
+              "sqft": 2314,
+              "address": "5706 hascall rd nw",
+              "compPSF": 81.53,
+              "yearBuilt": 1977,
+              "adjustments": {
+                "age": 961,
+                "land": 20989,
+                "pool": -28069,
+                "size": 3506,
+                "features": -403
+              },
+              "adjustedValue": 185643,
+              "assessedValue": 242670,
+              "improvementValue": 188659
+            },
+            {
+              "sqft": 2402,
+              "address": "9767 hascall rd nw",
+              "compPSF": 72.65,
+              "yearBuilt": 1972,
+              "adjustments": {
+                "age": 5233,
+                "land": 324,
+                "pool": 0,
+                "size": -73,
+                "features": -1644
+              },
+              "adjustedValue": 178350,
+              "assessedValue": 249186,
+              "improvementValue": 174510
+            },
+            {
+              "sqft": 2758,
+              "address": "6470 hascall rd nw",
+              "compPSF": 72.54,
+              "yearBuilt": 1981,
+              "adjustments": {
+                "age": -2806,
+                "land": -6702,
+                "pool": 0,
+                "size": -12984,
+                "features": -1216
+              },
+              "adjustedValue": 176344,
+              "assessedValue": 281754,
+              "improvementValue": 200052
+            }
+          ],
+          "compsUsed": 15,
+          "medianPSF": 85.84,
+          "reduction": 90000,
+          "subjectPSF": 93.75,
+          "methodology": "Equal & Uniform analysis (TX Tax Code \u00a742.26) using $/sqft of improvements. Evaluated 15 comparable properties, selected 15 most similar. Adjustments applied for size, age, land value, features, and pool. Median adjusted value: $210,000. Subject $/sqft: $93.75/sqft vs. Median comp $/sqft: $85.84/sqft. NOTE: E&U reduction capped at 30% \u2014 original calculation exceeded cap, flagged for manual review.",
+          "psfDifference": 7.91,
+          "compsEvaluated": 15,
+          "recommendation": "EQUAL_AND_UNIFORM",
+          "estimatedSavings": 2025,
+          "recommendedValue": 210000,
+          "psfOverassessedPct": 0.09
+        },
+        "estimatedMarketValue": 210000
+      },
+      "full_comp_results": {
+        "avm": 1328000,
+        "comps": [
+          {
+            "sqft": 2502,
+            "source": "rentcast-api",
+            "address": "430 Hascall Rd NW, Atlanta, GA 30309",
+            "bedrooms": 4,
+            "bathrooms": 3.5,
+            "sale_date": "2025-11-04",
+            "sale_price": 999900,
+            "year_built": 1942,
+            "correlation": 0.9502,
+            "distance_miles": 0.31
+          },
+          {
+            "sqft": 3785,
+            "source": "rentcast-api",
+            "address": "48 25th St NW, Atlanta, GA 30309",
+            "bedrooms": 4,
+            "bathrooms": 4,
+            "sale_date": "2025-12-24",
+            "sale_price": 1999000,
+            "year_built": 2025,
+            "correlation": 0.9373,
+            "distance_miles": 0.25
+          },
+          {
+            "sqft": 2712,
+            "source": "rentcast-api",
+            "address": "1821 Huntington Hills Ln NW, Atlanta, GA 30309",
+            "bedrooms": 4,
+            "bathrooms": 3.5,
+            "sale_date": "2026-03-14",
+            "sale_price": 950000,
+            "year_built": 2022,
+            "correlation": 0.9365,
+            "distance_miles": 0.55
+          },
+          {
+            "sqft": 2717,
+            "source": "rentcast-api",
+            "address": "76 28th St NW, Atlanta, GA 30309",
+            "bedrooms": 4,
+            "bathrooms": 3.5,
+            "sale_date": "2025-10-09",
+            "sale_price": 1095000,
+            "year_built": 1949,
+            "correlation": 0.9363,
+            "distance_miles": 0.52
+          },
+          {
+            "sqft": 3041,
+            "source": "rentcast-api",
+            "address": "37 26th St NW, Atlanta, GA 30309",
+            "bedrooms": 4,
+            "bathrooms": 3.5,
+            "sale_date": "2026-01-27",
+            "sale_price": 1495000,
+            "year_built": 1937,
+            "correlation": 0.9271,
+            "distance_miles": 0.38
+          }
+        ],
+        "confidence": "high",
+        "fetched_at": "2026-04-05T15:16:23.532Z",
+        "data_sources": [
+          {
+            "source": "rentcast-api",
+            "comps_found": 5
+          }
+        ]
+      }
+    }
+  ]
+}

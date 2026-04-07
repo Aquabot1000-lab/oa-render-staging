@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "15597-004-0240",
+  "subject": {
+    "address": "2318 Andros pl",
+    "county": "bexar",
+    "assessedValue": 273761,
+    "sqft": 946,
+    "yearBuilt": 1962,
+    "landValue": 43800,
+    "improvementValue": 94230
+  },
+  "comps": [
+    {
+      "parcelId": "15600-001-0030",
+      "address": "6926  BISCAYNE DR ",
+      "assessedValue": 138120,
+      "sqft": 946,
+      "yearBuilt": 1963,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15599-002-0120",
+      "address": "6810  WESTFIELD BLVD ",
+      "assessedValue": 138179,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15597-004-0080",
+      "address": "6919  TALLAHASSE DR ",
+      "assessedValue": 138250,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15600-001-0120",
+      "address": "6818  BISCAYNE DR ",
+      "assessedValue": 137710,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15597-004-0160",
+      "address": "6815  TALLAHASSE DR ",
+      "assessedValue": 138460,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15597-004-0230",
+      "address": "2314  ANDROS PL ",
+      "assessedValue": 137560,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15600-001-0200",
+      "address": "2406  ANDROS PL ",
+      "assessedValue": 138730,
+      "sqft": 946,
+      "yearBuilt": 1963,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15599-002-0140",
+      "address": "6802  WESTFIELD BLVD ",
+      "assessedValue": 139160,
+      "sqft": 946,
+      "yearBuilt": 1963,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15599-002-0050",
+      "address": "6914  WESTFIELD BLVD ",
+      "assessedValue": 139510,
+      "sqft": 946,
+      "yearBuilt": 1963,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "15598-003-0070",
+      "address": "6826  TALLAHASSE DR ",
+      "assessedValue": 136350,
+      "sqft": 946,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "99803",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 30,
+  "recommendedValue": 205321,
+  "currentAssessedValue": 273761,
+  "reduction": 68440,
+  "estimatedSavings": 1540,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 30 with lower appraised values. Median: $138,250, Average: $138,203. Recommended protest value: $205,321.",
+  "analyzedAt": "2026-04-07T16:27:05.054Z",
+  "engineVersion": "1.0.0-verified"
+}

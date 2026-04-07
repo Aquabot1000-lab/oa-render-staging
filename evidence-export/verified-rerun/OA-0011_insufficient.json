@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 5402 Lampasas St, Houston, TX 77056 in harris. Minimum 3 required. Data source: local-cad-bulk.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:27:00.887Z",
+  "engineVersion": "1.0.0-verified"
+}

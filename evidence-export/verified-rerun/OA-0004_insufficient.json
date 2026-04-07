@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 12348 Tierra Buena Dr in bexar. Minimum 3 required. Data source: local-cad-bulk.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:26:56.122Z",
+  "engineVersion": "1.0.0-verified"
+}

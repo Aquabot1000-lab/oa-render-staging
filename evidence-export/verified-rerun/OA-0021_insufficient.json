@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 4137 Lovell Ave. in tarrant. Minimum 3 required. Data source: none available.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:27:09.866Z",
+  "engineVersion": "1.0.0-verified"
+}

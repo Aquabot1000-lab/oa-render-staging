@@ -1,0 +1,83 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "04524-300-0490",
+  "subject": {
+    "address": "15103 Bandera Road, Helotes, TX 78023",
+    "county": "bexar",
+    "assessedValue": 425000,
+    "sqft": null,
+    "yearBuilt": null,
+    "landValue": 413950,
+    "improvementValue": 11050
+  },
+  "comps": [
+    {
+      "parcelId": "05900-000-0183",
+      "address": "10091  FLOORE DR ",
+      "assessedValue": 415260,
+      "sqft": 1456,
+      "yearBuilt": 1970,
+      "neighborhoodCode": "51310",
+      "score": 100,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04524-000-0211",
+      "address": "14687  OLD BANDERA RD ",
+      "assessedValue": 365000,
+      "sqft": 1860,
+      "yearBuilt": 1955,
+      "neighborhoodCode": "51310",
+      "score": 92,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "05924-001-0303",
+      "address": "14837  OLD BANDERA RD ",
+      "assessedValue": 365000,
+      "sqft": 2842,
+      "yearBuilt": 2008,
+      "neighborhoodCode": "51310",
+      "score": 92,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "05900-000-0010",
+      "address": "14546  BANDERA RD ",
+      "assessedValue": 330500,
+      "sqft": 4127,
+      "yearBuilt": 1930,
+      "neighborhoodCode": "51310",
+      "score": 85,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04524-000-0163",
+      "address": "15001  BANDERA RD ",
+      "assessedValue": 308990,
+      "sqft": 1440,
+      "yearBuilt": 1963,
+      "neighborhoodCode": "51310",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 5,
+  "recommendedValue": 356950,
+  "currentAssessedValue": 425000,
+  "reduction": 68050,
+  "estimatedSavings": 1531,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 5 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 5 with lower appraised values. Median: $365,000, Average: $356,950. Recommended protest value: $356,950.",
+  "analyzedAt": "2026-04-07T16:27:07.270Z",
+  "engineVersion": "1.0.0-verified"
+}

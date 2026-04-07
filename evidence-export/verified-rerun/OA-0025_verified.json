@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "34753-109-1030",
+  "subject": {
+    "address": "6 Davenport Ln",
+    "county": "bexar",
+    "assessedValue": 3234370,
+    "sqft": 9700,
+    "yearBuilt": 2000,
+    "landValue": 620780,
+    "improvementValue": 2613590
+  },
+  "comps": [
+    {
+      "parcelId": "05644-000-0090",
+      "address": "512  TERRELL RD ",
+      "assessedValue": 3125000,
+      "sqft": 8386,
+      "yearBuilt": 2007,
+      "neighborhoodCode": "93901",
+      "score": 90,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "05890-000-0020",
+      "address": "204  NEWBURY TER ",
+      "assessedValue": 3215000,
+      "sqft": 8221,
+      "yearBuilt": 1997,
+      "neighborhoodCode": "93901",
+      "score": 88,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04671-107-0460",
+      "address": "25007  MIRANDA RDG ",
+      "assessedValue": 3097450,
+      "sqft": 8662,
+      "yearBuilt": 2013,
+      "neighborhoodCode": "99573",
+      "score": 85,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34753-105-0230",
+      "address": "38  GALLERIA DR ",
+      "assessedValue": 3043460,
+      "sqft": 7627,
+      "yearBuilt": 2006,
+      "neighborhoodCode": "99529",
+      "score": 83,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34753-109-0980",
+      "address": "7  DAVENPORT LN ",
+      "assessedValue": 2650000,
+      "sqft": 8390,
+      "yearBuilt": 1997,
+      "neighborhoodCode": "99529",
+      "score": 80,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04024-025-0080",
+      "address": "511  ARGYLE AVE ",
+      "assessedValue": 3145000,
+      "sqft": 8254,
+      "yearBuilt": 1927,
+      "neighborhoodCode": "92201",
+      "score": 75,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34753-109-0010",
+      "address": "2  DAVENPORT LN ",
+      "assessedValue": 2400000,
+      "sqft": 9590,
+      "yearBuilt": 1995,
+      "neighborhoodCode": "99529",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34753-109-1040",
+      "address": "4  DAVENPORT LN ",
+      "assessedValue": 2753420,
+      "sqft": 6255,
+      "yearBuilt": 2001,
+      "neighborhoodCode": "99529",
+      "score": 67,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34753-102-0211",
+      "address": "1  DARTFORD LN ",
+      "assessedValue": 2700000,
+      "sqft": 7643,
+      "yearBuilt": 1986,
+      "neighborhoodCode": "99529",
+      "score": 63,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "16386-005-0010",
+      "address": "5  CAREFREE LN ",
+      "assessedValue": 2492370,
+      "sqft": 6477,
+      "yearBuilt": 2005,
+      "neighborhoodCode": "99529",
+      "score": 60,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 17,
+  "recommendedValue": 2862170,
+  "currentAssessedValue": 3234370,
+  "reduction": 372200,
+  "estimatedSavings": 8375,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 17 with lower appraised values. Median: $3,043,460, Average: $2,862,170. Recommended protest value: $2,862,170.",
+  "analyzedAt": "2026-04-07T16:27:13.745Z",
+  "engineVersion": "1.0.0-verified"
+}

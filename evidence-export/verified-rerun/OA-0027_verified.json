@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "04703-010-0050",
+  "subject": {
+    "address": "24209 Scenic Loop Rd",
+    "county": "bexar",
+    "assessedValue": 854820,
+    "sqft": 5547,
+    "yearBuilt": 1938,
+    "landValue": 1252960,
+    "improvementValue": 1021650
+  },
+  "comps": [
+    {
+      "parcelId": "04608-101-0050",
+      "address": "21321  BABCOCK RD ",
+      "assessedValue": 2190000,
+      "sqft": null,
+      "yearBuilt": null,
+      "neighborhoodCode": "21031",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04574-000-0010",
+      "address": "18097  STATE HWY 16 ",
+      "assessedValue": 2669940,
+      "sqft": null,
+      "yearBuilt": null,
+      "neighborhoodCode": "21031",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04610-000-0030",
+      "address": "20611  SCENIC LOOP RD ",
+      "assessedValue": 2846960,
+      "sqft": null,
+      "yearBuilt": null,
+      "neighborhoodCode": "21031",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04707-000-0040",
+      "address": "28525  SAXET DR ",
+      "assessedValue": 1700000,
+      "sqft": null,
+      "yearBuilt": null,
+      "neighborhoodCode": "21031",
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04603-000-0021",
+      "address": "19854  HIGH BLUFF RD ",
+      "assessedValue": 2246435,
+      "sqft": 5798,
+      "yearBuilt": 1990,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04688-000-0010",
+      "address": "25806  TOUTANT BEAUREGARD RD ",
+      "assessedValue": 2307210,
+      "sqft": 5804,
+      "yearBuilt": 2023,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04566-000-0022",
+      "address": "21510  CIELO VIS ",
+      "assessedValue": 1998000,
+      "sqft": 5550,
+      "yearBuilt": 2000,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04567-000-0054",
+      "address": "9420  CANYON MIST ",
+      "assessedValue": 2174000,
+      "sqft": 5045,
+      "yearBuilt": 2017,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "04609-000-0035",
+      "address": "21131  BABCOCK RD ",
+      "assessedValue": 2531000,
+      "sqft": 5089,
+      "yearBuilt": 2008,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "34730-201-0010",
+      "address": "23321  CIELO VIS ",
+      "assessedValue": 1863000,
+      "sqft": 5182,
+      "yearBuilt": 2019,
+      "neighborhoodCode": "21031",
+      "score": 50,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 0,
+  "recommendedValue": 854820,
+  "currentAssessedValue": 854820,
+  "reduction": 0,
+  "estimatedSavings": 0,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 0 with lower appraised values. Median: $2,246,435, Average: $2,252,655. Recommended protest value: $854,820.",
+  "analyzedAt": "2026-04-07T16:27:14.756Z",
+  "engineVersion": "1.0.0-verified"
+}

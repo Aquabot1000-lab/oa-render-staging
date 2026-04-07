@@ -1,0 +1,126 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "000000858722",
+  "subject": {
+    "address": "18236 Crimson Apple Way, Pflugerville, TX 78660",
+    "county": "travis",
+    "assessedValue": 545000,
+    "sqft": 2848,
+    "yearBuilt": 2016
+  },
+  "comps": [
+    {
+      "parcelId": "000000571922",
+      "address": "2400 VILLAGE VIEW LOOP",
+      "assessedValue": 52162600,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000888454",
+      "address": "18800 DEVILS FEN CV",
+      "assessedValue": 52162300,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000800764",
+      "address": "124 SERRATO CV",
+      "assessedValue": 52162200,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000900645",
+      "address": "7804 DONNELLEY DR",
+      "assessedValue": 52163200,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000350219",
+      "address": "10400 LA COSTA DR",
+      "assessedValue": 52162100,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000465874",
+      "address": "8912 LANNA BLUFF LOOP",
+      "assessedValue": 52161900,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000895686",
+      "address": "2621 IBAZA BEND",
+      "assessedValue": 52163500,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000265214",
+      "address": "2000 SPINEL RD",
+      "assessedValue": 52163700,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000572183",
+      "address": "18701 CAISTEAL CASTLE PATH",
+      "assessedValue": 52161700,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "000000982758",
+      "address": "3802 MANORWOOD RD UNT 2",
+      "assessedValue": 52161500,
+      "sqft": null,
+      "yearBuilt": null,
+      "score": 70,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 0,
+  "recommendedValue": 545000,
+  "currentAssessedValue": 545000,
+  "reduction": 0,
+  "estimatedSavings": 0,
+  "taxRate": 0.021,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Travis County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 0 with lower appraised values. Median: $52,162,300, Average: $52,162,470. Recommended protest value: $545,000.",
+  "analyzedAt": "2026-04-07T16:26:56.692Z",
+  "engineVersion": "1.0.0-verified"
+}

@@ -1,0 +1,138 @@
+{
+  "status": "VERIFIED",
+  "dataIntegrity": "ALL_COMPS_VERIFIED",
+  "dataSource": "local-cad-bulk",
+  "subjectVerified": true,
+  "subjectParcelId": "01792-020-0231",
+  "subject": {
+    "address": "902 Summit Rd ",
+    "county": "bexar",
+    "assessedValue": 912000,
+    "sqft": 5190,
+    "yearBuilt": 2022,
+    "landValue": 103020,
+    "improvementValue": 251900
+  },
+  "comps": [
+    {
+      "parcelId": "06420-021-0070",
+      "address": "626 W LULLWOOD AVE ",
+      "assessedValue": 358000,
+      "sqft": 1504,
+      "yearBuilt": 2016,
+      "neighborhoodCode": "57023",
+      "score": 40,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "01927-014-0240",
+      "address": "1145 W SUMMIT AVE ",
+      "assessedValue": 346120,
+      "sqft": 1330,
+      "yearBuilt": 1930,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "03102-001-0070",
+      "address": "915 W ELSMERE PL ",
+      "assessedValue": 344600,
+      "sqft": 1310,
+      "yearBuilt": 1915,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "06422-023-0070",
+      "address": "624 W HOLLYWOOD AVE ",
+      "assessedValue": 339620,
+      "sqft": 1280,
+      "yearBuilt": 1948,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "06523-000-0562",
+      "address": "822 W MULBERRY AVE ",
+      "assessedValue": 332560,
+      "sqft": 1303,
+      "yearBuilt": 1962,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "03102-001-0150",
+      "address": "931 W ELSMERE PL ",
+      "assessedValue": 329000,
+      "sqft": 1332,
+      "yearBuilt": 1925,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "03110-009-0300",
+      "address": "1122 W LULLWOOD AVE ",
+      "assessedValue": 339120,
+      "sqft": 1264,
+      "yearBuilt": 1930,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "01826-034-0010",
+      "address": "1142 W MAGNOLIA AVE ",
+      "assessedValue": 350000,
+      "sqft": 1440,
+      "yearBuilt": 1920,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "03102-001-0380",
+      "address": "930 W LYNWOOD AVE ",
+      "assessedValue": 320000,
+      "sqft": 1330,
+      "yearBuilt": 1920,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    },
+    {
+      "parcelId": "03105-004-0070",
+      "address": "915 W LYNWOOD AVE ",
+      "assessedValue": 335530,
+      "sqft": 1388,
+      "yearBuilt": 1919,
+      "neighborhoodCode": "57023",
+      "score": 25,
+      "source": "verified-cad",
+      "verified": true
+    }
+  ],
+  "totalCompsFound": 30,
+  "totalLowerComps": 30,
+  "recommendedValue": 684000,
+  "currentAssessedValue": 912000,
+  "reduction": 228000,
+  "estimatedSavings": 5130,
+  "taxRate": 0.0225,
+  "methodology": "Market comparison using 10 VERIFIED comparable properties from Bexar County CAD records. All comp addresses verified against county parcel database (source: local-cad-bulk). 30 total comps evaluated, 30 with lower appraised values. Median: $339,620, Average: $339,455. Recommended protest value: $684,000.",
+  "analyzedAt": "2026-04-07T16:27:04.623Z",
+  "engineVersion": "1.0.0-verified"
+}

@@ -1,0 +1,12 @@
+{
+  "status": "INSUFFICIENT_DATA",
+  "dataIntegrity": "BLOCKED",
+  "reason": "Only 0 verified comp(s) found for 3315 Marlene Meadow Way, Richmond, TX 77406 in fort bend. Minimum 3 required. Data source: bis-live.",
+  "comps": [],
+  "totalCompsFound": 0,
+  "recommendedValue": null,
+  "reduction": null,
+  "estimatedSavings": null,
+  "analyzedAt": "2026-04-07T16:27:00.668Z",
+  "engineVersion": "1.0.0-verified"
+}
