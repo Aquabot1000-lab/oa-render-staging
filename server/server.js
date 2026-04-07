@@ -1317,7 +1317,8 @@ async function runContactedFollowUp() {
             const sub = submissions[i];
             
             // Only process Contacted leads
-            if (sub.status !== 'Contacted') continue;
+            // Follow up on ALL leads that have received results (not just status='Contacted')
+            if (!['Contacted', 'Analysis Complete', 'Message Sent'].includes(sub.status)) continue;
             
             // Skip if customer replied (stop automation)
             if (sub.customerReplied) continue;
@@ -1329,11 +1330,12 @@ async function runContactedFollowUp() {
             if (!sub.email || sub.email.includes('benchmark@') || sub.email.includes('test@')) continue;
             
             // Calculate days since first contacted
-            const contactedAt = sub.firstContactedAt || sub.stageUpdatedAt || sub.updatedAt;
+            const dripState = sub.dripState || sub.drip_state || {};
+            const contactedAt = dripState.firstContactedAt || sub.firstContactedAt || dripState.resultsDelivered || sub.stageUpdatedAt || sub.updatedAt;
             if (!contactedAt) continue;
             const daysSince = (now - new Date(contactedAt).getTime()) / (1000 * 60 * 60 * 24);
             
-            const followUp = sub.contactedDrip || {};
+            const followUp = sub.contactedDrip || (dripState.contacted || {});
             const savings = sub.estimatedSavings || 0;
             const savingsStr = savings > 0 ? `$${savings.toLocaleString()}/year` : 'significant';
 
@@ -1421,6 +1423,80 @@ async function runContactedFollowUp() {
         }
     } catch (error) {
         console.error('[FollowUp] Error:', error.message);
+    }
+}
+
+// ── Results Delivery System ──
+// Sends analysis results to full-intake leads whose analysis completed but never received results.
+// Runs every 2 hours. Updates status to 'Analysis Complete' and enters leads into follow-up engine.
+async function runResultsDelivery() {
+    console.log('[ResultsDelivery] Checking for undelivered results...');
+    try {
+        const submissions = await readAllSubmissions();
+        let delivered = 0;
+
+        for (const sub of submissions) {
+            // Skip if already signed, deleted, or duplicate
+            if (sub.signature || sub.feeAgreementSigned || sub.feeAgreementSignature) continue;
+            if (sub.status === 'Deleted' || sub.status === 'Duplicate') continue;
+            if (sub.source === 'stephen-benchmark') continue;
+            if (sub.email && (sub.email.includes('benchmark@') || sub.email.includes('test@'))) continue;
+
+            // Only process leads with completed analysis and positive savings
+            const analysis = sub.analysisStatus || sub.analysis_status || '';
+            const savings = sub.estimatedSavings || sub.estimated_savings || 0;
+            if (!['Evidence Generated', 'Complete', 'Analysis Complete'].includes(analysis)) continue;
+            if (savings <= 0) continue;
+
+            // Skip if results already delivered
+            const drip = sub.dripState || sub.drip_state || {};
+            if (drip.resultsDelivered) continue;
+
+            // Skip if status is already past results stage
+            if (['Form Signed', 'Filing Prepared', 'Protest Filed', 'Submitted', 'Hearing Scheduled', 'Won', 'Lost', 'Resolved', 'Cold', 'Contacted'].includes(sub.status)) continue;
+
+            // This lead needs results delivered
+            const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
+            const savingsFormatted = `$${savings.toLocaleString()}`;
+
+            // Send results email
+            const template = buildStatusEmail(sub, 'Analysis Complete', {});
+            if (template && sub.email) {
+                sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
+                console.log(`[ResultsDelivery] Results email → ${sub.email} (${sub.caseId}, savings: ${savingsFormatted}/yr)`);
+            }
+
+            // Send SMS if phone available
+            if (sub.phone && sub.phone !== 'unknown' && sub.phone.length > 5) {
+                sendClientSMS(sub.phone, `OverAssessed: Your property tax analysis is ready — estimated savings: ${savingsFormatted}/yr! Sign your authorization: ${signUrl}`, { email: sub.email, customerName: sub.ownerName, context: 'results_delivery' });
+            }
+
+            // Update status and mark results as delivered
+            const now = new Date().toISOString();
+            const updatedDrip = { ...drip, resultsDelivered: now, firstContactedAt: drip.firstContactedAt || now };
+
+            if (isSupabaseEnabled()) {
+                await supabaseAdmin.from('submissions').update({
+                    status: 'Analysis Complete',
+                    drip_state: updatedDrip,
+                    last_contact_at: now,
+                    updated_at: now
+                }).eq('id', sub.id);
+            }
+
+            // Alert Tyler for high-value leads
+            if (savings >= 2000) {
+                sendTelegramAlert(`\uD83D\uDCE7 Results delivered to high-value lead\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsFormatted}/yr\n<b>Property:</b> ${sub.propertyAddress}\n<b>Email:</b> ${sub.email}\n<b>Phone:</b> ${sub.phone || 'none'}\n\nResults email + SMS sent. Follow-up engine will engage Day 2/5/7.`);
+            }
+
+            delivered++;
+        }
+
+        console.log(`[ResultsDelivery] Delivered results to ${delivered} leads`);
+        return delivered;
+    } catch (error) {
+        console.error('[ResultsDelivery] Error:', error.message);
+        return 0;
     }
 }
 
@@ -6849,9 +6925,13 @@ app.listen(PORT, async () => {
     setInterval(runDripCheck, 60 * 60 * 1000);
     setTimeout(runDripCheck, 30000);
     
-    // Run contacted follow-up every 4 hours (post-results follow-up)
+    // Run results delivery every 2 hours (sends analysis results to leads who haven't received them)
+    setInterval(runResultsDelivery, 2 * 60 * 60 * 1000);
+    setTimeout(runResultsDelivery, 45000); // 45s after startup
+
+    // Run follow-up for all contacted/analyzed leads every 4 hours
     setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
-    setTimeout(runContactedFollowUp, 60000); // 1 min after startup
+    setTimeout(runContactedFollowUp, 90000); // 90s after startup (after results delivery)
 
     // Run outcome monitor every 6 hours (checks county sites for hearing results)
     setInterval(async () => {
