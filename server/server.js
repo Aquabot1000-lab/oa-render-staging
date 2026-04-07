@@ -366,7 +366,7 @@ app.post('/api/estimate', async (req, res) => {
     }
 });
 
-app.use(express.static(path.join(__dirname, '..'), { index: false }));
+app.use(express.static(path.join(__dirname, '..'), { index: false, redirect: false }));
 
 // File paths
 const DATA_DIR = path.join(__dirname, 'data');
