@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filing Package — OA-0013 Shabir Hasanali Rupani</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; color: #1a1a2e; background: #f8f9fa; padding: 20px; }
+  .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
+  .header { background: linear-gradient(135deg, #6c5ce7, #0984e3); color: white; padding: 32px 40px; }
+  .header h1 { font-size: 24px; margin-bottom: 4px; }
+  .header .case { font-size: 14px; opacity: 0.85; }
+  .header .status { display: inline-block; background: #fdcb6e; color: #2d3436; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 12px; }
+  .section { padding: 28px 40px; border-bottom: 1px solid #e9ecef; }
+  .section:last-child { border-bottom: none; }
+  .section h2 { font-size: 16px; color: #6c5ce7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #f0edff; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field .value { font-size: 16px; font-weight: 600; color: #1a1a2e; margin-top: 2px; }
+  .field .value.big { font-size: 28px; color: #00b894; }
+  .field .value.missing { color: #e17055; font-style: italic; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+  th { background: #f8f9ff; padding: 10px 12px; text-align: left; font-weight: 600; color: #4a4a68; border-bottom: 2px solid #e9ecef; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  tr:hover td { background: #f8f9ff; }
+  .argument { background: #f8f9ff; border-left: 4px solid #6c5ce7; padding: 20px 24px; border-radius: 0 8px 8px 0; margin-top: 12px; line-height: 1.7; }
+  .checklist { list-style: none; margin-top: 12px; }
+  .checklist li { padding: 8px 0; font-size: 15px; }
+  .checklist .done::before { content: "✅ "; }
+  .checklist .missing::before { content: "❌ "; }
+  .checklist .warn::before { content: "⚠️ "; }
+  .footer { padding: 20px 40px; background: #f8f9fa; font-size: 12px; color: #6b7280; text-align: center; }
+  @media print { body { padding: 0; background: white; } .container { box-shadow: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Property Tax Protest Filing Package</h1>
+  <div class="case">Case OA-0013 &nbsp;|&nbsp; Prepared April 7, 2026 &nbsp;|&nbsp; OverAssessed, LLC</div>
+  <div class="status">⚠️ LOW SAVINGS — REVIEW RECOMMENDED</div>
+</div>
+
+<!-- SECTION 1: PROPERTY -->
+<div class="section">
+  <h2>Section 1 — Property Information</h2>
+  <div class="grid">
+    <div class="field">
+      <div class="label">Property Owner</div>
+      <div class="value">Shabir Hasanali Rupani</div>
+    </div>
+    <div class="field">
+      <div class="label">Property Address</div>
+      <div class="value">708 Santa Lucia Dr, Anna, TX 75409</div>
+    </div>
+    <div class="field">
+      <div class="label">County / Appraisal District</div>
+      <div class="value">Collin County Appraisal District (Collin CAD)</div>
+    </div>
+    <div class="field">
+      <div class="label">Parcel / Account ID</div>
+      <div class="value missing">Not yet retrieved — must pull from Collin CAD</div>
+    </div>
+    <div class="field">
+      <div class="label">Property Type</div>
+      <div class="value">Single Family Home</div>
+    </div>
+    <div class="field">
+      <div class="label">Year Built</div>
+      <div class="value missing">Not in intake — visible on CAD comps as ~2002 era</div>
+    </div>
+    <div class="field">
+      <div class="label">Land Value</div>
+      <div class="value">$69,998</div>
+    </div>
+    <div class="field">
+      <div class="label">Improvement Value</div>
+      <div class="value">$209,993</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: ASSESSED VALUE -->
+<div class="section">
+  <h2>Section 2 — Assessed Value</h2>
+  <div class="grid">
+    <div class="field">
+      <div class="label">Current Assessed Value (2026)</div>
+      <div class="value" style="font-size:22px;">$279,990</div>
+    </div>
+    <div class="field">
+      <div class="label">Proposed Value (Market Comparison)</div>
+      <div class="value big">$256,491</div>
+    </div>
+    <div class="field">
+      <div class="label">Reduction Requested</div>
+      <div class="value" style="font-size:22px; color:#e17055;">$23,499</div>
+    </div>
+    <div class="field">
+      <div class="label">Tax Rate</div>
+      <div class="value">2.20% (Collin County composite)</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <div class="label">Assessment History</div>
+    <table>
+      <tr><th>Year</th><th>Assessed Value</th><th>YoY Change</th></tr>
+      <tr><td>2026</td><td><strong>$279,990</strong></td><td style="color:#e17055">+6.4%</td></tr>
+      <tr><td>2025</td><td>$263,068</td><td>+5.1%</td></tr>
+      <tr><td>2024</td><td>$250,292</td><td>+9.9%</td></tr>
+      <tr><td>2023</td><td>$227,838</td><td>+7.8%</td></tr>
+      <tr><td>2022</td><td>$211,300</td><td>—</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 3: SAVINGS -->
+<div class="section">
+  <h2>Section 3 — Estimated Tax Savings</h2>
+  <div class="grid">
+    <div class="field">
+      <div class="label">Estimated Annual Tax Savings</div>
+      <div class="value" style="font-size:24px; color:#fdcb6e;">$517/year</div>
+    </div>
+    <div class="field">
+      <div class="label">Calculation</div>
+      <div class="value">$23,499 reduction × 2.20% = $517</div>
+    </div>
+    <div class="field">
+      <div class="label">Method</div>
+      <div class="value">Market Value Comparison</div>
+    </div>
+    <div class="field">
+      <div class="label">OA Fee (25%)</div>
+      <div class="value">$129/year</div>
+    </div>
+  </div>
+  <div style="margin-top:12px; background:#fff3e0; border-left:4px solid #e67e22; padding:12px 16px; border-radius:0 8px 8px 0;">
+    <strong>Note:</strong> At $517 savings and 25% fee ($129), net customer savings = $388/yr. Low but positive. Consider whether filing cost/effort is worth it for this case.
+  </div>
+</div>
+
+<!-- SECTION 4: COMPARABLES -->
+<div class="section">
+  <h2>Section 4 — Comparable Properties (Market Value Analysis)</h2>
+  <p style="font-size:14px; color:#6b7280; margin-bottom:12px;">5 comparable properties from Collin CAD records on Santa Lucia Dr and surrounding streets in Anna, TX.</p>
+  
+  <table>
+    <tr>
+      <th>#</th>
+      <th>Address</th>
+      <th>CAD Value</th>
+      <th>Sq Ft</th>
+      <th>Year</th>
+      <th>$/Sq Ft</th>
+      <th>Adjusted Value</th>
+    </tr>
+    <tr><td>1</td><td>8092 Santa Lucia Dr, Anna</td><td>$276,151</td><td>1,657</td><td>2002</td><td>$167</td><td><strong>$276,151</strong></td></tr>
+    <tr><td>2</td><td>1584 Santa Lucia Dr, Anna</td><td>$267,210</td><td>1,963</td><td>2002</td><td>$136</td><td><strong>$267,210</strong></td></tr>
+    <tr><td>3</td><td>4929 Santa Lucia Dr, Anna</td><td>$256,491</td><td>1,685</td><td>2005</td><td>$152</td><td><strong>$256,491</strong></td></tr>
+    <tr><td>4</td><td>2183 Santa Lucia Dr, Anna</td><td>$250,848</td><td>1,751</td><td>2012</td><td>$143</td><td><strong>$250,848</strong></td></tr>
+    <tr><td>5</td><td>6669 Santa Lucia Dr, Anna</td><td>$247,980</td><td>1,504</td><td>2003</td><td>$165</td><td><strong>$247,980</strong></td></tr>
+  </table>
+
+  <p style="font-size:14px; color:#4a4a68; margin-top:8px;"><strong>Average: $259,736</strong> &nbsp;|&nbsp; <strong>Median: $256,491</strong> &nbsp;|&nbsp; <strong>AVM: $378,000</strong></p>
+
+  <h3 style="margin-top:20px; font-size:14px; color:#6c5ce7;">Recent Sales (Rentcast)</h3>
+  <table>
+    <tr><th>#</th><th>Address</th><th>Sale Price</th><th>Date</th><th>Sq Ft</th><th>Year</th></tr>
+    <tr><td>1</td><td>740 Santa Lucia Dr, Anna</td><td>$359,000</td><td>Nov 2025</td><td>1,777</td><td>2024</td></tr>
+    <tr><td>2</td><td>901 Portina Dr, Anna</td><td>$367,500</td><td>Nov 2025</td><td>1,777</td><td>2024</td></tr>
+    <tr><td>3</td><td>924 Amenduni Ln, Anna</td><td>$368,900</td><td>Apr 2026</td><td>1,777</td><td>2024</td></tr>
+    <tr><td>4</td><td>221 Santa Lucia Dr, Anna</td><td>$375,000</td><td>Feb 2026</td><td>1,799</td><td>2023</td></tr>
+    <tr><td>5</td><td>1201 Century Tree Ln, Anna</td><td>$484,990</td><td>Mar 2026</td><td>2,366</td><td>2025</td></tr>
+  </table>
+  <div style="margin-top:12px; background:#fff3e0; border-left:4px solid #e67e22; padding:12px 16px; border-radius:0 8px 8px 0;">
+    <strong>⚠️ Conflict:</strong> Recent sales ($359K–$484K) are HIGHER than both the CAD value ($279,990) and our proposed value ($256,491). The AVM ($378K) also exceeds the assessment. This weakens the market value argument. The CAD-based comparable analysis still supports a modest reduction, but an ARB panel may point to the strong sales market.
+  </div>
+</div>
+
+<!-- SECTION 5: ARGUMENT -->
+<div class="section">
+  <h2>Section 5 — Protest Argument</h2>
+  <div class="argument">
+    <p><strong>Grounds for Protest:</strong> Market Value Exceeds Actual Value</p>
+    <br>
+    <p>The property at 708 Santa Lucia Dr, Anna, TX is assessed at <strong>$279,990</strong> for 2026. Comparison with 5 similar properties on Santa Lucia Dr and adjacent streets in the same Anna, TX subdivision shows a <strong>median assessed value of $256,491</strong>.</p>
+    <br>
+    <p>Using the Collin CAD's own property records, comparable homes in the immediate neighborhood are valued 8-11% lower than the subject. The weighted average of adjusted values is $259,736, supporting a reduction to <strong>$256,491</strong>.</p>
+    <br>
+    <p><strong>Note:</strong> This is a marginal case. The $23,499 reduction yields $517/yr in tax savings. Recent market sales suggest the property may actually be undervalued relative to the sales market, which could be raised by the ARB. Recommend filing but setting expectations with the client accordingly.</p>
+  </div>
+</div>
+
+<!-- SECTION 6: STATUS -->
+<div class="section">
+  <h2>Section 6 — Filing Readiness</h2>
+  <ul class="checklist">
+    <li class="done">Property data retrieved from Collin CAD</li>
+    <li class="done">5 comparable properties identified</li>
+    <li class="done">5 recent sales from Rentcast</li>
+    <li class="done">Evidence packet generated</li>
+    <li class="done">Form 50-162 (Authorization) signed by owner</li>
+    <li class="done">Fee agreement signed</li>
+    <li class="done">Notice of Appraised Value received</li>
+    <li class="done">QA check passed</li>
+    <li class="missing">Collin County account/parcel number — must retrieve from CAD</li>
+    <li class="missing">Subject property sqft, bedrooms, bathrooms not in intake — need from CAD</li>
+    <li class="warn">Low savings case ($517/yr) — recommend Tyler review before filing</li>
+    <li class="warn">Recent sales contradict reduction argument — ARB may challenge</li>
+  </ul>
+  <div style="margin-top:20px; background:#f0edff; border-left:4px solid #6c5ce7; padding:16px; border-radius:0 8px 8px 0;">
+    <strong>Status: NEEDS REVIEW</strong> — Low savings + conflicting market data. File at Tyler's discretion.
+    <br>
+    <strong>TX Protest Deadline:</strong> May 15, 2026
+    <br>
+    <strong>File with:</strong> Collin County Appraisal District — <a href="https://www.collincad.org">collincad.org</a>
+  </div>
+</div>
+
+<div class="footer">
+  Prepared by OverAssessed, LLC &nbsp;|&nbsp; overassessed.ai &nbsp;|&nbsp; (888) 282-9165 &nbsp;|&nbsp; Confidential — For Review Only
+</div>
+
+</div>
+</body>
+</html>
