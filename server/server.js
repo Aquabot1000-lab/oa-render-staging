@@ -7280,6 +7280,17 @@ app.get('/api/version', (req, res) => {
     res.json({ version: '2.6.0-v2', deployedAt: new Date().toISOString(), tadLoaded: tarrantData.isLoaded() });
 });
 
+// ===== SERVE FILING PACKAGES VIA API (bypass SPA catch-all) =====
+app.get('/api/filing-package/:filename', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'filing-packages', req.params.filename);
+        const content = await fs.readFile(filePath, 'utf8');
+        res.type('text/html').send(content);
+    } catch (e) {
+        res.status(404).send('Filing package not found');
+    }
+});
+
 // ===== INTERNAL SYSTEMS DIRECTORY =====
 app.get('/internal/systems', (req, res) => {
     // Auth: simple token check
