@@ -1,0 +1,50 @@
+[
+  {
+    "caseId": "OA-0005",
+    "customer": "RAFAH REAL ESTATE LLC SERIES I",
+    "county": "tarrant",
+    "savings": 118,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0005_filing_package.pdf",
+    "status": "READY"
+  },
+  {
+    "caseId": "OA-0019",
+    "customer": "Gabe Garcia",
+    "county": "bexar",
+    "savings": 1531,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0019_filing_package.pdf",
+    "status": "READY"
+  },
+  {
+    "caseId": "OA-0021",
+    "customer": "Ronald Morton",
+    "county": "tarrant",
+    "savings": 852,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0021_filing_package.pdf",
+    "status": "READY"
+  },
+  {
+    "caseId": "OA-0022",
+    "customer": "Jason Michael Matthews",
+    "county": "kaufman",
+    "savings": 668,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0022_filing_package.pdf",
+    "status": "READY"
+  },
+  {
+    "caseId": "OA-0025",
+    "customer": "Marco Aparicio",
+    "county": "bexar",
+    "savings": 8375,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0025_filing_package.pdf",
+    "status": "READY"
+  },
+  {
+    "caseId": "OA-0033",
+    "customer": "Jay Harbeson",
+    "county": "tarrant",
+    "savings": 355,
+    "pdfPath": "/Users/aquabot/Documents/OverAssessed/evidence-export/filing-packages/OA-0033_filing_package.pdf",
+    "status": "READY"
+  }
+]

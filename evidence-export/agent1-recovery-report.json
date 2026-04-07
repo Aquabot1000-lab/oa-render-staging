@@ -1,0 +1,86 @@
+{
+  "timestamp": "2026-04-07T17:35:23.114Z",
+  "casesAnalyzed": 16,
+  "recovered": [],
+  "stillBlocked": [
+    {
+      "case_id": "OA-TEST-001",
+      "reason": "Missing property_data (severe data gap)"
+    },
+    {
+      "case_id": "OA-0016",
+      "reason": "Missing property details in property_data (sqft, bedrooms, yearBuilt, lotSize); Engine: No comparable properties found after strict filtering due to value criteria."
+    },
+    {
+      "case_id": "OA-0013",
+      "reason": "Missing property details in property_data (sqft, bedrooms, bathrooms, yearBuilt, lotSize); Engine: No comparable properties found after strict filtering due to value criteria."
+    },
+    {
+      "case_id": "OA-0030",
+      "reason": "Engine: All raw comps rejected by strict filters (value, sqft, year, type); Missing property details in property_data (lotSize)."
+    },
+    {
+      "case_id": "OA-0001",
+      "reason": "Incomplete/unconfirmed address ('10243 Ellafalls'); Missing property details (sqft, bathrooms, lotSize); Browser tool unavailable for CAD search."
+    },
+    {
+      "case_id": "OA-0004",
+      "reason": "Incomplete/unconfirmed address ('12348 Tierra Buena Dr'); Missing property details (sqft, bathrooms, yearBuilt, lotSize); Browser tool unavailable for CAD search."
+    },
+    {
+      "case_id": "OA-0007",
+      "reason": "Missing property details in property_data (sqft, bedrooms, bathrooms, yearBuilt, lotSize); Engine: No comparable properties found after strict filtering due to value criteria."
+    },
+    {
+      "case_id": "OA-0002",
+      "reason": "Missing property_data (severe data gap)"
+    },
+    {
+      "case_id": "OA-0011",
+      "reason": "Missing property details in property_data (sqft, bedrooms, bathrooms, yearBuilt, lotSize); Browser tool unavailable for HCAD search."
+    },
+    {
+      "case_id": "OA-0010",
+      "reason": "Missing property details in property_data (sqft, bedrooms, bathrooms, yearBuilt, lotSize); Engine: No comparable properties found after strict filtering due to value criteria."
+    },
+    {
+      "case_id": "OA-0017",
+      "reason": "Engine: No raw comps found (Hunt County local CAD data file missing)."
+    },
+    {
+      "case_id": "OA-0034",
+      "reason": "Engine: No raw comps found (Williamson County local CAD bulk data)."
+    },
+    {
+      "case_id": "OA-0040",
+      "reason": "Missing property details in property_data (sqft, bedrooms, bathrooms, yearBuilt, lotSize); Browser tool unavailable for HCAD search."
+    },
+    {
+      "case_id": "OA-0027",
+      "reason": "Engine: All raw comps rejected by strict filters (value, sqft, year, type)."
+    },
+    {
+      "case_id": "OA-0015",
+      "reason": "Incomplete/unconfirmed address ('902 Summit Rd'); Missing property details (lotSize); Browser tool unavailable for CAD search."
+    },
+    {
+      "case_id": "OA-0020",
+      "reason": "Engine: All raw comps rejected by strict filters (value, sqft, year, type)."
+    }
+  ],
+  "dataDiscrepancies": [
+    {
+      "case_id": "OA-0013",
+      "submitted_value": 399042.0,
+      "cad_value": 279990,
+      "reason": "Submitted assessed value does not match CAD value"
+    }
+  ],
+  "recommendations": [
+    "Investigate and update local CAD bulk data for Hunt and Williamson Counties as they returned zero raw comps.",
+    "Review the strict filters in `verified-comp-engine.js` (VALUE_BAND_LOW, VALUE_BAND_HIGH, SQFT_TOLERANCE, YEAR_TOLERANCE, REQUIRE_PROPERTY_TYPE_MATCH, OUTLIER_MEDIAN_HIGH, OUTLIER_MEDIAN_LOW, MIN_AVG_QUALITY_SCORE, MAX_VARIANCE_PCT). They might be too restrictive, especially for properties in less dense areas or with unique characteristics.",
+    "Implement a mechanism to retrieve missing property data (sqft, bedrooms, bathrooms, yearBuilt, lotSize) from county CADs more robustly, possibly using paid APIs or improved scraping if the browser tool remains unavailable.",
+    "For cases with 'Incomplete/unconfirmed address', consider flagging them for manual review to obtain correct addresses.",
+    "Prioritize resolving the 'Submitted assessed value does not match CAD value' for OA-0013, as this indicates a fundamental data issue at intake or CAD value discrepancy."
+  ]
+}
