@@ -136,7 +136,9 @@ async function findVerifiedComps(subject, caseData) {
         console.log(`[VerifiedComp] Using Tarrant CAD data`);
         dataSource = dataSource || 'tarrant-cad';
 
-        const tadResults = tarrantData.searchByAddress(address, 3);
+        // Strip city/state/zip — Tarrant searchByAddress needs street only
+        const streetOnly = address.replace(/,.*$/, '').replace(/\.[\s]*$/, '').trim();
+        const tadResults = tarrantData.searchByAddress(streetOnly, 3);
         if (tadResults.length > 0) {
             subjectVerified = true;
             subjectParcelId = tadResults[0].accountNumber;

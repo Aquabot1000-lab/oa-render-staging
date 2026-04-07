@@ -295,6 +295,10 @@ class BISClient {
 // All BIS-powered Texas CADs that we support
 
 const BIS_COUNTIES = {
+    bexar: {
+        baseUrl: 'https://esearch.bcad.org',
+        name: 'Bexar County'
+    },
     kaufman: {
         baseUrl: 'https://esearch.kaufman-cad.org',
         name: 'Kaufman County'
@@ -307,22 +311,13 @@ const BIS_COUNTIES = {
         baseUrl: 'https://esearch.fbcad.org',
         name: 'Fort Bend County'
     },
-    travis: {
-        baseUrl: 'https://esearch.traviscad.org',
-        name: 'Travis County'
-    },
-    williamson: {
-        baseUrl: 'https://esearch.wcad.org',
-        name: 'Williamson County'
-    },
-    hunt: {
-        baseUrl: 'https://esearch.hunt-cad.org',
-        name: 'Hunt County'
-    },
     denton: {
         baseUrl: 'https://esearch.dentoncad.com',
         name: 'Denton County'
     }
+    // Removed: travis (esearch.traviscad.org DNS fails),
+    //          williamson (esearch.wcad.org cert mismatch),
+    //          hunt (esearch.hunt-cad.org cert mismatch)
 };
 
 /**
