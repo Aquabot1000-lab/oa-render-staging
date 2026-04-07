@@ -1200,6 +1200,11 @@ function buildStatusEmail(sub, newStatus, extras) {
 
 // ===== DRIP / FOLLOW-UP SEQUENCE =====
 async function runDripCheck() {
+    // ⛔ DRIP AUTOMATION DISABLED — Tyler directive 2026-04-07
+    // No automated drip emails without explicit approval
+    console.log('[Drip] DISABLED — manual control only');
+    return;
+    // --- ORIGINAL CODE BELOW (frozen) ---
     console.log('[Drip] Running follow-up check...');
     try {
         const submissions = await readAllSubmissions();
@@ -1307,6 +1312,11 @@ async function runDripCheck() {
 // Day 7: Mark as COLD
 // If customer replies → stop all automation
 async function runContactedFollowUp() {
+    // ⛔ FOLLOW-UP AUTOMATION DISABLED — Tyler directive 2026-04-07
+    // No automated follow-ups without explicit approval
+    console.log('[FollowUp] DISABLED — manual control only');
+    return;
+    // --- ORIGINAL CODE BELOW (frozen) ---
     console.log('[FollowUp] Running contacted lead follow-up check...');
     try {
         const submissions = await readAllSubmissions();
