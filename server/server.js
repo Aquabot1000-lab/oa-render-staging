@@ -2125,14 +2125,79 @@ app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
 
 // ==================== RENTCAST ANALYSIS ROUTES ====================
 // POST /api/analysis/run - full RentCast + ArcGIS analysis for any address
-// ⛔ FROZEN — data integrity freeze 2026-04-07
+// Persistence fix: saves full RentCast response + comps to properties table
 app.post('/api/analysis/run', authenticateToken, async (req, res) => {
-    return res.status(503).json({ error: 'Analysis engine FROZEN — data integrity review in progress. No analysis may run until validation layer is built.' });
     try {
-        const { address } = req.body;
+        const { address, client_id } = req.body;
         if (!address) return res.status(400).json({ error: 'Address is required' });
         console.log(`[RentCast] Running analysis for: ${address}`);
         const result = await runRentCastAnalysis(address);
+
+        // ── PERSIST TO SUPABASE ──
+        if (isSupabaseEnabled() && supabaseAdmin) {
+            const propertyData = {
+                rentcast_avm: result.rentcast || {},
+                county_parcel: result.county || {},
+                analysis: result.analysis || {},
+                raw_address: address,
+                fetched_at: new Date().toISOString()
+            };
+            const compResults = {
+                comparables: (result.rentcast && result.rentcast.comparables) || [],
+                comp_count: ((result.rentcast && result.rentcast.comparables) || []).length,
+                fetched_at: new Date().toISOString()
+            };
+            const assessedValue = (result.county && result.county.assessedValue) || null;
+            const proposedValue = (result.rentcast && result.rentcast.marketValue) || null;
+            const county = (result.analysis && result.analysis.county) || null;
+
+            // Try to find existing property row by address
+            const { data: existing } = await supabaseAdmin
+                .from('properties')
+                .select('id')
+                .ilike('address', address.trim())
+                .limit(1);
+
+            if (existing && existing.length > 0) {
+                // Update existing row
+                const { error: upErr } = await supabaseAdmin
+                    .from('properties')
+                    .update({
+                        property_data: propertyData,
+                        comp_results: compResults,
+                        current_assessed_value: assessedValue,
+                        proposed_value: proposedValue,
+                        county: county
+                    })
+                    .eq('id', existing[0].id);
+                if (upErr) console.error('[Persist] Update error:', upErr.message);
+                else console.log('[Persist] Updated property:', existing[0].id);
+                result._persisted = { action: 'updated', property_id: existing[0].id };
+            } else {
+                // Insert new row
+                const insertObj = {
+                    address: address.trim(),
+                    state: 'TX',
+                    property_type: (result.rentcast && result.rentcast.propertyType) || 'Single Family',
+                    year: new Date().getFullYear(),
+                    property_data: propertyData,
+                    comp_results: compResults,
+                    current_assessed_value: assessedValue,
+                    proposed_value: proposedValue,
+                    county: county
+                };
+                if (client_id) insertObj.client_id = client_id;
+                const { data: inserted, error: insErr } = await supabaseAdmin
+                    .from('properties')
+                    .insert(insertObj)
+                    .select('id')
+                    .single();
+                if (insErr) console.error('[Persist] Insert error:', insErr.message);
+                else console.log('[Persist] Inserted property:', inserted.id);
+                result._persisted = { action: 'inserted', property_id: inserted ? inserted.id : null };
+            }
+        }
+
         res.json({ success: true, ...result });
     } catch (error) {
         console.error('[RentCast] Analysis error:', error.message);
