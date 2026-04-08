@@ -212,8 +212,9 @@ app.post('/api/estimate', async (req, res) => {
     try {
         const { address, state, county, parcelNumber } = req.body;
 
-        if (!state || !county) {
-            return res.status(400).json({ error: 'State and county are required.' });
+        // State still preferred but county is now optional
+        if (!state) {
+            return res.status(400).json({ error: 'State is required.' });
         }
 
         if (!address && !parcelNumber) {
@@ -2507,13 +2508,13 @@ app.get('/api/portal/case', async (req, res) => {
 app.post('/api/pre-register', async (req, res) => {
     try {
         const { name, email, phone, property_address, county } = req.body;
-        if (!name || !email || !property_address || !county) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!name || !email || !property_address) {
+            return res.status(400).json({ error: 'Missing required fields: name, email, property_address' });
         }
         if (!isSupabaseEnabled()) {
             return res.status(503).json({ error: 'Database not configured' });
         }
-        const insertData = { name, email, property_address, county };
+        const insertData = { name, email, property_address, county: county || null };
         if (phone) insertData.phone = phone;
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
@@ -2995,8 +2996,8 @@ app.get('/simple', (req, res) => {
 app.post('/api/calculator-lead', async (req, res) => {
     try {
         const { name, email, phone, property_address, county, assessed_value, estimated_savings, property_type } = req.body;
-        if (!name || !email || !property_address || !county || !assessed_value) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!name || !email || !property_address) {
+            return res.status(400).json({ error: 'Missing required fields: name, email, property_address' });
         }
         if (!isSupabaseEnabled()) {
             return res.status(503).json({ error: 'Database not configured' });
@@ -3100,12 +3101,10 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         if (!propertyAddress || !propertyType || !ownerName || !phone || !email) {
             return res.status(400).json({ error: 'Missing required fields: propertyAddress, propertyType, ownerName, phone, email' });
         }
-        // SECTION 7: assessed_value and county now required
+        // SECTION 7: assessed_value still encouraged but county is optional
+        // County will be auto-detected from address if not provided
         if (!assessedValue) {
-            return res.status(400).json({ error: 'Assessed value is required. Check your county appraisal district notice.', field: 'assessedValue' });
-        }
-        if (!county) {
-            return res.status(400).json({ error: 'County is required to process your protest.', field: 'county' });
+            console.log('[Intake] No assessed value provided — will attempt auto-lookup');
         }
 
         // === Input validation & auto-correction ===
@@ -3122,6 +3121,18 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         const correctedEmail = validation.corrected.email || email;
         const correctedName = validation.corrected.ownerName || ownerName;
         const correctedAddress = validation.corrected.propertyAddress || propertyAddress;
+
+        // Auto-detect county from address if not provided
+        let resolvedCounty = county || null;
+        if (!resolvedCounty && correctedAddress) {
+            try {
+                const { detectCounty } = require('./services/property-data');
+                resolvedCounty = detectCounty(correctedAddress) || null;
+                if (resolvedCounty) console.log('[Intake] Auto-detected county:', resolvedCounty);
+            } catch (e) {
+                console.log('[Intake] County auto-detect failed:', e.message);
+            }
+        }
 
         // === Duplicate detection ===
         if (isSupabaseEnabled()) {
@@ -3153,7 +3164,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         }
 
         const caseId = await getNextCaseId();
-        const state = detectState(source, county, req.body.state, propertyAddress);
+        const state = detectState(source, resolvedCounty, req.body.state, propertyAddress);
 
         const submission = {
             id: uuidv4(),
@@ -3165,7 +3176,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             email: correctedEmail,
             assessedValue: assessedValue || null,
             state,
-            county: county || null,
+            county: resolvedCounty || null,
             notificationPref: notificationPref || 'both',
             bedrooms: bedrooms ? parseInt(bedrooms) : null,
             bathrooms: bathrooms ? parseFloat(bathrooms) : null,
@@ -3310,7 +3321,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                             client_name: correctedName,
                             property_address: correctedAddress,
                             state: state || '',
-                            county: county || '',
+                            county: resolvedCounty || '',
                             fee_type: 'initiation',
                             source: 'overassessed.ai'
                         }
@@ -3328,7 +3339,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         try {
             await supabaseAdmin.from('job_queue').insert({
                 job_type: 'analyze_lead',
-                payload: { lead_id: submission.id, case_id: caseId, address: propertyAddress, county: county || '', state: state || '' },
+                payload: { lead_id: submission.id, case_id: caseId, address: propertyAddress, county: resolvedCounty || '', state: state || '' },
                 priority: 3,
                 status: 'pending'
             });
@@ -3345,7 +3356,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                 console.log(`[AutoAnalysis] Starting auto-analysis for new case ${caseId}`);
                 // Run real comp engine + QA (no synthetic data)
                 try {
-                    const realResult = await fetchRealComps({ id: submission.id, property_address: propertyAddress, county: county || '', state: state || '', assessed_value: assessedValue });
+                    const realResult = await fetchRealComps({ id: submission.id, property_address: propertyAddress, county: resolvedCounty || '', state: state || '', assessed_value: assessedValue });
                     const comps = realResult.comps || [];
                     const sav = realResult.estimated_savings?.annual || 0;
                     await supabaseAdmin.from('submissions').update({
