@@ -2186,15 +2186,34 @@ app.post('/api/analysis/run', authenticateToken, async (req, res) => {
                     proposed_value: proposedValue,
                     county: county
                 };
-                if (client_id) insertObj.client_id = client_id;
-                const { data: inserted, error: insErr } = await supabaseAdmin
-                    .from('properties')
-                    .insert(insertObj)
-                    .select('id')
-                    .single();
-                if (insErr) console.error('[Persist] Insert error:', insErr.message);
-                else console.log('[Persist] Inserted property:', inserted.id);
-                result._persisted = { action: 'inserted', property_id: inserted ? inserted.id : null };
+                if (client_id) {
+                    insertObj.client_id = client_id;
+                } else {
+                    // Try to find client by address match
+                    const { data: matchClient } = await supabaseAdmin
+                        .from('clients')
+                        .select('id')
+                        .ilike('address', '%' + address.trim().split(',')[0].trim() + '%')
+                        .limit(1);
+                    if (matchClient && matchClient.length > 0) {
+                        insertObj.client_id = matchClient[0].id;
+                    } else {
+                        console.error('[Persist] No client_id provided and no matching client found. Cannot insert property without client_id.');
+                        result._persisted = { action: 'skipped', reason: 'no_client_id' };
+                    }
+                }
+                if (!insertObj.client_id) {
+                    // Skip insert — already set _persisted above
+                } else {
+                    const { data: inserted, error: insErr } = await supabaseAdmin
+                        .from('properties')
+                        .insert(insertObj)
+                        .select('id')
+                        .single();
+                    if (insErr) console.error('[Persist] Insert error:', insErr.message);
+                    else console.log('[Persist] Inserted property:', inserted.id);
+                    result._persisted = { action: 'inserted', property_id: inserted ? inserted.id : null };
+                }
             }
         }
 
