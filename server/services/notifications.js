@@ -169,19 +169,29 @@ const CO_COUNTIES = [
 ];
 
 function detectState(source, county, explicitState, address) {
-    // 1. Explicit state from form always wins
-    if (explicitState && ['TX', 'GA', 'WA', 'AZ', 'CO'].includes(explicitState.toUpperCase())) {
-        return explicitState.toUpperCase();
+    // ── FIXED 2026-04-09: Address-based detection ALWAYS runs first ──
+    // Old bug: Hidden form field hardcoded TX, overriding address-detected state
+    // Now: address wins over explicitState when they conflict
+
+    // 1. Detect from address (MOST RELIABLE — actual property location)
+    let addressState = null;
+    if (address) {
+        const a = address.toLowerCase();
+        if (/, ga\b/i.test(a) || /\bgeorgia\b/i.test(a) || /\b(atlanta|fulton|dekalb|gwinnett|cobb)\b/i.test(a)) addressState = 'GA';
+        else if (/, wa\b/i.test(a) || /\bwashington(?!.*dc)\b/i.test(a) || /\b(seattle|king county|snohomish|pierce|spokane|bremerton|kettle falls|bellingham)\b/i.test(a)) addressState = 'WA';
+        else if (/, az\b/i.test(a) || /\barizona\b/i.test(a) || /\b(phoenix|scottsdale|mesa|tempe|chandler|maricopa)\b/i.test(a)) addressState = 'AZ';
+        else if (/, co\b/i.test(a) || /\bcolorado\b/i.test(a) || /\b(denver|boulder|colorado springs|aurora|fort collins|aspen)\b/i.test(a)) addressState = 'CO';
+        else if (/, tx\b/i.test(a) || /\btexas\b/i.test(a) || /\b(san antonio|houston|dallas|austin|fort worth|el paso)\b/i.test(a)) addressState = 'TX';
     }
-    // 2. Detect from source string
-    if (source) {
-        const s = source.toLowerCase();
-        if (s.includes('ga') || s.includes('georgia')) return 'GA';
-        if (s.includes('wa') || s.includes('washington')) return 'WA';
-        if (s.includes('az') || s.includes('arizona')) return 'AZ';
-        if (s.includes('co') || s.includes('colorado')) return 'CO';
+
+    if (addressState) {
+        if (explicitState && explicitState.toUpperCase() !== addressState) {
+            console.log(`[DetectState] ⚠️ Address says ${addressState} but form sent ${explicitState} — using address-derived ${addressState}`);
+        }
+        return addressState;
     }
-    // 3. Detect from county name
+
+    // 2. Detect from county name
     if (county) {
         const c = (county || '').toLowerCase();
         if (GA_COUNTIES.some(gc => gc.toLowerCase() === c)) return 'GA';
@@ -189,19 +199,23 @@ function detectState(source, county, explicitState, address) {
         if (AZ_COUNTIES.some(ac => ac.toLowerCase() === c)) return 'AZ';
         if (CO_COUNTIES.some(cc => cc.toLowerCase() === c)) return 'CO';
     }
-    // 4. Detect from address
-    if (address) {
-        const a = address.toLowerCase();
-        // GA patterns
-        if (/, ga\b|georgia/i.test(a) || /atlanta|fulton|dekalb|gwinnett|cobb/i.test(a)) return 'GA';
-        // WA patterns
-        if (/, wa\b|washington/i.test(a) || /seattle|king county|snohomish|pierce|spokane/i.test(a)) return 'WA';
-        // AZ patterns
-        if (/, az\b|arizona/i.test(a) || /phoenix|scottsdale|mesa|tempe|chandler|maricopa/i.test(a)) return 'AZ';
-        // CO patterns
-        if (/, co\b|colorado/i.test(a) || /denver|boulder|colorado springs|aurora|fort collins/i.test(a)) return 'CO';
+
+    // 3. Detect from source string
+    if (source) {
+        const s = source.toLowerCase();
+        if (s.includes('-ga') || s.includes('georgia')) return 'GA';
+        if (s.includes('-wa') || s.includes('washington')) return 'WA';
+        if (s.includes('-az') || s.includes('arizona')) return 'AZ';
+        if (s.includes('-co') || s.includes('colorado')) return 'CO';
     }
+
+    // 4. Explicit state from form (ONLY if address/county/source didn't resolve)
+    if (explicitState && ['TX', 'GA', 'WA', 'AZ', 'CO'].includes(explicitState.toUpperCase())) {
+        return explicitState.toUpperCase();
+    }
+
     // 5. Default TX only as absolute last resort
+    console.log(`[DetectState] ⚠️ Could not determine state for address: "${address}" — defaulting TX`);
     return 'TX';
 }
 

@@ -853,6 +853,11 @@ function logSmsAttempt(to, success, errorCode, fallback, context) {
 
 // Core SMS send — returns {success, sid, errorCode}
 async function sendSMS(to, message, { useMessagingService = false } = {}) {
+    // ── KILL SWITCH CHECK ── Tyler directive 2026-04-09
+    if (OA_EMAIL_KILLED) {
+        console.log(`[SMS BLOCKED] Kill switch ON. Would have sent to ${to}: "${message.substring(0, 50)}..."`);
+        return { success: false, errorCode: 'KILLED' };
+    }
     if (!twilioClient) { console.log('SMS skipped - no Twilio client'); return { success: false, errorCode: 'NO_CLIENT' }; }
     if (!to) { console.log('SMS skipped - no recipient'); return { success: false, errorCode: 'NO_RECIPIENT' }; }
     try {
@@ -985,17 +990,14 @@ function buildTelegramLeadAlert(sub) {
 const OA_SMS_ENABLED = false;
 
 async function sendClientSMS(phone, message, { email, customerName, context } = {}) {
+    // ── MASTER KILL SWITCH ── Blocks ALL SMS + email fallback
+    if (OA_EMAIL_KILLED) {
+        console.log(`[SMS BLOCKED] Master kill switch ON. Would have sent to ${phone}: "${message.substring(0, 50)}..."`);
+        return { success: false, reason: 'kill_switch' };
+    }
     if (!OA_SMS_ENABLED) {
-        console.log(`[SMS] ⚠️ OA SMS disabled (kill switch). Would have sent to ${phone}. Falling back to email.`);
-        // Auto-fallback to email if available
-        if (email) {
-            try {
-                await sendClientEmail(email, 'OverAssessed Update', `<p>${message}</p>`);
-                console.log(`[SMS] ✉️ Email fallback sent to ${email}`);
-                return { success: true, fallback: 'email', to: email };
-            } catch (e) {
-                console.error(`[SMS] Email fallback also failed:`, e.message);
-            }
+        console.log(`[SMS] ⚠️ OA SMS disabled. Would have sent to ${phone}. No fallback (master kill active).`);
+        return { success: false, reason: 'sms_disabled' };
         }
         return { success: false, reason: 'sms_disabled', fallback: email ? 'email_attempted' : 'no_email' };
     }
@@ -1007,6 +1009,11 @@ async function sendClientSMS(phone, message, { email, customerName, context } = 
 }
 
 async function sendNotificationEmail(subject, html, toEmail) {
+    // ── KILL SWITCH CHECK ── Tyler directive 2026-04-03, hardened 2026-04-09
+    if (OA_EMAIL_KILLED) {
+        console.log(`[EMAIL BLOCKED] Kill switch ON. Would have sent: "${subject}" to ${toEmail || 'notify'}`);
+        return; // Silent return — no error, no send
+    }
     // HARD RULE: SendGrid only. No fallbacks. No silent failures.
     if (!process.env.SENDGRID_API_KEY) {
         const err = 'SENDGRID_API_KEY missing — email BLOCKED (no fallback allowed)';
@@ -1099,6 +1106,11 @@ function getCommTier(subject, html, recipientStatus) {
 }
 
 async function sendClientEmail(toEmail, subject, html, options = {}) {
+    // ── MASTER KILL SWITCH ── Blocks ALL client emails, including auto-send
+    if (OA_EMAIL_KILLED) {
+        console.log(`[EMAIL BLOCKED] Master kill switch ON. Would have sent: "${subject}" to ${toEmail}`);
+        return { success: false, reason: 'kill_switch', tier: 'blocked' };
+    }
     const tier = getCommTier(subject, html, options.recipientStatus);
     const isAutoSend = tier.startsWith('auto-send');
     
