@@ -455,7 +455,10 @@ function submissionToRow(sub) {
         updated_at: sub.updatedAt,
         deleted_at: sub.deletedAt || null,
         follow_up_date: sub.followUpDate || null,
-        follow_up_note: sub.followUpNote || null
+        follow_up_note: sub.followUpNote || null,
+        notice_url: sub.noticeUrl || null,
+        agreement_url: sub.agreementUrl || null,
+        upload_status: sub.uploadStatus || 'none'
     };
 }
 
@@ -516,6 +519,9 @@ function rowToSubmission(row) {
         deletedAt: row.deleted_at || null,
         followUpDate: row.follow_up_date || null,
         followUpNote: row.follow_up_note || null,
+        noticeUrl: row.notice_url || null,
+        agreementUrl: row.agreement_url || null,
+        uploadStatus: row.upload_status || 'none',
         // Contacted follow-up fields (stored in drip_state.contacted)
         contactedDrip: row.drip_state?.contacted || null,
         customerReplied: row.follow_up_note?.includes('Customer replied') || false,
@@ -4367,10 +4373,25 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const filePath = `/uploads/notices/${req.file.filename}`;
+        // Upload to Supabase Storage (permanent) instead of local filesystem
+        let filePath = `/uploads/notices/${req.file.filename}`; // local fallback
+        try {
+            const storage = require('./services/storage');
+            const sub0 = await findSubmission(req.params.id);
+            const caseId = sub0?.caseId || sub0?.case_id || req.params.id;
+            const result = await storage.uploadNotice(caseId, req.file);
+            if (result && result.url) {
+                filePath = result.url;
+                console.log(`[Storage] Notice uploaded to Supabase: ${result.url}`);
+            }
+        } catch (storageErr) {
+            console.error('[Storage] Supabase upload failed, using local fallback:', storageErr.message);
+        }
         const pinMatch = req.file.originalname.match(/(\d{6,})/);
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
             submissions[idx].noticeOfValue = filePath;
+            submissions[idx].noticeUrl = filePath.startsWith('http') ? filePath : null;
+            submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
             submissions[idx].updatedAt = new Date().toISOString();
             if (pinMatch) submissions[idx].pin = pinMatch[1];
         });

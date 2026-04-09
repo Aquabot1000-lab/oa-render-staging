@@ -574,6 +574,7 @@
                     <p><strong>Signed by:</strong> <span id="detailFeeSigName"></span></p>
                     <p><strong>Date:</strong> <span id="detailFeeSigDate"></span></p>
                     <p><strong>Rate:</strong> <span id="detailFeeRate"></span> contingency</p>
+                    <p id="detailAgreementLinkRow" style="display:none;"><strong>Agreement:</strong> <a id="detailAgreementLink" href="#" target="_blank">📄 View Agreement</a></p>
                 </div>
             </div>
             <div id="detailFeeUnsigned" style="display:none;">
@@ -588,8 +589,11 @@
         <div class="detail-section">
             <h3>📊 Analysis</h3>
             <div class="detail-row"><label>Analysis Status</label><div class="value" id="detailAnalysisStatus" style="font-weight:700;"></div></div>
-            <div class="detail-row"><label>Recommended Value</label><div class="value" id="detailMarketVal"></div></div>
+            <div class="detail-row"><label>Assessed Value (CAD)</label><div class="value" id="detailAssessedCad"></div></div>
+            <div class="detail-row"><label>Median Comp Value</label><div class="value" id="detailMedianComp"></div></div>
+            <div class="detail-row"><label>Recommended Value (AVM)</label><div class="value" id="detailMarketVal"></div></div>
             <div class="detail-row"><label>Potential Reduction</label><div class="value" id="detailReduction" style="color:var(--green);font-weight:700;"></div></div>
+            <div class="detail-row"><label>Reduction %</label><div class="value" id="detailReductionPct" style="color:var(--green);font-weight:700;"></div></div>
             <div class="detail-row"><label>Est. Tax Savings</label><div class="value" id="detailEstSavings" style="color:var(--green);font-weight:700;"></div></div>
         </div>
     </div>
@@ -1055,7 +1059,7 @@ function renderSubmissionsTable() {
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
             <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
             <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '-'}</td>
-            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${s.noticeOfValue ? '<span class="badge-icon">📄</span>' : ''}</td>
+            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${(s.noticeUrl || s.notice_url || s.noticeOfValue) ? '<span class="badge-icon" title="Notice on file">📄</span>' : ''}</td>
             <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '-')}</td>
             <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
             <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '-'}</td>
@@ -1079,18 +1083,21 @@ function renderSignatures() {
 }
 
 function renderNotices() {
-    const withNotice = submissions.filter(s => s.noticeOfValue);
+    const withNotice = submissions.filter(s => s.noticeUrl || s.notice_url || s.noticeOfValue);
     if (!withNotice.length) { document.getElementById('noticeEmpty').style.display = 'block'; document.getElementById('noticesBody').innerHTML = ''; return; }
     document.getElementById('noticeEmpty').style.display = 'none';
-    document.getElementById('noticesBody').innerHTML = withNotice.map(s => `
+    document.getElementById('noticesBody').innerHTML = withNotice.map(s => {
+        const link = s.noticeUrl || s.notice_url || s.noticeOfValue;
+        const isLive = link && link.startsWith('http');
+        return `
         <tr onclick="openDetail('${s.id}')">
             <td><strong>${esc(s.caseId)}</strong></td>
             <td>${esc(s.ownerName)}</td>
-            <td><a href="${s.noticeOfValue}" target="_blank" onclick="event.stopPropagation()">📄 View</a></td>
+            <td><a href="${link}" target="_blank" onclick="event.stopPropagation()">${isLive ? '📄 View' : '⚠️ Unavailable'}</a></td>
             <td>${s.pin || '-'}</td>
             <td>${esc(s.propertyAddress).substring(0, 30)}</td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 function renderRevenue() {
@@ -1202,9 +1209,13 @@ function openDetail(id) {
         document.getElementById('detailFile').href = s.noticeFile;
     } else { document.getElementById('detailFileRow').style.display = 'none'; }
 
-    if (s.noticeOfValue) {
+    // Prefer permanent Supabase URL, fall back to old Railway path
+    const noticeLink = s.noticeUrl || s.notice_url || s.noticeOfValue;
+    if (noticeLink) {
         document.getElementById('detailNoticeRow').style.display = 'block';
-        document.getElementById('detailNotice').href = s.noticeOfValue;
+        document.getElementById('detailNotice').href = noticeLink;
+        const isLive = noticeLink.startsWith('http');
+        document.getElementById('detailNotice').textContent = isLive ? '📄 View Notice' : '⚠️ Notice (may be unavailable)';
         document.getElementById('detailPin').textContent = s.pin ? `PIN: ${s.pin}` : '';
     } else { document.getElementById('detailNoticeRow').style.display = 'none'; }
 
@@ -1224,6 +1235,14 @@ function openDetail(id) {
         document.getElementById('detailFeeSigName').textContent = feeSig.fullName || s.ownerName || '-';
         document.getElementById('detailFeeSigDate').textContent = feeSig.signedAt ? new Date(feeSig.signedAt).toLocaleString() : (s.fee_agreement_signed_at ? new Date(s.fee_agreement_signed_at).toLocaleString() : '-');
         document.getElementById('detailFeeRate').textContent = feeSig.applicableRate || '-';
+        // Agreement document link
+        const agrLink = s.agreementUrl || s.agreement_url;
+        if (agrLink) {
+            document.getElementById('detailAgreementLinkRow').style.display = 'block';
+            document.getElementById('detailAgreementLink').href = agrLink;
+        } else {
+            document.getElementById('detailAgreementLinkRow').style.display = 'none';
+        }
     } else {
         document.getElementById('detailFeeSigned').style.display = 'none';
         document.getElementById('detailFeeUnsigned').style.display = 'block';
@@ -1233,11 +1252,18 @@ function openDetail(id) {
     if (s.analysisReport || s.compResults) {
         document.getElementById('detailAnalysisSection').style.display = 'block';
         document.getElementById('detailAnalysisStatus').textContent = s.analysisStatus || (s.analysisReport ? 'Complete' : 'Not Started');
-        // Use primary recommended value from compResults (respects E&U sqft guard)
+        
+        const assessed = Number(String(s.assessedValue || '0').replace(/[$,]/g, ''));
         const recVal = s.compResults?.recommendedValue || s.analysisReport?.estimatedMarketValue;
+        const medianComp = s.compResults?.medianCompValue || s.compResults?.median || null;
         const reduction = s.compResults?.reduction || s.analysisReport?.estimatedReduction;
+        const reductionPct = (assessed && reduction) ? ((reduction / assessed) * 100).toFixed(1) : null;
+        
+        document.getElementById('detailAssessedCad').textContent = assessed ? '$' + assessed.toLocaleString() : '-';
+        document.getElementById('detailMedianComp').textContent = medianComp ? '$' + Number(medianComp).toLocaleString() : '-';
         document.getElementById('detailMarketVal').textContent = recVal ? '$' + recVal.toLocaleString() : '-';
         document.getElementById('detailReduction').textContent = reduction ? '$' + reduction.toLocaleString() : '-';
+        document.getElementById('detailReductionPct').textContent = reductionPct ? reductionPct + '%' : '-';
         document.getElementById('detailEstSavings').textContent = s.estimatedSavings ? '$' + Number(s.estimatedSavings).toLocaleString() + '/yr' : '-';
     } else { document.getElementById('detailAnalysisSection').style.display = 'none'; }
 
