@@ -562,15 +562,35 @@ async function readAllSubmissions(includeDeleted = false) {
 async function writeSubmission(submission) {
     let supabaseOk = false;
     if (isSupabaseEnabled()) {
-        try {
-            const row = submissionToRow(submission);
-            const { error } = await supabaseAdmin
-                .from('submissions')
-                .upsert(row, { onConflict: 'id' });
-            if (error) throw error;
-            supabaseOk = true;
-        } catch (err) {
-            console.error('[Submissions] Supabase write failed:', err.message);
+        const MAX_RETRIES = 3;
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const row = submissionToRow(submission);
+                const { error } = await supabaseAdmin
+                    .from('submissions')
+                    .upsert(row, { onConflict: 'id' });
+                if (error) {
+                    // Detect case_id duplicate collision
+                    if (error.message && error.message.includes('submissions_case_id_key')) {
+                        console.error(`[Submissions] CASE ID COLLISION: ${submission.caseId} already exists (attempt ${attempt}/${MAX_RETRIES})`);
+                        if (attempt < MAX_RETRIES) {
+                            // Re-generate case ID and retry
+                            const newCaseId = await getNextCaseId();
+                            console.log(`[Submissions] Retrying with new case ID: ${newCaseId}`);
+                            submission.caseId = newCaseId;
+                            continue;
+                        }
+                    }
+                    throw error;
+                }
+                supabaseOk = true;
+                break;
+            } catch (err) {
+                if (attempt === MAX_RETRIES || !(err.message && err.message.includes('submissions_case_id_key'))) {
+                    console.error('[Submissions] Supabase write failed:', err.message);
+                    break;
+                }
+            }
         }
     }
     // Always write to local JSON as backup (best-effort)
@@ -714,26 +734,41 @@ async function writeJsonFile(filePath, data) {
 }
 
 async function getNextCaseId() {
-    // Try Supabase first to get max case number (survives Railway restarts)
+    // ── FIXED 2026-04-09: Query MAX(case_id) directly, not most-recent created_at ──
+    // Old bug: ORDER BY created_at DESC LIMIT 1 could return a NULL/BM case_id,
+    // causing the counter to reset to OA-0001 and collide with existing records.
     if (isSupabaseEnabled()) {
         try {
+            // Get ALL OA-prefixed case_ids and find the true maximum number
             const { data, error } = await supabaseAdmin
                 .from('submissions')
                 .select('case_id')
-                .order('created_at', { ascending: false })
-                .limit(1);
+                .like('case_id', 'OA-%')
+                .not('case_id', 'like', 'OA-TEST%');
             if (!error && data && data.length > 0) {
-                const match = (data[0].case_id || '').match(/OA-(\d+)/);
-                const lastNum = match ? parseInt(match[1]) : 0;
-                const nextNum = lastNum + 1;
-                return `OA-${String(nextNum).padStart(4, '0')}`;
+                let maxNum = 0;
+                for (const row of data) {
+                    const match = (row.case_id || '').match(/^OA-(\d+)$/);
+                    if (match) {
+                        const num = parseInt(match[1], 10);
+                        if (num > maxNum) maxNum = num;
+                    }
+                }
+                const nextNum = maxNum + 1;
+                const nextId = `OA-${String(nextNum).padStart(4, '0')}`;
+                console.log(`[CaseId] Next case ID: ${nextId} (max found: OA-${String(maxNum).padStart(4, '0')})`);
+                return nextId;
             }
-            // No submissions yet in Supabase - check local counter then start at 1
+            // No OA- submissions yet — start at OA-0001
+            console.log('[CaseId] No existing OA- records, starting at OA-0001');
+            return 'OA-0001';
         } catch (err) {
-            console.error('[CaseId] Supabase counter failed:', err.message);
+            console.error('[CaseId] Supabase counter query failed:', err.message);
+            // Do NOT fall through to local counter — that resets to 0 on Railway restart
+            throw new Error(`[CaseId] Cannot generate safe case ID: ${err.message}`);
         }
     }
-    // Fallback to local counter file
+    // Fallback to local counter file (only if Supabase is disabled)
     let counter;
     try {
         counter = JSON.parse(await fs.readFile(COUNTER_FILE, 'utf8'));
