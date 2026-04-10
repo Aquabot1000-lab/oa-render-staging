@@ -2711,7 +2711,7 @@ app.post('/api/simple-lead', async (req, res) => {
                         from: { email: 'tyler@overassessed.ai', name: 'OverAssessed Team' },
                         replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                         subject: 'Your Property Tax Savings — Next Step',
-                        html: `<p>Hi there,</p><p>Thanks for submitting your property for review.</p><p>We're currently analyzing your property to identify potential tax savings. One of our specialists will review your case and follow up with you shortly.</p><p>If you'd like to speed things up, feel free to reply to this email with any additional details or questions.</p><p>Best,<br>OverAssessed Team</p>`
+                        html: leadAcknowledgmentEmail({ propertyAddress: property_address })
                     });
                     console.log(`[SIMPLE LEAD] ✅ Auto-email sent to ${email}`);
                 } catch (emailErr) {
