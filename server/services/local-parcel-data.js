@@ -36,6 +36,11 @@ class LocalParcelData {
     isLoaded() { return this.loaded; }
 
     async loadData() {
+        if (process.env.SKIP_BULK_DATA === 'true') {
+            console.log(`[${this.countyName}] Skipping bulk data load (SKIP_BULK_DATA=true)`);
+            this.loaded = true;
+            return;
+        }
         if (this.loaded || this.loading) return;
         this.loading = true;
 

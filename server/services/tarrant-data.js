@@ -84,6 +84,11 @@ function expandRecord(r) {
  * Call once at server startup.
  */
 async function loadData() {
+    if (process.env.SKIP_BULK_DATA === 'true') {
+        console.log('[tarrantData] Skipping bulk data load (SKIP_BULK_DATA=true)');
+        loaded = true;
+        return true;
+    }
     if (loaded || loading) return loaded;
     loading = true;
 
