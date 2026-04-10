@@ -3386,16 +3386,9 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             console.error('[Intake] Failed to create Stripe checkout:', stripeErr.message);
         }
 
-        // Queue analysis job for the worker system
-        try {
-            await supabaseAdmin.from('job_queue').insert({
-                job_type: 'analyze_lead',
-                payload: { lead_id: submission.id, case_id: caseId, address: propertyAddress, county: resolvedCounty || '', state: state || '' },
-                priority: 3,
-                status: 'pending'
-            });
-            console.log(`[Intake] Queued analyze_lead job for ${caseId}`);
-        } catch (qErr) { console.error(`[Intake] Queue insert failed:`, qErr.message); }
+        // ⛔ FREEZE: Do NOT enqueue analyze_lead jobs — build mode (Tyler directive 2026-04-09)
+        // Leads are created but no auto-analysis or status changes until explicitly approved
+        console.log(`[Intake] ⛔ FREEZE — skipping analyze_lead job for ${caseId} (build mode)`);
 
         // ⛔ AUTO-ANALYSIS DISABLED — Tyler directive 2026-04-07
         // System-wide data integrity failure: analysis engine generates fake comp addresses
@@ -7632,6 +7625,11 @@ async function orchExecuteJob(job) {
 }
 
 async function orchAnalyzeLead(payload) {
+    // ⛔ FREEZE: No auto-analysis or status changes — build mode (Tyler directive 2026-04-09)
+    console.log(`[ORCH:ANALYZE] ⛔ FROZEN — skipping analyze_lead for ${payload?.case_id || payload?.lead_id || '?'} (build mode)`);
+    return { frozen: true, reason: 'build_mode_freeze', case_id: payload?.case_id };
+
+    // === FROZEN CODE BELOW — do not execute until freeze is lifted ===
     const { lead_id } = payload;
     if (!lead_id) throw new Error('lead_id required');
     const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
@@ -7822,6 +7820,11 @@ function validateCrmEvidence(lead) {
 }
 
 async function orchStageTransition(payload) {
+    // ⛔ FREEZE: No auto stage transitions — build mode (Tyler directive 2026-04-09)
+    console.log(`[CRM-WORKER] ⛔ FROZEN — skipping stage transition for ${payload?.lead_id || '?'} → ${payload?.target_stage || '?'} (build mode)`);
+    return { frozen: true, reason: 'build_mode_freeze', target_stage: payload?.target_stage };
+
+    // === FROZEN CODE BELOW — do not execute until freeze is lifted ===
     const { lead_id, target_stage, reason } = payload;
     if (!lead_id || !target_stage) throw new Error('lead_id and target_stage required');
     const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
