@@ -3315,7 +3315,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
 
                 if (prices.data.length > 0) {
                     const priceId = prices.data[0].id;
-                    const baseUrl = process.env.APP_URL || 'https://disciplined-alignment-production.up.railway.app';
+                    const baseUrl = process.env.APP_URL || 'https://overassessed.ai';
 
                     const session = await stripe.checkout.sessions.create({
                         payment_method_types: ['card'],
@@ -5277,6 +5277,36 @@ app.patch('/api/creator-reply/:id', (req, res) => {
     res.json({ success: true, reply });
 });
 
+// Request customer re-upload their notice
+app.post('/api/cases/:id/request-notice', authenticateToken, async (req, res) => {
+    try {
+        const sub = await findSubmission(req.params.id);
+        if (!sub) return res.status(404).json({ error: 'Case not found' });
+        if (!sub.email) return res.status(400).json({ error: 'No customer email on file' });
+        
+        const { uploadNoticeEmail } = require('./oa-email-templates');
+        const html = uploadNoticeEmail({
+            propertyAddress: sub.propertyAddress || sub.property_address || 'your property',
+            caseNum: sub.caseId || sub.case_id
+        });
+        
+        await sgMail.send({
+            to: sub.email,
+            bcc: [{ email: 'tyler@overassessed.ai' }],
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+            subject: `Action Needed: Upload Your Notice of Appraised Value`,
+            html
+        });
+        
+        console.log(`[Notice Request] Sent re-upload email to ${sub.email} for ${sub.caseId || sub.case_id}`);
+        res.json({ success: true, email: sub.email, caseId: sub.caseId || sub.case_id });
+    } catch (error) {
+        console.error('[Notice Request] Failed:', error.message);
+        res.status(500).json({ error: 'Failed to send notice request email: ' + error.message });
+    }
+});
+
 app.post('/api/notify', authenticateToken, async (req, res) => {
     try {
         const { submissionId } = req.body;
@@ -6627,7 +6657,7 @@ app.get('/api/previews/batch', authenticateToken, async (req, res) => {
                 assessed: av ? `$${av.toLocaleString()}` : '?',
                 savingsRange: sLow > 0 ? `$${sLow.toLocaleString()}–$${sHigh.toLocaleString()}/yr` : '?',
                 status: l.status,
-                previewUrl: `https://disciplined-alignment-production.up.railway.app/api/preview/${l.case_id}`
+                previewUrl: `https://overassessed.ai/api/preview/${l.case_id}`
             };
         });
 
@@ -7859,7 +7889,7 @@ async function orchGenerateMessage(payload) {
     const comps = lead.comp_results?.comps || [];
     const savings = lead.estimated_savings || 0;
     const assessed = lead.assessed_value || 0;
-    const baseUrl = process.env.APP_URL || 'https://disciplined-alignment-production.up.railway.app';
+    const baseUrl = process.env.APP_URL || 'https://overassessed.ai';
     
     const data = {
         case_id: lead.case_id,

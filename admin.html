@@ -713,8 +713,8 @@
                 <div class="panel-header"><h2>📋 Pre-Registrations</h2></div>
                 <div style="padding:1rem;">
                     <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Property Address</th><th>County</th><th>Status</th><th>Date</th></tr></thead>
-                        <tbody id="preregBody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading...</td></tr></tbody>
+                        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Property Address</th><th>County</th><th>State</th><th>Status</th><th>Date</th></tr></thead>
+                        <tbody id="preregBody"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -1057,7 +1057,7 @@ function renderSubmissionsTable() {
             <td>${new Date(s.createdAt).toLocaleDateString()}</td>
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
-            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${(s.state||'TX')==='GA'?'#fef3c7;color:#92400e':'#dbeafe;color:#1e40af'}">${s.state||'TX'}</span></td>
+            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${!s.state?'#f8d7da;color:#721c24':s.state==='GA'?'#fef3c7;color:#92400e':s.state==='WA'?'#e0f2fe;color:#0c4a6e':'#dbeafe;color:#1e40af'}">${s.state||'⚠️'}</span></td>
             <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '-'}</td>
             <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${(s.noticeUrl || s.notice_url || s.noticeOfValue) ? '<span class="badge-icon" title="Notice on file">📄</span>' : ''}</td>
             <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '-')}</td>
@@ -1688,17 +1688,21 @@ async function loadPreRegistrations() {
         if (!res.ok) return;
         const data = await res.json();
         const tbody = document.getElementById('preregBody');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No pre-registrations yet</td></tr>'; return; }
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">No pre-registrations yet</td></tr>'; return; }
         tbody.innerHTML = data.map(r => {
             const statusBadge = r.status === 'WAITING_FOR_NOTICE_UPLOAD'
                 ? '<span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">WAITING FOR NOTICE</span>'
                 : `<span style="background:#e8e6f0;color:#5a4bd6;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">${esc(r.status || 'UNKNOWN')}</span>`;
+            const stateBadge = r.state 
+                ? `<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">${esc(r.state)}</span>`
+                : '<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">⚠️ NONE</span>';
             return `<tr>
             <td>${esc(r.name)}</td>
             <td>${esc(r.email)}</td>
             <td>${esc(r.phone || '')}</td>
             <td>${esc(r.property_address)}</td>
-            <td>${esc(r.county)}</td>
+            <td>${esc(r.county || '—')}</td>
+            <td>${stateBadge}</td>
             <td>${statusBadge}</td>
             <td>${new Date(r.created_at).toLocaleDateString()}</td>
         </tr>`;
