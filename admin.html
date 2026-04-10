@@ -713,8 +713,8 @@
                 <div class="panel-header"><h2>📋 Pre-Registrations</h2></div>
                 <div style="padding:1rem;">
                     <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>Property Address</th><th>County</th><th>Date</th></tr></thead>
-                        <tbody id="preregBody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading...</td></tr></tbody>
+                        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Property Address</th><th>County</th><th>Status</th><th>Date</th></tr></thead>
+                        <tbody id="preregBody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -1688,14 +1688,21 @@ async function loadPreRegistrations() {
         if (!res.ok) return;
         const data = await res.json();
         const tbody = document.getElementById('preregBody');
-        if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No pre-registrations yet</td></tr>'; return; }
-        tbody.innerHTML = data.map(r => `<tr>
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No pre-registrations yet</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => {
+            const statusBadge = r.status === 'WAITING_FOR_NOTICE_UPLOAD'
+                ? '<span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">WAITING FOR NOTICE</span>'
+                : `<span style="background:#e8e6f0;color:#5a4bd6;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">${esc(r.status || 'UNKNOWN')}</span>`;
+            return `<tr>
             <td>${esc(r.name)}</td>
             <td>${esc(r.email)}</td>
+            <td>${esc(r.phone || '')}</td>
             <td>${esc(r.property_address)}</td>
             <td>${esc(r.county)}</td>
+            <td>${statusBadge}</td>
             <td>${new Date(r.created_at).toLocaleDateString()}</td>
-        </tr>`).join('');
+        </tr>`;
+        }).join('');
     } catch(e) { console.error('Failed to load pre-registrations', e); }
 }
 
