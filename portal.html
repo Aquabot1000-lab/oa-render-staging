@@ -558,6 +558,19 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
 <script>
 let caseData = null;
 
+// Check URL params for pre-fill (from email links)
+const urlParams = new URLSearchParams(window.location.search);
+const urlCase = urlParams.get('case') || urlParams.get('id');
+const urlEmail = urlParams.get('email');
+if (urlCase) {
+    const caseField = document.getElementById('loginCaseId');
+    if (caseField) caseField.value = urlCase.toUpperCase();
+}
+if (urlEmail) {
+    const emailField = document.getElementById('loginEmail');
+    if (emailField) emailField.value = urlEmail;
+}
+
 // Check stored session
 const stored = sessionStorage.getItem('oa_portal');
 if (stored) {
