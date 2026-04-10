@@ -998,8 +998,6 @@ async function sendClientSMS(phone, message, { email, customerName, context } = 
     if (!OA_SMS_ENABLED) {
         console.log(`[SMS] ⚠️ OA SMS disabled. Would have sent to ${phone}. No fallback (master kill active).`);
         return { success: false, reason: 'sms_disabled' };
-        }
-        return { success: false, reason: 'sms_disabled', fallback: email ? 'email_attempted' : 'no_email' };
     }
     // Normalize phone to E.164
     let cleaned = phone.replace(/\D/g, '');
