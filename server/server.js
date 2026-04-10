@@ -2571,6 +2571,13 @@ app.post('/api/pre-register', async (req, res) => {
         
         const insertData = { name, email, property_address, county, state, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
         if (phone) insertData.phone = phone;
+        
+        // Flag if state couldn't be determined
+        if (parsed.flagged) {
+            insertData.status = 'NEEDS_REVIEW';
+            console.log(`[Pre-Reg] ⚠️ FLAGGED: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
+        }
+        
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
 
@@ -2588,12 +2595,6 @@ app.post('/api/pre-register', async (req, res) => {
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
-        // Flag if state couldn't be determined or is non-TX
-        if (parsed.flagged) {
-            insertData.status = 'NEEDS_REVIEW';
-            console.log(`[Pre-Reg] ⚠️ FLAGGED: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
-        }
-        
         // Notify admin
         const flagNote = parsed.flagged ? ` ⚠️ FLAGGED: ${parsed.reason}` : '';
         try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county || '—'} County, ${state || '?'}${flagNote}`); } catch(e) {}
