@@ -981,8 +981,8 @@ function buildTelegramLeadAlert(sub) {
 <b>Priority:</b> ${priority}
 <b>Score:</b> ${score}
 
-<b>Next Action (BOT):</b> Run comp analysis → present results
-<b>Next Action (TYLER):</b> Approve outreach after analysis`;
+<b>Next Action (BOT):</b> ⛔ FROZEN — no auto-processing (build mode)
+<b>Next Action (TYLER):</b> Manually trigger analysis when ready`;
 }
 
 // OA SMS KILL SWITCH — disabled until Twilio 10DLC fully verified
