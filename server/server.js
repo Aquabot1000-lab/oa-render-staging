@@ -499,6 +499,7 @@ function rowToSubmission(row) {
         propertyData: row.property_data,
         compResults: row.comp_results,
         evidencePacketPath: row.evidence_packet_path,
+        verifiedAnalysis: row.verified_analysis || null,
         filingData: row.filing_data,
         needsManualReview: row.needs_manual_review,
         reviewReason: row.review_reason,
@@ -4313,8 +4314,15 @@ app.get('/api/cases/:id/evidence-packet', (req, res, next) => {
         const submissions = await readAllSubmissions();
         const sub = submissions.find(s => s.id === req.params.id || s.caseId === (req.params.id || '').toUpperCase());
         if (!sub) return res.status(404).json({ error: 'Case not found' });
-        if (!sub.evidencePacketPath) return res.status(404).json({ error: 'No evidence packet generated yet' });
 
+        // Priority 1: verified_analysis.evidence_url (Supabase Storage)
+        const verifiedUrl = sub.verifiedAnalysis?.evidence_url;
+        if (verifiedUrl) {
+            return res.redirect(verifiedUrl);
+        }
+
+        // Priority 2: legacy local file path
+        if (!sub.evidencePacketPath) return res.status(404).json({ error: 'No evidence packet generated yet' });
         const filePath = sub.evidencePacketPath;
         try {
             await fs.access(filePath);
