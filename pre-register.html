@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="fL8XizXZxJifMkLVjEQxnSVLgQCcBSy4JUKBKnAg38g">
-    <meta name="description" content="Texas property tax notices arrive mid-April 2026. Pre-register now for free and we'll analyze your property the day your notice drops. File before the May 15 deadline.">
-    <title>Pre-Register for TX Property Tax Protest Season | OverAssessed</title>
+    <meta name="description" content="Enter your address and find out if you're overpaying on property taxes. Free analysis in under 60 seconds. We handle the protest — you only pay if you save.">
+    <title>Check Your Property Tax Savings | OverAssessed</title>
     <link rel="canonical" href="https://overassessed.ai/pre-register">
     
-    <meta property="og:title" content="TX Property Tax Notices Are Coming - Pre-Register Now | OverAssessed">
-    <meta property="og:description" content="Notices arrive mid-April. Get ahead of the rush - pre-register free and we'll analyze your property the day your notice drops.">
+    <meta property="og:title" content="Are You Overpaying on Property Taxes? | OverAssessed">
+    <meta property="og:description" content="Enter your address. We'll check your property in under 60 seconds and tell you how much you could save.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://overassessed.ai/pre-register">
     <meta property="og:image" content="https://overassessed.ai/assets/logo/icon-512.png">
     <meta property="og:site_name" content="OverAssessed">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="TX Property Tax Notices Are Coming - Pre-Register Now | OverAssessed">
-    <meta name="twitter:description" content="Notices arrive mid-April. Get ahead of the rush - pre-register free and we'll analyze your property the day your notice drops.">
+    <meta name="twitter:title" content="Are You Overpaying on Property Taxes? | OverAssessed">
+    <meta name="twitter:description" content="Enter your address. We'll check your property in under 60 seconds and tell you how much you could save.">
     <meta name="twitter:image" content="https://overassessed.ai/assets/logo/icon-512.png">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 80 80' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%236c5ce7'/%3E%3Cstop offset='100%25' style='stop-color:%230984e3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='0' width='80' height='80' rx='18' fill='url(%23logoGrad)'/%3E%3Crect x='20' y='28' width='18' height='37' rx='2' fill='none' stroke='white' stroke-width='1.5' opacity='0.3'/%3E%3Crect x='24' y='33' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='31' y='33' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='24' y='41' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Crect x='31' y='41' width='4' height='4' rx='0.5' fill='white' opacity='0.2'/%3E%3Cpath d='M50 38L42 46v19h16V46L50 38z' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' opacity='0.3'/%3E%3Cpath d='M40 25v30M31 47l9 9 9-9' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#6c5ce7">
@@ -411,229 +411,271 @@ body{font-family:var(--font);line-height:1.5;color:var(--text);background:var(--
     </header>
 <!-- Header -->
 
-    <!-- Hero -->
-    <section class="prereg-hero">
+    <!-- Hero: Step 1 - Address Only -->
+    <section class="prereg-hero" style="min-height:min(100vh,700px);display:flex;align-items:center;padding-top:80px;">
         <div class="container">
-            <div class="prereg-layout">
-                <div>
-                    <div class="countdown-strip">
-                        <span class="pulse-dot"></span>
-                        <span id="countdown-text">~7 weeks until notices arrive</span>
-                    </div>
-                    <h1>Texas Property Tax Notices Are Coming - <span>Be Ready</span></h1>
-                    <p class="subhead">Notices arrive mid-April. Get ahead of the rush - pre-register now and we'll analyze your property the day your notice drops.</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
-                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
-                            100% Free to pre-register
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+            <div class="prereg-layout" style="max-width:580px;margin:0 auto;text-align:center;">
+
+                <!-- STEP 1: Address input -->
+                <div id="step-address">
+                    <h1 style="font-size:clamp(2rem,5vw,3.25rem);font-weight:800;letter-spacing:-0.04em;line-height:1.08;margin-bottom:12px;">Are You Overpaying on Property Taxes?</h1>
+                    <p style="font-size:1.1rem;color:var(--text-secondary);margin-bottom:28px;line-height:1.45;">Enter your address. We'll check in under 60 seconds.</p>
+
+                    <form id="address-form" autocomplete="on" style="display:flex;flex-direction:column;gap:0;">
+                        <input type="text" id="property_address" name="property_address" placeholder="Enter your property address…"
+                               required autocomplete="street-address"
+                               style="width:100%;padding:18px 20px;font-size:1.125rem;border:2px solid rgba(0,0,0,0.10);border-radius:14px;font-family:var(--font);transition:border-color 0.3s,box-shadow 0.3s;background:#fff;color:var(--text);">
+                        <button type="submit" id="check-btn"
+                                style="width:100%;margin-top:12px;padding:18px;font-size:1.125rem;font-weight:700;color:#fff;background:var(--primary);border:none;border-radius:14px;cursor:pointer;font-family:var(--font);transition:all 0.3s;box-shadow:var(--shadow-purple);">
+                            Check My Savings →
+                        </button>
+                    </form>
+
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:20px;">
+                        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-secondary);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            Free
+                        </span>
+                        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-secondary);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                             No obligation
+                        </span>
+                        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-secondary);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            Takes 60 seconds
+                        </span>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Loading / Analyzing -->
+                <div id="step-analyzing" style="display:none;">
+                    <div style="margin-bottom:20px;">
+                        <div class="analysis-spinner" style="width:56px;height:56px;border:4px solid rgba(108,92,231,0.15);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
+                        <h2 style="font-size:1.5rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;">Analyzing your property…</h2>
+                        <p style="font-size:0.95rem;color:var(--text-secondary);line-height:1.4;">Checking county records and comparable sales.</p>
+                    </div>
+                    <div id="analysis-steps" style="text-align:left;max-width:340px;margin:0 auto;">
+                        <div class="analysis-step" data-step="1" style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:0.9rem;color:var(--text-secondary);">
+                            <span class="step-icon" style="width:20px;text-align:center;">⏳</span> Looking up property records…
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;color:rgba(255,255,255,0.7);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00b894" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
-                            May 15 deadline protected
+                        <div class="analysis-step" data-step="2" style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:0.9rem;color:var(--text-secondary);opacity:0.4;">
+                            <span class="step-icon" style="width:20px;text-align:center;">⏳</span> Pulling comparable properties…
+                        </div>
+                        <div class="analysis-step" data-step="3" style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:0.9rem;color:var(--text-secondary);opacity:0.4;">
+                            <span class="step-icon" style="width:20px;text-align:center;">⏳</span> Calculating potential savings…
                         </div>
                     </div>
                 </div>
 
-                <!-- Form -->
-                <div class="prereg-form-card" id="prereg-form">
-                    <div id="form-container">
-                        <h2>Pre-Register Free</h2>
-                        <p class="form-sub">We'll analyze your property the moment notices drop.</p>
-                        <div class="form-error" id="form-error"></div>
-                        <form id="prereg-form-el" autocomplete="on">
-                            <label for="name">Full Name</label>
-                            <input type="text" id="name" name="name" placeholder="Jane Smith" required="">
-
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" placeholder="jane@example.com" required="">
-
-                            <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" placeholder="(210) 555-1234">
-
-                            <label for="property_address">Property Address</label>
-                            <input type="text" id="property_address" name="property_address" placeholder="123 Main St, San Antonio, TX" required="">
-
-                            <div class="row-2">
-                                <div>
-                                    <label for="state">State</label>
-                                    <select id="state" name="state">
-                                        <option value="TX" selected="">Texas</option>
-                                        <option value="GA">Georgia</option>
-                                        <option value="WA">Washington</option>
-                                        <option value="CO">Colorado</option>
-                                        <option value="AZ">Arizona</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="county">County</label>
-                                    <select id="county" name="county" required="">
-                                        <option value="">Select county…</option>
-                                        <option value="Bexar">Bexar</option>
-                                        <option value="Harris">Harris</option>
-                                        <option value="Dallas">Dallas</option>
-                                        <option value="Tarrant">Tarrant</option>
-                                        <option value="Travis">Travis</option>
-                                        <option value="Collin">Collin</option>
-                                        <option value="Denton">Denton</option>
-                                        <option value="Fort Bend">Fort Bend</option>
-                                        <option value="Williamson">Williamson</option>
-                                        <option value="Montgomery">Montgomery</option>
-                                        <option value="Hays">Hays</option>
-                                        <option value="El Paso">El Paso</option>
-                                        <option value="Galveston">Galveston</option>
-                                        <option value="Brazoria">Brazoria</option>
-                                        <option value="Comal">Comal</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="prereg-btn" id="submit-btn">Pre-Register Free →</button>
-                        </form>
-                        <p class="social-proof">Join <strong id="prereg-count">0</strong> homeowners already pre-registered</p>
+                <!-- STEP 3: Collect contact info -->
+                <div id="step-contact" style="display:none;">
+                    <div style="background:linear-gradient(135deg,#00b894,#00a381);border-radius:12px;padding:16px 20px;margin-bottom:20px;color:#fff;">
+                        <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;opacity:0.85;margin:0 0 2px 0;">Potential Savings Found</p>
+                        <p style="font-size:2rem;font-weight:800;letter-spacing:-0.5px;margin:0;line-height:1.1;">We're analyzing your property now</p>
                     </div>
-                    <div class="form-success" id="form-success">
-                        <div class="check">✓</div>
-                        <h3>You're on the list!</h3>
-                        <p>We'll analyze your property the moment notices drop in April. Check your email for confirmation.</p>
-                    </div>
+                    <p style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.4;">Enter your info below and we'll send your full savings estimate.</p>
+
+                    <div class="form-error" id="form-error" style="display:none;background:#fff0f0;color:#e17055;padding:10px 14px;border-radius:10px;font-size:0.875rem;margin-bottom:12px;"></div>
+
+                    <form id="contact-form" autocomplete="on" style="display:flex;flex-direction:column;gap:12px;">
+                        <input type="hidden" id="submitted-address" name="property_address">
+                        <div>
+                            <label for="name" style="display:block;margin-bottom:3px;font-weight:500;font-size:0.8125rem;color:var(--text);">Full Name</label>
+                            <input type="text" id="name" name="name" placeholder="Jane Smith" required
+                                   style="width:100%;padding:14px 16px;border:1.5px solid rgba(0,0,0,0.10);border-radius:10px;font-size:0.9375rem;font-family:var(--font);">
+                        </div>
+                        <div>
+                            <label for="email" style="display:block;margin-bottom:3px;font-weight:500;font-size:0.8125rem;color:var(--text);">Email</label>
+                            <input type="email" id="email" name="email" placeholder="jane@example.com" required
+                                   style="width:100%;padding:14px 16px;border:1.5px solid rgba(0,0,0,0.10);border-radius:10px;font-size:0.9375rem;font-family:var(--font);">
+                        </div>
+                        <div>
+                            <label for="phone" style="display:block;margin-bottom:3px;font-weight:500;font-size:0.8125rem;color:var(--text);">Phone</label>
+                            <input type="tel" id="phone" name="phone" placeholder="(210) 555-1234"
+                                   style="width:100%;padding:14px 16px;border:1.5px solid rgba(0,0,0,0.10);border-radius:10px;font-size:0.9375rem;font-family:var(--font);">
+                        </div>
+                        <button type="submit" id="submit-btn"
+                                style="width:100%;padding:16px;font-size:1.0625rem;font-weight:700;color:#fff;background:var(--primary);border:none;border-radius:14px;cursor:pointer;font-family:var(--font);transition:all 0.3s;box-shadow:var(--shadow-purple);margin-top:4px;">
+                            Get My Savings Estimate →
+                        </button>
+                    </form>
+                    <p style="font-size:0.75rem;color:var(--text-secondary);text-align:center;margin-top:8px;">We'll never spam you. Unsubscribe anytime.</p>
                 </div>
+
+                <!-- STEP 4: Confirmation -->
+                <div id="step-success" style="display:none;">
+                    <div style="font-size:3rem;margin-bottom:8px;">✅</div>
+                    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:6px;">We're on it.</h2>
+                    <p style="font-size:1rem;color:var(--text-secondary);line-height:1.5;">We're analyzing your property at <strong id="confirmed-address"></strong>. You'll receive your savings estimate by email shortly.</p>
+                    <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:16px;">Questions? Call us at <a href="tel:+12107607236" style="color:var(--primary);font-weight:600;text-decoration:none;">210-760-7236</a></p>
+                </div>
+
             </div>
         </div>
     </section>
 
     <!-- How It Works Steps -->
-    <section class="steps">
+    <section class="steps" style="padding:60px 0;">
         <div class="container">
-            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;">How It Works</h2>
+            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;margin-bottom:32px;">How It Works</h2>
             <div class="steps-grid">
                 <div class="step-card">
                     <div class="step-num">1</div>
-                    <h3>Pre-Register Now</h3>
-                    <p>Free, takes 30 seconds. No payment, no obligation.</p>
+                    <h3>Enter Your Address</h3>
+                    <p>That's it. One field, 10 seconds.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-num">2</div>
-                    <h3>We Pull Your Data</h3>
-                    <p>We gather your property data and comparable sales ahead of time.</p>
+                    <h3>We Analyze Your Property</h3>
+                    <p>We pull county records and find comparable sales to build your case.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-num">3</div>
-                    <h3>Notice Drops → Instant Analysis</h3>
-                    <p>The day your notice arrives, we analyze it and build your evidence packet.</p>
+                    <h3>Review Your Savings</h3>
+                    <p>See exactly how much you could save — backed by real data.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-num">4</div>
                     <h3>We File Your Protest</h3>
-                    <p>We handle everything - filed before the May 15 deadline.</p>
+                    <p>Approve and we handle everything — filed before the deadline.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Benefits -->
-    <section class="benefits">
+    <section class="benefits" style="padding:60px 0;">
         <div class="container">
-            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;">Why Pre-Register?</h2>
+            <h2 style="text-align:center;font-size:1.8rem;font-weight:800;margin-bottom:32px;">Why OverAssessed?</h2>
             <div class="benefits-grid">
                 <div class="benefit-card">
                     <div class="benefit-icon">💰</div>
-                    <h3>Just $79 to Start</h3>
-                    <p>We only charge 20% of your savings - the lowest fee in Texas. If you don't save, you don't pay.</p>
+                    <h3>Pay Only If You Save</h3>
+                    <p>Our fee is a percentage of your savings. No reduction, no charge.</p>
                 </div>
                 <div class="benefit-card">
                     <div class="benefit-icon">⚡</div>
-                    <h3>First in Line</h3>
-                    <p>Pre-registered homeowners get analyzed first. Beat the rush when 5 million+ notices hit mailboxes.</p>
+                    <h3>Fast Results</h3>
+                    <p>Get your savings estimate in minutes, not days. We use verified county data.</p>
                 </div>
                 <div class="benefit-card">
                     <div class="benefit-icon">🛡️</div>
                     <h3>Deadline Protected</h3>
-                    <p>Miss May 15 and you're stuck overpaying for a full year. We make sure your protest is filed on time.</p>
+                    <p>Miss the filing deadline and you overpay for a full year. We make sure that doesn't happen.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Deadline CTA -->
-    <section class="deadline-cta">
+    <!-- Bottom CTA -->
+    <section style="padding:60px 0;text-align:center;">
         <div class="container">
-            <h2>Don't Wait Until It's Too Late</h2>
-            <p>The May 15 deadline doesn't move. Pre-register now and we handle the rest.</p>
-            <a href="#prereg-form">Pre-Register Free →</a>
+            <div class="gradient-cta">
+                <h2>Find out if you're overpaying</h2>
+                <p>Enter your address above — it takes 10 seconds.</p>
+                <a href="#step-address" class="btn-white" onclick="document.getElementById('property_address').focus();return false;">Check My Savings →</a>
+            </div>
         </div>
     </section>
 
     <!-- Footer -->
 
+    <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #property_address:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,92,231,0.12); outline: none; }
+    #check-btn:hover { background: #5b4bd5; transform: translateY(-1px); }
+    #submit-btn:hover { background: #5b4bd5; transform: translateY(-1px); }
+    #name:focus, #email:focus, #phone:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,92,231,0.12); outline: none; }
+    </style>
+
     <script>
-        // Countdown calculation
-        (function() {
-            const noticeDate = new Date('2026-04-15');
-            const now = new Date();
-            const diff = noticeDate - now;
-            const weeks = Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
-            document.getElementById('countdown-text').textContent = 
-                weeks > 0 ? `~${weeks} weeks until notices arrive` : 'Notices are arriving NOW - act fast!';
-        })();
+    // ====== TWO-STEP CONVERSION FLOW ======
 
-        // Fetch pre-reg count
-        (async function() {
-            try {
-                const res = await fetch('/api/pre-registrations/count');
-                if (res.ok) {
-                    const data = await res.json();
-                    const el = document.getElementById('prereg-count');
-                    if (data.count >= 10) el.textContent = data.count;
-                    else if (data.count > 0) el.textContent = 'Homeowners are signing up now!';
-                }
-            } catch(e) {}
-        })();
+    // Step 1: Address submission → animate → show contact form
+    document.getElementById('address-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const addr = document.getElementById('property_address').value.trim();
+        if (!addr) return;
 
-        // Form submission
-        document.getElementById('prereg-form-el').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            const errEl = document.getElementById('form-error');
-            errEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Submitting…';
+        // Store address for step 2
+        document.getElementById('submitted-address').value = addr;
+        document.getElementById('confirmed-address').textContent = addr;
 
-            try {
-                const body = {
-                    name: document.getElementById('name').value.trim(),
-                    email: document.getElementById('email').value.trim(),
-                    phone: document.getElementById('phone').value.trim(),
-                    property_address: document.getElementById('property_address').value.trim(),
-                    county: document.getElementById('county').value
-                };
-                const res = await fetch('/api/pre-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Something went wrong');
+        // Transition to analyzing state
+        document.getElementById('step-address').style.display = 'none';
+        document.getElementById('step-analyzing').style.display = 'block';
 
-                document.getElementById('form-container').style.display = 'none';
-                document.getElementById('form-success').style.display = 'block';
+        // Meta Pixel: track address entry as lead start
+        if (typeof fbq === 'function') fbq('track', 'InitiateCheckout');
 
-                // Google Ads conversion tracking
-                if (typeof gtag === 'function') {
-                    gtag('event', 'conversion', {
-                        'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'
-                    });
-                }
-            } catch(err) {
-                errEl.textContent = err.message;
-                errEl.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = 'Pre-Register Free →';
+        // Animate analysis steps, then show contact form
+        const steps = document.querySelectorAll('.analysis-step');
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i > 0 && steps[i - 1]) {
+                steps[i - 1].querySelector('.step-icon').textContent = '\u2705';
+                steps[i - 1].style.opacity = '1';
+                steps[i - 1].style.color = 'var(--text)';
             }
-        });
+            if (i < steps.length) {
+                steps[i].style.opacity = '1';
+            } else {
+                clearInterval(interval);
+                // Brief pause then show contact form
+                setTimeout(() => {
+                    document.getElementById('step-analyzing').style.display = 'none';
+                    document.getElementById('step-contact').style.display = 'block';
+                }, 600);
+            }
+            i++;
+        }, 900);
+    });
+
+    // Step 2: Contact info submission → submit to server
+    document.getElementById('contact-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submit-btn');
+        const errEl = document.getElementById('form-error');
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Submitting\u2026';
+
+        try {
+            const body = {
+                name: document.getElementById('name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                property_address: document.getElementById('submitted-address').value,
+                source: 'meta-ads-landing'
+            };
+            const res = await fetch('/api/pre-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+            // Show success
+            document.getElementById('step-contact').style.display = 'none';
+            document.getElementById('step-success').style.display = 'block';
+
+            // Google Ads conversion
+            if (typeof gtag === 'function') {
+                gtag('event', 'conversion', {
+                    'send_to': 'AW-17990551503/86HvCNvA4YIcEM-PyIJD'
+                });
+            }
+            // Meta Pixel: lead complete
+            if (typeof fbq === 'function') fbq('track', 'Lead');
+
+        } catch(err) {
+            errEl.textContent = err.message;
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Get My Savings Estimate \u2192';
+        }
+    });
     </script>
 
     <script>
