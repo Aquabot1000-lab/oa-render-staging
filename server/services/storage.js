@@ -105,6 +105,37 @@ function getFileUrl(remotePath) {
 }
 
 /**
+ * Get a signed URL for a file in the evidence-export bucket
+ * Evidence packets were uploaded to 'evidence-export' bucket, not 'documents'
+ */
+async function getEvidenceSignedUrl(caseId) {
+    const sb = getClient();
+    if (!sb) return null;
+    
+    // List files in the case folder
+    const { data: files, error } = await sb.storage
+        .from('evidence-export')
+        .list(caseId, { limit: 10 });
+    
+    if (error || !files || files.length === 0) return null;
+    
+    // Find the evidence PDF (usually 'evidence.pdf' or similar)
+    const pdfFile = files.find(f => f.name.endsWith('.pdf')) || files[0];
+    if (!pdfFile) return null;
+    
+    const remotePath = `${caseId}/${pdfFile.name}`;
+    const { data: signedData, error: signError } = await sb.storage
+        .from('evidence-export')
+        .createSignedUrl(remotePath, 3600); // 1 hour expiry
+    
+    if (signError) {
+        console.error(`[Storage] Signed URL failed for ${remotePath}:`, signError.message);
+        return null;
+    }
+    return signedData?.signedUrl || null;
+}
+
+/**
  * Delete a file from storage
  */
 async function deleteFile(remotePath) {
@@ -124,6 +155,7 @@ module.exports = {
     uploadAgreement,
     uploadEvidence,
     getFileUrl,
+    getEvidenceSignedUrl,
     deleteFile,
     BUCKET
 };

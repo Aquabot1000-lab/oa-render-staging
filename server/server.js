@@ -2554,7 +2554,7 @@ app.get('/api/portal/case', async (req, res) => {
 // ==================== PRE-REGISTRATION ====================
 app.post('/api/pre-register', async (req, res) => {
     try {
-        const { name, email, phone, property_address, county } = req.body;
+        const { name, email, phone, property_address, county: formCounty } = req.body;
         if (!name || !email || !property_address) {
             return res.status(400).json({ error: 'Missing required fields: name, email, property_address' });
         }
@@ -2562,7 +2562,14 @@ app.post('/api/pre-register', async (req, res) => {
             return res.status(503).json({ error: 'Database not configured' });
         }
         const { source } = req.body;
-        const insertData = { name, email, property_address, county: county || null, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
+        
+        // Parse state and county from address
+        const { parseAddress } = require('./services/address-parser');
+        const parsed = parseAddress(property_address, { county: formCounty, state: req.body.state });
+        const state = parsed.state || null;
+        const county = parsed.county || formCounty || null;
+        
+        const insertData = { name, email, property_address, county, state, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
         if (phone) insertData.phone = phone;
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
@@ -2581,10 +2588,17 @@ app.post('/api/pre-register', async (req, res) => {
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
+        // Flag if state couldn't be determined or is non-TX
+        if (parsed.flagged) {
+            insertData.status = 'NEEDS_REVIEW';
+            console.log(`[Pre-Reg] ⚠️ FLAGGED: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
+        }
+        
         // Notify admin
-        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county} County — Status: WAITING_FOR_NOTICE_UPLOAD`); } catch(e) {}
-        try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county} County<br><em>Status: WAITING_FOR_NOTICE_UPLOAD</em></p>`); } catch(e) {}
-        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n<b>Status:</b> WAITING_FOR_NOTICE_UPLOAD`); } catch(e) {}
+        const flagNote = parsed.flagged ? ` ⚠️ FLAGGED: ${parsed.reason}` : '';
+        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county || '—'} County, ${state || '?'}${flagNote}`); } catch(e) {}
+        try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county || '—'} County, ${state || '?'}<br><em>Status: ${insertData.status}</em>${flagNote ? '<br><strong style="color:red">' + flagNote + '</strong>' : ''}</p>`); } catch(e) {}
+        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n<b>State:</b> ${state || '⚠️ UNKNOWN'}\n<b>Status:</b> ${insertData.status}${flagNote ? '\n<b>⚠️ ' + parsed.reason + '</b>' : ''}`); } catch(e) {}
 
         res.json({ success: true, id: data.id });
     } catch (error) {
@@ -2610,25 +2624,14 @@ app.post('/api/simple-lead', async (req, res) => {
         }
 
         // Auto-detect state and county from address
-        let state = null, county = null;
-        const stateMatch = property_address.match(/,\s*([A-Z]{2})\s*\d{0,5}\s*$/i) || property_address.match(/,\s*(\w+)\s*$/);
-        if (stateMatch) {
-            const s = stateMatch[1].trim().toUpperCase();
-            const stateMap = { TX: 'TX', TEXAS: 'TX', AZ: 'AZ', ARIZONA: 'AZ', CO: 'CO', COLORADO: 'CO', GA: 'GA', GEORGIA: 'GA', WA: 'WA', WASHINGTON: 'WA', OH: 'OH', OHIO: 'OH' };
-            state = stateMap[s] || s;
+        const { parseAddress } = require('./services/address-parser');
+        const parsed = parseAddress(property_address, { state: state_hint, county: submitted_county });
+        let state = parsed.state;
+        let county = parsed.county || submitted_county || null;
+        
+        if (parsed.flagged) {
+            console.log(`[SIMPLE LEAD] ⚠️ Address flagged: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
         }
-        // Fallback: use state_hint from frontend (from URL ?state= param)
-        if (!state && state_hint) {
-            const hintMap = { TX: 'TX', GA: 'GA', WA: 'WA', AZ: 'AZ', CO: 'CO', OH: 'OH' };
-            state = hintMap[state_hint.toUpperCase()] || null;
-        }
-        // Common TX county detection
-        const addrLower = property_address.toLowerCase();
-        if (addrLower.includes('san antonio') || addrLower.includes('78')) county = 'Bexar';
-        else if (addrLower.includes('houston')) county = 'Harris';
-        else if (addrLower.includes('dallas')) county = 'Dallas';
-        else if (addrLower.includes('austin')) county = 'Travis';
-        else if (addrLower.includes('fort worth')) county = 'Tarrant';
 
         // === DEDUPE CHECK ===
         const normalizedEmail = email.trim().toLowerCase();
@@ -4276,13 +4279,26 @@ app.get('/api/cases/:id/evidence-packet', (req, res, next) => {
             return res.redirect(verifiedUrl);
         }
 
-        // Priority 2: legacy local file path
+        // Priority 2: Supabase evidence-export bucket (migrated evidence)
+        try {
+            const storage = require('./services/storage');
+            const caseId = sub.caseId || sub.case_id;
+            const signedUrl = await storage.getEvidenceSignedUrl(caseId);
+            if (signedUrl) {
+                console.log(`[Evidence] Serving ${caseId} from Supabase evidence-export`);
+                return res.redirect(signedUrl);
+            }
+        } catch (storageErr) {
+            console.error('[Evidence] Supabase lookup failed:', storageErr.message);
+        }
+
+        // Priority 3: legacy local file path
         if (!sub.evidencePacketPath) return res.status(404).json({ error: 'No evidence packet generated yet' });
         const filePath = sub.evidencePacketPath;
         try {
             await fs.access(filePath);
         } catch {
-            return res.status(404).json({ error: 'Evidence file not found on disk' });
+            return res.status(404).json({ error: 'Evidence file not found — not available in Supabase or on disk' });
         }
         res.download(filePath);
     } catch (error) {
