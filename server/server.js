@@ -8,6 +8,7 @@ const path = require('path');
 const multer = require('multer');
 const twilio = require('twilio');
 const sgMail = require('@sendgrid/mail');
+const { preRegistrationEmail, leadAcknowledgmentEmail, analysisCompleteEmail, analysisInProgressEmail, uploadNoticeEmail, filingApprovedEmail, noticeUploadReminderEmail } = require('./oa-email-templates');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // RentCast analysis service
@@ -1163,25 +1164,19 @@ function getBaseUrl() {
 }
 
 function brandedEmailWrapper(title, subtitle, bodyHtml) {
-    return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-        <div style="background-color: #6c5ce7; background: linear-gradient(135deg, #6c5ce7, #0984e3); color: #ffffff; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px; color: #ffffff;">${title}</h1>
-            ${subtitle ? `<p style="margin: 8px 0 0; color: #e8e8e8;">${subtitle}</p>` : ''}
-        </div>
-        <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; color: #2d3436;">
-            ${bodyHtml}
-        </div>
-        <div style="padding: 20px 30px; border: 1px solid #e2e8f0; border-top: none; color: #2d3436; font-size: 14px;">
-            <strong>Tyler Worthey</strong><br>
-            OverAssessed<br>
-            <a href="https://overassessed.ai" style="color: #6c5ce7;">overassessed.ai</a>
-        </div>
-        <div style="background-color: #1a1a2e; color: #ffffff; padding: 20px; border-radius: 0 0 12px 12px; text-align: center; font-size: 13px;">
-            OverAssessed, LLC - San Antonio, Texas<br>
-            Questions? Reply to this email or call (888) 282-9165
-        </div>
-    </div>`;
+    const { wrapEmail } = require('./oa-email-templates');
+    const body = `
+<tr><td style="padding:16px 24px 8px 24px; font-family:Arial, Helvetica, sans-serif;">
+  <p style="margin:0; font-size:21px; line-height:26px; font-weight:bold; color:#1a1a2e;">${title}</p>
+  ${subtitle ? `<p style="margin:4px 0 0 0; font-size:14px; line-height:20px; color:#7c7c96;">${subtitle}</p>` : ''}
+</td></tr>
+<tr><td style="padding:8px 24px 14px 24px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#4a4a68;">
+  ${bodyHtml}
+</td></tr>
+<tr><td style="padding:4px 24px 14px 24px; font-family:Arial, Helvetica, sans-serif;">
+  <p style="margin:0; font-size:13px; color:#7c7c96;">&mdash; Tyler Worthey, OverAssessed</p>
+</td></tr>`;
+    return wrapEmail({ body, preheader: title });
 }
 
 function buildWelcomeEmail(sub) {
@@ -2582,29 +2577,7 @@ app.post('/api/pre-register', async (req, res) => {
                     from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
                     replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
                     subject: `You're Registered — Next Step When Notices Arrive`,
-                    html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1d1d1f;line-height:1.5;">
-                        <div style="background:linear-gradient(135deg,#6c5ce7,#5a4bd6);padding:14px 24px;border-radius:10px 10px 0 0;">
-                            <span style="font-size:18px;font-weight:700;color:#fff;">OVERASSESSED</span>
-                        </div>
-                        <div style="padding:24px;border:1px solid #e8e6f0;border-top:none;border-radius:0 0 10px 10px;">
-                            <p style="margin:0 0 12px 0;font-size:15px;">Hi ${firstName},</p>
-                            <p style="margin:0 0 12px 0;font-size:15px;">You're all set — we've saved your property at <strong>${property_address}</strong> in <strong>${county || 'your'} County</strong>.</p>
-                            <p style="margin:0 0 12px 0;font-size:15px;">When appraisal notices are released, we'll reach out right away.</p>
-                            <p style="margin:0 0 8px 0;font-size:15px;">At that time, we will need you to upload your appraisal notice so we can:</p>
-                            <ul style="margin:0 0 12px 0;padding-left:20px;font-size:15px;">
-                                <li style="margin-bottom:4px;">verify your assessed value</li>
-                                <li style="margin-bottom:4px;">access your property account number</li>
-                                <li style="margin-bottom:4px;">build an accurate protest case</li>
-                            </ul>
-                            <p style="margin:0 0 12px 0;font-size:15px;">It only takes about 30 seconds, and we'll guide you through it.</p>
-                            <p style="margin:0 0 16px 0;font-size:15px;">Once submitted, we'll handle everything from there — including analysis, evidence, and filing.</p>
-                            <p style="margin:0;font-size:14px;color:#7c7c96;">— OverAssessed</p>
-                        </div>
-                        <div style="padding:12px 24px;font-size:11px;color:#b0b0c4;text-align:center;">
-                            OverAssessed LLC · 6002 Camp Bullis, Suite 208, San Antonio, TX 78257<br>
-                            <a href="tel:+12107607236" style="color:#6c5ce7;text-decoration:none;">210-760-7236</a> · <a href="mailto:tyler@overassessed.ai" style="color:#6c5ce7;text-decoration:none;">tyler@overassessed.ai</a>
-                        </div>
-                    </div>`
+                    html: preRegistrationEmail({ firstName, propertyAddress: property_address, county })
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
@@ -2852,16 +2825,7 @@ app.post('/api/simple-lead', async (req, res) => {
                                     from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
                                     replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                                     subject: `You may be overassessed by ${savingsFormatted}/year — ${caseNum}`,
-                                    html: `<h2>Your Property Tax Analysis</h2>
-                                        <p>We've completed a preliminary analysis of your property at <b>${property_address}</b>.</p>
-                                        <table style="border-collapse:collapse;margin:16px 0;">
-                                            <tr><td style="padding:8px 16px;border:1px solid #ddd;">Current Assessed Value</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;">${assessedFormatted}</td></tr>
-                                            <tr><td style="padding:8px 16px;border:1px solid #ddd;">Our Recommended Value</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;color:#16a34a;">${recommendedFormatted}</td></tr>
-                                            <tr><td style="padding:8px 16px;border:1px solid #ddd;">Estimated Annual Savings</td><td style="padding:8px 16px;border:1px solid #ddd;font-weight:bold;color:#16a34a;font-size:1.2em;">${savingsFormatted}</td></tr>
-                                        </table>
-                                        <p>Based on ${compsFound} comparable properties in your area, your property appears to be <b>over-assessed</b>.</p>
-                                        <p><b>Next step:</b> Reply to this email or call us to start your protest. We handle everything — no win, no fee.</p>
-                                        <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                                    html: analysisCompleteEmail({ firstName: (email || '').split('@')[0], propertyAddress: property_address, county: county || '', year: new Date().getFullYear(), assessed: assessedFormatted, recommended: recommendedFormatted, savings: savingsFormatted, reduction: ((1 - recommendedValue / assessedValue) * 100).toFixed(1) + '%', compCount: compsFound, caseNum, agreementUrl: `https://overassessed.ai/sign?id=${caseNum}` })
                                 });
                                 console.log(`[SimpleAnalysis] ✅ PATH A (${compsFound} comps) — Analysis email sent to ${email} | Savings: ${savingsFormatted}`);
                                 
@@ -2895,15 +2859,7 @@ app.post('/api/simple-lead', async (req, res) => {
                                     from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
                                     replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                                     subject: `We're working on your analysis — ${caseNum}`,
-                                    html: `<h2>Your Analysis Is In Progress</h2>
-                                        <p>We found your property at <b>${property_address}</b> with an assessed value of <b>${assessedValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}</b>.</p>
-                                        <p>We're still gathering comparable properties to ensure our analysis meets our quality standards. To speed things up, you can:</p>
-                                        <ol>
-                                            <li>Reply with your <b>Notice of Appraised Value</b> (photo or scan)</li>
-                                            <li>Share any recent appraisals or sales data for nearby homes</li>
-                                        </ol>
-                                        <p>We'll have your complete analysis within 24–48 hours.</p>
-                                        <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                                    html: analysisInProgressEmail({ propertyAddress: property_address, assessed: assessedValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }), caseNum })
                                 });
                                 console.log(`[SimpleAnalysis] ⚠️ PARTIAL (${compsFound}/${MIN_COMPS_REQUIRED} comps) — Partial email sent to ${email}`);
                                 
@@ -2934,17 +2890,7 @@ app.post('/api/simple-lead', async (req, res) => {
                                     from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
                                     replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                                     subject: `Action Needed: Upload Your Notice of Appraised Value — ${caseNum}`,
-                                    html: `<h2>We Need One More Thing</h2>
-                                        <p>Thanks for submitting your property at <b>${property_address}</b>.</p>
-                                        <p>To complete your analysis and calculate your exact savings, we need your <b>Notice of Appraised Value</b> from your county appraisal district.</p>
-                                        <p><b>What to do:</b></p>
-                                        <ol>
-                                            <li>Check your mail for the notice (usually arrives April–May)</li>
-                                            <li>Take a photo or scan it</li>
-                                            <li>Reply to this email with the image attached</li>
-                                        </ol>
-                                        <p>Once we have your notice, we'll complete your analysis within 24 hours and let you know exactly how much you can save.</p>
-                                        <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                                    html: uploadNoticeEmail({ propertyAddress: property_address, caseNum })
                                 });
                                 console.log(`[SimpleAnalysis] ✅ PATH B (0 comps) — Needs-docs email sent to ${email}`);
                                 
@@ -2973,17 +2919,7 @@ app.post('/api/simple-lead', async (req, res) => {
                                 from: { email: 'tyler@overassessed.ai', name: 'OverAssessed' },
                                 replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                                 subject: `Action Needed: Upload Your Notice of Appraised Value — ${caseNum}`,
-                                html: `<h2>We Need One More Thing</h2>
-                                    <p>Thanks for submitting your property at <b>${property_address}</b>.</p>
-                                    <p>To complete your analysis and calculate your exact savings, we need your <b>Notice of Appraised Value</b> from your county appraisal district.</p>
-                                    <p><b>What to do:</b></p>
-                                    <ol>
-                                        <li>Check your mail for the notice (usually arrives April–May)</li>
-                                        <li>Take a photo or scan it</li>
-                                        <li>Reply to this email with the image attached</li>
-                                    </ol>
-                                    <p>Once we have your notice, we'll complete your analysis within 24 hours and let you know exactly how much you can save.</p>
-                                    <p>Best,<br>Tyler Worthey<br>OverAssessed Team</p>`
+                                html: uploadNoticeEmail({ propertyAddress: property_address, caseNum })
                             });
                             console.log(`[SimpleAnalysis] ✅ PATH B (no data) — Needs-docs email sent to ${email}`);
                             
@@ -3007,7 +2943,7 @@ app.post('/api/simple-lead', async (req, res) => {
                 from: { email: 'tyler@overassessed.ai', name: 'OverAssessed Team' },
                 replyTo: { email: 'tyler@overassessed.ai', name: 'Tyler Worthey' },
                 subject: 'Your Property Tax Savings — Next Step',
-                html: `<p>Hi there,</p><p>Thanks for submitting your property for review.</p><p>We're currently analyzing your property to identify potential tax savings. One of our specialists will review your case and follow up with you shortly.</p><p>If you'd like to speed things up, feel free to reply to this email with any additional details or questions.</p><p>Best,<br>OverAssessed Team</p>`
+                html: leadAcknowledgmentEmail({ propertyAddress: property_address })
             });
             console.log(`[SIMPLE LEAD] ✅ Auto-email sent to ${email}`);
         } catch (emailErr) {
