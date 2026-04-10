@@ -2566,7 +2566,8 @@ app.post('/api/pre-register', async (req, res) => {
         if (!isSupabaseEnabled()) {
             return res.status(503).json({ error: 'Database not configured' });
         }
-        const insertData = { name, email, property_address, county: county || null };
+        const { source } = req.body;
+        const insertData = { name, email, property_address, county: county || null, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
         if (phone) insertData.phone = phone;
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
@@ -2574,25 +2575,43 @@ app.post('/api/pre-register', async (req, res) => {
         // Send confirmation email
         if (process.env.SENDGRID_API_KEY) {
             try {
+                const firstName = name.split(' ')[0];
                 await sgMail.send({
                     to: email,
                     bcc: [{ email: 'tyler@overassessed.ai' }],
                     from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
                     replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
-                    subject: '✅ You\'re Pre-Registered for TX Property Tax Season!',
-                    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
-                        <h2 style="color:#6c5ce7;">You're on the list, ${name}!</h2>
-                        <p>We'll analyze <strong>${property_address}</strong> in <strong>${county} County</strong> the moment appraisal notices drop in April.</p>
-                        <p>You'll get a head start on your protest - no action needed until then.</p>
-                        <p style="color:#636e72;font-size:14px;">- The OverAssessed Team</p>
+                    subject: `You're Registered — Next Step When Notices Arrive`,
+                    html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1d1d1f;line-height:1.5;">
+                        <div style="background:linear-gradient(135deg,#6c5ce7,#5a4bd6);padding:14px 24px;border-radius:10px 10px 0 0;">
+                            <span style="font-size:18px;font-weight:700;color:#fff;">OVERASSESSED</span>
+                        </div>
+                        <div style="padding:24px;border:1px solid #e8e6f0;border-top:none;border-radius:0 0 10px 10px;">
+                            <p style="margin:0 0 12px 0;font-size:15px;">Hi ${firstName},</p>
+                            <p style="margin:0 0 12px 0;font-size:15px;">You're all set — we've saved your property at <strong>${property_address}</strong> in <strong>${county || 'your'} County</strong>.</p>
+                            <p style="margin:0 0 12px 0;font-size:15px;">When appraisal notices are released, we'll reach out right away.</p>
+                            <p style="margin:0 0 8px 0;font-size:15px;">At that time, we will need you to upload your appraisal notice so we can:</p>
+                            <ul style="margin:0 0 12px 0;padding-left:20px;font-size:15px;">
+                                <li style="margin-bottom:4px;">verify your assessed value</li>
+                                <li style="margin-bottom:4px;">access your property account number</li>
+                                <li style="margin-bottom:4px;">build an accurate protest case</li>
+                            </ul>
+                            <p style="margin:0 0 12px 0;font-size:15px;">It only takes about 30 seconds, and we'll guide you through it.</p>
+                            <p style="margin:0 0 16px 0;font-size:15px;">Once submitted, we'll handle everything from there — including analysis, evidence, and filing.</p>
+                            <p style="margin:0;font-size:14px;color:#7c7c96;">— OverAssessed</p>
+                        </div>
+                        <div style="padding:12px 24px;font-size:11px;color:#b0b0c4;text-align:center;">
+                            OverAssessed LLC · 6002 Camp Bullis, Suite 208, San Antonio, TX 78257<br>
+                            <a href="tel:+12107607236" style="color:#6c5ce7;text-decoration:none;">210-760-7236</a> · <a href="mailto:tyler@overassessed.ai" style="color:#6c5ce7;text-decoration:none;">tyler@overassessed.ai</a>
+                        </div>
                     </div>`
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
         // Notify admin
-        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county} County`); } catch(e) {}
-        try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county} County</p>`); } catch(e) {}
-        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n\n➡️ Will convert to full lead when protest season opens.`); } catch(e) {}
+        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county} County — Status: WAITING_FOR_NOTICE_UPLOAD`); } catch(e) {}
+        try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county} County<br><em>Status: WAITING_FOR_NOTICE_UPLOAD</em></p>`); } catch(e) {}
+        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n<b>Status:</b> WAITING_FOR_NOTICE_UPLOAD`); } catch(e) {}
 
         res.json({ success: true, id: data.id });
     } catch (error) {
