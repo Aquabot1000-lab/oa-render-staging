@@ -2572,9 +2572,10 @@ app.post('/api/pre-register', async (req, res) => {
         const insertData = { name, email, property_address, county, state, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
         if (phone) insertData.phone = phone;
         
-        // Flag if state couldn't be determined
+        // Flag if state couldn't be determined or data quality issues detected
         if (parsed.flagged) {
             insertData.status = 'NEEDS_REVIEW';
+            insertData.review_reason = parsed.reason;
             console.log(`[Pre-Reg] ⚠️ FLAGGED: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
         }
         

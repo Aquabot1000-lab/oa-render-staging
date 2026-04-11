@@ -110,6 +110,11 @@ const TX_CITY_COUNTY = {
     'amarillo': 'Potter',
     'midland': 'Midland',
     'odessa': 'Ector',
+    'gardendale': 'Ector',
+    'greenville': 'Hunt',
+    'anna': 'Collin',
+    'little elm': 'Denton',
+    'richmond': 'Fort Bend',
     'beaumont': 'Jefferson',
     'spring': 'Harris',
     'humble': 'Harris',
@@ -213,10 +218,82 @@ function parseAddress(address, hints = {}) {
         }
     }
 
-    // Flag logic
+    // ── ZIP CODE VALIDATION ──
+    // Extract zip if present
+    // Match zip at the END of the address (last 5-digit number), not street numbers
+    const zipMatch = addr.match(/(\d{5})\s*$/);
+    const zip = zipMatch ? zipMatch[1] : null;
+    
+    if (zip && state) {
+        // Validate zip prefix matches claimed state
+        const zipStateMap = {
+            // TX zips: 73301-73399 (Austin area), 75000-79999
+            TX: z => (z >= 73301 && z <= 73399) || (z >= 75000 && z <= 79999) || (z >= 88500 && z <= 88599),
+            // GA zips: 30000-31999, 39800-39999
+            GA: z => (z >= 30000 && z <= 31999) || (z >= 39800 && z <= 39999),
+            // WA zips: 98000-99499
+            WA: z => z >= 98000 && z <= 99499,
+            // AZ zips: 85000-86599
+            AZ: z => z >= 85000 && z <= 86599,
+            // CO zips: 80000-81699
+            CO: z => z >= 80000 && z <= 81699,
+            // OH zips: 43000-45999
+            OH: z => z >= 43000 && z <= 45999,
+            // LA zips: 70000-71499
+            LA: z => z >= 70000 && z <= 71499,
+            // FL zips: 32000-34999
+            FL: z => z >= 32000 && z <= 34999,
+            // CA zips: 90000-96199
+            CA: z => z >= 90000 && z <= 96199,
+        };
+        
+        const zipNum = parseInt(zip);
+        const validator = zipStateMap[state];
+        
+        if (validator && !validator(zipNum)) {
+            // Zip doesn't match the stated state — CONFLICT
+            // Try to find the actual state from zip
+            let actualState = null;
+            for (const [st, fn] of Object.entries(zipStateMap)) {
+                if (fn(zipNum)) { actualState = st; break; }
+            }
+            
+            flagged = true;
+            reason = `zip-state-conflict: zip ${zip} is ${actualState || 'unknown state'}, address says ${state}`;
+            // Don't override state — keep what was parsed but flag it
+        }
+        
+        // Check if zip is valid at all (not a known range)
+        if (zipNum < 501 || zipNum > 99950) {
+            flagged = true;
+            reason = `invalid-zip: ${zip}`;
+        }
+    }
+    
+    // ── INCOMPLETE ADDRESS CHECK ──
+    // If address has no city indicator (no comma, no recognized city, very short)
+    const parts = addr.split(/[,\s]+/).filter(p => p.length > 0);
+    const hasNumber = /\d/.test(addr);
+    const hasCity = Object.keys(TX_CITY_COUNTY).some(c => addr.toLowerCase().includes(c)) ||
+                    Object.keys(WA_CITY_COUNTY).some(c => addr.toLowerCase().includes(c)) ||
+                    Object.keys(GA_CITY_COUNTY).some(c => addr.toLowerCase().includes(c));
+    
+    if (!state && !zip && !hasCity && parts.length <= 4) {
+        flagged = true;
+        reason = reason || 'incomplete-address: no city, state, or zip detected';
+    }
+    
+    // ── COUNTY MISSING CHECK ──
+    // If we have a state but no county, flag as needing review (soft flag)
+    if (state && !county && !flagged) {
+        flagged = true;
+        reason = 'county-unknown: state parsed but county could not be determined';
+    }
+
+    // ── FINAL FLAG ──
     if (!state) {
         flagged = true;
-        reason = 'state-unknown';
+        reason = reason || 'state-unknown';
     }
 
     return { state, county, flagged, reason };
