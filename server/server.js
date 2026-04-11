@@ -5965,6 +5965,276 @@ function extractCallerInfo(messages) {
     return info;
 }
 
+// ==================== INBOUND SMS/MMS HANDLER ====================
+// Receives inbound texts (and photos) from customers via Twilio
+app.post('/twiml/sms-incoming', async (req, res) => {
+    const from = req.body?.From || '';
+    const body = req.body?.Body || '';
+    const numMedia = parseInt(req.body?.NumMedia || '0');
+    
+    console.log(`📱 [Inbound SMS] From: ${from} | Body: "${body.substring(0, 100)}" | Media: ${numMedia}`);
+    
+    // Respond with empty TwiML immediately (Twilio needs a response)
+    res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+    
+    // Process asynchronously
+    try {
+        // Normalize phone number for lookup
+        const normalizedPhone = from.replace(/[^\d+]/g, '');
+        
+        // Look up case by phone number
+        const { data: cases, error } = await supabaseAdmin
+            .from('submissions')
+            .select('case_id, owner_name, email, phone, property_address, status')
+            .or(`phone.ilike.%${normalizedPhone.replace('+1','').slice(-10)}%`);
+        
+        if (error) {
+            console.error('[Inbound SMS] DB lookup failed:', error.message);
+            await sendTelegramAlert(`📱 <b>INBOUND SMS — DB ERROR</b>\n\n<b>From:</b> ${from}\n<b>Body:</b> ${body.substring(0, 200)}\n<b>Media:</b> ${numMedia}\n<b>Error:</b> ${error.message}`);
+            return;
+        }
+        
+        const matchedCase = cases && cases.length > 0 ? cases[0] : null;
+        const caseId = matchedCase?.case_id || 'UNKNOWN';
+        const customerName = matchedCase?.owner_name || from;
+        
+        // Handle media attachments (MMS)
+        if (numMedia > 0 && matchedCase) {
+            for (let i = 0; i < numMedia; i++) {
+                const mediaUrl = req.body[`MediaUrl${i}`];
+                const mediaType = req.body[`MediaContentType${i}`];
+                
+                if (!mediaUrl) continue;
+                
+                console.log(`📎 [Inbound MMS] Downloading media ${i}: ${mediaType} from ${mediaUrl}`);
+                
+                try {
+                    // Download from Twilio (requires auth)
+                    const mediaResp = await fetch(mediaUrl, {
+                        headers: {
+                            'Authorization': 'Basic ' + Buffer.from(
+                                process.env.TWILIO_ACCOUNT_SID + ':' + process.env.TWILIO_AUTH_TOKEN
+                            ).toString('base64')
+                        },
+                        redirect: 'follow'
+                    });
+                    
+                    if (!mediaResp.ok) {
+                        console.error(`[Inbound MMS] Download failed: HTTP ${mediaResp.status}`);
+                        continue;
+                    }
+                    
+                    const buffer = Buffer.from(await mediaResp.arrayBuffer());
+                    const ext = mediaType?.includes('pdf') ? '.pdf'
+                        : mediaType?.includes('png') ? '.png'
+                        : mediaType?.includes('gif') ? '.gif'
+                        : '.jpg';
+                    
+                    const filename = `notice_sms_${Date.now()}${ext}`;
+                    const storagePath = `notices/${caseId}/${filename}`;
+                    
+                    // Upload to Supabase
+                    const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+                        .from('documents')
+                        .upload(storagePath, buffer, {
+                            contentType: mediaType || 'image/jpeg',
+                            upsert: true
+                        });
+                    
+                    if (uploadErr) {
+                        console.error(`[Inbound MMS] Supabase upload failed:`, uploadErr.message);
+                        await sendTelegramAlert(`📱❌ <b>MMS UPLOAD FAILED</b>\n\n<b>Case:</b> ${caseId}\n<b>From:</b> ${customerName}\n<b>Error:</b> ${uploadErr.message}`);
+                        continue;
+                    }
+                    
+                    console.log(`✅ [Inbound MMS] Uploaded to Supabase: ${storagePath}`);
+                    
+                    // Generate a long-lived signed URL (7 days) for CRM display
+                    const { data: longSignedData } = await supabaseAdmin.storage
+                        .from('documents')
+                        .createSignedUrl(storagePath, 7 * 24 * 3600);
+                    const noticeUrl = longSignedData?.signedUrl || null;
+                    
+                    // Update case: store notice path, URL, and tag as NOTICE_RECEIVED
+                    const { error: updateErr } = await supabaseAdmin
+                        .from('submissions')
+                        .update({
+                            notice_of_value: storagePath,
+                            notice_url: noticeUrl,
+                            status: 'NOTICE_RECEIVED',
+                            notes: `Notice received via SMS on ${new Date().toISOString().split('T')[0]}. File: ${storagePath}`
+                        })
+                        .eq('case_id', caseId);
+                    
+                    if (updateErr) {
+                        console.error(`[Inbound MMS] Case update failed:`, updateErr.message);
+                    }
+                    
+                    // Generate signed URL for the alert
+                    const { data: signedData } = await supabaseAdmin.storage
+                        .from('documents')
+                        .createSignedUrl(storagePath, 3600);
+                    const viewUrl = signedData?.signedUrl || 'N/A';
+                    
+                    // Notify Tyler immediately
+                    await sendTelegramAlert(
+                        `📱📄 <b>NOTICE RECEIVED VIA MMS!</b>\n\n` +
+                        `<b>Case:</b> ${caseId}\n` +
+                        `<b>Customer:</b> ${customerName}\n` +
+                        `<b>Phone:</b> ${from}\n` +
+                        `<b>File:</b> ${filename} (${(buffer.length / 1024).toFixed(0)} KB)\n` +
+                        `<b>Stored:</b> documents/${storagePath}\n` +
+                        `<b>Status:</b> → NOTICE_RECEIVED\n\n` +
+                        `<a href="${viewUrl}">View Notice</a> | <a href="https://overassessed.ai/admin">Open CRM</a>`
+                    );
+                    
+                } catch (dlErr) {
+                    console.error(`[Inbound MMS] Media processing error:`, dlErr.message);
+                    await sendTelegramAlert(`📱❌ <b>MMS PROCESSING ERROR</b>\n\n<b>Case:</b> ${caseId}\n<b>Error:</b> ${dlErr.message}`);
+                }
+            }
+        } else if (numMedia > 0 && !matchedCase) {
+            // Got media but can't match to a case
+            await sendTelegramAlert(
+                `📱⚠️ <b>INBOUND MMS — NO CASE MATCH</b>\n\n` +
+                `<b>From:</b> ${from}\n` +
+                `<b>Body:</b> ${body.substring(0, 200)}\n` +
+                `<b>Media:</b> ${numMedia} attachment(s)\n\n` +
+                `Cannot match phone number to a case. Manual review needed.`
+            );
+        }
+        
+        // Log all inbound messages (even text-only)
+        if (!numMedia || numMedia === 0) {
+            const caseInfo = matchedCase ? `Case: ${caseId} (${customerName})` : 'No case match';
+            await sendTelegramAlert(
+                `📱 <b>INBOUND SMS</b>\n\n` +
+                `<b>From:</b> ${from}\n` +
+                `<b>${caseInfo}</b>\n` +
+                `<b>Message:</b> ${body.substring(0, 500)}`
+            );
+        }
+        
+    } catch (err) {
+        console.error('[Inbound SMS] Unhandled error:', err.message);
+        await sendTelegramAlert(`📱🔴 <b>INBOUND SMS ERROR</b>\n<b>From:</b> ${from}\n<b>Error:</b> ${err.message}`);
+    }
+});
+
+// ==================== TARGETED SMS SEND (Kill Switch Bypass) ====================
+// ONLY for explicitly approved case IDs — does NOT check OA_EMAIL_KILLED
+const APPROVED_SMS_CASES = ['OA-0010', 'OA-0013', 'OA-0017', 'OA-0022'];
+
+app.post('/api/admin/send-notice-sms', authenticateToken, async (req, res) => {
+    const { caseId } = req.body;
+    
+    if (!caseId) return res.status(400).json({ error: 'caseId required' });
+    if (!APPROVED_SMS_CASES.includes(caseId) && caseId !== 'TEST') {
+        return res.status(403).json({ error: `Case ${caseId} is NOT in the approved bypass list. Only: ${APPROVED_SMS_CASES.join(', ')}` });
+    }
+    
+    try {
+        // For TEST, send to Tyler
+        if (caseId === 'TEST') {
+            const testMsg = `Hi Tyler — this is a test SMS from OverAssessed.\n\nYou can:\n1) Reply to this text with a photo or PDF of a notice\nOR\n2) Upload it here: https://overassessed.ai/portal?case=TEST\n\nWe'll take care of everything as soon as we receive it.\n\n— OverAssessed`;
+            
+            if (!twilioClient) return res.status(500).json({ error: 'Twilio client not initialized' });
+            
+            const msgOpts = {
+                body: testMsg,
+                to: process.env.NOTIFY_PHONE || '+12105598725',
+                messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID
+            };
+            if (!msgOpts.messagingServiceSid) {
+                msgOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+                delete msgOpts.messagingServiceSid;
+            }
+            
+            const result = await twilioClient.messages.create(msgOpts);
+            console.log(`[Notice SMS TEST] Sent to Tyler: SID=${result.sid}`);
+            return res.json({ success: true, sid: result.sid, to: msgOpts.to, type: 'test' });
+        }
+        
+        // Real send — look up case
+        const sub = await findSubmission(caseId);
+        if (!sub) return res.status(404).json({ error: `Case ${caseId} not found` });
+        
+        const phone = sub.phone;
+        if (!phone) return res.status(400).json({ error: `Case ${caseId} has no phone number on file` });
+        
+        const firstName = (sub.ownerName || sub.owner_name || '').split(' ')[0] || 'there';
+        const uploadLink = `https://overassessed.ai/portal?case=${caseId}`;
+        
+        const message = `Hi ${firstName} — quick heads up, we're ready to move forward with your property tax protest.\n\nWe just need your Notice of Appraised Value.\n\nYou can:\n1) Reply to this text with a photo or PDF of your notice\nOR\n2) Upload it here: ${uploadLink}\n\nWe'll take care of everything as soon as we receive it.\n\n— OverAssessed`;
+        
+        if (!twilioClient) return res.status(500).json({ error: 'Twilio client not initialized' });
+        
+        // Normalize phone
+        let cleanPhone = phone.replace(/[^\d]/g, '');
+        if (cleanPhone.length === 10) cleanPhone = '+1' + cleanPhone;
+        else if (!cleanPhone.startsWith('+')) cleanPhone = '+' + cleanPhone;
+        
+        const msgOpts = {
+            body: message,
+            to: cleanPhone,
+            messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID
+        };
+        if (!msgOpts.messagingServiceSid) {
+            msgOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+            delete msgOpts.messagingServiceSid;
+        }
+        
+        const result = await twilioClient.messages.create(msgOpts);
+        
+        console.log(`[Notice SMS] Sent to ${firstName} (${caseId}): SID=${result.sid}`);
+        
+        // Log it
+        await sendTelegramAlert(
+            `📱✅ <b>NOTICE SMS SENT</b>\n\n` +
+            `<b>Case:</b> ${caseId}\n` +
+            `<b>To:</b> ${sub.ownerName || sub.owner_name} (${cleanPhone})\n` +
+            `<b>SID:</b> ${result.sid}`
+        );
+        
+        res.json({ success: true, sid: result.sid, to: cleanPhone, customer: sub.ownerName || sub.owner_name, caseId });
+        
+    } catch (error) {
+        console.error(`[Notice SMS] Failed for ${caseId}:`, error.message);
+        res.status(500).json({ error: error.message, code: error.code });
+    }
+});
+
+// ==================== ADMIN SMS TEST ENDPOINT ====================
+app.get('/api/admin/twilio-status', authenticateToken, async (req, res) => {
+    try {
+        const status = {
+            clientInitialized: !!twilioClient,
+            accountSid: process.env.TWILIO_ACCOUNT_SID ? process.env.TWILIO_ACCOUNT_SID.substring(0, 10) + '...' : 'NOT SET',
+            phoneNumber: process.env.TWILIO_PHONE_NUMBER || 'NOT SET',
+            messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID ? process.env.TWILIO_MESSAGING_SERVICE_SID.substring(0, 10) + '...' : 'NOT SET',
+            killSwitchActive: OA_EMAIL_KILLED,
+            smsStatus: 'DEGRADED — 10DLC pending',
+            bypassList: APPROVED_SMS_CASES
+        };
+        
+        // Test Twilio client auth
+        if (twilioClient) {
+            try {
+                const account = await twilioClient.api.accounts(process.env.TWILIO_ACCOUNT_SID).fetch();
+                status.twilioAuth = 'VALID';
+                status.accountName = account.friendlyName;
+                status.accountStatus = account.status;
+            } catch (authErr) {
+                status.twilioAuth = 'FAILED: ' + authErr.message;
+            }
+        }
+        
+        res.json(status);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 1. Inbound call - AI greeting + first gather
 app.post('/twiml/voice', (req, res) => {
     const callSid = req.body?.CallSid || 'unknown';
