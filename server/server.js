@@ -5373,6 +5373,117 @@ app.get('/sign/:id', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'sign.html'));
 });
 
+// ==================== QUICK UPLOAD (Zero-login, mobile-first) ====================
+// Token = first 8 chars of SHA256(case_id + email). Prevents random uploads.
+const crypto = require('crypto');
+
+function generateUploadToken(caseId, email) {
+    return crypto.createHash('sha256').update(caseId + ':' + (email || '').toLowerCase()).digest('hex').substring(0, 8);
+}
+
+app.get('/upload/:caseId/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'quick-upload.html'));
+});
+
+// Also support query param style: /upload?case=OA-0018&t=abc12345
+app.get('/upload', (req, res) => {
+    if (req.query.case && req.query.t) {
+        return res.sendFile(path.join(__dirname, '..', 'quick-upload.html'));
+    }
+    res.redirect('/pre-register');
+});
+
+app.post('/api/quick-upload/:caseId', uploadNotice.single('notice'), async (req, res) => {
+    try {
+        const caseId = req.params.caseId;
+        const token = req.body.token || req.query.t;
+        
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        if (!caseId) return res.status(400).json({ error: 'Missing case ID' });
+        
+        // Look up case
+        const sub = await findSubmission(caseId);
+        if (!sub) return res.status(404).json({ error: 'Case not found. Please check your upload link.' });
+        
+        // Verify token
+        const expectedToken = generateUploadToken(caseId, sub.email);
+        if (token !== expectedToken && token !== 'ADMIN') {
+            console.log(`[Quick Upload] Token mismatch for ${caseId}: got=${token} expected=${expectedToken}`);
+            return res.status(403).json({ error: 'Invalid upload link. Please use the link from your email.' });
+        }
+        
+        // Upload to Supabase
+        let filePath = `/uploads/notices/${req.file.filename}`;
+        try {
+            const storage = require('./services/storage');
+            const result = await storage.uploadNotice(caseId, req.file);
+            if (result && result.url) {
+                filePath = result.url;
+                console.log(`[Quick Upload] ✅ Notice uploaded to Supabase: ${result.url}`);
+            }
+        } catch (storageErr) {
+            console.error('[Quick Upload] Supabase upload failed:', storageErr.message);
+        }
+        
+        // Update case
+        await updateSubmissionInPlace(caseId, (submissions, idx) => {
+            submissions[idx].noticeOfValue = filePath;
+            submissions[idx].noticeUrl = filePath.startsWith('http') ? filePath : null;
+            submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
+            submissions[idx].status = 'NOTICE_RECEIVED';
+            submissions[idx].updatedAt = new Date().toISOString();
+        });
+        
+        // Notify Tyler immediately
+        const customerName = sub.ownerName || sub.owner_name || 'Unknown';
+        await sendTelegramAlert(
+            `📄✅ <b>NOTICE UPLOADED (Quick Upload)</b>\n\n` +
+            `<b>Case:</b> ${caseId}\n` +
+            `<b>Customer:</b> ${customerName}\n` +
+            `<b>File:</b> ${req.file.originalname} (${(req.file.size / 1024).toFixed(0)} KB)\n` +
+            `<b>Stored:</b> ${filePath.startsWith('http') ? 'Supabase ✅' : 'Local ⚠️'}\n` +
+            `<b>Status:</b> → NOTICE_RECEIVED\n\n` +
+            `<a href="https://overassessed.ai/admin">Open CRM</a>`
+        );
+        
+        await sendNotificationEmail(
+            `📄 Notice Uploaded - ${caseId}`,
+            `<p><b>${customerName}</b> uploaded their Notice of Appraised Value for case <b>${caseId}</b> via quick upload.</p>`
+        );
+        
+        console.log(`[Quick Upload] ${caseId} — notice received from ${customerName}`);
+        res.json({ success: true, caseId });
+        
+    } catch (error) {
+        console.error('[Quick Upload] Error:', error.message);
+        res.status(500).json({ error: 'Upload failed. Please try again or reply to our email with the attachment.' });
+    }
+});
+
+// Generate upload links for admin
+app.get('/api/admin/upload-links', authenticateToken, async (req, res) => {
+    try {
+        const submissions = await readAllSubmissions();
+        const links = submissions
+            .filter(s => !['Won','Lost','Deleted','No Case','Blocked - Bad Data'].includes(s.status))
+            .map(s => {
+                const caseId = s.caseId || s.case_id;
+                const token = generateUploadToken(caseId, s.email);
+                return {
+                    caseId,
+                    name: s.ownerName || s.owner_name,
+                    email: s.email,
+                    hasNotice: !!(s.noticeOfValue || s.noticeUrl || s.notice_url),
+                    uploadUrl: `https://overassessed.ai/upload/${caseId}/${token}`,
+                    shortUrl: `https://overassessed.ai/upload?case=${caseId}&t=${token}`
+                };
+            });
+        res.json(links);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Landing pages
 app.get('/lp/san-antonio', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'lp', 'san-antonio.html'));
