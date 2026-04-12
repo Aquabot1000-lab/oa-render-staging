@@ -180,9 +180,44 @@ function validateIntakeFields(body) {
     }
   }
 
-  // Address (just trim/clean)
+  // Address validation — require street + city + state + zip
   if (body.propertyAddress) {
-    corrected.propertyAddress = body.propertyAddress.trim().replace(/\s+/g, ' ');
+    const addr = body.propertyAddress.trim().replace(/\s+/g, ' ');
+    corrected.propertyAddress = addr;
+
+    // Must start with a street number
+    if (!/^\d+/.test(addr)) {
+      warnings.push('Address may be missing street number');
+    }
+
+    // Must contain a zip code (5 digits)
+    const hasZip = /\b\d{5}\b/.test(addr);
+    if (!hasZip) {
+      warnings.push('Address is missing zip code — lead will be flagged for review');
+    }
+
+    // Must contain a state abbreviation or "Texas"
+    const hasState = /\b(TX|Texas|tx)\b/.test(addr);
+    const bodyState = (body.state || '').toUpperCase();
+    if (!hasState && bodyState !== 'TX' && bodyState !== 'TEXAS') {
+      warnings.push('Address may be missing state');
+    }
+
+    // Must have at least 2 comma-separated parts (street, city) or contain a city name
+    const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length < 2 && !hasZip) {
+      warnings.push('Address appears incomplete — missing city or zip');
+    }
+  } else {
+    errors.push('Property address is required');
+  }
+
+  // State validation — Texas only
+  if (body.state) {
+    const st = body.state.toUpperCase().trim();
+    if (st !== 'TX' && st !== 'TEXAS') {
+      warnings.push(`State "${body.state}" is outside service area (Texas only) — lead will be flagged`);
+    }
   }
 
   return {
