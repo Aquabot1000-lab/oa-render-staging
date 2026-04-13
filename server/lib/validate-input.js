@@ -228,4 +228,17 @@ function validateIntakeFields(body) {
   };
 }
 
-module.exports = { normalizePhone, normalizeEmail, normalizeName, validateIntakeFields };
+// ── Address validation ──
+function validateAddress({ street, city, state, zip }) {
+  const errors = [];
+  const ALLOWED_STATES = ['TX', 'CO', 'GA', 'AZ', 'WA'];
+
+  if (!street || street.trim().length < 3) errors.push('Street address is required');
+  if (!city || city.trim().length < 2) errors.push('City is required');
+  if (!state || !ALLOWED_STATES.includes(state.toUpperCase())) errors.push('State must be TX, CO, GA, AZ, or WA');
+  if (!zip || !/^\d{5}$/.test(zip)) errors.push('Valid 5-digit zip code is required');
+
+  return { valid: errors.length === 0, errors };
+}
+
+module.exports = { normalizePhone, normalizeEmail, normalizeName, validateIntakeFields, validateAddress };

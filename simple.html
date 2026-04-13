@@ -73,6 +73,11 @@
         .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
         .detail-grid .form-group{margin-bottom:0}
         .detail-grid input{padding:14px}
+
+        .form-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;margin-bottom:16px}
+        .form-row .form-group{margin-bottom:0}
+        .form-row select{width:100%;padding:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:1rem;font-family:inherit;background:rgba(255,255,255,0.05);color:var(--text);transition:all 0.2s;outline:none;cursor:pointer}
+        .form-row select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.15)}
         
         .skip-link{display:inline-block;margin-top:12px;font-size:0.85rem;color:var(--text-dim);cursor:pointer;text-decoration:underline}
         .skip-link:hover{color:var(--text)}
@@ -122,8 +127,28 @@
             <!-- STEP 1: Address + Email -->
             <form id="step1Form" class="step1">
                 <div class="form-group">
-                    <label>Property Address</label>
-                    <input type="text" id="address" placeholder="123 Main St, San Antonio, TX" required autocomplete="street-address">
+                    <label>Street Address</label>
+                    <input type="text" id="street" placeholder="123 Main St" required autocomplete="address-line1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="city" placeholder="San Antonio" required autocomplete="address-level2">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <select id="state" required autocomplete="address-level1">
+                            <option value="TX">TX</option>
+                            <option value="CO">CO</option>
+                            <option value="GA">GA</option>
+                            <option value="AZ">AZ</option>
+                            <option value="WA">WA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Zip Code</label>
+                        <input type="text" id="zip" placeholder="78257" required pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Email</label>
@@ -204,6 +229,14 @@
         const detectedState = stateConfig[urlState] ? urlState : 'TX';
         const sc = stateConfig[detectedState];
 
+        // Set default state dropdown value from URL parameter
+        window.addEventListener('DOMContentLoaded', () => {
+            const stateSelect = document.getElementById('state');
+            if (stateSelect && detectedState) {
+                stateSelect.value = detectedState;
+            }
+        });
+
         // Update ticker with state-specific stories
         const tickerItems = document.querySelectorAll('.ticker-item');
         if (tickerItems.length >= 3 && sc.stories.length >= 3) {
@@ -257,22 +290,49 @@
         document.getElementById('step1Form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('ctaBtn');
-            const address = document.getElementById('address').value.trim();
+            const street = document.getElementById('street').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const state = document.getElementById('state').value.trim();
+            const zip = document.getElementById('zip').value.trim();
             const email = document.getElementById('email').value.trim();
-            
-            if (!address || !email) return;
-            
+
+            // Client-side validation
+            const ALLOWED_STATES = ['TX', 'CO', 'GA', 'AZ', 'WA'];
+            if (!street || !city || !state || !zip || !email) {
+                alert('Please fill in all fields');
+                return;
+            }
+            if (!ALLOWED_STATES.includes(state.toUpperCase())) {
+                alert('State must be TX, CO, GA, AZ, or WA');
+                return;
+            }
+            if (!/^\d{5}$/.test(zip)) {
+                alert('Zip code must be exactly 5 digits');
+                return;
+            }
+
             btn.classList.add('loading');
             btn.disabled = true;
-            
-            leadData = { address, email };
+
+            // Combine fields into full address
+            const address = `${street}, ${city}, ${state} ${zip}`;
+            leadData = { address, email, street, city, state, zip };
             
             try {
-                // Submit lead immediately (simple-form source)
+                // Submit lead immediately (simple-form source) with structured address fields
                 const leadRes = await fetch(API + '/api/simple-lead', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ property_address: address, email, source: 'simple-form', state_hint: detectedState })
+                    body: JSON.stringify({
+                        property_address: address,
+                        street,
+                        city,
+                        state,
+                        zip,
+                        email,
+                        source: 'simple-form',
+                        state_hint: detectedState
+                    })
                 });
                 const leadResult = await leadRes.json();
                 leadData.leadId = leadResult.id;

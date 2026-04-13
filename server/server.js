@@ -2612,8 +2612,32 @@ app.post('/api/pre-register', async (req, res) => {
 // ==================== SIMPLE LANDING PAGE LEAD ====================
 app.post('/api/simple-lead', async (req, res) => {
     try {
-        const { property_address, email, source, state_hint, assessed_value, property_type, county: submitted_county, phone, owner_name } = req.body;
-        if (!property_address || !email) {
+        const { property_address, street, city, state: state_field, zip, email, source, state_hint, assessed_value, property_type, county: submitted_county, phone, owner_name } = req.body;
+
+        // Handle new structured address format
+        let finalPropertyAddress = property_address;
+        let validatedState = state_field;
+
+        if (street && city && state_field && zip) {
+            // New format with structured fields
+            const ALLOWED_STATES = ['TX', 'CO', 'GA', 'AZ', 'WA'];
+
+            // Hard validation
+            if (!street.trim() || !city.trim() || !state_field.trim() || !zip.trim()) {
+                return res.status(400).json({ error: 'All address fields (street, city, state, zip) are required' });
+            }
+            if (!ALLOWED_STATES.includes(state_field.toUpperCase())) {
+                return res.status(400).json({ error: 'State must be TX, CO, GA, AZ, or WA' });
+            }
+            if (!/^\d{5}$/.test(zip)) {
+                return res.status(400).json({ error: 'Zip code must be exactly 5 digits' });
+            }
+
+            // Reconstruct property_address
+            finalPropertyAddress = `${street.trim()}, ${city.trim()}, ${state_field.toUpperCase()} ${zip}`;
+            validatedState = state_field.toUpperCase();
+        } else if (!property_address || !email) {
+            // Old format validation (backward compatibility)
             return res.status(400).json({ error: 'Address and email are required' });
         }
         // Track missing required fields
@@ -2627,17 +2651,17 @@ app.post('/api/simple-lead', async (req, res) => {
 
         // Auto-detect state and county from address
         const { parseAddress } = require('./services/address-parser');
-        const parsed = parseAddress(property_address, { state: state_hint, county: submitted_county });
-        let state = parsed.state;
+        const parsed = parseAddress(finalPropertyAddress, { state: validatedState || state_hint, county: submitted_county });
+        let state = validatedState || parsed.state;
         let county = parsed.county || submitted_county || null;
-        
+
         if (parsed.flagged) {
-            console.log(`[SIMPLE LEAD] ⚠️ Address flagged: ${property_address} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
+            console.log(`[SIMPLE LEAD] ⚠️ Address flagged: ${finalPropertyAddress} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
         }
 
         // === DEDUPE CHECK ===
         const normalizedEmail = email.trim().toLowerCase();
-        const normalizedAddress = property_address.trim().replace(/\s+/g, ' ').replace(/,\s*/g, ', ');
+        const normalizedAddress = finalPropertyAddress.trim().replace(/\s+/g, ' ').replace(/,\s*/g, ', ');
         
         // Check for existing submission with same email in last 24 hours
         const { data: existingByEmail } = await supabaseAdmin
@@ -2662,12 +2686,19 @@ app.post('/api/simple-lead', async (req, res) => {
             return res.json({ success: true, caseId: existing.case_id, message: 'Existing case found', deduplicated: true });
         }
 
+        // Routing logic based on state
+        let routingStatus = 'New'; // Default for TX
+        if (state && ['CO', 'GA', 'AZ', 'WA'].includes(state.toUpperCase())) {
+            routingStatus = 'Waitlist - OUT_OF_STATE';
+        }
+
         const insertData = {
             property_address: normalizedAddress,
             email: normalizedEmail,
             source: source || 'simple-form',
             state,
             county,
+            status: routingStatus,
             created_at: new Date().toISOString()
         };
 
@@ -2682,12 +2713,12 @@ app.post('/api/simple-lead', async (req, res) => {
                     owner_name: owner_name || 'Simple Form Lead',
                     email: email.trim().toLowerCase(),
                     phone: phone || null,
-                    property_address,
+                    property_address: finalPropertyAddress,
                     property_type: property_type || 'residential',
                     county: submitted_county || county || null,
                     state: state || null,
                     source: 'simple-form',
-                    status: missingFields.length > 0 ? 'New' : 'New',
+                    status: routingStatus,
                     assessed_value: assessed_value ? Number(assessed_value) : null,
                     assigned_to: 'Tyler',
                     lead_priority: 'normal',
