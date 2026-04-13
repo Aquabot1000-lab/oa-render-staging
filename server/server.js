@@ -957,7 +957,13 @@ async function sendSMS(to, message, { useMessagingService = false } = {}) {
 
 // Customer-facing SMS with EMAIL FALLBACK
 // If SMS fails (30034 10DLC, 30032 toll-free, or any error), auto-sends email instead
-async function sendCustomerSMS(to, message, { email, customerName, context } = {}) {
+async function sendCustomerSMS(to, message, { email, customerName, context, caseId, doNotContact } = {}) {
+    // === DO NOT CONTACT CHECK ===
+    if (doNotContact) {
+        console.log(`[DNC] Blocked send to ${customerName || to} (${caseId || 'unknown'}) — do_not_contact=true`);
+        logActivity(caseId || 'UNKNOWN', 'system', 'send_blocked_do_not_contact', { to, channel: 'sms', reason: 'DNC flag set' });
+        return { success: false, method: 'blocked_dnc' };
+    }
     const result = await sendSMS(to, message, { useMessagingService: true });
     logSmsAttempt(to, result.success, result.errorCode, null, context || 'customer');
     logComm({ event: result.success ? 'sent' : 'failed', channel: 'sms', to, name: customerName, context, error: result.errorCode });
