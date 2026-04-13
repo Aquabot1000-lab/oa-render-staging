@@ -2735,6 +2735,13 @@ app.post('/api/simple-lead', async (req, res) => {
                 // === AUTO-RESPONSE SYSTEM ===
                 const leadId = fbData.id;
                 const caseNum = caseId;
+
+                // Skip auto-response for out-of-state leads
+                if (routingStatus === 'Waitlist - OUT_OF_STATE') {
+                    console.log(`[SIMPLE LEAD] 🌍 Out-of-state lead (${state}) — skipping auto-emails and analysis. Status: ${routingStatus}`);
+                    sendTelegramAlert(`🌍 OUT-OF-STATE LEAD\n\n<b>Case:</b> ${caseNum}\n<b>Email:</b> ${email}\n<b>Property:</b> ${finalPropertyAddress}\n<b>State:</b> ${state}\n<b>Status:</b> Waitlist - OUT_OF_STATE\n\n⏸️ No auto-emails sent. Held for future expansion.`);
+                    return res.json({ success: true, id: leadId, caseId: caseNum, state, county, status: routingStatus });
+                }
                 
                 // 1. Auto-assign (default: Tyler for OA leads)
                 const assignee = 'Tyler';
