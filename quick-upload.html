@@ -104,6 +104,19 @@ if (!qCase || !qToken) {
     document.getElementById('uploadSection').innerHTML = '<div style="text-align:center;padding:24px"><p style="font-size:15px;color:#c53030;">Invalid upload link. Please use the link from your email or text message.</p></div>';
 }
 
+// Track interactions
+function trackEvent(event) {
+    fetch(`/api/upload-event/${qCase}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event, token: qToken, timestamp: new Date().toISOString() })
+    }).catch(() => {});
+}
+
+// Track camera/file button clicks
+document.querySelector('.camera-btn').addEventListener('click', () => trackEvent('camera_opened'));
+document.querySelector('.file-btn').addEventListener('click', () => trackEvent('file_picker_opened'));
+
 document.getElementById('fileInput').addEventListener('change', handleFile);
 document.getElementById('cameraInput').addEventListener('change', handleFile);
 

@@ -5420,7 +5420,38 @@ function generateUploadToken(caseId, email) {
 }
 
 app.get('/upload/:caseId/:token', (req, res) => {
+    const { caseId, token } = req.params;
+    console.log(`[Upload Page View] ${caseId} | token=${token} | ip=${req.ip} | ua=${(req.headers['user-agent']||'').substring(0,80)} | time=${new Date().toISOString()}`);
+    // Track page view in Supabase (async, don't block)
+    if (isSupabaseEnabled()) {
+        supabaseAdmin.from('upload_events').insert({
+            case_id: caseId,
+            event: 'page_view',
+            token,
+            ip: req.ip,
+            user_agent: (req.headers['user-agent']||'').substring(0, 200),
+            created_at: new Date().toISOString()
+        }).then(() => {}).catch(() => {});
+    }
     res.sendFile(path.join(__dirname, '..', 'quick-upload.html'));
+});
+
+// Track upload page interactions (camera open, file picker, etc.)
+app.post('/api/upload-event/:caseId', (req, res) => {
+    const { caseId } = req.params;
+    const { event, token, timestamp } = req.body || {};
+    console.log(`[Upload Event] ${caseId} | ${event} | token=${token} | time=${timestamp || new Date().toISOString()}`);
+    if (isSupabaseEnabled()) {
+        supabaseAdmin.from('upload_events').insert({
+            case_id: caseId,
+            event: event || 'unknown',
+            token: token || null,
+            ip: req.ip,
+            user_agent: (req.headers['user-agent']||'').substring(0, 200),
+            created_at: new Date().toISOString()
+        }).then(() => {}).catch(() => {});
+    }
+    res.json({ ok: true });
 });
 
 // Also support query param style: /upload?case=OA-0018&t=abc12345
