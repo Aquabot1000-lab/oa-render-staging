@@ -8666,3 +8666,17 @@ app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// TEMP: diagnostic endpoint to verify deploy
+app.get('/deploy-check-xz93', (req, res) => {
+    const casePath = path.join(__dirname, '..', 'case.html');
+    const fs = require('fs');
+    res.json({
+        exists: fs.existsSync(casePath),
+        path: casePath,
+        cwd: process.cwd(),
+        dirname: __dirname,
+        files: fs.readdirSync(path.join(__dirname, '..')).filter(f => f.endsWith('.html')),
+        timestamp: new Date().toISOString()
+    });
+});
