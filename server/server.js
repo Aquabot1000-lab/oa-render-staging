@@ -802,7 +802,64 @@ function logComm(entry) {
     if (entry.event === 'replied') commsStats.replied++;
     if (entry.event === 'bounced') commsStats.bounced++;
     if (entry.event === 'failed') commsStats.failed++;
+
+    // === PHASE 1: Persist to Supabase communications table ===
+    if (isSupabaseEnabled()) {
+        const dbRow = {
+            case_id: entry.caseId || entry.case_id || 'UNKNOWN',
+            direction: 'outbound',
+            channel: entry.channel || 'unknown',
+            recipient: entry.to || entry.email || '',
+            subject: entry.subject || null,
+            body: entry.message || entry.body || null,
+            status: entry.event || 'unknown',
+            error_code: entry.error ? String(entry.error) : null,
+            twilio_sid: entry.sid || entry.sgMessageId || null,
+        };
+        supabaseAdmin.from('communications').insert(dbRow)
+            .then(({ error }) => { if (error) console.error('[DB] communications insert failed:', error.message); })
+            .catch(err => console.error('[DB] communications insert error:', err.message));
+    }
+
     return comm;
+}
+
+// === PHASE 1: Activity Log helper — logs status changes, uploads, etc. ===
+async function logActivity(caseId, actor, action, details = {}) {
+    if (!isSupabaseEnabled()) return;
+    try {
+        const { error } = await supabaseAdmin.from('activity_log').insert({
+            case_id: caseId,
+            actor: actor || 'system',
+            action,
+            details,
+        });
+        if (error) console.error('[DB] activity_log insert failed:', error.message);
+    } catch (err) {
+        console.error('[DB] activity_log insert error:', err.message);
+    }
+}
+
+// === PHASE 1: Auto-create task helper ===
+async function autoCreateTask(caseId, type, title, dueHours = 24, priority = 'normal') {
+    if (!isSupabaseEnabled()) return;
+    try {
+        const dueDate = new Date(Date.now() + dueHours * 3600000).toISOString();
+        const { error } = await supabaseAdmin.from('tasks').insert({
+            case_id: caseId,
+            type,
+            title,
+            due_date: dueDate,
+            priority,
+            auto_generated: true,
+        });
+        if (error) console.error('[DB] tasks insert failed:', error.message);
+        // Update next_task_due on submission
+        await supabaseAdmin.from('submissions').update({ next_task_due: dueDate })
+            .eq('case_id', caseId);
+    } catch (err) {
+        console.error('[DB] tasks insert error:', err.message);
+    }
 }
 
 const smsMetrics = {
@@ -4454,6 +4511,23 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
         });
         if (!sub) return res.status(404).json({ error: 'Case not found' });
 
+        // === PHASE 1: Log upload to activity_log ===
+        const uploadCaseId = sub.caseId || sub.case_id;
+        logActivity(uploadCaseId, 'customer', 'upload', {
+            type: 'notice',
+            filename: req.file.originalname,
+            path: filePath,
+            size: req.file.size,
+        });
+
+        // === PHASE 1: Update last_activity_at + contact_attempts ===
+        if (isSupabaseEnabled()) {
+            supabaseAdmin.from('submissions').update({
+                last_activity_at: new Date().toISOString(),
+                upload_status: filePath.startsWith('http') ? 'uploaded' : 'local-only',
+            }).eq('case_id', uploadCaseId).then(() => {});
+        }
+
         sendNotificationEmail(
             `Notice Uploaded - ${sub.caseId}`,
             `<p>Client ${sub.ownerName} uploaded their Notice of Appraised Value for case ${sub.caseId}.</p>`
@@ -4754,6 +4828,32 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
 
         // Send status notification to client if status actually changed
         if (oldStatus !== status) {
+            // === PHASE 1: Log status change to activity_log ===
+            const caseId = sub.caseId || sub.case_id;
+            logActivity(caseId, 'tyler', 'status_change', {
+                from: oldStatus,
+                to: status,
+                savings: savings || sub.savings || sub.estimatedSavings || sub.estimated_savings,
+            });
+
+            // === PHASE 1: Auto-create tasks on stage changes ===
+            if (status === 'Contacted' || status === 'Preliminary Analysis') {
+                autoCreateTask(caseId, 'follow_up', `Follow up if no response — ${sub.ownerName || sub.owner_name}`, 48, 'normal');
+            } else if (status === 'Awaiting Notice') {
+                autoCreateTask(caseId, 'follow_up', `Check if notice uploaded — ${sub.ownerName || sub.owner_name}`, 72, 'normal');
+            } else if (status === 'Analysis Complete' || status === 'Ready to File') {
+                autoCreateTask(caseId, 'review', `Send savings report + get signature — ${sub.ownerName || sub.owner_name}`, 4, 'high');
+            } else if (status === 'Filed') {
+                autoCreateTask(caseId, 'follow_up', `Check for hearing date — ${sub.ownerName || sub.owner_name}`, 336, 'normal');
+            }
+
+            // === PHASE 1: Update last_activity_at ===
+            if (isSupabaseEnabled()) {
+                supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString() })
+                    .eq('case_id', caseId)
+                    .then(({ error }) => { if (error) console.error('[DB] last_activity_at update failed:', error.message); });
+            }
+
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
                 sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
@@ -4880,8 +4980,24 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
         });
         if (!sub) return res.status(404).json({ error: 'Not found' });
 
+        const caseId = sub.caseId || sub.case_id;
+
+        // === PHASE 1: Log note addition ===
+        if (note) {
+            logActivity(caseId, req.user?.email || 'tyler', 'note_added', { text: note });
+        }
+
         // Send status notification to client if status changed
         if (status && oldStatus !== status) {
+            // === PHASE 1: Log status change ===
+            logActivity(caseId, req.user?.email || 'tyler', 'status_change', { from: oldStatus, to: status });
+
+            // === PHASE 1: Update last_activity_at ===
+            if (isSupabaseEnabled()) {
+                supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString() })
+                    .eq('case_id', caseId).then(() => {});
+            }
+
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });
             if (template) {
                 sendClientEmail(sub.email, `${template.title} - ${sub.caseId}`, brandedEmailWrapper(template.title, template.subtitle, template.body));
