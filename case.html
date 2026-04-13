@@ -276,35 +276,42 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const SB_URL = 'https://ylxreuqvofgbpsatfsvr.supabase.co';
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlseHJldXF2b2ZnYnBzYXRmc3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTcxODAsImV4cCI6MjA4NzQzMzE4MH0.1gDWfmfKyvJCXpDWVpJMrfDNQ84aW0fgX7j7mPb3YEQ';
-
         const caseId = new URLSearchParams(window.location.search).get('id');
         if (!caseId) { document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">No case ID provided. Use ?id=OA-0025</div>'; }
 
         let caseData = null;
+        let authToken = null;
 
-        function headers() {
-            return { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+        async function ensureAuth() {
+            if (authToken) return;
+            try {
+                const r = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'tyler@overassessed.ai', password: 'OverAssessed!2026' })
+                });
+                const d = await r.json();
+                authToken = d.token;
+            } catch (e) {
+                console.error('Auth failed:', e);
+                document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;">Auth failed. Check credentials.</div>';
+            }
         }
 
-        async function sbGet(path) {
-            const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: headers() });
+        function apiHeaders() {
+            return { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' };
+        }
+
+        async function apiGet(path) {
+            await ensureAuth();
+            const r = await fetch(`/api/case-view/${path}`, { headers: apiHeaders() });
             return r.json();
         }
 
-        async function sbPatch(table, filter, data) {
-            const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
-                method: 'PATCH', headers: { ...headers(), 'Prefer': 'return=representation' },
-                body: JSON.stringify(data)
-            });
-            return r.json();
-        }
-
-        async function sbPost(table, data) {
-            const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
-                method: 'POST', headers: { ...headers(), 'Prefer': 'return=representation' },
-                body: JSON.stringify(data)
+        async function apiPost(path, data) {
+            await ensureAuth();
+            const r = await fetch(`/api/case-view/${path}`, {
+                method: 'POST', headers: apiHeaders(), body: JSON.stringify(data)
             });
             return r.json();
         }
@@ -558,8 +565,7 @@
 
         async function toggleTask(taskId, currentDone) {
             const newStatus = currentDone ? 'open' : 'completed';
-            await sbPatch('tasks', `id=eq.${taskId}`, { status: newStatus });
-            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'task_' + newStatus, details: { task_id: taskId } });
+            await apiPost('toggle-task', { task_id: taskId, status: newStatus, case_id: caseId });
             toast(newStatus === 'completed' ? '✅ Task completed' : '↩ Task reopened');
             loadTasks();
         }
@@ -571,8 +577,7 @@
             const oldStatus = caseData.status;
             if (newStatus === oldStatus) return toast('Already at that status', true);
 
-            await sbPatch('submissions', `case_id=eq.${caseId}`, { status: newStatus, last_activity_at: new Date().toISOString() });
-            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'status_change', details: { from: oldStatus, to: newStatus, source: 'case-page' } });
+            await apiPost('change-status', { case_id: caseId, old_status: oldStatus, new_status: newStatus });
             toast(`Status: ${oldStatus} → ${newStatus}`);
             sel.value = '';
             await refreshData();
@@ -582,24 +587,19 @@
             const text = document.getElementById('noteText').value.trim();
             if (!text) return toast('Type a note first', true);
 
-            // Append to notes field
-            const oldNotes = caseData.notes || '';
-            const ts = new Date().toISOString().slice(0, 16).replace('T', ' ');
-            const newNotes = oldNotes + `\n[${ts}] Tyler note: ${text}`;
-            await sbPatch('submissions', `case_id=eq.${caseId}`, { notes: newNotes, last_activity_at: new Date().toISOString() });
-            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'note', details: { text } });
+            await apiPost('add-note', { case_id: caseId, text });
             document.getElementById('noteText').value = '';
             toast('✅ Note saved');
             await loadTimeline();
         }
 
         async function loadCase() {
-            const data = await sbGet(`submissions?case_id=eq.${caseId}&select=*`);
-            if (!data || !data[0]) {
-                document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">Case not found: ' + caseId + '</div>';
+            const data = await apiGet(`case/${caseId}`);
+            if (!data || data.error) {
+                document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">Case not found: ' + caseId + (data?.error ? ' — ' + data.error : '') + '</div>';
                 return;
             }
-            caseData = data[0];
+            caseData = data;
             document.title = `${caseId} — ${caseData.owner_name} — OverAssessed`;
             document.getElementById('caseIdBadge').textContent = caseId;
             const pill = document.getElementById('statusPill');
@@ -613,16 +613,13 @@
         }
 
         async function loadTimeline() {
-            const [activities, comms] = await Promise.all([
-                sbGet(`activity_log?case_id=eq.${caseId}&order=created_at.desc&limit=50`),
-                sbGet(`communications?case_id=eq.${caseId}&order=created_at.desc&limit=50`)
-            ]);
-            renderTimeline(activities || [], comms || []);
+            const data = await apiGet(`timeline/${caseId}`);
+            renderTimeline(data?.activities || [], data?.communications || []);
         }
 
         async function loadTasks() {
-            const tasks = await sbGet(`tasks?case_id=eq.${caseId}&order=status.asc,due_date.asc&limit=20`);
-            renderTasks(tasks || []);
+            const data = await apiGet(`tasks/${caseId}`);
+            renderTasks(data?.tasks || []);
         }
 
         async function refreshData() {

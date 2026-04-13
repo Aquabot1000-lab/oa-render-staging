@@ -1727,6 +1727,71 @@ if (isSupabaseEnabled()) {
     app.use('/api/db/payments', authenticateToken, paymentsRouter);
     app.use('/api/db/exemptions', authenticateToken, exemptionsRouter);
     app.use('/api/db/referrals', authenticateToken, referralsRouter);
+
+    // ========================================
+    // CASE VIEW API — Phase 2 Case Page
+    // ========================================
+
+    // GET /api/case-view/case/:caseId — full case data
+    app.get('/api/case-view/case/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('submissions').select('*').eq('case_id', req.params.caseId).single();
+            if (error || !data) return res.status(404).json({ error: 'Case not found' });
+            res.json(data);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/timeline/:caseId — merged activity_log + communications
+    app.get('/api/case-view/timeline/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const [actResult, commResult] = await Promise.all([
+                supabaseAdmin.from('activity_log').select('*').eq('case_id', req.params.caseId).order('created_at', { ascending: false }).limit(50),
+                supabaseAdmin.from('communications').select('*').eq('case_id', req.params.caseId).order('created_at', { ascending: false }).limit(50)
+            ]);
+            res.json({ activities: actResult.data || [], communications: commResult.data || [] });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/tasks/:caseId
+    app.get('/api/case-view/tasks/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const { data } = await supabaseAdmin.from('tasks').select('*').eq('case_id', req.params.caseId).order('status', { ascending: true }).order('due_date', { ascending: true }).limit(20);
+            res.json({ tasks: data || [] });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-view/change-status
+    app.post('/api/case-view/change-status', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, old_status, new_status } = req.body;
+            await supabaseAdmin.from('submissions').update({ status: new_status, last_activity_at: new Date().toISOString() }).eq('case_id', case_id);
+            await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'status_change', details: { from: old_status, to: new_status, source: 'case-page' } });
+            res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-view/add-note
+    app.post('/api/case-view/add-note', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, text } = req.body;
+            const { data: sub } = await supabaseAdmin.from('submissions').select('notes').eq('case_id', case_id).single();
+            const ts = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const newNotes = (sub?.notes || '') + `\n[${ts}] Tyler note: ${text}`;
+            await supabaseAdmin.from('submissions').update({ notes: newNotes, last_activity_at: new Date().toISOString() }).eq('case_id', case_id);
+            await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'note', details: { text } });
+            res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-view/toggle-task
+    app.post('/api/case-view/toggle-task', authenticateToken, async (req, res) => {
+        try {
+            const { task_id, status, case_id } = req.body;
+            await supabaseAdmin.from('tasks').update({ status }).eq('id', task_id);
+            await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'task_' + status, details: { task_id } });
+            res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
     app.use('/api/filings', authenticateToken, filingsRouter);
     app.use('/api/admin/uri-commissions', authenticateToken, uriCommissionsRouter);
     app.use('/api/pipeline', authenticateToken, pipelineRouter);
