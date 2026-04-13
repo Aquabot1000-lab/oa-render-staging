@@ -2643,7 +2643,7 @@ app.post('/api/simple-lead', async (req, res) => {
         // Track missing required fields
         const missingFields = [];
         if (!assessed_value) missingFields.push('assessed_value');
-        if (!submitted_county && !property_address.match(/county/i)) missingFields.push('county');
+        if (!submitted_county && !(finalPropertyAddress || '').match(/county/i)) missingFields.push('county');
         if (!property_type) missingFields.push('property_type');
         if (!isSupabaseEnabled()) {
             return res.status(503).json({ error: 'Database not configured' });
