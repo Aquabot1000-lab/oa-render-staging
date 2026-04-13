@@ -118,6 +118,7 @@ app.use(cors());
 // Serve HTML pages EARLY (before static middleware which causes directory redirect loops)
 app.get('/admin', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'admin.html')); });
 app.get('/dashboard', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'admin.html')); });
+app.get('/case', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'case.html')); });
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
 
 app.use(express.json());

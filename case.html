@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Case View — OverAssessed</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+        /* Top bar */
+        .topbar { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .topbar-left a { color: #818cf8; text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .topbar-left a:hover { color: #a5b4fc; }
+        .case-id-badge { background: #312e81; color: #c7d2fe; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+        .status-pill { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-ready-to-file { background: #065f46; color: #6ee7b7; }
+        .status-needs-review { background: #78350f; color: #fcd34d; }
+        .status-awaiting-notice { background: #1e3a5f; color: #93c5fd; }
+        .status-new { background: #312e81; color: #c7d2fe; }
+        .status-analysis-complete { background: #4c1d95; color: #c4b5fd; }
+        .status-no-case { background: #3f3f46; color: #a1a1aa; }
+        .topbar-right { display: flex; gap: 10px; }
+        .topbar-right button { padding: 7px 16px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #818cf8; }
+        .btn-outline { background: transparent; color: #a5b4fc; border: 1px solid #3730a3; }
+        .btn-outline:hover { background: #1e1b4b; }
+        .btn-danger { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-success { background: #065f46; color: #6ee7b7; }
+        .btn-success:hover { background: #047857; }
+
+        /* Layout */
+        .page { display: grid; grid-template-columns: 1fr 420px; gap: 0; min-height: calc(100vh - 56px); }
+        .main-col { padding: 24px; overflow-y: auto; }
+        .side-col { background: #141621; border-left: 1px solid #2d3148; padding: 24px; overflow-y: auto; }
+
+        /* Cards */
+        .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+        .card-header { padding: 14px 20px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+        .card-header h3 { font-size: 14px; font-weight: 700; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-header .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #312e81; color: #a5b4fc; }
+        .card-body { padding: 20px; }
+
+        /* Customer section */
+        .customer-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .customer-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: white; flex-shrink: 0; }
+        .customer-name { font-size: 22px; font-weight: 800; color: #f1f5f9; }
+        .customer-meta { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-item { background: #141621; border-radius: 8px; padding: 12px 16px; }
+        .info-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .info-value { font-size: 14px; color: #e2e8f0; margin-top: 4px; font-weight: 500; }
+        .info-value a { color: #818cf8; text-decoration: none; }
+        .info-value a:hover { text-decoration: underline; }
+
+        /* Property */
+        .property-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .prop-stat { background: #141621; border-radius: 8px; padding: 12px; text-align: center; }
+        .prop-stat-value { font-size: 20px; font-weight: 800; color: #f1f5f9; }
+        .prop-stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-top: 4px; }
+
+        /* Analysis */
+        .savings-banner { background: linear-gradient(135deg, #065f46, #047857); border-radius: 10px; padding: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .savings-amount { font-size: 36px; font-weight: 800; color: #6ee7b7; }
+        .savings-label { font-size: 13px; color: #a7f3d0; margin-top: 2px; }
+        .savings-right { text-align: right; }
+        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+        /* Documents */
+        .doc-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #141621; border-radius: 8px; margin-bottom: 8px; }
+        .doc-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .doc-icon.notice { background: #1e3a5f; }
+        .doc-icon.evidence { background: #312e81; }
+        .doc-icon.agreement { background: #065f46; }
+        .doc-icon.error { background: #7f1d1d; }
+        .doc-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+        .doc-meta { font-size: 11px; color: #64748b; }
+        .doc-action { margin-left: auto; }
+        .doc-action a { color: #818cf8; font-size: 12px; text-decoration: none; font-weight: 600; }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 28px; }
+        .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #2d3148; }
+        .tl-item { position: relative; margin-bottom: 20px; }
+        .tl-dot { position: absolute; left: -23px; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #2d3148; }
+        .tl-dot.sms { background: #22d3ee; border-color: #0e7490; }
+        .tl-dot.email { background: #818cf8; border-color: #4338ca; }
+        .tl-dot.upload { background: #f59e0b; border-color: #b45309; }
+        .tl-dot.status { background: #a78bfa; border-color: #6d28d9; }
+        .tl-dot.system { background: #64748b; border-color: #475569; }
+        .tl-dot.note { background: #34d399; border-color: #059669; }
+        .tl-dot.agreement { background: #6ee7b7; border-color: #065f46; }
+        .tl-dot.analysis { background: #f472b6; border-color: #be185d; }
+        .tl-time { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+        .tl-content { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+        .tl-content strong { color: #f1f5f9; }
+        .tl-channel { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; margin-left: 6px; }
+        .tl-channel.sms { background: #164e63; color: #22d3ee; }
+        .tl-channel.email { background: #1e1b4b; color: #a5b4fc; }
+        .tl-channel.failed { background: #7f1d1d; color: #fca5a5; }
+
+        /* Tasks */
+        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: #141621; border-radius: 8px; margin-bottom: 8px; }
+        .task-check { width: 20px; height: 20px; border: 2px solid #3730a3; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; margin-top: 2px; }
+        .task-check:hover { border-color: #6366f1; background: #1e1b4b; }
+        .task-check.done { background: #065f46; border-color: #059669; }
+        .task-check.done::after { content: '✓'; color: #6ee7b7; font-size: 12px; font-weight: 700; }
+        .task-title { font-size: 13px; color: #e2e8f0; font-weight: 500; }
+        .task-meta { font-size: 11px; color: #64748b; margin-top: 4px; display: flex; gap: 12px; }
+        .task-due { color: #f59e0b; }
+        .task-due.overdue { color: #ef4444; }
+        .task-assignee { color: #94a3b8; }
+
+        /* Quick actions panel */
+        .quick-actions { margin-bottom: 20px; }
+        .action-group { margin-bottom: 16px; }
+        .action-group label { display: block; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
+        .action-group select, .action-group textarea, .action-group input { width: 100%; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 13px; font-family: inherit; }
+        .action-group select:focus, .action-group textarea:focus { outline: none; border-color: #6366f1; }
+        .action-group textarea { min-height: 80px; resize: vertical; }
+        .action-buttons { display: flex; gap: 8px; }
+
+        /* DNC banner */
+        .dnc-banner { background: #7f1d1d; border: 1px solid #991b1b; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #fca5a5; font-weight: 600; }
+
+        /* Loading / empty */
+        .loading { text-align: center; padding: 60px; color: #64748b; }
+        .loading .spinner { width: 32px; height: 32px; border: 3px solid #2d3148; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 30px; color: #64748b; font-size: 13px; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #065f46; color: #6ee7b7; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 1000; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: #7f1d1d; color: #fca5a5; }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .page { grid-template-columns: 1fr; }
+            .side-col { border-left: none; border-top: 1px solid #2d3148; }
+            .info-grid { grid-template-columns: 1fr; }
+            .property-stats { grid-template-columns: repeat(2, 1fr); }
+            .analysis-grid { grid-template-columns: 1fr; }
+            .topbar { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .topbar-right { width: 100%; overflow-x: auto; }
+            .savings-banner { flex-direction: column; text-align: center; gap: 12px; }
+            .savings-right { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="/admin">← Back to Dashboard</a>
+            <span class="case-id-badge" id="caseIdBadge">—</span>
+            <span class="status-pill" id="statusPill">—</span>
+        </div>
+        <div class="topbar-right">
+            <button class="btn-outline" onclick="refreshData()">↻ Refresh</button>
+            <button class="btn-primary" id="btnChangeStatus" onclick="showStatusModal()">Change Status</button>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="page">
+        <div class="main-col">
+            <!-- DNC Banner (hidden by default) -->
+            <div class="dnc-banner" id="dncBanner" style="display:none;">
+                ⛔ DO NOT CONTACT — <span id="dncReason"></span>
+            </div>
+
+            <!-- Customer -->
+            <div class="card" id="customerCard">
+                <div class="card-header"><h3>👤 Customer</h3></div>
+                <div class="card-body">
+                    <div class="customer-header">
+                        <div class="customer-avatar" id="customerAvatar">?</div>
+                        <div>
+                            <div class="customer-name" id="customerName">Loading...</div>
+                            <div class="customer-meta" id="customerMeta">—</div>
+                        </div>
+                    </div>
+                    <div class="info-grid" id="customerGrid"></div>
+                </div>
+            </div>
+
+            <!-- Property -->
+            <div class="card" id="propertyCard">
+                <div class="card-header"><h3>🏠 Property</h3></div>
+                <div class="card-body">
+                    <div id="propertyAddress" style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #f1f5f9;"></div>
+                    <div class="property-stats" id="propertyStats"></div>
+                    <div class="info-grid" id="propertyGrid"></div>
+                </div>
+            </div>
+
+            <!-- Analysis -->
+            <div class="card" id="analysisCard">
+                <div class="card-header"><h3>📊 Analysis</h3><span class="badge" id="analysisBadge">—</span></div>
+                <div class="card-body">
+                    <div id="savingsBanner"></div>
+                    <div class="analysis-grid" id="analysisGrid"></div>
+                </div>
+            </div>
+
+            <!-- Documents -->
+            <div class="card" id="documentsCard">
+                <div class="card-header"><h3>📁 Documents</h3><span class="badge" id="docCount">0</span></div>
+                <div class="card-body" id="documentsBody"></div>
+            </div>
+        </div>
+
+        <!-- Side column: Timeline + Tasks + Quick Actions -->
+        <div class="side-col">
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header"><h3>⚡ Quick Actions</h3></div>
+                <div class="card-body">
+                    <div class="action-group">
+                        <label>Change Status</label>
+                        <select id="statusSelect">
+                            <option value="">— Select —</option>
+                            <option value="New">New</option>
+                            <option value="Contacted">Contacted</option>
+                            <option value="Awaiting Notice">Awaiting Notice</option>
+                            <option value="Notice Received">Notice Received</option>
+                            <option value="Needs Review">Needs Review</option>
+                            <option value="Needs Info">Needs Info</option>
+                            <option value="Analysis Complete">Analysis Complete</option>
+                            <option value="Ready to File">Ready to File</option>
+                            <option value="Filing Prepared">Filing Prepared</option>
+                            <option value="Protest Filed">Protest Filed</option>
+                            <option value="Hearing Scheduled">Hearing Scheduled</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="No Case">No Case</option>
+                        </select>
+                    </div>
+                    <div class="action-group">
+                        <button class="btn-primary" style="width:100%;" onclick="changeStatus()">Update Status</button>
+                    </div>
+                    <div class="action-group" style="margin-top:12px;">
+                        <label>Add Note</label>
+                        <textarea id="noteText" placeholder="Type a note..."></textarea>
+                    </div>
+                    <div class="action-group">
+                        <button class="btn-outline" style="width:100%;" onclick="addNote()">Save Note</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks -->
+            <div class="card">
+                <div class="card-header"><h3>✅ Tasks</h3><span class="badge" id="taskCount">0</span></div>
+                <div class="card-body" id="tasksBody">
+                    <div class="empty-state">No tasks</div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card">
+                <div class="card-header"><h3>📅 Timeline</h3><span class="badge" id="tlCount">0</span></div>
+                <div class="card-body" id="timelineBody">
+                    <div class="loading"><div class="spinner"></div>Loading timeline...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SB_URL = 'https://ylxreuqvofgbpsatfsvr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlseHJldXF2b2ZnYnBzYXRmc3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTcxODAsImV4cCI6MjA4NzQzMzE4MH0.1gDWfmfKyvJCXpDWVpJMrfDNQ84aW0fgX7j7mPb3YEQ';
+
+        const caseId = new URLSearchParams(window.location.search).get('id');
+        if (!caseId) { document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">No case ID provided. Use ?id=OA-0025</div>'; }
+
+        let caseData = null;
+
+        function headers() {
+            return { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+        }
+
+        async function sbGet(path) {
+            const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: headers() });
+            return r.json();
+        }
+
+        async function sbPatch(table, filter, data) {
+            const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
+                method: 'PATCH', headers: { ...headers(), 'Prefer': 'return=representation' },
+                body: JSON.stringify(data)
+            });
+            return r.json();
+        }
+
+        async function sbPost(table, data) {
+            const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+                method: 'POST', headers: { ...headers(), 'Prefer': 'return=representation' },
+                body: JSON.stringify(data)
+            });
+            return r.json();
+        }
+
+        function toast(msg, isError) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = isError ? 'toast error show' : 'toast show';
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        function fmt(val) { return val || '—'; }
+        function fmtMoney(val) {
+            if (!val) return '—';
+            const n = typeof val === 'string' ? parseFloat(val.replace(/[$,]/g, '')) : val;
+            return isNaN(n) ? val : '$' + n.toLocaleString();
+        }
+        function fmtDate(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        function fmtDateTime(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+                   d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        function relTime(iso) {
+            if (!iso) return '';
+            const diff = Date.now() - new Date(iso).getTime();
+            const hrs = diff / 3600000;
+            if (hrs < 1) return `${Math.round(hrs * 60)}m ago`;
+            if (hrs < 24) return `${Math.round(hrs)}h ago`;
+            return `${Math.round(hrs / 24)}d ago`;
+        }
+
+        function statusClass(s) {
+            if (!s) return '';
+            const map = {
+                'Ready to File': 'ready-to-file', 'Needs Review': 'needs-review',
+                'Awaiting Notice': 'awaiting-notice', 'New': 'new',
+                'Analysis Complete': 'analysis-complete', 'No Case': 'no-case',
+                'Notice Received': 'ready-to-file', 'Filing Prepared': 'ready-to-file',
+                'Protest Filed': 'analysis-complete', 'Resolved': 'ready-to-file',
+            };
+            return map[s] || 'new';
+        }
+
+        function renderCustomer(d) {
+            const initials = (d.owner_name || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('customerAvatar').textContent = initials;
+            document.getElementById('customerName').textContent = d.owner_name || 'Unknown';
+            document.getElementById('customerMeta').textContent = `Lead since ${fmtDate(d.created_at)} · Source: ${d.source || 'unknown'} · Assigned: ${d.assigned_to || 'unassigned'}`;
+
+            if (d.do_not_contact) {
+                document.getElementById('dncBanner').style.display = 'flex';
+                document.getElementById('dncReason').textContent = d.do_not_contact_reason || 'Flag set';
+            }
+
+            const grid = document.getElementById('customerGrid');
+            const items = [
+                { label: 'Phone', value: d.phone ? `<a href="tel:${d.phone}">${d.phone}</a>` : '—' },
+                { label: 'Email', value: d.email ? `<a href="mailto:${d.email}">${d.email}</a>` : '—' },
+                { label: 'Preferred Contact', value: fmt(d.preferred_contact) },
+                { label: 'Contact Attempts', value: d.contact_attempts || 0 },
+                { label: 'Fee Model', value: fmt(d.fee_model) },
+                { label: 'Initiation Fee', value: d.initiation_fee_paid ? '✅ Paid' : '❌ Unpaid' },
+                { label: 'Agreement', value: d.fee_agreement_signed ? '✅ Signed' : (d.signature ? '✅ Signed (form)' : '❌ Not signed') },
+                { label: 'Last Activity', value: d.last_activity_at ? `${fmtDateTime(d.last_activity_at)} (${relTime(d.last_activity_at)})` : '—' },
+            ];
+            grid.innerHTML = items.map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+        }
+
+        function renderProperty(d) {
+            document.getElementById('propertyAddress').textContent = d.property_address || 'No address';
+            const stats = document.getElementById('propertyStats');
+            const pd = d.property_data || {};
+            stats.innerHTML = [
+                { v: fmt(d.bedrooms || pd.bedrooms), l: 'Beds' },
+                { v: fmt(d.bathrooms || pd.bathrooms), l: 'Baths' },
+                { v: d.sqft || pd.sqft ? (d.sqft || pd.sqft).toLocaleString() + ' sqft' : '—', l: 'Size' },
+                { v: fmt(d.year_built || pd.yearBuilt), l: 'Built' },
+            ].map(s => `<div class="prop-stat"><div class="prop-stat-value">${s.v}</div><div class="prop-stat-label">${s.l}</div></div>`).join('');
+
+            const grid = document.getElementById('propertyGrid');
+            grid.innerHTML = [
+                { label: 'County', value: fmt(d.county) },
+                { label: 'State', value: fmt(d.state) },
+                { label: 'Property Type', value: fmt(d.property_type) },
+                { label: 'Lot Size', value: d.lot_size || pd.lotSize ? (d.lot_size || pd.lotSize).toLocaleString() + ' sqft' : '—' },
+                { label: 'Condition Issues', value: fmt(d.condition_issues) },
+                { label: 'Recent Appraisal', value: fmt(d.recent_appraisal) },
+                { label: 'Renovations', value: fmt(d.renovations) },
+                { label: 'Data Validation', value: fmt(d.data_validation_status) },
+            ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+        }
+
+        function renderAnalysis(d) {
+            const badge = document.getElementById('analysisBadge');
+            badge.textContent = d.analysis_status || 'Not run';
+
+            const banner = document.getElementById('savingsBanner');
+            const savings = d.estimated_savings;
+            if (savings && savings > 0) {
+                const assessed = d.assessed_value ? (typeof d.assessed_value === 'string' ? parseFloat(d.assessed_value.replace(/[$,]/g, '')) : d.assessed_value) : 0;
+                banner.innerHTML = `
+                    <div class="savings-banner">
+                        <div><div class="savings-amount">${fmtMoney(savings)}/yr</div><div class="savings-label">Estimated Annual Savings</div></div>
+                        <div class="savings-right">
+                            <div style="font-size:14px;color:#a7f3d0;">Assessed: ${fmtMoney(assessed)}</div>
+                            <div style="font-size:12px;color:#6ee7b7;margin-top:4px;">Filing: ${d.filing_status || 'not filed'}</div>
+                        </div>
+                    </div>`;
+            } else {
+                banner.innerHTML = '<div style="padding:16px;text-align:center;color:#64748b;">No savings calculated yet</div>';
+            }
+
+            const qa = d.qa_result || {};
+            const grid = document.getElementById('analysisGrid');
+            grid.innerHTML = [
+                { label: 'QA Status', value: d.qa_status ? (d.qa_status === 'passed' ? '✅ Passed' : '❌ ' + d.qa_status) : '—' },
+                { label: 'Comps Found', value: d.comp_validation_status || '—' },
+                { label: 'Lead Priority', value: fmt(d.lead_priority) },
+                { label: 'TDLR Status', value: fmt(d.tdlr_status) },
+                { label: 'Filing Status', value: fmt(d.filing_status) },
+                { label: 'Evidence Packet', value: d.evidence_packet_path ? '✅ Generated' : '❌ Not generated' },
+            ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+        }
+
+        function renderDocuments(d) {
+            const body = document.getElementById('documentsBody');
+            const docs = [];
+
+            if (d.notice_url) {
+                const isWrong = (d.notes || '').includes('WRONG FILE');
+                docs.push({
+                    icon: isWrong ? '⚠️' : '📄', cls: isWrong ? 'error' : 'notice',
+                    name: isWrong ? 'Notice Upload (WRONG FILE)' : 'Notice of Appraised Value',
+                    meta: `Uploaded · ${d.upload_status || 'unknown'}`,
+                    url: d.notice_url
+                });
+            }
+            if (d.evidence_packet_path) {
+                docs.push({ icon: '📋', cls: 'evidence', name: 'Evidence Packet', meta: `Generated · ${d.analysis_status || ''}`, url: null });
+            }
+            if (d.signature) {
+                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162 (Signed)', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
+            }
+            if (d.agreement_url) {
+                docs.push({ icon: '📝', cls: 'agreement', name: 'Fee Agreement', meta: d.agreement_type || '', url: d.agreement_url });
+            }
+
+            document.getElementById('docCount').textContent = docs.length;
+            if (docs.length === 0) {
+                body.innerHTML = '<div class="empty-state">No documents yet</div>';
+                return;
+            }
+            body.innerHTML = docs.map(doc => `
+                <div class="doc-item">
+                    <div class="doc-icon ${doc.cls}">${doc.icon}</div>
+                    <div>
+                        <div class="doc-name">${doc.name}</div>
+                        <div class="doc-meta">${doc.meta}</div>
+                    </div>
+                    ${doc.url ? `<div class="doc-action"><a href="${doc.url}" target="_blank">View →</a></div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderTimeline(activities, comms) {
+            const body = document.getElementById('timelineBody');
+            // Merge activities and comms into one timeline
+            const items = [];
+
+            for (const a of activities) {
+                const det = a.details || {};
+                let text = '', dotClass = 'system';
+                switch (a.action) {
+                    case 'lead_created': text = `<strong>Lead created</strong> via ${det.source || 'unknown'}`; dotClass = 'system'; break;
+                    case 'drip_reminder': text = `<strong>Auto reminder</strong> (${det.type || ''}) sent`; dotClass = 'sms'; break;
+                    case 'status_change': text = `<strong>Status changed</strong>${det.from ? ' from ' + det.from : ''} → <strong>${det.to || '?'}</strong>${det.reason ? ' — ' + det.reason : ''}`; dotClass = 'status'; break;
+                    case 'analysis_run': text = `<strong>Analysis run</strong> — ${det.comps || 0} comps, savings ${fmtMoney(det.savings)}`; dotClass = 'analysis'; break;
+                    case 'note': text = `<strong>Note:</strong> ${det.text || ''}`; dotClass = 'note'; break;
+                    case 'upload': text = `<strong>Upload:</strong> ${det.type || 'file'}${det.note ? ' — ' + det.note : ''}`; dotClass = 'upload'; break;
+                    case 'agreement_signed': text = `<strong>Agreement signed</strong> by ${det.name || 'customer'} (${det.form || ''})`; dotClass = 'agreement'; break;
+                    case 'notice_received': text = `<strong>Notice received</strong> — ${det.county || ''} County, Market ${fmtMoney(det.market_value)}`; dotClass = 'upload'; break;
+                    case 'close_attempt': text = `<strong>Close attempt</strong> via ${det.channel || 'unknown'}`; dotClass = det.channel === 'sms' ? 'sms' : 'email'; break;
+                    case 'do_not_contact_set': text = `<strong>⛔ DO NOT CONTACT</strong> set — ${det.reason || ''}`; dotClass = 'system'; break;
+                    case 'send_blocked_do_not_contact': text = `<strong>⛔ Send BLOCKED</strong> (DNC flag)`; dotClass = 'system'; break;
+                    default: text = `<strong>${a.action}</strong>${det.reason ? ' — ' + det.reason : ''}`; dotClass = 'system';
+                }
+                items.push({ time: a.created_at, html: text, dotClass, actor: a.actor });
+            }
+
+            for (const c of comms) {
+                const failed = c.status === 'failed';
+                const channelBadge = `<span class="tl-channel ${failed ? 'failed' : c.channel}">${failed ? '✗ FAILED' : c.channel.toUpperCase()}</span>`;
+                const truncBody = c.body ? (c.body.length > 120 ? c.body.slice(0, 120) + '...' : c.body) : '';
+                items.push({
+                    time: c.created_at,
+                    html: `<strong>${c.direction === 'inbound' ? '📥 Received' : '📤 Sent'}</strong> ${channelBadge} to ${c.recipient || '?'}<br><span style="color:#94a3b8;font-size:12px;">${truncBody}</span>`,
+                    dotClass: c.channel,
+                    actor: c.direction === 'inbound' ? 'customer' : 'aquabot'
+                });
+            }
+
+            // Sort newest first
+            items.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+            document.getElementById('tlCount').textContent = items.length;
+            if (items.length === 0) {
+                body.innerHTML = '<div class="empty-state">No timeline events yet</div>';
+                return;
+            }
+
+            body.innerHTML = '<div class="timeline">' + items.map(i => `
+                <div class="tl-item">
+                    <div class="tl-dot ${i.dotClass}"></div>
+                    <div class="tl-time">${fmtDateTime(i.time)} · ${i.actor || 'system'}</div>
+                    <div class="tl-content">${i.html}</div>
+                </div>
+            `).join('') + '</div>';
+        }
+
+        function renderTasks(tasks) {
+            const body = document.getElementById('tasksBody');
+            document.getElementById('taskCount').textContent = tasks.length;
+            if (tasks.length === 0) {
+                body.innerHTML = '<div class="empty-state">No tasks</div>';
+                return;
+            }
+            const now = new Date();
+            body.innerHTML = tasks.map(t => {
+                const isDone = t.status === 'completed';
+                const due = t.due_date ? new Date(t.due_date) : null;
+                const overdue = due && !isDone && due < now;
+                return `
+                    <div class="task-item" data-id="${t.id}">
+                        <div class="task-check ${isDone ? 'done' : ''}" onclick="toggleTask('${t.id}', ${isDone})"></div>
+                        <div style="flex:1;">
+                            <div class="task-title" style="${isDone ? 'text-decoration:line-through;opacity:0.5;' : ''}">${t.title}</div>
+                            <div class="task-meta">
+                                ${due ? `<span class="task-due ${overdue ? 'overdue' : ''}">Due ${fmtDate(t.due_date)}${overdue ? ' ⚠️ OVERDUE' : ''}</span>` : ''}
+                                <span class="task-assignee">${t.assigned_to || 'unassigned'}</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function toggleTask(taskId, currentDone) {
+            const newStatus = currentDone ? 'open' : 'completed';
+            await sbPatch('tasks', `id=eq.${taskId}`, { status: newStatus });
+            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'task_' + newStatus, details: { task_id: taskId } });
+            toast(newStatus === 'completed' ? '✅ Task completed' : '↩ Task reopened');
+            loadTasks();
+        }
+
+        async function changeStatus() {
+            const sel = document.getElementById('statusSelect');
+            const newStatus = sel.value;
+            if (!newStatus) return toast('Select a status first', true);
+            const oldStatus = caseData.status;
+            if (newStatus === oldStatus) return toast('Already at that status', true);
+
+            await sbPatch('submissions', `case_id=eq.${caseId}`, { status: newStatus, last_activity_at: new Date().toISOString() });
+            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'status_change', details: { from: oldStatus, to: newStatus, source: 'case-page' } });
+            toast(`Status: ${oldStatus} → ${newStatus}`);
+            sel.value = '';
+            await refreshData();
+        }
+
+        async function addNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) return toast('Type a note first', true);
+
+            // Append to notes field
+            const oldNotes = caseData.notes || '';
+            const ts = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const newNotes = oldNotes + `\n[${ts}] Tyler note: ${text}`;
+            await sbPatch('submissions', `case_id=eq.${caseId}`, { notes: newNotes, last_activity_at: new Date().toISOString() });
+            await sbPost('activity_log', { case_id: caseId, actor: 'tyler', action: 'note', details: { text } });
+            document.getElementById('noteText').value = '';
+            toast('✅ Note saved');
+            await loadTimeline();
+        }
+
+        async function loadCase() {
+            const data = await sbGet(`submissions?case_id=eq.${caseId}&select=*`);
+            if (!data || !data[0]) {
+                document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">Case not found: ' + caseId + '</div>';
+                return;
+            }
+            caseData = data[0];
+            document.title = `${caseId} — ${caseData.owner_name} — OverAssessed`;
+            document.getElementById('caseIdBadge').textContent = caseId;
+            const pill = document.getElementById('statusPill');
+            pill.textContent = caseData.status;
+            pill.className = 'status-pill status-' + statusClass(caseData.status);
+
+            renderCustomer(caseData);
+            renderProperty(caseData);
+            renderAnalysis(caseData);
+            renderDocuments(caseData);
+        }
+
+        async function loadTimeline() {
+            const [activities, comms] = await Promise.all([
+                sbGet(`activity_log?case_id=eq.${caseId}&order=created_at.desc&limit=50`),
+                sbGet(`communications?case_id=eq.${caseId}&order=created_at.desc&limit=50`)
+            ]);
+            renderTimeline(activities || [], comms || []);
+        }
+
+        async function loadTasks() {
+            const tasks = await sbGet(`tasks?case_id=eq.${caseId}&order=status.asc,due_date.asc&limit=20`);
+            renderTasks(tasks || []);
+        }
+
+        async function refreshData() {
+            await Promise.all([loadCase(), loadTimeline(), loadTasks()]);
+            toast('↻ Refreshed');
+        }
+
+        // Init
+        if (caseId) {
+            loadCase();
+            loadTimeline();
+            loadTasks();
+        }
+    </script>
+</body>
+</html>
