@@ -26,6 +26,9 @@ const { computeFollowUpPriority } = require('./lib/follow-up-priority');
 // Analysis Version Control
 const { updateAnalysis, getAnalysisHistory } = require('./lib/analysis-version');
 
+// Property Deduplication — ONE active case per property
+const { normalizeAddress, findDuplicate, mergeIntoExisting } = require('./lib/property-dedup');
+
 // Real Comp Engine (no synthetic data)
 const { fetchRealComps, fetchRealCompsBatch } = require('./services/real-comp-engine');
 
@@ -114,6 +117,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// ==================== BUILD VERSION (cache busting) ====================
+// Timestamp set at server start; changes on every deploy
+const BUILD_VERSION = Date.now().toString(36); // compact: e.g. 'lz5r8k1'
+console.log(`\u2705 Build version: ${BUILD_VERSION}`);
+
 // Remove trailing slashes EXCEPT for /blog/ (which needs index.html)
 // Fixes "alternate page with proper canonical" in GSC
 app.use((req, res, next) => {
@@ -127,10 +135,31 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
+// ==================== CACHE CONTROL ====================
+// HTML: always revalidate (no-store) so deploys take effect immediately
+// API: no caching
+// Static assets (images, etc): cache 1 year (they change rarely; HTML controls freshness)
+app.use((req, res, next) => {
+    const p = req.path.toLowerCase();
+    if (p.startsWith('/api/')) {
+        res.set('Cache-Control', 'no-store');
+    } else if (p.endsWith('.html') || p === '/' || (!p.includes('.') && !p.startsWith('/uploads') && !p.startsWith('/assets') && !p.startsWith('/marketing'))) {
+        // HTML pages and clean URLs (no extension = likely HTML route)
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+    }
+    next();
+});
+
+// Build version endpoint (for front-end cache invalidation check)
+app.get('/api/version', (req, res) => res.json({ version: BUILD_VERSION, deployed: new Date().toISOString() }));
+
 // Serve HTML pages EARLY (before static middleware which causes directory redirect loops)
-app.get('/admin', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'admin.html')); });
-app.get('/dashboard', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'admin.html')); });
-app.get('/case', (req, res) => { res.set('Cache-Control', 'no-store'); res.sendFile(path.join(__dirname, '..', 'case.html')); });
+// Cache headers already set by global middleware above
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
+app.get('/case', (req, res) => res.sendFile(path.join(__dirname, '..', 'case.html')));
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
 
 app.use(express.json());
@@ -1939,6 +1968,384 @@ if (isSupabaseEnabled()) {
             res.json({ ok: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
+    // ==================== CASE PAGE ACTION ENDPOINTS ====================
+    // Shared helpers for all actions
+    async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status }) {
+        const { data, error } = await supabase.from('communications').insert({
+            case_id,
+            submission_id: submission_id || null,
+            direction: direction || 'outbound',
+            channel,
+            recipient: recipient || null,
+            subject: subject || null,
+            body: body || null,
+            status: status || 'sent',
+            created_at: new Date().toISOString()
+        }).select('id').single();
+        if (error) console.error('[CommLog] Error:', error.message);
+        return data;
+    }
+
+    async function touchCase(supabase, case_id, extraUpdates = {}) {
+        const now = new Date().toISOString();
+        // Get current contact_attempts
+        const { data: cur } = await supabase.from('submissions').select('contact_attempts').eq('case_id', case_id).single();
+        const attempts = (cur?.contact_attempts || 0) + 1;
+        await supabase.from('submissions').update({
+            last_activity_at: now,
+            contact_attempts: attempts,
+            updated_at: now,
+            ...extraUpdates
+        }).eq('case_id', case_id);
+        return attempts;
+    }
+
+    async function createFollowUpTask(supabase, { case_id, title, due_days = 2, assigned_to = 'Tyler' }) {
+        const due = new Date();
+        due.setDate(due.getDate() + due_days);
+        const { data, error } = await supabase.from('tasks').insert({
+            case_id,
+            title,
+            status: 'open',
+            assigned_to,
+            due_date: due.toISOString(),
+            created_at: new Date().toISOString()
+        }).select('id').single();
+        if (error) console.error('[Task] Error:', error.message);
+        return data;
+    }
+
+    async function getSubmissionId(supabase, case_id) {
+        const { data } = await supabase.from('submissions').select('id').eq('case_id', case_id).single();
+        return data?.id || null;
+    }
+
+    // Helper: send SMS via Twilio
+    async function sendSMSAction(phone, body) {
+        if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_FROM_NUMBER) {
+            console.log('[SMS] Twilio not configured, skipping send');
+            return { sent: false, reason: 'twilio_not_configured' };
+        }
+        try {
+            const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+            const msg = await twilioClient.messages.create({
+                body,
+                from: process.env.TWILIO_FROM_NUMBER,
+                to: phone
+            });
+            return { sent: true, sid: msg.sid };
+        } catch (e) {
+            console.error('[SMS] Send failed:', e.message);
+            return { sent: false, reason: e.message };
+        }
+    }
+
+    // Helper: send Email via SendGrid
+    async function sendEmailAction(to, subject, htmlBody, replyTo) {
+        if (!process.env.SENDGRID_API_KEY) {
+            console.log('[Email] SendGrid not configured, skipping send');
+            return { sent: false, reason: 'sendgrid_not_configured' };
+        }
+        try {
+            await sgMail.send({
+                to,
+                from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                replyTo: replyTo || { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                subject,
+                html: htmlBody.replace(/\n/g, '<br>')
+            });
+            return { sent: true };
+        } catch (e) {
+            console.error('[Email] Send failed:', e.message);
+            return { sent: false, reason: e.message };
+        }
+    }
+
+    // 1. POST /api/case-view/action/call — log a call
+    app.post('/api/case-view/action/call', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, phone, outcome, notes } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+
+            // Log communication
+            await logCommunication(supabaseAdmin, {
+                case_id, submission_id, direction: 'outbound', channel: 'phone',
+                recipient: phone, body: `Call: ${outcome}${notes ? ' — ' + notes : ''}`, status: outcome
+            });
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'call',
+                details: { phone, outcome, notes }
+            });
+
+            // Touch case
+            const attempts = await touchCase(supabaseAdmin, case_id);
+
+            // Create follow-up task based on outcome
+            let taskTitle = '';
+            let dueDays = 1;
+            switch (outcome) {
+                case 'connected': taskTitle = 'Follow up after call'; dueDays = 3; break;
+                case 'voicemail': taskTitle = 'Call back — left voicemail'; dueDays = 1; break;
+                case 'no_answer': taskTitle = 'Try calling again — no answer'; dueDays = 1; break;
+                case 'wrong_number': taskTitle = 'Verify phone number — wrong number'; dueDays = 1; break;
+                case 'callback_requested': taskTitle = 'Customer requested callback'; dueDays = 0; break;
+                default: taskTitle = 'Follow up after call'; dueDays = 2;
+            }
+            const task = await createFollowUpTask(supabaseAdmin, { case_id, title: taskTitle, due_days: dueDays });
+
+            console.log(`[Action:Call] ${case_id} | ${outcome} | attempts=${attempts}`);
+            res.json({ ok: true, outcome, contact_attempts: attempts, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:Call] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 2. POST /api/case-view/action/sms — send SMS
+    app.post('/api/case-view/action/sms', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, phone, body, owner_name } = req.body;
+            if (!case_id || !phone || !body) return res.status(400).json({ error: 'case_id, phone, body required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+
+            // Send the SMS
+            const result = await sendSMSAction(phone, body);
+
+            // Log communication
+            await logCommunication(supabaseAdmin, {
+                case_id, submission_id, direction: 'outbound', channel: 'sms',
+                recipient: phone, body, status: result.sent ? 'sent' : 'failed'
+            });
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'sms_sent',
+                details: { phone, body_preview: body.substring(0, 80), sent: result.sent, sid: result.sid }
+            });
+
+            // Touch case
+            const attempts = await touchCase(supabaseAdmin, case_id);
+
+            // Follow-up task: check for response in 24h
+            const task = await createFollowUpTask(supabaseAdmin, {
+                case_id, title: `Check for SMS response from ${(owner_name || '').split(' ')[0] || 'customer'}`, due_days: 1
+            });
+
+            console.log(`[Action:SMS] ${case_id} → ${phone} | sent=${result.sent} | attempts=${attempts}`);
+            res.json({ ok: true, sent: result.sent, sid: result.sid, contact_attempts: attempts, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:SMS] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 3. POST /api/case-view/action/email — send email
+    app.post('/api/case-view/action/email', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, email, subject, body, owner_name } = req.body;
+            if (!case_id || !email || !subject || !body) return res.status(400).json({ error: 'case_id, email, subject, body required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+
+            // Send the email
+            const result = await sendEmailAction(email, subject, body);
+
+            // Log communication
+            await logCommunication(supabaseAdmin, {
+                case_id, submission_id, direction: 'outbound', channel: 'email',
+                recipient: email, subject, body, status: result.sent ? 'sent' : 'failed'
+            });
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'email_sent',
+                details: { email, subject, sent: result.sent }
+            });
+
+            // Touch case
+            const attempts = await touchCase(supabaseAdmin, case_id);
+
+            // Follow-up task
+            const task = await createFollowUpTask(supabaseAdmin, {
+                case_id, title: `Check for email response from ${(owner_name || '').split(' ')[0] || 'customer'}`, due_days: 2
+            });
+
+            console.log(`[Action:Email] ${case_id} → ${email} | subject="${subject}" | sent=${result.sent} | attempts=${attempts}`);
+            res.json({ ok: true, sent: result.sent, contact_attempts: attempts, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:Email] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 4. POST /api/case-view/action/request-notice — send notice request via SMS + email
+    app.post('/api/case-view/action/request-notice', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, channel, phone, email, owner_name, county } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+            const firstName = (owner_name || '').split(' ')[0] || 'there';
+
+            const smsBody = `Hi ${firstName}, have you received your Notice of Appraised Value from ${county || 'your'} County? Upload it at overassessed.ai/upload — takes 30 seconds. We need it to file your protest.`;
+            const emailSubject = `Upload Your Notice — We're Ready to File`;
+            const emailBody = `Hi ${firstName},\n\nTo complete your property tax protest, we need your Notice of Appraised Value from ${county || 'your'} County.\n\nUpload it here (takes 30 seconds):\nhttps://overassessed.ai/upload\n\nThe notice is usually mailed in April-May. If you haven't received it yet, let us know.\n\nBest,\nOverAssessed Team`;
+
+            const results = { sms: null, email: null };
+
+            if ((channel === 'sms' || channel === 'both') && phone) {
+                results.sms = await sendSMSAction(phone, smsBody);
+                await logCommunication(supabaseAdmin, {
+                    case_id, submission_id, direction: 'outbound', channel: 'sms',
+                    recipient: phone, body: smsBody, status: results.sms.sent ? 'sent' : 'failed'
+                });
+            }
+            if ((channel === 'email' || channel === 'both') && email) {
+                results.email = await sendEmailAction(email, emailSubject, emailBody);
+                await logCommunication(supabaseAdmin, {
+                    case_id, submission_id, direction: 'outbound', channel: 'email',
+                    recipient: email, subject: emailSubject, body: emailBody, status: results.email.sent ? 'sent' : 'failed'
+                });
+            }
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'notice_request_sent',
+                details: { channel, sms_sent: results.sms?.sent, email_sent: results.email?.sent }
+            });
+
+            // Touch case
+            const attempts = await touchCase(supabaseAdmin, case_id);
+
+            // Follow-up task: check in 3 days
+            const task = await createFollowUpTask(supabaseAdmin, {
+                case_id, title: `Follow up on notice request — ${firstName}`, due_days: 3
+            });
+
+            console.log(`[Action:RequestNotice] ${case_id} | channel=${channel} | sms=${results.sms?.sent} | email=${results.email?.sent}`);
+            res.json({ ok: true, results, contact_attempts: attempts, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:RequestNotice] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 5. POST /api/case-view/action/send-signing — send signing link
+    app.post('/api/case-view/action/send-signing', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, channel, phone, email, owner_name, estimated_savings } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+            const firstName = (owner_name || '').split(' ')[0] || 'there';
+            const savingsStr = estimated_savings ? '$' + Number(estimated_savings).toLocaleString() : 'significant savings';
+
+            // Build signing link
+            const signingLink = `https://overassessed.ai/sign/${case_id}`;
+
+            const smsBody = `Hi ${firstName}, your analysis is complete — ${savingsStr}/yr potential savings! Sign the authorization form to get your protest filed: ${signingLink}. Questions? Reply to this text.`;
+            const emailSubject = `Sign to Save ${savingsStr}/yr — Your Analysis is Ready`;
+            const emailBody = `Hi ${firstName},\n\nGreat news! Our analysis shows potential annual savings of ${savingsStr} on your property taxes.\n\nTo proceed, please sign the authorization form (Form 50-162):\n${signingLink}\n\nThis authorizes us to file a protest on your behalf. There's a $79 initiation fee (credited toward your success fee if we save you money).\n\nQuestions? Just reply to this email.\n\nBest,\nOverAssessed Team`;
+
+            const results = { sms: null, email: null };
+
+            if ((channel === 'sms' || channel === 'both') && phone) {
+                results.sms = await sendSMSAction(phone, smsBody);
+                await logCommunication(supabaseAdmin, {
+                    case_id, submission_id, direction: 'outbound', channel: 'sms',
+                    recipient: phone, body: smsBody, status: results.sms.sent ? 'sent' : 'failed'
+                });
+            }
+            if ((channel === 'email' || channel === 'both') && email) {
+                results.email = await sendEmailAction(email, emailSubject, emailBody);
+                await logCommunication(supabaseAdmin, {
+                    case_id, submission_id, direction: 'outbound', channel: 'email',
+                    recipient: email, subject: emailSubject, body: emailBody, status: results.email.sent ? 'sent' : 'failed'
+                });
+            }
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'signing_link_sent',
+                details: { channel, signing_link: signingLink, savings: estimated_savings, sms_sent: results.sms?.sent, email_sent: results.email?.sent }
+            });
+
+            // Touch case
+            const attempts = await touchCase(supabaseAdmin, case_id);
+
+            // Follow-up: check if signed in 2 days
+            const task = await createFollowUpTask(supabaseAdmin, {
+                case_id, title: `Check if ${firstName} signed authorization form`, due_days: 2
+            });
+
+            console.log(`[Action:SendSigning] ${case_id} | savings=${savingsStr} | sms=${results.sms?.sent} | email=${results.email?.sent}`);
+            res.json({ ok: true, results, signing_link: signingLink, contact_attempts: attempts, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:SendSigning] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 6. POST /api/case-view/action/mark-filed — mark protest as filed
+    app.post('/api/case-view/action/mark-filed', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, filing_date, confirmation_number, notes, notify_customer, phone, email, owner_name, county } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const submission_id = await getSubmissionId(supabaseAdmin, case_id);
+            const firstName = (owner_name || '').split(' ')[0] || 'there';
+
+            // Update case status + filing fields
+            await supabaseAdmin.from('submissions').update({
+                status: 'Filed',
+                filing_status: 'filed',
+                filing_date: filing_date || new Date().toISOString().split('T')[0],
+                filing_confirmation: confirmation_number || null,
+                last_activity_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }).eq('case_id', case_id);
+
+            // Activity log
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'protest_filed',
+                details: { filing_date, confirmation_number, notes, county }
+            });
+
+            // Notify customer if requested
+            const results = { sms: null, email: null };
+            if (notify_customer) {
+                const smsBody = `Hi ${firstName}, great news! Your property tax protest has been filed with ${county || 'your'} County${confirmation_number ? ' (Ref: ' + confirmation_number + ')' : ''}. We'll keep you updated on the hearing schedule. No action needed from you right now.`;
+                const emailSubject = `Your Protest Has Been Filed — ${case_id}`;
+                const emailBody = `Hi ${firstName},\n\nYour property tax protest has been officially filed with ${county || 'your'} County${filing_date ? ' on ' + filing_date : ''}${confirmation_number ? ' (Reference: ' + confirmation_number + ')' : ''}.\n\nWhat happens next:\n1. The county will schedule a hearing (typically 2-4 weeks)\n2. We'll prepare your evidence packet\n3. We'll represent your case at the hearing\n\nNo action is needed from you right now. We'll keep you updated every step of the way.\n\nBest,\nOverAssessed Team`;
+
+                if (phone) {
+                    results.sms = await sendSMSAction(phone, smsBody);
+                    await logCommunication(supabaseAdmin, {
+                        case_id, submission_id, direction: 'outbound', channel: 'sms',
+                        recipient: phone, body: smsBody, status: results.sms.sent ? 'sent' : 'failed'
+                    });
+                }
+                if (email) {
+                    results.email = await sendEmailAction(email, emailSubject, emailBody);
+                    await logCommunication(supabaseAdmin, {
+                        case_id, submission_id, direction: 'outbound', channel: 'email',
+                        recipient: email, subject: emailSubject, body: emailBody, status: results.email.sent ? 'sent' : 'failed'
+                    });
+                }
+            }
+
+            // Follow-up task: check hearing schedule
+            const task = await createFollowUpTask(supabaseAdmin, {
+                case_id, title: `Check hearing schedule for ${firstName} — ${county || ''} County`, due_days: 14
+            });
+
+            console.log(`[Action:MarkFiled] ${case_id} | filed=${filing_date} | conf=${confirmation_number} | notify=${notify_customer}`);
+            res.json({ ok: true, status: 'Filed', notification: results, task_id: task?.id });
+        } catch (e) {
+            console.error('[Action:MarkFiled] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     app.use('/api/filings', authenticateToken, filingsRouter);
     app.use('/api/admin/uri-commissions', authenticateToken, uriCommissionsRouter);
     app.use('/api/pipeline', authenticateToken, pipelineRouter);
@@ -2845,6 +3252,18 @@ app.post('/api/pre-register', async (req, res) => {
         const state = parsed.state || null;
         const county = parsed.county || formCounty || null;
         
+        // === PROPERTY DEDUP CHECK (pre-register → submissions) ===
+        const dupe = await findDuplicate(supabaseAdmin, property_address, email, name);
+        if (dupe && dupe.action === 'merge') {
+            // Existing active case — merge contact info, don't create new
+            await mergeIntoExisting(supabaseAdmin, dupe.existing_case.case_id, { phone, owner_name: name, email, property_address, county, state, source: source || 'pre-register' });
+            console.log(`[Pre-Reg] DEDUP: merged into ${dupe.existing_case.case_id} (${dupe.match_type}) — ${dupe.reason}`);
+            return res.json({ success: true, id: dupe.existing_case.id, case_id: dupe.existing_case.case_id, deduplicated: true, message: 'Existing case found — your info has been updated.' });
+        }
+        if (dupe && dupe.action === 'flag') {
+            console.log(`[Pre-Reg] DEDUP FLAG: ${dupe.reason}`);
+        }
+
         const insertData = { name, email, property_address, county, state, status: 'WAITING_FOR_NOTICE_UPLOAD', source: source || 'website' };
         if (phone) insertData.phone = phone;
         
@@ -5824,13 +6243,8 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 });
 
 // ==================== SERVE PAGES ====================
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'admin.html'));
-});
-
-app.get('/portal', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'portal.html'));
-});
+// /admin and /portal already registered early (line ~157)
+// These are intentionally NOT re-registered here to avoid duplicate route warnings
 
 // Portal deep link with UUID token - look up case ID and redirect to sign page
 app.get('/portal/:token', async (req, res) => {

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Case View — OverAssessed</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -125,6 +127,35 @@
         .action-group textarea { min-height: 80px; resize: vertical; }
         .action-buttons { display: flex; gap: 8px; }
 
+        /* Action bar */
+        .action-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .action-btn { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2d3148; background: #1a1d2e; color: #e2e8f0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+        .action-btn:hover { border-color: #6366f1; background: #1e1b4b; }
+        .action-btn .action-icon { font-size: 18px; }
+        .action-btn.call { border-color: #059669; }
+        .action-btn.call:hover { background: #065f46; }
+        .action-btn.sms { border-color: #0891b2; }
+        .action-btn.sms:hover { background: #164e63; }
+        .action-btn.email { border-color: #6366f1; }
+        .action-btn.email:hover { background: #312e81; }
+        .action-btn.notice { border-color: #d97706; }
+        .action-btn.notice:hover { background: #78350f; }
+        .action-btn.sign { border-color: #a855f7; }
+        .action-btn.sign:hover { background: #4c1d95; }
+        .action-btn.file { border-color: #10b981; }
+        .action-btn.file:hover { background: #065f46; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Action modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 16px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid #2d3148; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 16px; color: #f1f5f9; }
+        .modal-close { background: none; border: none; color: #64748b; font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid #2d3148; display: flex; gap: 8px; justify-content: flex-end; }
+
         /* DNC banner */
         .dnc-banner { background: #7f1d1d; border: 1px solid #991b1b; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #fca5a5; font-weight: 600; }
 
@@ -184,6 +215,40 @@
                         <div style="font-size:15px; color:#f1f5f9; font-weight:600; margin-top:2px;" id="nbaText"></div>
                         <div style="font-size:12px; color:#94a3b8; margin-top:4px;" id="nbaReason"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar" id="actionBar">
+                <button class="action-btn call" onclick="actionCall()" id="btnCall">
+                    <span class="action-icon">📞</span> Call
+                </button>
+                <button class="action-btn sms" onclick="actionSMS()" id="btnSMS">
+                    <span class="action-icon">💬</span> Send SMS
+                </button>
+                <button class="action-btn email" onclick="actionEmail()" id="btnEmail">
+                    <span class="action-icon">📧</span> Send Email
+                </button>
+                <button class="action-btn notice" onclick="actionRequestNotice()" id="btnNotice">
+                    <span class="action-icon">📄</span> Request Notice
+                </button>
+                <button class="action-btn sign" onclick="actionSendSigning()" id="btnSign">
+                    <span class="action-icon">✍️</span> Send Signing Link
+                </button>
+                <button class="action-btn file" onclick="actionMarkFiled()" id="btnFile">
+                    <span class="action-icon">📨</span> Mark as Filed
+                </button>
+            </div>
+
+            <!-- Action Modal -->
+            <div class="modal-overlay" id="actionModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Action</h3>
+                        <button class="modal-close" onclick="closeModal()">✕</button>
+                    </div>
+                    <div class="modal-body" id="modalBody"></div>
+                    <div class="modal-footer" id="modalFooter"></div>
                 </div>
             </div>
 
@@ -719,6 +784,380 @@
             await Promise.all([loadCase(), loadTimeline(), loadTasks()]);
             toast('↻ Refreshed');
         }
+
+        // ========== ACTION BAR FUNCTIONS ==========
+
+        function closeModal() {
+            document.getElementById('actionModal').classList.remove('show');
+        }
+        document.getElementById('actionModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        function openModal(title, bodyHtml, footerHtml) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            document.getElementById('modalFooter').innerHTML = footerHtml;
+            document.getElementById('actionModal').classList.add('show');
+        }
+
+        function updateActionBarState() {
+            if (!caseData) return;
+            const d = caseData;
+            document.getElementById('btnCall').disabled = !d.phone;
+            document.getElementById('btnSMS').disabled = !d.phone;
+            document.getElementById('btnEmail').disabled = !d.email;
+            // Disable notice request if already uploaded (and not wrong file)
+            const hasValidNotice = d.notice_url && !(d.notes || '').includes('WRONG FILE');
+            document.getElementById('btnNotice').disabled = hasValidNotice;
+            // Disable signing if already signed
+            document.getElementById('btnSign').disabled = !!(d.signature || d.fee_agreement_signed);
+            // Disable filed if already filed
+            document.getElementById('btnFile').disabled = (d.filing_status === 'filed' || d.status === 'Filed');
+        }
+
+        // 1. CALL — click-to-call + log
+        async function actionCall() {
+            if (!caseData?.phone) return toast('No phone number on file', true);
+            const phone = caseData.phone;
+            const name = (caseData.owner_name || '').split(' ')[0];
+
+            openModal('📞 Call ' + name, `
+                <div style="text-align:center;">
+                    <div style="font-size:32px;font-weight:800;color:#6ee7b7;margin:16px 0;">
+                        <a href="tel:${phone}" style="color:#6ee7b7;text-decoration:none;">${phone}</a>
+                    </div>
+                    <div style="color:#94a3b8;font-size:13px;">Click to dial on your device, then log the result below.</div>
+                    <div class="action-group" style="margin-top:20px;text-align:left;">
+                        <label>Call Outcome</label>
+                        <select id="callOutcome" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;">
+                            <option value="connected">✅ Connected — spoke with customer</option>
+                            <option value="voicemail">📱 Left voicemail</option>
+                            <option value="no_answer">❌ No answer / no voicemail</option>
+                            <option value="wrong_number">⚠️ Wrong number</option>
+                            <option value="callback_requested">↩ Callback requested</option>
+                        </select>
+                    </div>
+                    <div class="action-group" style="margin-top:12px;text-align:left;">
+                        <label>Notes (optional)</label>
+                        <textarea id="callNotes" placeholder="What was discussed..." style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;min-height:60px;"></textarea>
+                    </div>
+                </div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="logCall()">Log Call</button>
+            `);
+        }
+
+        async function logCall() {
+            const outcome = document.getElementById('callOutcome').value;
+            const notes = document.getElementById('callNotes').value.trim();
+            try {
+                await apiPost('action/call', {
+                    case_id: caseId,
+                    phone: caseData.phone,
+                    outcome,
+                    notes
+                });
+                closeModal();
+                toast('✅ Call logged');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to log call', true);
+            }
+        }
+
+        // 2. SEND SMS — pre-filled template
+        async function actionSMS() {
+            if (!caseData?.phone) return toast('No phone number on file', true);
+            const name = (caseData.owner_name || '').split(' ')[0];
+            const status = caseData.status || '';
+            let template = '';
+
+            if (status === 'New' || status === 'Needs Review') {
+                template = `Hi ${name}, this is OverAssessed. We reviewed your property and may be able to save you money on your property taxes. Do you have a few minutes to discuss?`;
+            } else if (status === 'Awaiting Notice') {
+                template = `Hi ${name}, have you received your Notice of Appraised Value from ${caseData.county || 'your'} County yet? We need it to run your full analysis. You can upload it at overassessed.ai/upload — it takes 30 seconds.`;
+            } else if (status === 'Analysis Complete') {
+                template = `Hi ${name}, great news — our analysis shows potential savings of ${fmtMoney(caseData.estimated_savings)}/yr on your property taxes. Ready to move forward? Check your email for the details.`;
+            } else if (status === 'Ready to File') {
+                template = `Hi ${name}, your case is ready to file! Just need your initiation fee ($79) to get the protest submitted to ${caseData.county || 'your'} County. Any questions?`;
+            } else {
+                template = `Hi ${name}, this is OverAssessed checking in on your property tax case. Let us know if you have any questions.`;
+            }
+
+            openModal('💬 Send SMS to ' + name, `
+                <div style="color:#94a3b8;font-size:12px;margin-bottom:8px;">To: ${caseData.phone}</div>
+                <div class="action-group">
+                    <label>Message</label>
+                    <textarea id="smsBody" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;min-height:120px;">${template}</textarea>
+                </div>
+                <div style="font-size:11px;color:#64748b;text-align:right;" id="smsCharCount">${template.length} chars</div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="sendSMS()">Send SMS</button>
+            `);
+
+            setTimeout(() => {
+                const ta = document.getElementById('smsBody');
+                if (ta) ta.addEventListener('input', () => {
+                    document.getElementById('smsCharCount').textContent = ta.value.length + ' chars';
+                });
+            }, 100);
+        }
+
+        async function sendSMS() {
+            const body = document.getElementById('smsBody').value.trim();
+            if (!body) return toast('Message is empty', true);
+            try {
+                const result = await apiPost('action/sms', {
+                    case_id: caseId,
+                    phone: caseData.phone,
+                    body,
+                    owner_name: caseData.owner_name
+                });
+                closeModal();
+                toast('✅ SMS sent');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to send SMS', true);
+            }
+        }
+
+        // 3. SEND EMAIL — pre-filled template
+        async function actionEmail() {
+            if (!caseData?.email) return toast('No email on file', true);
+            const name = (caseData.owner_name || '').split(' ')[0];
+            const status = caseData.status || '';
+            let subject = '', body = '';
+
+            if (status === 'New' || status === 'Needs Review') {
+                subject = `Your Property Tax Review — ${caseData.property_address || 'Your Property'}`;
+                body = `Hi ${name},\n\nThank you for your interest in OverAssessed. We've reviewed your property at ${caseData.property_address || 'your address'} and believe there may be an opportunity to reduce your property taxes.\n\nWe'd love to discuss the details with you. Would you have a few minutes this week?\n\nBest,\nOverAssessed Team`;
+            } else if (status === 'Awaiting Notice') {
+                subject = `Action Needed: Upload Your Notice of Appraised Value`;
+                body = `Hi ${name},\n\nTo complete your property tax analysis, we need your Notice of Appraised Value from ${caseData.county || 'your'} County.\n\nYou can upload it quickly here: https://overassessed.ai/upload\n\nThe notice is typically mailed in April-May. If you haven't received it yet, let us know and we'll keep your case ready.\n\nBest,\nOverAssessed Team`;
+            } else if (status === 'Analysis Complete') {
+                subject = `Your Savings Report — ${fmtMoney(caseData.estimated_savings)}/yr Potential Savings`;
+                body = `Hi ${name},\n\nGreat news! Our analysis of your property at ${caseData.property_address || 'your address'} shows potential annual savings of ${fmtMoney(caseData.estimated_savings)}.\n\nNext steps:\n1. Review the analysis attached to this email\n2. Sign the authorization form (Form 50-162)\n3. We file your protest — no further action needed from you\n\nReady to move forward? Reply to this email or call us.\n\nBest,\nOverAssessed Team`;
+            } else if (status === 'Ready to File') {
+                subject = `Ready to File — One Last Step`;
+                body = `Hi ${name},\n\nYour property tax protest is fully prepared and ready to file with ${caseData.county || 'your'} County.\n\nTo proceed, we just need the $79 initiation fee. Once received, we'll file immediately.\n\nAny questions? We're here to help.\n\nBest,\nOverAssessed Team`;
+            } else {
+                subject = `Update on Your Property Tax Case — ${caseId}`;
+                body = `Hi ${name},\n\nJust checking in on your property tax case. Please let us know if you have any questions or need anything from our team.\n\nBest,\nOverAssessed Team`;
+            }
+
+            openModal('📧 Send Email to ' + name, `
+                <div style="color:#94a3b8;font-size:12px;margin-bottom:12px;">To: ${caseData.email}</div>
+                <div class="action-group">
+                    <label>Subject</label>
+                    <input type="text" id="emailSubject" value="${subject}" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" />
+                </div>
+                <div class="action-group">
+                    <label>Body</label>
+                    <textarea id="emailBody" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;min-height:200px;">${body}</textarea>
+                </div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="sendEmail()">Send Email</button>
+            `);
+        }
+
+        async function sendEmail() {
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+            if (!subject || !body) return toast('Subject and body required', true);
+            try {
+                await apiPost('action/email', {
+                    case_id: caseId,
+                    email: caseData.email,
+                    subject,
+                    body,
+                    owner_name: caseData.owner_name
+                });
+                closeModal();
+                toast('✅ Email sent');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to send email', true);
+            }
+        }
+
+        // 4. REQUEST NOTICE
+        async function actionRequestNotice() {
+            const name = (caseData?.owner_name || '').split(' ')[0];
+            const hasPhone = !!caseData?.phone;
+            const hasEmail = !!caseData?.email;
+
+            let channels = '';
+            if (hasPhone && hasEmail) {
+                channels = `
+                    <div class="action-group">
+                        <label>Send via</label>
+                        <select id="noticeChannel" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;">
+                            <option value="both">📱 SMS + 📧 Email (recommended)</option>
+                            <option value="sms">📱 SMS only</option>
+                            <option value="email">📧 Email only</option>
+                        </select>
+                    </div>`;
+            } else {
+                channels = `<input type="hidden" id="noticeChannel" value="${hasPhone ? 'sms' : 'email'}">`;
+            }
+
+            openModal('📄 Request Notice from ' + name, `
+                <div style="background:#141621;border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <div style="font-size:13px;color:#fcd34d;">📋 This will send a pre-written request asking ${name} to upload their Notice of Appraised Value.</div>
+                </div>
+                ${channels}
+                <div style="background:#141621;border-radius:8px;padding:14px;margin-top:12px;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Preview (SMS)</div>
+                    <div style="font-size:13px;color:#94a3b8;">Hi ${name}, have you received your Notice of Appraised Value from ${caseData.county || 'your'} County? Upload it at overassessed.ai/upload — takes 30 seconds. We need it to file your protest.</div>
+                </div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="sendNoticeRequest()">Send Request</button>
+            `);
+        }
+
+        async function sendNoticeRequest() {
+            const channel = document.getElementById('noticeChannel').value;
+            try {
+                await apiPost('action/request-notice', {
+                    case_id: caseId,
+                    channel,
+                    phone: caseData.phone,
+                    email: caseData.email,
+                    owner_name: caseData.owner_name,
+                    county: caseData.county
+                });
+                closeModal();
+                toast('✅ Notice request sent');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to send request', true);
+            }
+        }
+
+        // 5. SEND SIGNING LINK
+        async function actionSendSigning() {
+            const name = (caseData?.owner_name || '').split(' ')[0];
+            const hasPhone = !!caseData?.phone;
+            const hasEmail = !!caseData?.email;
+            const savings = fmtMoney(caseData.estimated_savings);
+
+            let channels = '';
+            if (hasPhone && hasEmail) {
+                channels = `
+                    <div class="action-group">
+                        <label>Send via</label>
+                        <select id="signChannel" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;">
+                            <option value="both">📱 SMS + 📧 Email (recommended)</option>
+                            <option value="sms">📱 SMS only</option>
+                            <option value="email">📧 Email only</option>
+                        </select>
+                    </div>`;
+            } else {
+                channels = `<input type="hidden" id="signChannel" value="${hasPhone ? 'sms' : 'email'}">`;
+            }
+
+            openModal('✍️ Send Signing Link to ' + name, `
+                <div style="background:#065f46;border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <div style="font-size:13px;color:#6ee7b7;">💰 Potential savings: <strong>${savings}/yr</strong></div>
+                    <div style="font-size:12px;color:#a7f3d0;margin-top:4px;">This sends the Form 50-162 signing link + fee agreement.</div>
+                </div>
+                ${channels}
+                <div style="background:#141621;border-radius:8px;padding:14px;margin-top:12px;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Preview (SMS)</div>
+                    <div style="font-size:13px;color:#94a3b8;">Hi ${name}, your analysis is complete — ${savings}/yr potential savings! Sign the authorization form here to get your protest filed: [signing link]. Questions? Reply to this text.</div>
+                </div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="sendSigningLink()">Send Signing Link</button>
+            `);
+        }
+
+        async function sendSigningLink() {
+            const channel = document.getElementById('signChannel').value;
+            try {
+                await apiPost('action/send-signing', {
+                    case_id: caseId,
+                    channel,
+                    phone: caseData.phone,
+                    email: caseData.email,
+                    owner_name: caseData.owner_name,
+                    estimated_savings: caseData.estimated_savings
+                });
+                closeModal();
+                toast('✅ Signing link sent');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to send signing link', true);
+            }
+        }
+
+        // 6. MARK AS FILED
+        async function actionMarkFiled() {
+            const name = (caseData?.owner_name || '').split(' ')[0];
+            openModal('📨 Mark as Filed — ' + caseId, `
+                <div style="background:#065f46;border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <div style="font-size:13px;color:#6ee7b7;">This marks the protest as filed with ${caseData.county || 'the'} County and updates the case status.</div>
+                </div>
+                <div class="action-group">
+                    <label>Filing Date</label>
+                    <input type="date" id="filingDate" value="${new Date().toISOString().split('T')[0]}" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" />
+                </div>
+                <div class="action-group">
+                    <label>Confirmation # (optional)</label>
+                    <input type="text" id="filingConfirmation" placeholder="e.g. ARB-2026-12345" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" />
+                </div>
+                <div class="action-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="filingNotes" placeholder="Any filing notes..." style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;min-height:60px;"></textarea>
+                </div>
+                <div style="margin-top:12px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#e2e8f0;">
+                        <input type="checkbox" id="filingNotify" checked style="accent-color:#6366f1;" />
+                        Notify customer that protest has been filed
+                    </label>
+                </div>
+            `, `
+                <button class="btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn-success" onclick="markFiled()">✅ Mark as Filed</button>
+            `);
+        }
+
+        async function markFiled() {
+            const filingDate = document.getElementById('filingDate').value;
+            const confirmation = document.getElementById('filingConfirmation').value.trim();
+            const notes = document.getElementById('filingNotes').value.trim();
+            const notify = document.getElementById('filingNotify').checked;
+            try {
+                await apiPost('action/mark-filed', {
+                    case_id: caseId,
+                    filing_date: filingDate,
+                    confirmation_number: confirmation,
+                    notes,
+                    notify_customer: notify,
+                    phone: caseData.phone,
+                    email: caseData.email,
+                    owner_name: caseData.owner_name,
+                    county: caseData.county
+                });
+                closeModal();
+                toast('✅ Protest marked as filed');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Failed to mark as filed', true);
+            }
+        }
+
+        // Hook into loadCase to update action bar state
+        const _origLoadCase = loadCase;
+        loadCase = async function() {
+            await _origLoadCase();
+            updateActionBarState();
+        };
 
         // Init
         if (caseId) {
