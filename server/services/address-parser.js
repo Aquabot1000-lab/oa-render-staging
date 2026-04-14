@@ -199,12 +199,32 @@ const TX_CITY_COUNTY = {
 // WA city → county mapping
 const WA_CITY_COUNTY = {
     'seattle': 'King',
+    'burien': 'King',
+    'renton': 'King',
+    'kent': 'King',
+    'redmond': 'King',
+    'kirkland': 'King',
+    'federal way': 'King',
+    'auburn': 'King',
+    'sammamish': 'King',
+    'bothell': 'King',
     'tacoma': 'Pierce',
+    'lakewood': 'Pierce',
+    'puyallup': 'Pierce',
     'spokane': 'Spokane',
+    'spokane valley': 'Spokane',
     'vancouver': 'Clark',
     'bellevue': 'King',
     'everett': 'Snohomish',
+    'lynnwood': 'Snohomish',
+    'marysville': 'Snohomish',
     'olympia': 'Thurston',
+    'yakima': 'Yakima',
+    'kennewick': 'Benton',
+    'richland': 'Benton',
+    'pasco': 'Franklin',
+    'bellingham': 'Whatcom',
+    'walla walla': 'Walla Walla',
 };
 
 // GA city → county mapping
@@ -266,11 +286,20 @@ function parseAddress(address, hints = {}) {
 
     // Pattern 2: Check for state abbreviation anywhere (e.g., "123 Main st s Tacoma wa 98444")
     if (!state) {
-        // Match 2-letter state code preceded by space or comma, followed by space/zip/end
         const looseMatch = addr.match(/[\s,]+([A-Za-z]{2})\s+\d{5}/);
         if (looseMatch) {
             const s = looseMatch[1].toUpperCase();
             if (STATE_MAP[s]) state = STATE_MAP[s];
+        }
+    }
+
+    // Pattern 3: Full state name before ZIP without comma (e.g., "456 Pine Ave Atlanta Georgia 30301")
+    if (!state) {
+        const stateNames = Object.keys(STATE_MAP).filter(k => k.length > 2);
+        const statePattern = new RegExp('\\b(' + stateNames.join('|') + ')\\s+\\d{5}', 'i');
+        const fullNameMatch = addr.match(statePattern);
+        if (fullNameMatch) {
+            state = STATE_MAP[fullNameMatch[1].toUpperCase()] || null;
         }
     }
 
