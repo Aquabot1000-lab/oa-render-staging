@@ -1970,8 +1970,8 @@ if (isSupabaseEnabled()) {
     });
     // ==================== CASE PAGE ACTION ENDPOINTS ====================
     // Shared helpers for all actions
-    async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status }) {
-        const { data, error } = await supabase.from('communications').insert({
+    async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status, error_code }) {
+        const row = {
             case_id,
             submission_id: submission_id || null,
             direction: direction || 'outbound',
@@ -1981,7 +1981,10 @@ if (isSupabaseEnabled()) {
             body: body || null,
             status: status || 'sent',
             created_at: new Date().toISOString()
-        }).select('id').single();
+        };
+        // Store error code directly (column exists on communications table)
+        if (error_code) row.error_code = String(error_code);
+        const { data, error } = await supabase.from('communications').insert(row).select('id').single();
         if (error) console.error('[CommLog] Error:', error.message);
         return data;
     }
@@ -2061,8 +2064,9 @@ if (isSupabaseEnabled()) {
             console.log(`[SMS] SENT to ${normalized} | SID=${msg.sid} | status=${msg.status}`);
             return { sent: true, sid: msg.sid, status: msg.status };
         } catch (e) {
-            console.error(`[SMS] FAILED to ${normalized}:`, e.message);
-            return { sent: false, reason: e.message, error: true };
+            const errorCode = e.code || e.status || null;
+            console.error(`[SMS] FAILED to ${normalized}: code=${errorCode} msg=${e.message}`);
+            return { sent: false, reason: e.message, error: true, error_code: errorCode };
         }
     }
 
@@ -2130,26 +2134,49 @@ if (isSupabaseEnabled()) {
         }
     });
 
-    // 2. POST /api/case-view/action/sms — send SMS
+    // 2. POST /api/case-view/action/sms — send SMS (auto-fallback to email on failure)
     app.post('/api/case-view/action/sms', authenticateToken, async (req, res) => {
         try {
-            const { case_id, phone, body, owner_name } = req.body;
+            const { case_id, phone, body, owner_name, email } = req.body;
             if (!case_id || !phone || !body) return res.status(400).json({ error: 'case_id, phone, body required' });
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
 
             // Send the SMS
-            const result = await sendSMSAction(phone, body);
+            const smsResult = await sendSMSAction(phone, body);
 
-            // Log communication
+            // Log SMS communication (with error details if failed)
             await logCommunication(supabaseAdmin, {
                 case_id, submission_id, direction: 'outbound', channel: 'sms',
-                recipient: phone, body, status: result.sent ? 'sent' : 'failed'
+                recipient: phone, body,
+                status: smsResult.sent ? 'sent' : 'failed',
+                error_code: smsResult.error_code || null
             });
+
+            // AUTO-FALLBACK: If SMS failed and we have an email, send via email instead
+            let emailFallback = null;
+            if (!smsResult.sent && email) {
+                const firstName = (owner_name || '').split(' ')[0] || 'there';
+                const subject = 'Message from OverAssessed';
+                const htmlBody = body.replace(/\n/g, '<br>');
+                emailFallback = await sendEmailAction(email, subject, htmlBody);
+
+                await logCommunication(supabaseAdmin, {
+                    case_id, submission_id, direction: 'outbound', channel: 'email',
+                    recipient: email, subject, body,
+                    status: emailFallback.sent ? 'sent' : 'failed'
+                });
+                console.log(`[Action:SMS] ${case_id} | SMS failed → email fallback ${emailFallback.sent ? 'SENT' : 'FAILED'}`);
+            }
 
             // Activity log
             await supabaseAdmin.from('activity_log').insert({
-                case_id, actor: 'tyler', action: 'sms_sent',
-                details: { phone, body_preview: body.substring(0, 80), sent: result.sent, sid: result.sid }
+                case_id, actor: 'tyler', action: smsResult.sent ? 'sms_sent' : 'sms_failed_email_fallback',
+                details: {
+                    phone, body_preview: body.substring(0, 80),
+                    sms_sent: smsResult.sent, sid: smsResult.sid,
+                    sms_error: smsResult.reason || null, sms_error_code: smsResult.error_code || null,
+                    email_fallback: emailFallback ? { sent: emailFallback.sent, to: email } : null
+                }
             });
 
             // Touch case
@@ -2157,11 +2184,17 @@ if (isSupabaseEnabled()) {
 
             // Follow-up task: check for response in 24h
             const task = await createFollowUpTask(supabaseAdmin, {
-                case_id, title: `Check for SMS response from ${(owner_name || '').split(' ')[0] || 'customer'}`, due_days: 1
+                case_id, title: `Check for ${smsResult.sent ? 'SMS' : 'email'} response from ${(owner_name || '').split(' ')[0] || 'customer'}`, due_days: 1
             });
 
-            console.log(`[Action:SMS] ${case_id} → ${phone} | sent=${result.sent} | attempts=${attempts}`);
-            res.json({ ok: true, sent: result.sent, sid: result.sid, contact_attempts: attempts, task_id: task?.id });
+            const delivered = smsResult.sent || (emailFallback && emailFallback.sent);
+            console.log(`[Action:SMS] ${case_id} → ${phone} | sms=${smsResult.sent} | fallback=${emailFallback?.sent || 'n/a'} | delivered=${delivered}`);
+            res.json({
+                ok: true, delivered,
+                sms: { sent: smsResult.sent, sid: smsResult.sid, error: smsResult.reason || null, error_code: smsResult.error_code || null },
+                email_fallback: emailFallback ? { sent: emailFallback.sent, to: email } : null,
+                contact_attempts: attempts, task_id: task?.id
+            });
         } catch (e) {
             console.error('[Action:SMS] Error:', e.message);
             res.status(500).json({ error: e.message });
