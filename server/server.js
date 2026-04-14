@@ -2408,6 +2408,11 @@ if (isSupabaseEnabled()) {
 
     // Process a single Needs Review case: classify → outreach → update
     async function processNeedsReviewCase(caseData) {
+        // Hard guard: NEVER auto-process excluded cases
+        if (caseData.automation_excluded) {
+            console.log(`[NeedsReview] SKIPPED ${caseData.case_id} (automation_excluded)`);
+            return { case_id: caseData.case_id, name: caseData.owner_name, issue: 'EXCLUDED', action: 'Skipped — automation_excluded' };
+        }
         const issue = classifyIssue(caseData);
         const result = { case_id: caseData.case_id, name: caseData.owner_name, issue: issue.type, priority: issue.priority };
 
