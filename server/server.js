@@ -2022,17 +2022,20 @@ if (isSupabaseEnabled()) {
 
     // Helper: send SMS via Twilio
     async function sendSMSAction(phone, body) {
-        if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_FROM_NUMBER) {
+        if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
             console.log('[SMS] Twilio not configured, skipping send');
             return { sent: false, reason: 'twilio_not_configured' };
         }
         try {
-            const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
-            const msg = await twilioClient.messages.create({
-                body,
-                from: process.env.TWILIO_FROM_NUMBER,
-                to: phone
-            });
+            const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+            // Use messaging service if available, otherwise fall back to phone number
+            const sendOpts = { body, to: phone };
+            if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+                sendOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+            } else {
+                sendOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+            }
+            const msg = await twilioClient.messages.create(sendOpts);
             return { sent: true, sid: msg.sid };
         } catch (e) {
             console.error('[SMS] Send failed:', e.message);
