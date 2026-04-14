@@ -271,7 +271,7 @@
                 <div class="panel-header">
                     <h2>All Cases</h2>
                     <div class="filter-bar">
-                        <input type="text" id="caseSearch" placeholder="Search case ID, name, email, address..." oninput="renderSubmissionsTable()" style="padding:0.5rem 0.75rem;border:2px solid var(--gray-medium);border-radius:var(--radius);font-size:0.85rem;min-width:220px;font-family:inherit;">
+                        <input type="search" id="caseSearch" placeholder="Search case ID, name, email, address..." oninput="renderSubmissionsTable()" autocomplete="off" name="case-search-filter" style="padding:0.5rem 0.75rem;border:2px solid var(--gray-medium);border-radius:var(--radius);font-size:0.85rem;min-width:220px;font-family:inherit;">
                         <select id="stateFilter" onchange="renderSubmissionsTable()">
                             <option value="">All States</option>
                             <option value="TX">Texas</option>
@@ -928,6 +928,11 @@ function switchTab(name) {
     event.target.classList.add('active');
     document.getElementById('tab-' + name).classList.add('active');
 
+    // Clear search on tab switch and re-render
+    const searchEl = document.getElementById('caseSearch');
+    if (searchEl) searchEl.value = '';
+    if (name === 'submissions') renderSubmissionsTable();
+
     // Load data for specific tabs
     if (name === 'uri-commissions') loadUriCommissions();
 }
@@ -953,7 +958,12 @@ async function loadAll(retryCount = 0) {
     // Filter out soft-deleted from main list
     submissions = submissions.filter(s => s.status !== 'Deleted' && !s.deletedAt && !s.deleted_at);
     
+    // Clear search autofill before rendering
+    const searchEl = document.getElementById('caseSearch');
+    if (searchEl) searchEl.value = '';
+
     renderOverview();
+    renderSubmissionsTable();
     renderSignatures();
     renderNotices();
     renderRevenue();
