@@ -27,7 +27,7 @@ const { computeFollowUpPriority } = require('./lib/follow-up-priority');
 const { updateAnalysis, getAnalysisHistory } = require('./lib/analysis-version');
 
 // Property Deduplication — ONE active case per property
-const { normalizeAddress, findDuplicate, mergeIntoExisting } = require('./lib/property-dedup');
+const { findDuplicate, mergeIntoExisting } = require('./lib/property-dedup');
 
 // Real Comp Engine (no synthetic data)
 const { fetchRealComps, fetchRealCompsBatch } = require('./services/real-comp-engine');
