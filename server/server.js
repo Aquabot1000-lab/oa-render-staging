@@ -2377,9 +2377,11 @@ app.post('/api/agreements/sign', async (req, res) => {
         if (!name || !email || !address) return res.status(400).json({ error: 'name, email, address required' });
         if (!signature) return res.status(400).json({ error: 'Signature required' });
 
-        // Find or create submission
-        let { data: existing } = await supabaseAdmin.from('submissions')
-            .select('id, case_id').eq('email', email).is('deleted_at', null).limit(1);
+        // Find or create submission (check by address AND email using shared dedup)
+        const dupe = await findDuplicate(supabaseAdmin, address, email, name);
+        let { data: existing } = dupe && dupe.existing_case
+            ? { data: [{ id: dupe.existing_case.id, case_id: dupe.existing_case.case_id }] }
+            : await supabaseAdmin.from('submissions').select('id, case_id').eq('email', email).is('deleted_at', null).limit(1);
         
         let submissionId;
         if (existing && existing.length > 0) {
@@ -3356,31 +3358,17 @@ app.post('/api/simple-lead', async (req, res) => {
             console.log(`[SIMPLE LEAD] ⚠️ Address flagged: ${finalPropertyAddress} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
         }
 
-        // === DEDUPE CHECK ===
-        const normalizedEmail = email.trim().toLowerCase();
-        const normalizedAddress = finalPropertyAddress.trim().replace(/\s+/g, ' ').replace(/,\s*/g, ', ');
-        
-        // Check for existing submission with same email in last 24 hours
-        const { data: existingByEmail } = await supabaseAdmin
-            .from('submissions')
-            .select('case_id, property_address, email, created_at, status')
-            .eq('email', normalizedEmail)
-            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-            .neq('status', 'Duplicate')
-            .limit(1);
-        
-        if (existingByEmail && existingByEmail.length > 0) {
-            const existing = existingByEmail[0];
-            console.log(`[SIMPLE LEAD] ⚠️ DEDUPE: ${normalizedEmail} already submitted as ${existing.case_id} (${existing.property_address})`);
-            // Update existing case with better address if this one has more detail
-            if (normalizedAddress.length > (existing.property_address || '').length) {
-                await supabaseAdmin
-                    .from('submissions')
-                    .update({ property_address: normalizedAddress, county: county || undefined, state: state || undefined })
-                    .eq('case_id', existing.case_id);
-                console.log(`[SIMPLE LEAD] Updated ${existing.case_id} with better address: ${normalizedAddress}`);
-            }
-            return res.json({ success: true, caseId: existing.case_id, message: 'Existing case found', deduplicated: true });
+        // === DEDUPE CHECK (uses shared findDuplicate from property-dedup.js → normalize-address.js) ===
+        const dupe = await findDuplicate(supabaseAdmin, finalPropertyAddress, email, owner_name);
+        if (dupe && dupe.action === 'merge') {
+            await mergeIntoExisting(supabaseAdmin, dupe.existing_case.case_id, {
+                phone, owner_name, email, property_address: finalPropertyAddress, county, state, source: source || 'simple-form'
+            });
+            console.log(`[SIMPLE LEAD] DEDUP: merged into ${dupe.existing_case.case_id} (${dupe.match_type}) — ${dupe.reason}`);
+            return res.json({ success: true, caseId: dupe.existing_case.case_id, message: 'Existing case found', deduplicated: true });
+        }
+        if (dupe && dupe.action === 'flag') {
+            console.log(`[SIMPLE LEAD] DEDUP FLAG: ${dupe.reason}`);
         }
 
         // Routing logic based on supported state config (lib/supported-states.js)

@@ -131,6 +131,9 @@ const TX_CITY_COUNTY = {
     'westlake': 'Travis',
     'argyle': 'Denton',
     'aubrey': 'Denton',
+    'valley view': 'Cooke',
+    'gainesville': 'Cooke',
+    'muenster': 'Cooke',
     'celina': 'Collin',
     'prosper': 'Collin',
     'melissa': 'Collin',
@@ -248,6 +251,17 @@ function parseAddress(address, hints = {}) {
     } else if (stateWordMatch) {
         const s = stateWordMatch[1].trim().toUpperCase();
         state = STATE_MAP[s] || null;
+        // If full capture didn't match (e.g. "Valley View Texas"), try the LAST word as state name
+        if (!state) {
+            const words = s.split(/\s+/);
+            const lastWord = words[words.length - 1];
+            state = STATE_MAP[lastWord] || null;
+            // Also try last two words for multi-word states like "NEW YORK"
+            if (!state && words.length >= 2) {
+                const lastTwo = words.slice(-2).join(' ');
+                state = STATE_MAP[lastTwo] || null;
+            }
+        }
     }
 
     // Pattern 2: Check for state abbreviation anywhere (e.g., "123 Main st s Tacoma wa 98444")

@@ -1,57 +1,11 @@
 /**
  * Property Deduplication — ONE active case per property
  * 
- * Normalizes addresses and checks for existing active cases
- * before allowing new case creation.
+ * Uses the SINGLE shared normalizeAddress from ./normalize-address.js
+ * No duplicate normalization logic in this file.
  */
 
-// Address normalization: strip formatting, standardize abbreviations
-function normalizeAddress(addr) {
-    if (!addr) return '';
-    let n = addr.toLowerCase().trim();
-    // Standardize common abbreviations
-    const abbrevs = {
-        'street': 'st', 'st.': 'st', 'avenue': 'ave', 'ave.': 'ave',
-        'boulevard': 'blvd', 'blvd.': 'blvd', 'drive': 'dr', 'dr.': 'dr',
-        'court': 'ct', 'ct.': 'ct', 'lane': 'ln', 'ln.': 'ln',
-        'road': 'rd', 'rd.': 'rd', 'place': 'pl', 'pl.': 'pl',
-        'circle': 'cir', 'cir.': 'cir', 'terrace': 'ter', 'ter.': 'ter',
-        'trail': 'trl', 'trl.': 'trl', 'way': 'way',
-        'parkway': 'pkwy', 'pkwy.': 'pkwy',
-        'highway': 'hwy', 'hwy.': 'hwy',
-        'north': 'n', 'south': 's', 'east': 'e', 'west': 'w',
-        'n.': 'n', 's.': 's', 'e.': 'e', 'w.': 'w',
-        'apartment': 'apt', 'apt.': 'apt', '#': 'apt',
-        'suite': 'ste', 'ste.': 'ste', 'unit': 'unit',
-    };
-    // Replace abbreviations (whole words only)
-    for (const [full, short] of Object.entries(abbrevs)) {
-        const escaped = full.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        n = n.replace(new RegExp(`\\b${escaped}\\b`, 'g'), short);
-    }
-    // Remove all punctuation except spaces
-    n = n.replace(/[^a-z0-9\s]/g, '');
-    // Collapse whitespace
-    n = n.replace(/\s+/g, ' ').trim();
-    return n;
-}
-
-// Extract just the street portion (first line before city/state/zip)
-function extractStreet(normalizedAddr) {
-    // Try to extract just the street number + name (before city)
-    const parts = normalizedAddr.split(/\s+/);
-    // Find where the city starts — usually after a number + street name
-    // For dedup, we use the first 3-5 tokens (number + street)
-    if (parts.length <= 3) return normalizedAddr;
-    // If last token looks like a zip code (5 digits), remove state+zip
-    if (/^\d{5}$/.test(parts[parts.length - 1])) {
-        parts.pop(); // zip
-        if (parts.length > 0 && /^[a-z]{2}$/.test(parts[parts.length - 1])) {
-            parts.pop(); // state
-        }
-    }
-    return parts.join(' ');
-}
+const { normalizeAddress, normalizeStreet, addressesMatch } = require('./normalize-address');
 
 /**
  * Check for existing active case matching this address or email
@@ -81,25 +35,13 @@ async function findDuplicate(supabase, address, email, ownerName) {
         
         if (allActive) {
             for (const existing of allActive) {
-                const existingNorm = normalizeAddress(existing.property_address);
-                // Exact normalized match
-                if (existingNorm === normalizedAddr) {
+                // Use the shared addressesMatch which handles full, street-only, and street-number matching
+                if (addressesMatch(address, existing.property_address)) {
                     return {
-                        match_type: 'address_exact',
+                        match_type: 'address_match',
                         existing_case: existing,
                         action: 'merge',
-                        reason: `Same address: "${existing.property_address}" = "${address}"`
-                    };
-                }
-                // Street-only match (looser — catches reformatted addresses)
-                const existingStreet = extractStreet(existingNorm);
-                const newStreet = extractStreet(normalizedAddr);
-                if (existingStreet.length > 8 && existingStreet === newStreet) {
-                    return {
-                        match_type: 'address_street',
-                        existing_case: existing,
-                        action: 'merge',
-                        reason: `Same street address: "${existingStreet}"`
+                        reason: `Same property: "${existing.property_address}" matches "${address}"`
                     };
                 }
             }
@@ -118,22 +60,21 @@ async function findDuplicate(supabase, address, email, ownerName) {
         
         if (byEmail && byEmail.length > 0) {
             const existing = byEmail[0];
-            // Same email but different address = possibly second property (allow but flag)
-            const existingNorm = normalizeAddress(existing.property_address);
-            if (existingNorm !== normalizedAddr) {
+            // Same email + same address = duplicate
+            if (addressesMatch(address, existing.property_address)) {
                 return {
-                    match_type: 'email_different_property',
+                    match_type: 'email_and_address',
                     existing_case: existing,
-                    action: 'flag',
-                    reason: `Same email "${normalizedEmail}" but different property. Existing: "${existing.property_address}" vs New: "${address}"`
+                    action: 'merge',
+                    reason: `Same email + address`
                 };
             }
-            // Same email + same address = duplicate
+            // Same email but different address = possibly second property (flag, don't block)
             return {
-                match_type: 'email_exact',
+                match_type: 'email_different_property',
                 existing_case: existing,
-                action: 'merge',
-                reason: `Same email + address`
+                action: 'flag',
+                reason: `Same email "${normalizedEmail}" but different property. Existing: "${existing.property_address}" vs New: "${address}"`
             };
         }
     }
@@ -146,19 +87,18 @@ async function findDuplicate(supabase, address, email, ownerName) {
  */
 async function mergeIntoExisting(supabase, existingCaseId, newData) {
     const updates = {};
-    // Only update fields that are currently empty/null on existing case
+    // Only update fields that improve the existing record
     if (newData.phone) updates.phone = newData.phone;
     if (newData.owner_name) updates.owner_name = newData.owner_name;
     if (newData.county) updates.county = newData.county;
     if (newData.state) updates.state = newData.state;
     if (newData.property_address && newData.property_address.length > 10) {
-        // Only update address if new one is more complete
         updates.property_address = newData.property_address;
     }
     updates.updated_at = new Date().toISOString();
     updates.last_activity_at = new Date().toISOString();
 
-    if (Object.keys(updates).length > 1) { // More than just timestamps
+    if (Object.keys(updates).length > 2) { // More than just timestamps
         await supabase.from('submissions').update(updates).eq('case_id', existingCaseId);
     }
 
@@ -178,4 +118,4 @@ async function mergeIntoExisting(supabase, existingCaseId, newData) {
     return updates;
 }
 
-module.exports = { normalizeAddress, extractStreet, findDuplicate, mergeIntoExisting };
+module.exports = { findDuplicate, mergeIntoExisting };
