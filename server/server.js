@@ -14,6 +14,18 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 // RentCast analysis service
 const { runRentCastAnalysis, getComps: getRentCastComps } = require('./services/rentcast');
 
+// State support — SINGLE SOURCE OF TRUTH (do NOT hardcode state lists anywhere else)
+const { SUPPORTED_STATES, isSupported: isStateSupported, getStateBadge } = require('./lib/supported-states');
+
+// Next Action Engine — computes required next_action for every case
+const { computeNextAction } = require('./lib/next-action-engine');
+
+// Follow-Up Priority — scores cases for follow-up urgency
+const { computeFollowUpPriority } = require('./lib/follow-up-priority');
+
+// Analysis Version Control
+const { updateAnalysis, getAnalysisHistory } = require('./lib/analysis-version');
+
 // Real Comp Engine (no synthetic data)
 const { fetchRealComps, fetchRealCompsBatch } = require('./services/real-comp-engine');
 
@@ -1764,9 +1776,119 @@ if (isSupabaseEnabled()) {
     app.post('/api/case-view/change-status', authenticateToken, async (req, res) => {
         try {
             const { case_id, old_status, new_status } = req.body;
+            // Update status
             await supabaseAdmin.from('submissions').update({ status: new_status, last_activity_at: new Date().toISOString() }).eq('case_id', case_id);
+            // Log activity
             await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'status_change', details: { from: old_status, to: new_status, source: 'case-page' } });
+            // Recompute next_action + follow-up priority from new state
+            const { data: updated } = await supabaseAdmin.from('submissions').select('*').eq('case_id', case_id).single();
+            if (updated) {
+                const { action, priority, icon } = computeNextAction(updated);
+                const fp = computeFollowUpPriority(updated);
+                await supabaseAdmin.from('submissions').update({
+                    next_action: icon + ' ' + action,
+                    next_action_priority: priority,
+                    follow_up_priority: fp.priority,
+                    follow_up_score: fp.score,
+                    follow_up_reason: fp.reason
+                }).eq('case_id', case_id);
+            }
             res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/next-actions — dashboard: all active cases sorted by next_action_priority
+    app.get('/api/case-view/next-actions', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .select('case_id,owner_name,status,state,county,next_action,next_action_priority,estimated_savings,last_activity_at,last_contact_at')
+                .not('status', 'in', '("Archived","Deleted","No Case","Resolved")')
+                .order('next_action_priority', { ascending: false })
+                .limit(100);
+            if (error) throw error;
+            res.json(data || []);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/state-badge/:state — get badge display info for a state
+    app.get('/api/case-view/state-badge/:state', (req, res) => {
+        res.json(getStateBadge(req.params.state));
+    });
+
+    // GET /api/case-view/supported-states — list all supported states
+    app.get('/api/case-view/supported-states', (req, res) => {
+        res.json({ supported: SUPPORTED_STATES });
+    });
+
+    // GET /api/case-view/deal-priority — Tyler's daily dashboard screen
+    app.get('/api/case-view/deal-priority', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .select('case_id,owner_name,status,state,county,estimated_savings,savings_min,savings_max,next_action,next_action_priority,follow_up_priority,follow_up_score,follow_up_reason,confidence_level,last_activity_at,last_contact_at,fee_agreement_signed,initiation_paid,upload_status,contact_attempts,analysis_version')
+                .not('status', 'eq', 'Archived')
+                .order('next_action_priority', { ascending: false });
+            if (error) throw error;
+
+            const now = Date.now();
+            const deals = (data || []).map(d => {
+                const savings = parseFloat(d.estimated_savings) || 0;
+                const lastAct = d.last_activity_at ? new Date(d.last_activity_at).getTime() : 0;
+                const hoursSinceActivity = lastAct ? (now - lastAct) / 3600000 : 9999;
+                const isStuck = hoursSinceActivity > 48;
+
+                // Composite sort score: stage weight + savings weight + recency
+                let sortScore = d.next_action_priority || 0;
+                if (savings >= 5000) sortScore += 30;
+                else if (savings >= 2000) sortScore += 20;
+                else if (savings >= 1000) sortScore += 10;
+                if (d.status === 'Ready to File') sortScore += 25;
+                else if (d.status === 'Analysis Complete') sortScore += 15;
+                if (isStuck && savings > 500) sortScore += 10;
+
+                // Highlight tier
+                let highlight = null;
+                if (savings >= 5000) highlight = 'very-high-value';
+                else if (savings >= 2000) highlight = 'high-value';
+                if (isStuck) highlight = (highlight || '') + (highlight ? ' stuck' : 'stuck');
+
+                return { ...d, sortScore, highlight, hoursSinceActivity: Math.round(hoursSinceActivity), isStuck };
+            });
+
+            deals.sort((a, b) => b.sortScore - a.sortScore);
+            res.json(deals);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/analysis-history/:caseId — all analysis versions
+    app.get('/api/case-view/analysis-history/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const history = await getAnalysisHistory(supabaseAdmin, req.params.caseId);
+            res.json(history);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/follow-up-queue — cases needing follow-up, sorted by priority
+    app.get('/api/case-view/follow-up-queue', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .select('case_id,owner_name,status,estimated_savings,follow_up_priority,follow_up_score,follow_up_reason,next_action,next_follow_up_at,last_contact_at,contact_attempts')
+                .not('status', 'eq', 'Archived')
+                .not('follow_up_priority', 'eq', 'NONE')
+                .order('follow_up_score', { ascending: false });
+            if (error) throw error;
+            res.json(data || []);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-view/refresh-next-action/:caseId — force recompute
+    app.post('/api/case-view/refresh-next-action/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', req.params.caseId).single();
+            if (!lead) return res.status(404).json({ error: 'Case not found' });
+            const { action, priority, icon } = computeNextAction(lead);
+            const nextAction = icon + ' ' + action;
+            await supabaseAdmin.from('submissions').update({ next_action: nextAction, next_action_priority: priority }).eq('case_id', req.params.caseId);
+            res.json({ case_id: req.params.caseId, next_action: nextAction, priority });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -2749,14 +2871,16 @@ app.post('/api/simple-lead', async (req, res) => {
 
         if (street && city && state_field && zip) {
             // New format with structured fields
-            const ALLOWED_STATES = ['TX', 'CO', 'GA', 'AZ', 'WA'];
+            // State tier system: SUPPORTED (full pipeline), TEST (manual review), UNSUPPORTED (waitlist)
 
             // Hard validation
             if (!street.trim() || !city.trim() || !state_field.trim() || !zip.trim()) {
                 return res.status(400).json({ error: 'All address fields (street, city, state, zip) are required' });
             }
-            if (!ALLOWED_STATES.includes(state_field.toUpperCase())) {
-                return res.status(400).json({ error: 'State must be TX, CO, GA, AZ, or WA' });
+            // Allow SUPPORTED + TEST states through intake; UNSUPPORTED gets waitlisted (not rejected)
+            // We no longer reject at the form level — all states accepted, routing decides next step
+            if (!state_field.trim().match(/^[A-Za-z]{2}$/)) {
+                return res.status(400).json({ error: 'State must be a valid 2-letter code' });
             }
             if (!/^\d{5}$/.test(zip)) {
                 return res.status(400).json({ error: 'Zip code must be exactly 5 digits' });
@@ -2815,10 +2939,10 @@ app.post('/api/simple-lead', async (req, res) => {
             return res.json({ success: true, caseId: existing.case_id, message: 'Existing case found', deduplicated: true });
         }
 
-        // Routing logic based on state
-        let routingStatus = 'New'; // Default for TX
-        if (state && ['CO', 'GA', 'AZ', 'WA'].includes(state.toUpperCase())) {
-            routingStatus = 'Waitlist - OUT_OF_STATE';
+        // Routing logic based on supported state config (lib/supported-states.js)
+        let routingStatus = 'New'; // Default for supported states
+        if (state && !isStateSupported(state)) {
+            routingStatus = 'Waitlist - OUT_OF_STATE'; // Not in SUPPORTED_STATES → waitlist
         }
 
         const insertData = {
@@ -2865,10 +2989,10 @@ app.post('/api/simple-lead', async (req, res) => {
                 const leadId = fbData.id;
                 const caseNum = caseId;
 
-                // Skip auto-response for out-of-state leads
+                // Skip auto-outreach for unsupported states
                 if (routingStatus === 'Waitlist - OUT_OF_STATE') {
-                    console.log(`[SIMPLE LEAD] 🌍 Out-of-state lead (${state}) — skipping auto-emails and analysis. Status: ${routingStatus}`);
-                    sendTelegramAlert(`🌍 OUT-OF-STATE LEAD\n\n<b>Case:</b> ${caseNum}\n<b>Email:</b> ${email}\n<b>Property:</b> ${finalPropertyAddress}\n<b>State:</b> ${state}\n<b>Status:</b> Waitlist - OUT_OF_STATE\n\n⏸️ No auto-emails sent. Held for future expansion.`);
+                    console.log(`[SIMPLE LEAD] 🌍 Out-of-state lead (${state}) — waitlisted. Not in SUPPORTED_STATES: ${SUPPORTED_STATES.join(',')}`);
+                    sendTelegramAlert(`🌍 OUT-OF-STATE LEAD\n\n<b>Case:</b> ${caseNum}\n<b>Email:</b> ${email}\n<b>Property:</b> ${finalPropertyAddress}\n<b>State:</b> ${state}\n<b>Supported:</b> ${SUPPORTED_STATES.join(', ')}\n\n⏸️ No auto-emails sent. Waitlisted.`);
                     return res.json({ success: true, id: leadId, caseId: caseNum, state, county, status: routingStatus });
                 }
                 
@@ -4559,6 +4683,27 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+        // === DOCUMENT CLASSIFICATION (2026-04-14) ===
+        const filename = (req.file.originalname || '').toLowerCase();
+        const classifyDocument = (fname) => {
+            // Known non-notice patterns
+            const nonNotice = ['1098', 'mortgage', 'insurance', 'hoa', 'deed', 'title', 'survey', 'inspection', 'appraisal report', 'closing'];
+            // Known notice patterns
+            const noticePatterns = ['notice', 'appraised', 'appraisal', 'cad', 'protest', 'assessed', 'tax statement', 'property tax'];
+            
+            const fnLower = fname.toLowerCase();
+            if (noticePatterns.some(p => fnLower.includes(p))) return 'notice';
+            if (nonNotice.some(p => fnLower.includes(p))) return 'other_document';
+            // PDF/image with no keyword — tentatively accept but flag
+            return 'unclassified';
+        };
+        
+        const docType = req.body.docType || classifyDocument(filename);
+        const isNotice = docType === 'notice' || docType === 'unclassified'; // accept unclassified as possible notice
+        const isKnownWrong = docType === 'other_document';
+        
+        console.log(`[Upload] File: ${filename} | Classified: ${docType} | IsNotice: ${isNotice}`);
+
         // Upload to Supabase Storage (permanent) instead of local filesystem
         let filePath = `/uploads/notices/${req.file.filename}`; // local fallback
         try {
@@ -4577,7 +4722,15 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
             submissions[idx].noticeOfValue = filePath;
             submissions[idx].noticeUrl = filePath.startsWith('http') ? filePath : null;
-            submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
+            // Only set upload_status=uploaded if it's a valid notice
+            if (isKnownWrong) {
+                submissions[idx].uploadStatus = 'wrong_document';
+                // Append warning to notes
+                const existing = submissions[idx].notes || '';
+                submissions[idx].notes = existing + `\n[${new Date().toISOString().slice(0,10)}] WRONG FILE uploaded: ${filename}. Document classified as: ${docType}. Not a Notice of Appraised Value.`;
+            } else {
+                submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
+            }
             submissions[idx].updatedAt = new Date().toISOString();
             if (pinMatch) submissions[idx].pin = pinMatch[1];
         });
@@ -4586,18 +4739,59 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
         // === PHASE 1: Log upload to activity_log ===
         const uploadCaseId = sub.caseId || sub.case_id;
         logActivity(uploadCaseId, 'customer', 'upload', {
-            type: 'notice',
+            type: docType,
+            classified_as: docType,
+            is_notice: isNotice,
             filename: req.file.originalname,
             path: filePath,
             size: req.file.size,
         });
 
-        // === PHASE 1: Update last_activity_at + contact_attempts ===
+        // If wrong document: create task + DO NOT advance pipeline
+        if (isKnownWrong) {
+            console.log(`[Upload] ⚠️ Wrong document for ${uploadCaseId}: ${filename} (${docType})`);
+            autoCreateTask(uploadCaseId, 'follow_up', `Request correct appraisal notice — uploaded ${docType}: ${filename}`, 24, 'high');
+            
+            // Update Supabase
+            if (isSupabaseEnabled()) {
+                await supabaseAdmin.from('submissions').update({
+                    upload_status: 'wrong_document',
+                    notes: (sub.notes || '') + `\n[${new Date().toISOString().slice(0,10)}] WRONG FILE: ${filename} (${docType}). Need actual Notice of Appraised Value.`,
+                    updated_at: new Date().toISOString(),
+                }).eq('case_id', uploadCaseId);
+            }
+            
+            // Recompute next_action after wrong document
+            if (isSupabaseEnabled()) {
+                const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', uploadCaseId).single();
+                if (freshLead) {
+                    const { action: na, priority: np, icon: ni } = computeNextAction(freshLead);
+                    await supabaseAdmin.from('submissions').update({ next_action: ni + ' ' + na, next_action_priority: np }).eq('case_id', uploadCaseId);
+                }
+            }
+            
+            return res.json({
+                success: true,
+                message: 'Document uploaded but classified as non-notice',
+                docType,
+                isNotice: false,
+                warning: 'This does not appear to be a Notice of Appraised Value. Please upload your county appraisal notice.',
+                filePath,
+            });
+        }
+
+        // === PHASE 1: Update last_activity_at + contact_attempts + recompute next_action ===
         if (isSupabaseEnabled()) {
-            supabaseAdmin.from('submissions').update({
+            await supabaseAdmin.from('submissions').update({
                 last_activity_at: new Date().toISOString(),
                 upload_status: filePath.startsWith('http') ? 'uploaded' : 'local-only',
-            }).eq('case_id', uploadCaseId).then(() => {});
+            }).eq('case_id', uploadCaseId);
+            // Recompute next_action after successful upload
+            const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', uploadCaseId).single();
+            if (freshLead) {
+                const { action: na, priority: np, icon: ni } = computeNextAction(freshLead);
+                await supabaseAdmin.from('submissions').update({ next_action: ni + ' ' + na, next_action_priority: np }).eq('case_id', uploadCaseId);
+            }
         }
 
         sendNotificationEmail(
@@ -4638,55 +4832,76 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
 // ==================== PIPELINE STATS ====================
 app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
     try {
-        const allSubmissions = await readAllSubmissions();
-        // Exclude benchmark/test data from pipeline stats
-        const submissions = allSubmissions.filter(s => 
-            s.source !== 'stephen-benchmark' && 
-            !(s.email && (s.email.includes('benchmark@') || s.email.includes('test@')))
-        );
-        
-        // Multi-signal pipeline classification using status + analysis_status + flags
-        // Dashboard cards: New, Analysis Complete, Form Signed, Protest Filed, Hearing Scheduled, Resolved
-        const pipeline = { 'New': 0, 'Pending Approval': 0, 'Results Sent': 0, 'Analysis Complete': 0, 'Form Signed': 0, 'Protest Filed': 0, 'Hearing Scheduled': 0, 'Resolved': 0 };
-        submissions.forEach(s => {
-            if (s.status === 'Deleted' || s.status === 'Duplicate') return;
-            const status = s.status || '';
-            const analysis = s.analysis_status || s.analysisStatus || '';
-            const signed = s.fee_agreement_signed || s.feeAgreementSigned || false;
-            const filed = s.filing_status || s.filingStatus || '';
+        // === GROUND TRUTH: Query Supabase directly with canonical statuses ===
+        // Exclude: Archived, Deleted, No Case, and BM-* benchmark cases
+        if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
 
-            // Classify from most-progressed to least
-            if (['Won', 'Lost', 'Resolved'].includes(status)) {
-                pipeline['Resolved']++;
-            } else if (['Hearing Scheduled'].includes(status)) {
-                pipeline['Hearing Scheduled']++;
-            } else if (['Protest Filed', 'Filed', 'Submitted'].includes(status) || (filed && filed !== 'not_filed')) {
-                pipeline['Protest Filed']++;
-            } else if (['Form Signed', 'Filing Prepared'].includes(status) || signed) {
-                pipeline['Form Signed']++;
-            } else if (status === 'Pending Approval') {
-                pipeline['Pending Approval']++;
-            } else if (status === 'Results Sent' || status === 'Contacted') {
-                pipeline['Results Sent']++;
-            } else if (['Analysis Complete', 'Analyzed', 'Approved'].includes(status) || ['Complete', 'Analysis Complete', 'Evidence Generated'].includes(analysis)) {
-                pipeline['Analysis Complete']++;
+        // Get all active, non-benchmark submissions
+        const { data: rows, error } = await supabaseAdmin
+            .from('submissions')
+            .select('case_id,status,estimated_savings,fee_rate,fee_agreement_signed,initiation_paid,notice_url,notice_of_value,upload_status,filing_status')
+            .not('status', 'in', '("Archived","Deleted","No Case")')
+            .not('case_id', 'like', 'BM-%');
+        if (error) throw error;
+        const subs = rows || [];
+
+        // Pipeline counts by CANONICAL status only
+        const pipeline = {
+            'New': 0,
+            'Needs Review': 0,
+            'Awaiting Notice': 0,
+            'Analysis Complete': 0,
+            'Ready to File': 0,
+            'Filed': 0,
+            'Monitoring': 0,
+            'Resolved': 0
+        };
+        subs.forEach(s => {
+            const status = s.status || 'New';
+            if (pipeline.hasOwnProperty(status)) {
+                pipeline[status]++;
             } else {
-                // New = intake, incomplete data, blocked, needs revision, contacted, awaiting notice, etc.
-                pipeline['New']++;
+                // Any non-canonical status falls to Needs Review
+                pipeline['Needs Review']++;
             }
         });
 
-        const totalEstimatedSavings = submissions.reduce((sum, s) => sum + (s.estimatedSavings || s.estimated_savings || 0), 0);
-        const totalFees = submissions.reduce((sum, s) => {
-            const rate = s.feeRate || s.fee_rate || 0.25;
-            return sum + Math.round((s.estimatedSavings || s.estimated_savings || 0) * rate);
-        }, 0);
-        // Signed = fee_agreement_signed OR stage in (Form Signed, Filing Prepared)
-        const signed = submissions.filter(s => s.feeAgreementSigned || s.fee_agreement_signed || ['Form Signed', 'Filing Prepared'].includes(s.status)).length;
-        const notices = submissions.filter(s => s.noticeOfValue || s.notice_of_value).length;
+        // Signed = fee_agreement_signed IS TRUE (actual signed documents)
+        const signed = subs.filter(s => s.fee_agreement_signed === true).length;
 
-        res.json({ pipeline, totalEstimatedSavings, totalFees, signed, notices, total: submissions.length });
+        // Notices = valid notice upload (upload_status = 'uploaded' OR notice_url not null)
+        // Exclude wrong_document uploads
+        const notices = subs.filter(s =>
+            (s.upload_status === 'uploaded' || s.notice_url || s.notice_of_value) &&
+            s.upload_status !== 'wrong_document'
+        ).length;
+
+        // Savings + Revenue: split by analysis tier
+        let prelimSavings = 0, verifiedSavings = 0;
+        subs.forEach(s => {
+            const sav = parseFloat(s.estimated_savings) || 0;
+            if (s.analysis_tier === 'VERIFIED') verifiedSavings += sav;
+            else prelimSavings += sav;
+        });
+        const totalEstimatedSavings = prelimSavings + verifiedSavings;
+        const totalFees = Math.round(totalEstimatedSavings * 0.25);
+        const verifiedFees = Math.round(verifiedSavings * 0.25);
+        const prelimFees = Math.round(prelimSavings * 0.25);
+
+        res.json({
+            pipeline,
+            totalEstimatedSavings: Math.round(totalEstimatedSavings),
+            totalFees,
+            verifiedSavings: Math.round(verifiedSavings),
+            verifiedFees,
+            preliminarySavings: Math.round(prelimSavings),
+            preliminaryFees: prelimFees,
+            signed,
+            notices,
+            total: subs.length
+        });
     } catch (error) {
+        console.error('Pipeline stats error:', error);
         res.status(500).json({ error: 'Failed to compute pipeline stats' });
     }
 });
@@ -4893,7 +5108,9 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
             oldStatus = submissions[idx].status;
             submissions[idx].status = status;
-            if (savings !== undefined) submissions[idx].savings = savings;
+            // DEPRECATED: savings field no longer used (2026-04-14)
+            // Write to estimatedSavings instead
+            if (savings !== undefined) submissions[idx].estimatedSavings = savings;
             submissions[idx].updatedAt = new Date().toISOString();
         });
         if (!sub) return res.status(404).json({ error: 'Not found' });
@@ -5034,12 +5251,14 @@ app.get('/api/submissions/:id', authenticateToken, async (req, res) => {
 
 app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
     try {
-        const { status, note, savings } = req.body;
+        const { status, note, savings, estimated_savings } = req.body;
         let oldStatus = null;
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
             oldStatus = submissions[idx].status;
             if (status) submissions[idx].status = status;
-            if (savings !== undefined) submissions[idx].savings = savings;
+            // DEPRECATED: savings field → use estimated_savings (2026-04-14)
+            if (estimated_savings !== undefined) submissions[idx].estimatedSavings = estimated_savings;
+            else if (savings !== undefined) submissions[idx].estimatedSavings = savings;
             if (note) {
                 submissions[idx].notes.push({
                     id: uuidv4(),
@@ -5064,10 +5283,17 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
             // === PHASE 1: Log status change ===
             logActivity(caseId, req.user?.email || 'tyler', 'status_change', { from: oldStatus, to: status });
 
-            // === PHASE 1: Update last_activity_at ===
+            // === PHASE 1: Update last_activity_at + recompute next_action ===
             if (isSupabaseEnabled()) {
-                supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString() })
-                    .eq('case_id', caseId).then(() => {});
+                const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', caseId).single();
+                if (freshLead) {
+                    const { action, priority, icon } = computeNextAction(freshLead);
+                    await supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString(), next_action: icon + ' ' + action, next_action_priority: priority })
+                        .eq('case_id', caseId);
+                } else {
+                    supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString() })
+                        .eq('case_id', caseId).then(() => {});
+                }
             }
 
             const template = buildStatusEmail(sub, status, { savings: savings || sub.savings });

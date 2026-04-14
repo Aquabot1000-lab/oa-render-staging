@@ -247,7 +247,7 @@
                 <div class="kpi-card"><div class="kpi-label">Forms Signed</div><div class="kpi-value purple" id="kpiSigned">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Notices Uploaded</div><div class="kpi-value purple" id="kpiNotices">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Est. Total Savings</div><div class="kpi-value green" id="kpiEstSavings">$0</div></div>
-                <div class="kpi-card"><div class="kpi-label">Est. Revenue (20%)</div><div class="kpi-value green" id="kpiRevenue">$0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Est. Revenue (25%)</div><div class="kpi-value green" id="kpiRevenue">$0</div></div>
             </div>
 
             <!-- Recent cases -->
@@ -271,23 +271,30 @@
                 <div class="panel-header">
                     <h2>All Cases</h2>
                     <div class="filter-bar">
-                        <select id="stateFilter" onchange="loadSubmissions()">
+                        <input type="text" id="caseSearch" placeholder="Search case ID, name, email, address..." oninput="renderSubmissionsTable()" style="padding:0.5rem 0.75rem;border:2px solid var(--gray-medium);border-radius:var(--radius);font-size:0.85rem;min-width:220px;font-family:inherit;">
+                        <select id="stateFilter" onchange="renderSubmissionsTable()">
                             <option value="">All States</option>
                             <option value="TX">Texas</option>
                             <option value="GA">Georgia</option>
+                            <option value="CO">Colorado</option>
+                            <option value="AZ">Arizona</option>
+                            <option value="WA">Washington</option>
                         </select>
-                        <select id="statusFilter" onchange="loadSubmissions()">
+                        <select id="statusFilter" onchange="renderSubmissionsTable()">
                             <option value="">All Statuses</option>
                             <option value="New">New</option>
-                            <option value="Contacted">Contacted</option>
+                            <option value="Awaiting Notice">Awaiting Notice</option>
                             <option value="Analysis Complete">Analysis Complete</option>
-                            <option value="Form Signed">Form Signed</option>
-                            <option value="Protest Filed">Protest Filed</option>
-                            <option value="Hearing Scheduled">Hearing Scheduled</option>
-                            <option value="Resolved">Resolved</option>
-                            <option value="In Review">In Review (legacy)</option>
-                            <option value="Won">Won (legacy)</option>
-                            <option value="Lost">Lost (legacy)</option>
+                            <option value="Needs Review">Needs Review</option>
+                            <option value="Ready to File">Ready to File</option>
+                        </select>
+                        <select id="sortField" onchange="renderSubmissionsTable()">
+                            <option value="priority">Sort: Priority</option>
+                            <option value="savings">Sort: Savings ↓</option>
+                            <option value="status">Sort: Status</option>
+                            <option value="activity">Sort: Last Activity</option>
+                            <option value="date">Sort: Created</option>
+                            <option value="name">Sort: Name A-Z</option>
                         </select>
                     </div>
                 </div>
@@ -299,7 +306,7 @@
                 <table>
                     <thead><tr>
                         <th style="width:30px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                        <th>Case</th><th>Date</th><th>Name</th><th>Property</th><th class="hide-mobile">State</th><th class="hide-mobile">Value</th><th>Status</th><th class="hide-mobile">Source</th><th class="hide-mobile">Analysis</th><th class="hide-mobile">Savings</th>
+                        <th>Case</th><th>Name</th><th class="hide-mobile">State</th><th>Status</th><th class="hide-mobile">Savings</th><th>Next Action</th><th class="hide-mobile">Priority</th><th class="hide-mobile">Last Activity</th>
                     </tr></thead>
                     <tbody id="submissionsBody"></tbody>
                 </table>
@@ -1005,17 +1012,22 @@ function statusBadge(status) {
 
 function renderOverview() {
     const ps = pipelineStats;
+    // Canonical pipeline stages only
     const statuses = [
-        { key: 'New', label: 'New', cls: 's-new', icon: '📋' },
-        { key: 'Analysis Complete', label: 'Analyzed', cls: 's-analysis', icon: '📊' },
-        { key: 'Form Signed', label: 'Signed', cls: 's-signed', icon: '✍️' },
-        { key: 'Protest Filed', label: 'Filed', cls: 's-filed', icon: '📤' },
-        { key: 'Hearing Scheduled', label: 'Hearing', cls: 's-hearing', icon: '🏛️' },
-        { key: 'Resolved', label: 'Resolved', cls: 's-resolved', icon: '✅' }
+        { key: 'New', label: 'New', icon: '📥' },
+        { key: 'Needs Review', label: 'Review', icon: '🔍' },
+        { key: 'Awaiting Notice', label: 'Awaiting', icon: '📄' },
+        { key: 'Analysis Complete', label: 'Analyzed', icon: '📊' },
+        { key: 'Ready to File', label: 'Ready', icon: '✅' },
+        { key: 'Filed', label: 'Filed', icon: '📤' },
+        { key: 'Monitoring', label: 'Monitor', icon: '📅' },
+        { key: 'Resolved', label: 'Resolved', icon: '🏆' }
     ];
-    document.getElementById('pipelineRow').innerHTML = statuses.map(s =>
-        `<div class="pipeline-card ${s.cls}"><div class="count">${(ps.pipeline && ps.pipeline[s.key]) || 0}</div><div class="label">${s.icon} ${s.label}</div></div>`
-    ).join('');
+    document.getElementById('pipelineRow').innerHTML = statuses.map(s => {
+        const count = (ps.pipeline && ps.pipeline[s.key]) || 0;
+        const highlight = count > 0 ? 'style="border:2px solid #6c5ce7;"' : '';
+        return `<div class="pipeline-card" ${highlight}><div class="count">${count}</div><div class="label">${s.icon} ${s.label}</div></div>`;
+    }).join('');
 
     document.getElementById('kpiTotal').textContent = ps.total || 0;
     document.getElementById('kpiSigned').textContent = ps.signed || 0;
@@ -1023,48 +1035,111 @@ function renderOverview() {
     document.getElementById('kpiEstSavings').textContent = '$' + (ps.totalEstimatedSavings || 0).toLocaleString();
     document.getElementById('kpiRevenue').textContent = '$' + (ps.totalFees || 0).toLocaleString();
 
-    // Recent 10
-    const recent = submissions.slice(0, 10);
-    document.getElementById('recentBody').innerHTML = recent.map(s => `
-        <tr onclick="openDetail('${s.id}')">
-            <td><strong>${esc(s.caseId || '-')}</strong></td>
-            <td>${new Date(s.createdAt).toLocaleDateString()}</td>
-            <td>${esc(s.ownerName)}</td>
-            <td>${esc(s.propertyAddress).substring(0, 30)}</td>
-            <td class="hide-mobile">${esc(s.propertyType)}</td>
+    // Top deal priority (sorted by next_action_priority)
+    const active = submissions.filter(s => s.status !== 'Archived' && s.status !== 'Deleted' && s.status !== 'No Case' && !(s.caseId || s.case_id || '').startsWith('BM-'));
+    active.sort((a, b) => (b.next_action_priority || b.nextActionPriority || 0) - (a.next_action_priority || a.nextActionPriority || 0));
+    const top = active.slice(0, 10);
+    document.getElementById('recentBody').innerHTML = top.map(s => {
+        const caseId = s.caseId || s.case_id || '-';
+        const name = s.ownerName || s.owner_name || '?';
+        const savings = s.estimatedSavings || s.estimated_savings || 0;
+        const savStr = savings > 0 ? '$' + Number(savings).toLocaleString() : '—';
+        const nextAction = s.next_action || s.nextAction || '—';
+        const priority = s.next_action_priority || s.nextActionPriority || 0;
+        const pBadge = priority >= 80 ? '🚨' : priority >= 60 ? '🔥' : priority >= 30 ? '➖' : '⭕';
+        return `<tr onclick="openDetail('${s.id}')" style="cursor:pointer;">
+            <td><strong>${esc(caseId)}</strong></td>
+            <td>${esc(name)}</td>
             <td>${statusBadge(s.status)}</td>
-            <td class="hide-mobile">
-                ${s.status === 'New' ? `<button class="btn btn-purple btn-sm" onclick="event.stopPropagation();runAnalysisFor('${s.id}')">Analyze</button>` : ''}
-                ${s.status === 'Form Signed' ? `<button class="btn btn-green btn-sm" onclick="event.stopPropagation();fileProtestFor('${s.id}')">File</button>` : ''}
-            </td>
-        </tr>
-    `).join('');
+            <td>${savStr}</td>
+            <td style="font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pBadge} ${esc(nextAction)}</td>
+        </tr>`;
+    }).join('');
 }
 
 function renderSubmissionsTable() {
-    const filter = document.getElementById('statusFilter')?.value || '';
-    const filtered = filter ? submissions.filter(s => s.status === filter) : submissions;
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    const stateFilter = document.getElementById('stateFilter')?.value || '';
+    const searchQuery = (document.getElementById('caseSearch')?.value || '').toLowerCase().trim();
+    const sortField = document.getElementById('sortField')?.value || 'priority';
     const tbody = document.getElementById('submissionsBody');
     const empty = document.getElementById('emptyMsg');
+
+    // Filter: exclude archived from main view
+    let filtered = submissions.filter(s => s.status !== 'Archived' && s.status !== 'Deleted' && s.status !== 'No Case');
+    if (statusFilter) filtered = filtered.filter(s => s.status === statusFilter);
+    if (stateFilter) filtered = filtered.filter(s => (s.state || '').toUpperCase() === stateFilter);
+    if (searchQuery) {
+        filtered = filtered.filter(s => {
+            const hay = [s.caseId, s.case_id, s.ownerName, s.owner_name, s.email, s.propertyAddress, s.property_address, s.county].filter(Boolean).join(' ').toLowerCase();
+            return hay.includes(searchQuery);
+        });
+    }
+
+    // Sort
+    const statusOrder = { 'Ready to File': 0, 'Analysis Complete': 1, 'Needs Review': 2, 'Awaiting Notice': 3, 'New': 4 };
+    filtered.sort((a, b) => {
+        switch (sortField) {
+            case 'priority': return (b.next_action_priority || b.nextActionPriority || 0) - (a.next_action_priority || a.nextActionPriority || 0);
+            case 'savings': return (b.estimatedSavings || b.estimated_savings || 0) - (a.estimatedSavings || a.estimated_savings || 0);
+            case 'status': return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+            case 'activity': return new Date(b.last_activity_at || b.lastActivityAt || 0) - new Date(a.last_activity_at || a.lastActivityAt || 0);
+            case 'date': return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0);
+            case 'name': return (a.ownerName || a.owner_name || '').localeCompare(b.ownerName || b.owner_name || '');
+            default: return 0;
+        }
+    });
 
     if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
 
-    tbody.innerHTML = filtered.map(s => `
-        <tr onclick="openDetail('${s.id}')">
+    tbody.innerHTML = filtered.map(s => {
+        const caseId = s.caseId || s.case_id || '-';
+        const name = s.ownerName || s.owner_name || '?';
+        const state = s.state || '?';
+        const savings = s.estimatedSavings || s.estimated_savings || 0;
+        const nextAction = s.next_action || s.nextAction || 'Triage';
+        const priority = s.next_action_priority || s.nextActionPriority || 0;
+        const lastAct = s.last_activity_at || s.lastActivityAt;
+        const lastActStr = lastAct ? timeAgo(new Date(lastAct)) : '—';
+        const savingsStr = savings > 0 ? '$' + Number(savings).toLocaleString() : '—';
+        const stateColors = { TX: '#dbeafe;color:#1e40af', GA: '#fef3c7;color:#92400e', CO: '#d1fae5;color:#065f46', AZ: '#fce7f3;color:#9d174d', WA: '#e0f2fe;color:#0c4a6e' };
+        const stateBg = stateColors[state.toUpperCase()] || '#f8d7da;color:#721c24';
+        const priorityBadge = priority >= 80 ? '<span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">CRITICAL</span>'
+            : priority >= 60 ? '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">HIGH</span>'
+            : priority >= 30 ? '<span style="background:#3b82f6;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">MED</span>'
+            : '<span style="background:#6b7280;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">LOW</span>';
+        const icons = [
+            s.signature || s.fee_agreement_signed ? '✍️' : '',
+            s.noticeUrl || s.notice_url || s.noticeOfValue ? '📄' : '',
+            s.initiation_paid || s.initiationPaid ? '💰' : ''
+        ].filter(Boolean).join('');
+        const savingsHighlight = savings >= 5000 ? 'color:#059669;font-weight:700;' : savings >= 2000 ? 'color:#d97706;font-weight:600;' : '';
+
+        return `<tr onclick="openDetail('${s.id}')" style="cursor:pointer;">
             <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="${s.id}" onchange="updateBulk()" ${selectedIds.has(s.id) ? 'checked' : ''}></td>
-            <td><strong>${esc(s.caseId || '-')}</strong></td>
-            <td>${new Date(s.createdAt).toLocaleDateString()}</td>
-            <td>${esc(s.ownerName)}</td>
-            <td>${esc(s.propertyAddress).substring(0, 25)}</td>
-            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${!s.state?'#f8d7da;color:#721c24':s.state==='GA'?'#fef3c7;color:#92400e':s.state==='WA'?'#e0f2fe;color:#0c4a6e':'#dbeafe;color:#1e40af'}">${s.state||'⚠️'}</span></td>
-            <td class="hide-mobile">${s.assessedValue ? '$' + Number(String(s.assessedValue).replace(/[$,]/g,'')).toLocaleString() : '-'}</td>
-            <td>${statusBadge(s.status)} ${s.signature ? '<span class="badge-icon">✍️</span>' : ''} ${s.feeAgreementSignature || s.fee_agreement_signed ? '<span class="badge-icon" title="Fee Agreement Signed">💰</span>' : ''} ${(s.noticeUrl || s.notice_url || s.noticeOfValue) ? '<span class="badge-icon" title="Notice on file">📄</span>' : ''}</td>
-            <td class="hide-mobile">${s.utm_data && s.utm_data.utm_source ? esc(s.utm_data.utm_source) : (s.source || '-')}</td>
-            <td class="hide-mobile">${s.analysisStatus || 'Not Started'}</td>
-            <td class="hide-mobile">${s.estimatedSavings ? '$' + s.estimatedSavings.toLocaleString() : '-'}</td>
-        </tr>
-    `).join('');
+            <td><strong>${esc(caseId)}</strong></td>
+            <td>${esc(name).substring(0,22)} ${icons}</td>
+            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${stateBg}">${state.toUpperCase()}</span></td>
+            <td>${statusBadge(s.status)}</td>
+            <td class="hide-mobile" style="${savingsHighlight}">${savingsStr}</td>
+            <td style="font-size:0.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(nextAction)}</td>
+            <td class="hide-mobile">${priorityBadge}</td>
+            <td class="hide-mobile" style="font-size:0.8rem;color:#9ca3af;">${lastActStr}</td>
+        </tr>`;
+    }).join('');
+}
+
+function timeAgo(date) {
+    const now = new Date();
+    const diff = now - date;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    return date.toLocaleDateString();
 }
 
 function renderSignatures() {

@@ -180,7 +180,7 @@ function validateIntakeFields(body) {
     }
   }
 
-  // Address validation — require street + city + state + zip
+  // Address validation — require street + city + state + zip (HARDENED 2026-04-14)
   if (body.propertyAddress) {
     const addr = body.propertyAddress.trim().replace(/\s+/g, ' ');
     corrected.propertyAddress = addr;
@@ -190,23 +190,23 @@ function validateIntakeFields(body) {
       warnings.push('Address may be missing street number');
     }
 
-    // Must contain a zip code (5 digits)
+    // Must contain a zip code (5 digits) — REQUIRED
     const hasZip = /\b\d{5}\b/.test(addr);
-    if (!hasZip) {
-      warnings.push('Address is missing zip code — lead will be flagged for review');
+    if (!hasZip && !body.zip) {
+      errors.push('Please enter your full property address including ZIP code');
     }
 
-    // Must contain a state abbreviation or "Texas"
-    const hasState = /\b(TX|Texas|tx)\b/.test(addr);
+    // Must contain a state abbreviation or "Texas" — REQUIRED
+    const hasState = /\b(TX|Texas|tx)\b/i.test(addr);
     const bodyState = (body.state || '').toUpperCase();
-    if (!hasState && bodyState !== 'TX' && bodyState !== 'TEXAS') {
-      warnings.push('Address may be missing state');
+    if (!hasState && bodyState !== 'TX' && bodyState !== 'TEXAS' && !body.state) {
+      errors.push('Please include your state (e.g., TX)');
     }
 
-    // Must have at least 2 comma-separated parts (street, city) or contain a city name
+    // Must have city — at least 2 comma-separated parts or separate city field
     const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
-    if (parts.length < 2 && !hasZip) {
-      warnings.push('Address appears incomplete — missing city or zip');
+    if (parts.length < 2 && !body.city) {
+      errors.push('Please enter your full property address including city');
     }
   } else {
     errors.push('Property address is required');
