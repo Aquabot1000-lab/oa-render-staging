@@ -175,6 +175,18 @@
                 ⛔ DO NOT CONTACT — <span id="dncReason"></span>
             </div>
 
+            <!-- Next Best Action Banner -->
+            <div id="nbaBanner" style="display:none; background: linear-gradient(135deg, #312e81, #4338ca); border: 1px solid #4f46e5; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: none;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="font-size:24px;" id="nbaIcon">🎯</div>
+                    <div style="flex:1;">
+                        <div style="font-size:11px; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">Next Best Action</div>
+                        <div style="font-size:15px; color:#f1f5f9; font-weight:600; margin-top:2px;" id="nbaText"></div>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;" id="nbaReason"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Customer -->
             <div class="card" id="customerCard">
                 <div class="card-header"><h3>👤 Customer</h3></div>
@@ -446,40 +458,119 @@
             const body = document.getElementById('documentsBody');
             const docs = [];
 
+            // Notice document with visual warning badges
             if (d.notice_url) {
                 const isWrong = (d.notes || '').includes('WRONG FILE');
                 docs.push({
                     icon: isWrong ? '⚠️' : '📄', cls: isWrong ? 'error' : 'notice',
-                    name: isWrong ? 'Notice Upload (WRONG FILE)' : 'Notice of Appraised Value',
+                    name: isWrong ? 'Notice Upload' : 'Notice of Appraised Value',
+                    badge: isWrong ? '<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">WRONG FILE</span>' : '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">UPLOADED</span>',
                     meta: `Uploaded · ${d.upload_status || 'unknown'}`,
                     url: d.notice_url
                 });
+            } else {
+                // Missing notice badge
+                docs.push({
+                    icon: '📄', cls: 'error',
+                    name: 'Notice of Appraised Value',
+                    badge: '<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">MISSING</span>',
+                    meta: 'Not yet uploaded by customer',
+                    url: null
+                });
             }
             if (d.evidence_packet_path) {
-                docs.push({ icon: '📋', cls: 'evidence', name: 'Evidence Packet', meta: `Generated · ${d.analysis_status || ''}`, url: null });
+                docs.push({ icon: '📋', cls: 'evidence', name: 'Evidence Packet', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">GENERATED</span>', meta: `Generated · ${d.analysis_status || ''}`, url: null });
             }
             if (d.signature) {
-                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162 (Signed)', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
+                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">SIGNED</span>', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
+            } else {
+                docs.push({ icon: '✍️', cls: 'error', name: 'Form 50-162', badge: '<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">NOT SIGNED</span>', meta: 'Agreement not yet signed', url: null });
             }
             if (d.agreement_url) {
-                docs.push({ icon: '📝', cls: 'agreement', name: 'Fee Agreement', meta: d.agreement_type || '', url: d.agreement_url });
+                docs.push({ icon: '📝', cls: 'agreement', name: 'Fee Agreement', badge: '', meta: d.agreement_type || '', url: d.agreement_url });
             }
 
             document.getElementById('docCount').textContent = docs.length;
-            if (docs.length === 0) {
-                body.innerHTML = '<div class="empty-state">No documents yet</div>';
-                return;
-            }
             body.innerHTML = docs.map(doc => `
                 <div class="doc-item">
                     <div class="doc-icon ${doc.cls}">${doc.icon}</div>
                     <div>
-                        <div class="doc-name">${doc.name}</div>
+                        <div class="doc-name">${doc.name}${doc.badge || ''}</div>
                         <div class="doc-meta">${doc.meta}</div>
                     </div>
                     ${doc.url ? `<div class="doc-action"><a href="${doc.url}" target="_blank">View →</a></div>` : ''}
                 </div>
             `).join('');
+        }
+
+        function computeNextBestAction(d) {
+            const banner = document.getElementById('nbaBanner');
+            const nbaText = document.getElementById('nbaText');
+            const nbaReason = document.getElementById('nbaReason');
+            const nbaIcon = document.getElementById('nbaIcon');
+
+            const status = d.status || '';
+            const hasNotice = !!d.notice_url;
+            const wrongFile = (d.notes || '').includes('WRONG FILE');
+            const hasSig = !!d.signature;
+            const feePaid = d.initiation_fee_paid;
+            const savings = d.estimated_savings || 0;
+            const hasComps = d.data_validation_status !== 'insufficient_data' && !((d.comp_validation_status || '').includes('Only 0'));
+            const filing = d.filing_status || 'not_filed';
+
+            let text = '', reason = '', icon = '🎯';
+
+            if (d.do_not_contact) {
+                banner.style.display = 'none';
+                return;
+            }
+
+            // Priority logic
+            if (wrongFile) {
+                icon = '📱'; text = `Call ${(d.owner_name || '').split(' ')[0]} — needs correct notice upload`;
+                reason = 'Uploaded file is wrong (not a tax notice). Highest priority if savings are high.';
+            } else if (status === 'Ready to File' && !feePaid) {
+                icon = '💰'; text = `Confirm $79 initiation fee from ${(d.owner_name || '').split(' ')[0]}`;
+                reason = 'Case is ready to file but initiation fee is unpaid.';
+            } else if (status === 'Ready to File' && feePaid && filing === 'not_filed') {
+                icon = '📨'; text = `File protest for ${(d.owner_name || '').split(' ')[0]} with ${d.county || ''} County`;
+                reason = 'Fee paid, analysis complete, ready to file.';
+            } else if (status === 'Analysis Complete' && savings > 0 && !hasSig) {
+                icon = '✍️'; text = `Send signing link to ${(d.owner_name || '').split(' ')[0]}`;
+                reason = `$${savings.toLocaleString()}/yr savings found. Need signature to proceed.`;
+            } else if (status === 'Analysis Complete' && savings > 0) {
+                icon = '📊'; text = `Send savings report to ${(d.owner_name || '').split(' ')[0]}`;
+                reason = `$${savings.toLocaleString()}/yr savings identified. Move to close.`;
+            } else if ((status === 'Awaiting Notice' || status === 'Needs Review') && !hasNotice) {
+                icon = '📄'; text = `Get notice from ${(d.owner_name || '').split(' ')[0]}`;
+                reason = 'Cannot proceed without Notice of Appraised Value.';
+            } else if (status === 'Needs Review') {
+                icon = '🔍'; text = `Review case data for ${(d.owner_name || '').split(' ')[0]}`;
+                reason = d.review_reason || 'Manual review needed before proceeding.';
+            } else if (status === 'New') {
+                icon = '📧'; text = `Send intro message to ${(d.owner_name || '').split(' ')[0]}`;
+                reason = 'New lead — first contact not yet made.';
+            } else if (!hasComps && savings > 0) {
+                icon = '⚠️'; text = `Insufficient comp data — manual review needed`;
+                reason = 'Analysis shows savings but comp data is weak. Verify before filing.';
+            } else {
+                banner.style.display = 'none';
+                return;
+            }
+
+            nbaIcon.textContent = icon;
+            nbaText.textContent = text;
+            nbaReason.textContent = reason;
+            banner.style.display = 'block';
+        }
+
+        function renderAnalysisWarning(d) {
+            // Add warning if insufficient comps
+            const hasInsufficientData = d.data_validation_status === 'insufficient_data' || ((d.comp_validation_status || '').includes('Only 0'));
+            if (hasInsufficientData && d.estimated_savings > 0) {
+                const banner = document.getElementById('savingsBanner');
+                banner.innerHTML += `<div style="background:#78350f;border:1px solid #92400e;border-radius:8px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#fcd34d;font-weight:600;">⚠️ Insufficient comp data — savings estimate may not be reliable. Manual review recommended before filing.</div>`;
+            }
         }
 
         function renderTimeline(activities, comms) {
@@ -610,6 +701,8 @@
             renderProperty(caseData);
             renderAnalysis(caseData);
             renderDocuments(caseData);
+            computeNextBestAction(caseData);
+            renderAnalysisWarning(caseData);
         }
 
         async function loadTimeline() {
