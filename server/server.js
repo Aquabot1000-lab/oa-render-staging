@@ -2020,26 +2020,49 @@ if (isSupabaseEnabled()) {
         return data?.id || null;
     }
 
-    // Helper: send SMS via Twilio
+    // Helper: send SMS via Twilio (HARDENED — fail-safe with explicit error logging)
     async function sendSMSAction(phone, body) {
-        if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-            console.log('[SMS] Twilio not configured, skipping send');
-            return { sent: false, reason: 'twilio_not_configured' };
+        // Validate env
+        if (!process.env.TWILIO_ACCOUNT_SID) {
+            const err = 'TWILIO_ACCOUNT_SID not set';
+            console.error('[SMS] FAIL-SAFE:', err);
+            return { sent: false, reason: err, error: true };
         }
+        if (!process.env.TWILIO_AUTH_TOKEN) {
+            const err = 'TWILIO_AUTH_TOKEN not set';
+            console.error('[SMS] FAIL-SAFE:', err);
+            return { sent: false, reason: err, error: true };
+        }
+        if (!process.env.TWILIO_MESSAGING_SERVICE_SID && !process.env.TWILIO_SMS_NUMBER && !process.env.TWILIO_PHONE_NUMBER) {
+            const err = 'No Twilio sender configured (need TWILIO_MESSAGING_SERVICE_SID or TWILIO_SMS_NUMBER or TWILIO_PHONE_NUMBER)';
+            console.error('[SMS] FAIL-SAFE:', err);
+            return { sent: false, reason: err, error: true };
+        }
+        // Validate phone
+        if (!phone || phone.replace(/\D/g, '').length < 10) {
+            const err = `Invalid phone: "${phone}"`;
+            console.error('[SMS] FAIL-SAFE:', err);
+            return { sent: false, reason: err, error: true };
+        }
+        // Normalize phone to E.164
+        let normalized = phone.replace(/\D/g, '');
+        if (normalized.length === 10) normalized = '1' + normalized;
+        if (!normalized.startsWith('+')) normalized = '+' + normalized;
+
         try {
             const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-            // Use messaging service if available, otherwise fall back to phone number
-            const sendOpts = { body, to: phone };
+            const sendOpts = { body, to: normalized };
             if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
                 sendOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
             } else {
                 sendOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
             }
             const msg = await twilioClient.messages.create(sendOpts);
-            return { sent: true, sid: msg.sid };
+            console.log(`[SMS] SENT to ${normalized} | SID=${msg.sid} | status=${msg.status}`);
+            return { sent: true, sid: msg.sid, status: msg.status };
         } catch (e) {
-            console.error('[SMS] Send failed:', e.message);
-            return { sent: false, reason: e.message };
+            console.error(`[SMS] FAILED to ${normalized}:`, e.message);
+            return { sent: false, reason: e.message, error: true };
         }
     }
 
