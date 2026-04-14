@@ -2483,15 +2483,18 @@ if (isSupabaseEnabled()) {
     app.post('/api/case-view/needs-review/process-all', authenticateToken, async (req, res) => {
         try {
             const { data: cases } = await supabaseAdmin.from('submissions')
-                .select('id, case_id, owner_name, email, phone, property_address, county, status, estimated_savings, notice_url, notes, upload_status, contact_attempts')
+                .select('id, case_id, owner_name, email, phone, property_address, county, status, estimated_savings, notice_url, notes, upload_status, contact_attempts, automation_excluded')
                 .eq('status', 'Needs Review')
                 .is('deleted_at', null);
 
             if (!cases || cases.length === 0) return res.json({ ok: true, processed: 0, results: [] });
 
-            // Only process cases that haven't been contacted yet (or last contacted > 3 days ago)
-            const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-            const eligible = cases.filter(c => !c.contact_attempts || c.contact_attempts === 0);
+            // Filter: uncontacted AND not automation-excluded
+            const eligible = cases.filter(c => 
+                (!c.contact_attempts || c.contact_attempts === 0) && !c.automation_excluded
+            );
+            const excluded = cases.filter(c => c.automation_excluded);
+            if (excluded.length) console.log(`[NeedsReview] Skipping ${excluded.length} automation-excluded cases: ${excluded.map(c => c.case_id).join(', ')}`);
 
             const results = [];
             for (const c of eligible) {
