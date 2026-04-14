@@ -1834,6 +1834,16 @@ if (isSupabaseEnabled()) {
             await supabaseAdmin.from('submissions').update({ status: new_status, last_activity_at: new Date().toISOString() }).eq('case_id', case_id);
             // Log activity
             await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'status_change', details: { from: old_status, to: new_status, source: 'case-page' } });
+            // VIP alert: notify Tyler on status changes for VIP cases
+            const { data: vipCheck } = await supabaseAdmin.from('submissions').select('vip, vip_reason, owner_name').eq('case_id', case_id).single();
+            if (vipCheck?.vip) {
+                console.log(`[VIP ALERT] ${case_id} (${vipCheck.owner_name}) status: ${old_status} → ${new_status} [${vipCheck.vip_reason}]`);
+                // Activity log the VIP alert for audit trail
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id, actor: 'system', action: 'vip_status_alert',
+                    details: { from: old_status, to: new_status, vip_reason: vipCheck.vip_reason, owner: vipCheck.owner_name }
+                });
+            }
             // Recompute next_action + follow-up priority from new state
             const { data: updated } = await supabaseAdmin.from('submissions').select('*').eq('case_id', case_id).single();
             if (updated) {
@@ -2408,10 +2418,11 @@ if (isSupabaseEnabled()) {
 
     // Process a single Needs Review case: classify → outreach → update
     async function processNeedsReviewCase(caseData) {
-        // Hard guard: NEVER auto-process excluded cases
-        if (caseData.automation_excluded) {
-            console.log(`[NeedsReview] SKIPPED ${caseData.case_id} (automation_excluded)`);
-            return { case_id: caseData.case_id, name: caseData.owner_name, issue: 'EXCLUDED', action: 'Skipped — automation_excluded' };
+        // Hard guard: NEVER auto-process excluded or manual-only cases
+        if (caseData.automation_excluded || caseData.manual_only) {
+            const reason = caseData.automation_excluded ? 'automation_excluded' : 'manual_only';
+            console.log(`[NeedsReview] SKIPPED ${caseData.case_id} (${reason})`);
+            return { case_id: caseData.case_id, name: caseData.owner_name, issue: 'EXCLUDED', action: `Skipped — ${reason}` };
         }
         const issue = classifyIssue(caseData);
         const result = { case_id: caseData.case_id, name: caseData.owner_name, issue: issue.type, priority: issue.priority };
@@ -2488,18 +2499,18 @@ if (isSupabaseEnabled()) {
     app.post('/api/case-view/needs-review/process-all', authenticateToken, async (req, res) => {
         try {
             const { data: cases } = await supabaseAdmin.from('submissions')
-                .select('id, case_id, owner_name, email, phone, property_address, county, status, estimated_savings, notice_url, notes, upload_status, contact_attempts, automation_excluded')
+                .select('id, case_id, owner_name, email, phone, property_address, county, status, estimated_savings, notice_url, notes, upload_status, contact_attempts, automation_excluded, manual_only, vip, vip_reason')
                 .eq('status', 'Needs Review')
                 .is('deleted_at', null);
 
             if (!cases || cases.length === 0) return res.json({ ok: true, processed: 0, results: [] });
 
-            // Filter: uncontacted AND not automation-excluded
+            // Filter: uncontacted AND not excluded AND not manual-only
             const eligible = cases.filter(c => 
-                (!c.contact_attempts || c.contact_attempts === 0) && !c.automation_excluded
+                (!c.contact_attempts || c.contact_attempts === 0) && !c.automation_excluded && !c.manual_only
             );
-            const excluded = cases.filter(c => c.automation_excluded);
-            if (excluded.length) console.log(`[NeedsReview] Skipping ${excluded.length} automation-excluded cases: ${excluded.map(c => c.case_id).join(', ')}`);
+            const skipped = cases.filter(c => c.automation_excluded || c.manual_only);
+            if (skipped.length) console.log(`[NeedsReview] Skipping ${skipped.length} protected cases: ${skipped.map(c => c.case_id + '(' + (c.vip_reason || 'excluded') + ')').join(', ')}`);
 
             const results = [];
             for (const c of eligible) {
