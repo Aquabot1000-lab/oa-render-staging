@@ -2353,15 +2353,13 @@ if (isSupabaseEnabled()) {
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
             const firstName = (owner_name || '').split(' ')[0] || 'there';
 
-            // Update case status + filing fields
-            await supabaseAdmin.from('submissions').update({
+            // Update case status + filing fields + touch case
+            const attempts = await touchCase(supabaseAdmin, case_id, {
                 status: 'Filed',
                 filing_status: 'filed',
                 filing_date: filing_date || new Date().toISOString().split('T')[0],
-                filing_confirmation: confirmation_number || null,
-                last_activity_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            }).eq('case_id', case_id);
+                filing_confirmation: confirmation_number || null
+            });
 
             // Activity log
             await supabaseAdmin.from('activity_log').insert({
@@ -2401,6 +2399,112 @@ if (isSupabaseEnabled()) {
             res.json({ ok: true, status: 'Filed', notification: results, task_id: task?.id });
         } catch (e) {
             console.error('[Action:MarkFiled] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ==================== NEEDS REVIEW AUTO-OUTREACH ====================
+    const { classifyIssue, getOutreachTemplates, resolveCounty } = require('./lib/needs-review-engine');
+
+    // Process a single Needs Review case: classify → outreach → update
+    async function processNeedsReviewCase(caseData) {
+        const issue = classifyIssue(caseData);
+        const result = { case_id: caseData.case_id, name: caseData.owner_name, issue: issue.type, priority: issue.priority };
+
+        // Auto-resolve county if possible
+        if (issue.type === 'COUNTY_AUTO_RESOLVED') {
+            await supabaseAdmin.from('submissions').update({
+                county: issue.resolvedCounty, updated_at: new Date().toISOString()
+            }).eq('case_id', caseData.case_id);
+            result.action = `County auto-resolved to ${issue.resolvedCounty}`;
+            // Re-classify after county fix
+            const reclassified = classifyIssue({ ...caseData, county: issue.resolvedCounty });
+            if (reclassified.type === 'READY_TO_ADVANCE') {
+                result.action += ' → Ready to advance';
+                return result;
+            }
+        }
+
+        // Skip if READY_TO_ADVANCE
+        if (issue.type === 'READY_TO_ADVANCE') {
+            result.action = 'Ready to advance — no outreach needed';
+            return result;
+        }
+
+        // Get outreach templates
+        const templates = getOutreachTemplates(caseData, issue);
+        const submission_id = caseData.id || null;
+        result.sms = null;
+        result.email = null;
+
+        // Send SMS if phone available
+        if (caseData.phone && templates.sms) {
+            result.sms = await sendSMSAction(caseData.phone, templates.sms);
+            await logCommunication(supabaseAdmin, {
+                case_id: caseData.case_id, submission_id, direction: 'outbound', channel: 'sms',
+                recipient: caseData.phone, body: templates.sms,
+                status: result.sms.sent ? 'sent' : 'failed',
+                error_code: result.sms.error_code || null
+            });
+        }
+
+        // Send email (always if available — primary channel OR fallback if SMS failed)
+        if (caseData.email && templates.emailBody) {
+            result.email = await sendEmailAction(caseData.email, templates.emailSubject, templates.emailBody.replace(/\n/g, '<br>'));
+            await logCommunication(supabaseAdmin, {
+                case_id: caseData.case_id, submission_id, direction: 'outbound', channel: 'email',
+                recipient: caseData.email, subject: templates.emailSubject, body: templates.emailBody,
+                status: result.email.sent ? 'sent' : 'failed'
+            });
+        }
+
+        // Touch case
+        await touchCase(supabaseAdmin, caseData.case_id);
+
+        // Create follow-up task
+        const firstName = (caseData.owner_name || '').split(' ')[0] || 'customer';
+        await createFollowUpTask(supabaseAdmin, {
+            case_id: caseData.case_id,
+            title: `Follow up on ${issue.type.toLowerCase().replace(/_/g, ' ')} — ${firstName}`,
+            due_days: issue.priority === 'CRITICAL' ? 1 : 3
+        });
+
+        // Activity log
+        await supabaseAdmin.from('activity_log').insert({
+            case_id: caseData.case_id, actor: 'system', action: 'needs_review_outreach',
+            details: { issue_type: issue.type, priority: issue.priority, sms_sent: result.sms?.sent, email_sent: result.email?.sent }
+        });
+
+        result.action = `${issue.type}: sms=${result.sms?.sent || 'n/a'}, email=${result.email?.sent || 'n/a'}`;
+        return result;
+    }
+
+    // POST /api/case-view/needs-review/process-all — batch process all Needs Review cases
+    app.post('/api/case-view/needs-review/process-all', authenticateToken, async (req, res) => {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('id, case_id, owner_name, email, phone, property_address, county, status, estimated_savings, notice_url, notes, upload_status, contact_attempts')
+                .eq('status', 'Needs Review')
+                .is('deleted_at', null);
+
+            if (!cases || cases.length === 0) return res.json({ ok: true, processed: 0, results: [] });
+
+            // Only process cases that haven't been contacted yet (or last contacted > 3 days ago)
+            const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+            const eligible = cases.filter(c => !c.contact_attempts || c.contact_attempts === 0);
+
+            const results = [];
+            for (const c of eligible) {
+                const r = await processNeedsReviewCase(c);
+                results.push(r);
+                // Small delay between sends to avoid rate limits
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            console.log(`[NeedsReview] Processed ${results.length}/${cases.length} cases`);
+            res.json({ ok: true, total: cases.length, processed: results.length, results });
+        } catch (e) {
+            console.error('[NeedsReview] Error:', e.message);
             res.status(500).json({ error: e.message });
         }
     });
