@@ -2121,6 +2121,28 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // GET /api/case-view/today — Today's queue (HIGH priority only, top 10)
+    app.get('/api/case-view/today', authenticateToken, async (req, res) => {
+        try {
+            const { data: tasks } = await supabaseAdmin.from('tasks')
+                .select('id, case_id, title, type, priority, due_date, auto_generated')
+                .eq('status', 'open').eq('priority', 'high')
+                .order('due_date', { ascending: true });
+            const caseIds = [...new Set((tasks||[]).map(t=>t.case_id))];
+            const { data: subs } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, status, estimated_savings, fee_agreement_signed')
+                .in('case_id', caseIds);
+            const subMap = {};
+            for (const s of (subs||[])) subMap[s.case_id] = s;
+            const enriched = (tasks||[]).map(t => {
+                const s = subMap[t.case_id] || {};
+                return { ...t, name: s.owner_name, case_status: s.status, savings: parseFloat(s.estimated_savings)||0, signed: !!s.fee_agreement_signed };
+            }).sort((a, b) => b.savings - a.savings);
+            const limit = parseInt(req.query.limit) || 10;
+            res.json({ ok: true, total_high: enriched.length, today: enriched.slice(0, limit) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // GET /api/case-view/needs-uri — Uri's priority queue
     app.get('/api/case-view/needs-uri', authenticateToken, async (req, res) => {
         try {
