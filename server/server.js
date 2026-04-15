@@ -1407,11 +1407,125 @@ function buildStatusEmail(sub, newStatus, extras) {
     return templates[newStatus] || null;
 }
 
-// ===== DRIP / FOLLOW-UP SEQUENCE =====
+// ===== FOLLOW-UP SEQUENCE ENGINE (v2 — 2026-04-15) =====
+// Day 0: Initial outreach (already sent by Needs Review engine or manual action)
+// Day 2: Reminder — "Quick reminder, we still need your notice/signature"
+// Day 5: Final reminder — "Last chance before we close your file"
+// Day 7: Mark stale → escalate to Tyler via Telegram
+// STOPS if: customer replies (inbound comm), case status changes, automation_excluded, manual_only
+async function runFollowUpSequence() {
+    console.log('[FollowUp-v2] Running sequence check...');
+    try {
+        const now = Date.now();
+        // Get all active cases that have been contacted at least once
+        const { data: cases } = await supabaseAdmin.from('submissions')
+            .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact')
+            .is('deleted_at', null)
+            .gt('contact_attempts', 0)
+            .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved","Form Signed","Protest Filed","Cold")');
+
+        let actions = 0;
+        for (const c of (cases || [])) {
+            // Skip excluded cases
+            if (c.automation_excluded || c.manual_only) continue;
+
+            // Check for customer reply (any inbound comm = stop)
+            const { data: inbound } = await supabaseAdmin.from('communications')
+                .select('id').eq('case_id', c.case_id).eq('direction', 'inbound').limit(1);
+            if (inbound && inbound.length > 0) continue;
+
+            const drip = c.drip_state || {};
+            const firstContactAt = drip.firstContactAt || c.last_activity_at;
+            if (!firstContactAt) continue;
+            const daysSince = (now - new Date(firstContactAt).getTime()) / (1000 * 60 * 60 * 24);
+            const firstName = (c.owner_name || '').split(' ')[0] || 'there';
+            const savings = parseFloat(c.estimated_savings) || 0;
+            const savingsLine = savings > 0 ? ' We\'ve identified $' + savings.toLocaleString() + '/yr in potential savings.' : '';
+            const uploadUrl = 'https://overassessed.ai/quick-upload';
+            const signUrl = 'https://overassessed.ai/sign?case=' + c.case_id;
+            const isAwaitingNotice = c.status === 'Awaiting Notice' || c.status === 'Needs Review';
+            const link = isAwaitingNotice ? uploadUrl : signUrl;
+            const linkText = isAwaitingNotice ? 'Upload your notice' : 'Review & sign';
+            let updated = false;
+
+            // Day 2 reminder
+            if (daysSince >= 2 && !drip.day2) {
+                const subject = 'Quick reminder — ' + (isAwaitingNotice ? 'upload your notice' : 'sign to proceed');
+                const body = 'Hi ' + firstName + ',\n\nQuick reminder — we still need your ' + (isAwaitingNotice ? 'Notice of Appraised Value to complete your review' : 'signed authorization to file your protest') + '.' + savingsLine + '\n\n' + linkText + ': ' + link + '\n\nReply if you need help.\n\n– OverAssessed';
+
+                // Send via preferred channel
+                if (c.email && !c.email_unusable) {
+                    const sg = require('@sendgrid/mail');
+                    try {
+                        await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
+                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
+                    } catch (e) { console.log('[FollowUp-v2] Day 2 email failed ' + c.case_id + ': ' + e.message); }
+                }
+                if (savings >= 1000 && c.phone && !c.sms_unusable) {
+                    try {
+                        const tw = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                        let n = c.phone.replace(/\D/g, ''); if (n.length === 10) n = '1' + n; n = '+' + n;
+                        const m = await tw.messages.create({ body, messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID, to: n });
+                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'sms', recipient: n, body, status: 'sent', twilio_sid: m.sid });
+                    } catch (e) { console.log('[FollowUp-v2] Day 2 SMS failed ' + c.case_id + ': ' + e.message); }
+                }
+                drip.day2 = new Date().toISOString();
+                updated = true;
+                actions++;
+                console.log('[FollowUp-v2] Day 2 reminder → ' + c.case_id + ' ' + c.owner_name);
+            }
+
+            // Day 5 final reminder
+            if (daysSince >= 5 && !drip.day5) {
+                const subject = 'Last reminder — don\'t miss your property tax savings';
+                const body = 'Hi ' + firstName + ',\n\nThis is our final reminder.' + savingsLine + '\n\nWe need your ' + (isAwaitingNotice ? 'Notice of Appraised Value' : 'signed authorization') + ' to proceed. If we don\'t hear back, we\'ll close your file.\n\n' + linkText + ': ' + link + '\n\nQuestions? Just reply.\n\n– Tyler, OverAssessed';
+
+                if (c.email && !c.email_unusable) {
+                    const sg = require('@sendgrid/mail');
+                    try {
+                        await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
+                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
+                    } catch (e) { console.log('[FollowUp-v2] Day 5 email failed ' + c.case_id); }
+                }
+                drip.day5 = new Date().toISOString();
+                updated = true;
+                actions++;
+                console.log('[FollowUp-v2] Day 5 final → ' + c.case_id + ' ' + c.owner_name);
+            }
+
+            // Day 7 mark stale + escalate
+            if (daysSince >= 7 && !drip.day7) {
+                drip.day7 = new Date().toISOString();
+                drip.markedStale = true;
+                await supabaseAdmin.from('tasks').insert({ case_id: c.case_id, type: 'escalation', title: '⚠️ No response after 7 days — ' + c.owner_name + (savings > 0 ? ' ($' + savings + '/yr)' : ''), status: 'open', assigned_to: 'Tyler', priority: savings >= 2000 ? 'high' : 'normal', due_date: new Date().toISOString().split('T')[0], auto_generated: true });
+                sendTelegramAlert('⚠️ <b>7-Day Stale</b>\n\n<b>' + c.owner_name + '</b> (' + c.case_id + ')\n' + (savings > 0 ? 'Savings: $' + savings + '/yr\n' : '') + 'No response after 7 days.\nCall or close?');
+                updated = true;
+                actions++;
+                console.log('[FollowUp-v2] Day 7 STALE → ' + c.case_id + ' ' + c.owner_name);
+            }
+
+            if (updated) {
+                if (!drip.firstContactAt) drip.firstContactAt = firstContactAt;
+                await supabaseAdmin.from('submissions').update({
+                    drip_state: drip, contact_attempts: (c.contact_attempts || 0) + 1,
+                    last_activity_at: new Date().toISOString(), updated_at: new Date().toISOString()
+                }).eq('case_id', c.case_id);
+            }
+        }
+        console.log('[FollowUp-v2] Done. Actions taken: ' + actions);
+    } catch (error) {
+        console.error('[FollowUp-v2] Error:', error.message);
+    }
+}
+
+// Run follow-up sequence every 4 hours
+setInterval(runFollowUpSequence, 4 * 60 * 60 * 1000);
+// Initial run 60 seconds after server start
+setTimeout(runFollowUpSequence, 60 * 1000);
+
+// ===== LEGACY DRIP (FROZEN — replaced by FollowUp-v2) =====
 async function runDripCheck() {
-    // ⛔ DRIP AUTOMATION DISABLED — Tyler directive 2026-04-07
-    // No automated drip emails without explicit approval
-    console.log('[Drip] DISABLED — manual control only');
+    console.log('[Drip] DISABLED — replaced by FollowUp-v2');
     return;
     // --- ORIGINAL CODE BELOW (frozen) ---
     console.log('[Drip] Running follow-up check...');
@@ -1995,6 +2109,37 @@ if (isSupabaseEnabled()) {
                 .order('follow_up_score', { ascending: false });
             if (error) throw error;
             res.json(data || []);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/sequence-status — follow-up sequence dashboard
+    app.get('/api/case-view/sequence-status', authenticateToken, async (req, res) => {
+        try {
+            const now = Date.now();
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only')
+                .is('deleted_at', null).gt('contact_attempts', 0)
+                .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved","Form Signed","Protest Filed","Cold")');
+            const results = [];
+            for (const c of (cases || [])) {
+                const drip = c.drip_state || {};
+                const firstContact = drip.firstContactAt || c.last_activity_at;
+                const days = firstContact ? (now - new Date(firstContact).getTime()) / (1000*60*60*24) : 0;
+                const { data: inb } = await supabaseAdmin.from('communications')
+                    .select('id').eq('case_id', c.case_id).eq('direction', 'inbound').limit(1);
+                const replied = inb && inb.length > 0;
+                let stage = 'Day 0';
+                if (drip.day7) stage = replied ? 'Responded' : 'Stale (Day 7)';
+                else if (drip.day5) stage = 'Day 5 sent';
+                else if (drip.day2) stage = 'Day 2 sent';
+                else if (days >= 2) stage = 'Day 2 due';
+                if (replied) stage = 'Responded ✅';
+                if (c.automation_excluded || c.manual_only) stage = 'Excluded';
+                results.push({ case_id: c.case_id, name: c.owner_name, status: c.status, savings: c.estimated_savings, days_since_contact: Math.round(days * 10) / 10, stage, replied });
+            }
+            results.sort((a, b) => b.days_since_contact - a.days_since_contact);
+            const summary = { total: results.length, responded: results.filter(r => r.replied).length, day2_sent: results.filter(r => r.stage === 'Day 2 sent').length, day5_sent: results.filter(r => r.stage === 'Day 5 sent').length, stale: results.filter(r => r.stage.includes('Stale')).length, excluded: results.filter(r => r.stage === 'Excluded').length };
+            res.json({ summary, cases: results });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -3435,6 +3580,78 @@ app.get('/api/comms-failures', authenticateToken, async (req, res) => {
             });
         }
         res.json({ ok: true, period_hours: hours, real_failures: real.length, test_excluded: failures.length - real.length, results: real });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Operator Dashboard API — aggregated view for Tyler ──
+app.get('/api/operator-data', authenticateToken, async (req, res) => {
+    try {
+        const now = Date.now();
+        const oneDayAgo = new Date(now - 24*60*60*1000).toISOString();
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Top actions (open tasks, sorted by priority + due date)
+        const { data: tasks } = await supabaseAdmin.from('tasks')
+            .select('case_id, title, priority, due_date, status, assigned_to')
+            .eq('status', 'open').order('due_date', { ascending: true }).limit(20);
+        const priOrder = { high: 0, normal: 1, low: 2 };
+        const sorted = (tasks || []).sort((a, b) => (priOrder[a.priority] || 1) - (priOrder[b.priority] || 1));
+        const topActions = sorted.slice(0, 5);
+
+        // 2. Blockers (both channels failed, no contact info, stuck > 48h)
+        const { data: allCases } = await supabaseAdmin.from('submissions')
+            .select('case_id, owner_name, email, phone, status, estimated_savings, email_unusable, sms_unusable, contact_attempts, last_activity_at, automation_excluded, manual_only')
+            .is('deleted_at', null)
+            .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")');
+        const blockers = [];
+        for (const c of (allCases || [])) {
+            const reasons = [];
+            if (c.email_unusable && c.sms_unusable) reasons.push('Both channels failed');
+            if ((!c.email || c.email.trim() === '') && (!c.phone || c.phone.trim() === '')) reasons.push('No contact info');
+            const lastAct = c.last_activity_at ? new Date(c.last_activity_at).getTime() : 0;
+            const hours = lastAct ? (now - lastAct) / 3600000 : 9999;
+            if (hours > 48 && c.contact_attempts > 0) reasons.push('No response ' + Math.round(hours) + 'h');
+            if (reasons.length) blockers.push({ case_id: c.case_id, name: c.owner_name, savings: c.estimated_savings || 0, reasons });
+        }
+
+        // 3. High-value deals (savings >= $2000)
+        const highValue = (allCases || []).filter(c => (parseFloat(c.estimated_savings) || 0) >= 2000)
+            .map(c => ({ case_id: c.case_id, name: c.owner_name, savings: c.estimated_savings, status: c.status }))
+            .sort((a, b) => b.savings - a.savings);
+
+        // 4. Failed contacts (last 24h, excluding test numbers)
+        const testNums = new Set(['+15005550001', '+1000000000', '+11000000000', '+15005550009']);
+        const { data: failedComms } = await supabaseAdmin.from('communications')
+            .select('case_id, channel, recipient, status, error_code, failure_reason, created_at')
+            .in('status', ['failed', 'bounced', 'dropped', 'spam'])
+            .gte('created_at', oneDayAgo)
+            .order('created_at', { ascending: false });
+        const realFailures = (failedComms || []).filter(f => !testNums.has(f.recipient));
+        const dedupedFailures = [];
+        const seen = new Set();
+        for (const f of realFailures) {
+            const k = `${f.case_id}:${f.channel}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            dedupedFailures.push(f);
+        }
+
+        // 5. System health
+        let mcHealth = null;
+        try {
+            const mcRes = await fetch('https://mission-control-production-8225.up.railway.app/api/health');
+            mcHealth = await mcRes.json();
+        } catch (e) { mcHealth = { ok: false, error: e.message }; }
+        const health = {
+            oa_server: 'live',
+            mc: mcHealth?.ok ? 'healthy' : 'down',
+            mc_agents: mcHealth?.agents || {},
+            total_cases: (allCases || []).length,
+            open_tasks: (tasks || []).length,
+            failed_comms_24h: dedupedFailures.length
+        };
+
+        res.json({ ok: true, generated: new Date().toISOString(), topActions, blockers, highValue, failedContacts: dedupedFailures, health });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -9055,9 +9272,9 @@ app.listen(PORT, async () => {
     setInterval(runApprovalGate, 2 * 60 * 60 * 1000);
     setTimeout(runApprovalGate, 45000); // 45s after startup
 
-    // Run follow-up for all contacted/analyzed leads every 4 hours
-    setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
-    setTimeout(runContactedFollowUp, 90000); // 90s after startup (after results delivery)
+    // Legacy contacted follow-up DISABLED — replaced by FollowUp-v2 engine
+    // setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
+    // setTimeout(runContactedFollowUp, 90000);
 
     // Run outcome monitor every 6 hours (checks county sites for hearing results)
     setInterval(async () => {

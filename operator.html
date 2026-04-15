@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operator View — OverAssessed</title>
+<style>
+  :root { --bg: #0a0a0f; --card: #12121a; --border: #1e1e2e; --text: #e0e0e0; --dim: #888; --accent: #4f8cff; --red: #ff4d4d; --green: #4caf50; --yellow: #ffc107; --orange: #ff9800; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { color: var(--dim); font-size: 0.85rem; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full { grid-column: 1 / -1; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card h2 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .badge { background: var(--accent); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { text-align: left; color: var(--dim); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pri-high { color: var(--red); font-weight: 600; }
+  .pri-normal { color: var(--yellow); }
+  .pri-low { color: var(--dim); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 500; }
+  .tag-red { background: rgba(255,77,77,0.15); color: var(--red); }
+  .tag-green { background: rgba(76,175,80,0.15); color: var(--green); }
+  .tag-yellow { background: rgba(255,193,7,0.15); color: var(--yellow); }
+  .tag-blue { background: rgba(79,140,255,0.15); color: var(--accent); }
+  .health-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .health-item { flex: 1; min-width: 120px; text-align: center; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+  .health-item .val { font-size: 1.6rem; font-weight: 700; }
+  .health-item .label { font-size: 0.75rem; color: var(--dim); margin-top: 2px; }
+  .money { color: var(--green); font-weight: 600; }
+  .loading { text-align: center; padding: 40px; color: var(--dim); }
+  .case-link { color: var(--accent); text-decoration: none; }
+  .case-link:hover { text-decoration: underline; }
+  .empty { color: var(--dim); font-style: italic; padding: 12px; text-align: center; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>🎯 Operator View</h1>
+<p class="subtitle" id="timestamp">Loading...</p>
+
+<div class="grid">
+  <!-- Top 5 Actions -->
+  <div class="card full">
+    <h2>📋 Top 5 Actions Today <span class="badge" id="action-count">0</span></h2>
+    <table>
+      <thead><tr><th>Case</th><th>Task</th><th>Priority</th><th>Due</th></tr></thead>
+      <tbody id="actions-body"><tr><td colspan="4" class="loading">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Blockers -->
+  <div class="card">
+    <h2>🚨 Blockers <span class="badge" id="blocker-count">0</span></h2>
+    <table>
+      <thead><tr><th>Case</th><th>Name</th><th>Issue</th></tr></thead>
+      <tbody id="blockers-body"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- High-Value Deals -->
+  <div class="card">
+    <h2>💰 High-Value Deals <span class="badge" id="hv-count">0</span></h2>
+    <table>
+      <thead><tr><th>Case</th><th>Name</th><th>Savings</th><th>Status</th></tr></thead>
+      <tbody id="hv-body"><tr><td colspan="4" class="loading">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Failed Contacts -->
+  <div class="card">
+    <h2>📵 Failed Contacts (24h) <span class="badge" id="fail-count">0</span></h2>
+    <table>
+      <thead><tr><th>Case</th><th>Channel</th><th>Reason</th></tr></thead>
+      <tbody id="fail-body"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- System Health -->
+  <div class="card">
+    <h2>🖥️ System Health</h2>
+    <div class="health-row" id="health-row">
+      <div class="health-item"><div class="val">—</div><div class="label">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('oa_token') || sessionStorage.getItem('oa_token');
+async function load() {
+  try {
+    const headers = TOKEN ? { 'Authorization': `Bearer ${TOKEN}` } : {};
+    const res = await fetch('/api/operator-data', { headers });
+    if (res.status === 401) {
+      // Try getting token from admin page cookie/localStorage
+      document.getElementById('timestamp').textContent = '🔒 Authentication required — log in at /admin first';
+      return;
+    }
+    const d = await res.json();
+    document.getElementById('timestamp').textContent = 'Updated: ' + new Date(d.generated).toLocaleString();
+
+    // Actions
+    const ab = document.getElementById('actions-body');
+    document.getElementById('action-count').textContent = d.topActions.length;
+    if (!d.topActions.length) { ab.innerHTML = '<tr><td colspan="4" class="empty">No open tasks ✅</td></tr>'; }
+    else { ab.innerHTML = d.topActions.map(t => `<tr>
+      <td><a class="case-link" href="/case?id=${t.case_id}">${t.case_id}</a></td>
+      <td>${t.title.substring(0,60)}</td>
+      <td><span class="pri-${t.priority}">${(t.priority||'normal').toUpperCase()}</span></td>
+      <td>${t.due_date ? t.due_date.substring(0,10) : '—'}</td>
+    </tr>`).join(''); }
+
+    // Blockers
+    const bb = document.getElementById('blockers-body');
+    document.getElementById('blocker-count').textContent = d.blockers.length;
+    if (!d.blockers.length) { bb.innerHTML = '<tr><td colspan="3" class="empty">No blockers ✅</td></tr>'; }
+    else { bb.innerHTML = d.blockers.map(b => `<tr>
+      <td><a class="case-link" href="/case?id=${b.case_id}">${b.case_id}</a></td>
+      <td>${b.name||'?'}</td>
+      <td>${b.reasons.map(r => `<span class="tag tag-red">${r}</span>`).join(' ')}</td>
+    </tr>`).join(''); }
+
+    // High value
+    const hb = document.getElementById('hv-body');
+    document.getElementById('hv-count').textContent = d.highValue.length;
+    if (!d.highValue.length) { hb.innerHTML = '<tr><td colspan="4" class="empty">No high-value deals</td></tr>'; }
+    else { hb.innerHTML = d.highValue.map(h => `<tr>
+      <td><a class="case-link" href="/case?id=${h.case_id}">${h.case_id}</a></td>
+      <td>${h.name||'?'}</td>
+      <td class="money">$${Number(h.savings).toLocaleString()}/yr</td>
+      <td><span class="tag tag-blue">${h.status}</span></td>
+    </tr>`).join(''); }
+
+    // Failed contacts
+    const fb = document.getElementById('fail-body');
+    document.getElementById('fail-count').textContent = d.failedContacts.length;
+    if (!d.failedContacts.length) { fb.innerHTML = '<tr><td colspan="3" class="empty">No failures ✅</td></tr>'; }
+    else { fb.innerHTML = d.failedContacts.map(f => `<tr>
+      <td><a class="case-link" href="/case?id=${f.case_id}">${f.case_id||'?'}</a></td>
+      <td><span class="tag tag-${f.channel==='email'?'yellow':'blue'}">${f.channel}</span></td>
+      <td>${f.failure_reason||f.error_code||f.status}</td>
+    </tr>`).join(''); }
+
+    // Health
+    const hr = document.getElementById('health-row');
+    const h = d.health;
+    hr.innerHTML = `
+      <div class="health-item"><div class="val" style="color:var(--green)">●</div><div class="label">OA Server</div></div>
+      <div class="health-item"><div class="val" style="color:${h.mc==='healthy'?'var(--green)':'var(--red)'}">●</div><div class="label">Mission Control</div></div>
+      <div class="health-item"><div class="val">${h.total_cases}</div><div class="label">Active Cases</div></div>
+      <div class="health-item"><div class="val">${h.open_tasks}</div><div class="label">Open Tasks</div></div>
+      <div class="health-item"><div class="val" style="color:${h.failed_comms_24h?'var(--red)':'var(--green)'}">${h.failed_comms_24h}</div><div class="label">Failed Comms 24h</div></div>
+    `;
+  } catch (e) { document.getElementById('timestamp').textContent = 'Error: ' + e.message; }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
