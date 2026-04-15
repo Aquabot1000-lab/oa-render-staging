@@ -1926,6 +1926,10 @@ function authenticateToken(req, res, next) {
         next();
     });
 }
+function requireAdmin(req, res, next) {
+    if (req.user && req.user.role === 'admin') return next();
+    return res.status(403).json({ error: 'Admin access required' });
+}
 
 // ==================== SUPABASE DB ROUTES (new - /api/db/*) ====================
 // These run alongside existing file-based routes. Existing routes are untouched.
@@ -2143,21 +2147,14 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    // GET /api/case-view/needs-uri — Uri's priority queue
+    // GET /api/case-view/needs-uri — Uri's scoped queue (assigned to Uri only, $1K+ or RTF)
     app.get('/api/case-view/needs-uri', authenticateToken, async (req, res) => {
         try {
             const { data: cases } = await supabaseAdmin.from('submissions')
-                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, fee_agreement_signed, assigned_to')
-                .is('deleted_at', null)
+                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, fee_agreement_signed, assigned_to, filing_status')
+                .eq('assigned_to', 'Uri').is('deleted_at', null)
                 .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")');
-            const queue = (cases || []).filter(c => {
-                const savings = parseFloat(c.estimated_savings) || 0;
-                if (c.assigned_to === 'Uri') return true;
-                if (savings >= 1000) return true;
-                if (c.status === 'Ready to File') return true;
-                if (c.status === 'Analysis Complete' && savings >= 500) return true;
-                return false;
-            }).map(c => {
+            const queue = (cases || []).map(c => {
                 const savings = parseFloat(c.estimated_savings) || 0;
                 let priority = 0;
                 if (c.status === 'Ready to File' && c.fee_agreement_signed) priority += 100;
@@ -2165,10 +2162,86 @@ if (isSupabaseEnabled()) {
                 if (savings >= 2000) priority += 60;
                 if (savings >= 1000) priority += 40;
                 if (c.status === 'Analysis Complete') priority += 30;
-                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, signed: !!c.fee_agreement_signed, attempts: c.contact_attempts || 0, assigned_to: c.assigned_to, priority };
+                if (c.status === 'Awaiting Notice' && savings >= 1000) priority += 20;
+                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, signed: !!c.fee_agreement_signed, attempts: c.contact_attempts || 0, filing_status: c.filing_status, priority, has_email: !!c.email, has_phone: !!c.phone };
             }).sort((a, b) => b.priority - a.priority);
-            const limit = parseInt(req.query.limit) || 20;
+            const limit = parseInt(req.query.limit) || 30;
             res.json({ ok: true, total: queue.length, cases: queue.slice(0, limit) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/uri-daily — Uri's daily performance summary
+    app.get('/api/case-view/uri-daily', authenticateToken, async (req, res) => {
+        try {
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            const todayISO = todayStart.toISOString();
+
+            // Contacts made today (comms sent by Uri or on Uri-assigned cases)
+            const { data: uriCases } = await supabaseAdmin.from('submissions')
+                .select('case_id').eq('assigned_to', 'Uri').is('deleted_at', null);
+            const uriCaseIds = (uriCases||[]).map(c => c.case_id);
+
+            const { data: commsToday } = await supabaseAdmin.from('communications')
+                .select('id, case_id, channel, direction, status, created_at')
+                .gte('created_at', todayISO)
+                .in('case_id', uriCaseIds.length ? uriCaseIds : ['none']);
+            const contactsMade = (commsToday||[]).filter(c => c.direction !== 'inbound' && c.status === 'sent').length;
+
+            // Deals advanced today (status changed on Uri cases today)
+            const { data: uriSubs } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, status, estimated_savings, fee_agreement_signed, updated_at, filing_status')
+                .eq('assigned_to', 'Uri').is('deleted_at', null)
+                .gte('updated_at', todayISO);
+            const dealsAdvanced = (uriSubs||[]).filter(c => c.updated_at >= todayISO).length;
+
+            // Deals closed (signed + filed today)
+            const dealsClosed = (uriSubs||[]).filter(c => c.filing_status === 'filed' || c.status === 'Protest Filed').length;
+
+            // Pipeline summary
+            const { data: pipeline } = await supabaseAdmin.from('submissions')
+                .select('case_id, status, estimated_savings, fee_agreement_signed')
+                .eq('assigned_to', 'Uri').is('deleted_at', null)
+                .not('status', 'in', '("Archived","Deleted","Duplicate")');
+            const totalSav = (pipeline||[]).reduce((s,c) => s + (parseFloat(c.estimated_savings)||0), 0);
+            const signedCount = (pipeline||[]).filter(c => c.fee_agreement_signed).length;
+
+            res.json({
+                ok: true, date: todayISO.split('T')[0],
+                contacts_today: contactsMade,
+                deals_advanced: dealsAdvanced,
+                deals_closed: dealsClosed,
+                pipeline: { total_cases: (pipeline||[]).length, total_savings: totalSav, signed: signedCount },
+                comms_detail: (commsToday||[]).filter(c => c.status === 'sent').map(c => ({ case_id: c.case_id, channel: c.channel, time: c.created_at }))
+            });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-view/uri-log — Uri logs a contact/action (manual tracking)
+    app.post('/api/case-view/uri-log', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, action_type, notes } = req.body;
+            if (!case_id || !action_type) return res.status(400).json({ error: 'case_id and action_type required' });
+            const validTypes = ['call', 'sms', 'email', 'meeting', 'deal_advanced', 'deal_closed'];
+            if (!validTypes.includes(action_type)) return res.status(400).json({ error: 'Invalid action_type. Valid: ' + validTypes.join(', ') });
+
+            // Verify case is assigned to Uri
+            const { data: sub } = await supabaseAdmin.from('submissions').select('assigned_to, owner_name').eq('case_id', case_id).single();
+            if (!sub || sub.assigned_to !== 'Uri') return res.status(403).json({ error: 'Case not assigned to Uri' });
+
+            // Log as communication
+            await supabaseAdmin.from('communications').insert({
+                case_id, channel: action_type === 'meeting' ? 'meeting' : action_type,
+                direction: 'outbound', status: 'sent', recipient: sub.owner_name,
+                body: notes || (action_type + ' logged by Uri'), created_at: new Date().toISOString()
+            });
+
+            // Update last_activity
+            await supabaseAdmin.from('submissions').update({
+                last_activity_at: new Date().toISOString(),
+                contact_attempts: (await supabaseAdmin.from('submissions').select('contact_attempts').eq('case_id', case_id).single()).data?.contact_attempts + 1 || 1
+            }).eq('case_id', case_id);
+
+            res.json({ ok: true, logged: action_type, case_id });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
