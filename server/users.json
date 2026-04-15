@@ -2,7 +2,7 @@
   {
     "id": "b14fdcb9-1931-4b62-92c7-14dffbbb25e8",
     "email": "tyler@overassessed.ai",
-    "password": "$2b$10$rmIKREPT0T7xzfs93P23quPO7arkcse75iUg/mV.tPziPim4rh1HG",
+    "password": "$2b$10$xMmerHpvjAOz/Q5jE6DnXOPiFdbQK9a0EdC.hJJFW1sfyuGXQVvi6",
     "name": "Tyler Worthey",
     "role": "admin",
     "createdAt": "2026-04-07T14:37:34.596Z"
@@ -10,7 +10,7 @@
   {
     "id": "uri-1776259665889",
     "email": "uri@overassessed.ai",
-    "password": "$2b$10$A1SotcytZBKa.CKswVyThuVUTbN9ULheyDPRiYA64uQMhzlKyYBU2",
+    "password": "$2b$10$vQzDGLCWApfgLqmlw2k7DeETqnjzmro/rmRYfzwjnfLf.Xp6TD1ae",
     "name": "Uri Uriah",
     "role": "agent",
     "createdAt": "2026-04-15T13:27:45.889Z"

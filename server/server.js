@@ -774,19 +774,34 @@ async function initializeDataFiles() {
             }
         }
     } catch { /* no legacy file, fine */ }
-    // Always reset admin user on boot to ensure known credentials
+    // Ensure admin + Uri accounts exist on boot (preserve existing users)
     {
-        const hashedPassword = await bcrypt.hash('OverAssessed!2026', 10);
-        const defaultUser = {
-            id: uuidv4(),
-            email: 'tyler@overassessed.ai',
-            password: hashedPassword,
-            name: 'Tyler Worthey',
-            role: 'admin',
-            createdAt: new Date().toISOString()
-        };
-        await fs.writeFile(USERS_FILE, JSON.stringify([defaultUser], null, 2));
-        console.log('[Init] Admin user reset - tyler@overassessed.ai / OverAssessed!2026');
+        let users = await readJsonFile(USERS_FILE);
+        if (!Array.isArray(users)) users = [];
+
+        // Admin account — always reset password to known value
+        const adminHash = await bcrypt.hash('OverAssessed!2026', 10);
+        const adminIdx = users.findIndex(u => u.email === 'tyler@overassessed.ai');
+        if (adminIdx >= 0) {
+            users[adminIdx].password = adminHash;
+            users[adminIdx].role = 'admin';
+        } else {
+            users.push({ id: uuidv4(), email: 'tyler@overassessed.ai', password: adminHash, name: 'Tyler Worthey', role: 'admin', createdAt: new Date().toISOString() });
+        }
+
+        // Uri agent account — create if missing, reset password if exists
+        const uriHash = await bcrypt.hash('OA-Uri-2026!', 10);
+        const uriIdx = users.findIndex(u => u.email === 'uri@overassessed.ai');
+        if (uriIdx >= 0) {
+            users[uriIdx].password = uriHash;
+            users[uriIdx].role = 'agent';
+            users[uriIdx].name = 'Uri Uriah';
+        } else {
+            users.push({ id: uuidv4(), email: 'uri@overassessed.ai', password: uriHash, name: 'Uri Uriah', role: 'agent', createdAt: new Date().toISOString() });
+        }
+
+        await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+        console.log('[Init] Users synced — tyler@overassessed.ai (admin) + uri@overassessed.ai (agent)');
     }
     await fs.mkdir(noticesDir, { recursive: true });
 }
@@ -2165,26 +2180,50 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    // GET /api/case-view/needs-uri — Uri's scoped queue (assigned to Uri only, $1K+ or RTF)
+    // GET /api/case-view/needs-uri — Uri's queue (hearings + escalations ONLY)
     app.get('/api/case-view/needs-uri', authenticateToken, async (req, res) => {
         try {
             const { data: cases } = await supabaseAdmin.from('submissions')
-                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, fee_agreement_signed, assigned_to, filing_status')
+                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, fee_agreement_signed, assigned_to, filing_status, hearing_required, escalation_flag, hearing_date, county, property_address')
                 .eq('assigned_to', 'Uri').is('deleted_at', null)
                 .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")');
             const queue = (cases || []).map(c => {
                 const savings = parseFloat(c.estimated_savings) || 0;
                 let priority = 0;
-                if (c.status === 'Ready to File' && c.fee_agreement_signed) priority += 100;
-                if (c.status === 'Ready to File') priority += 80;
-                if (savings >= 2000) priority += 60;
-                if (savings >= 1000) priority += 40;
-                if (c.status === 'Analysis Complete') priority += 30;
-                if (c.status === 'Awaiting Notice' && savings >= 1000) priority += 20;
-                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, signed: !!c.fee_agreement_signed, attempts: c.contact_attempts || 0, filing_status: c.filing_status, priority, has_email: !!c.email, has_phone: !!c.phone };
+                if (c.hearing_required) priority += 100;
+                if (c.escalation_flag) priority += 80;
+                if (c.hearing_date) priority += 60;
+                if (savings >= 2000) priority += 40;
+                if (savings >= 1000) priority += 20;
+                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, signed: !!c.fee_agreement_signed, attempts: c.contact_attempts || 0, filing_status: c.filing_status, priority, has_email: !!c.email, has_phone: !!c.phone, hearing_required: !!c.hearing_required, escalation_flag: !!c.escalation_flag, hearing_date: c.hearing_date, county: c.county, address: c.property_address };
             }).sort((a, b) => b.priority - a.priority);
             const limit = parseInt(req.query.limit) || 30;
-            res.json({ ok: true, total: queue.length, cases: queue.slice(0, limit) });
+            res.json({ ok: true, total: queue.length, queue_name: 'Needs Hearing (Uri)', cases: queue.slice(0, limit) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/needs-hearing — Dedicated hearing queue (hearing_required OR escalation_flag)
+    app.get('/api/case-view/needs-hearing', authenticateToken, async (req, res) => {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, email, phone, status, estimated_savings, assigned_to, filing_status, hearing_required, escalation_flag, hearing_date, county, property_address, fee_agreement_signed')
+                .is('deleted_at', null)
+                .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")')
+                .or('hearing_required.eq.true,escalation_flag.eq.true');
+            const queue = (cases || []).map(c => {
+                const savings = parseFloat(c.estimated_savings) || 0;
+                let urgency = 'normal';
+                if (c.hearing_date) {
+                    const daysUntil = Math.ceil((new Date(c.hearing_date) - new Date()) / 86400000);
+                    if (daysUntil <= 3) urgency = 'critical';
+                    else if (daysUntil <= 7) urgency = 'high';
+                }
+                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, county: c.county, address: c.property_address, assigned_to: c.assigned_to, hearing_required: !!c.hearing_required, escalation_flag: !!c.escalation_flag, hearing_date: c.hearing_date, urgency, signed: !!c.fee_agreement_signed };
+            }).sort((a, b) => {
+                const uOrder = { critical: 3, high: 2, normal: 1 };
+                return (uOrder[b.urgency]||0) - (uOrder[a.urgency]||0);
+            });
+            res.json({ ok: true, queue_name: 'Needs Hearing', total: queue.length, cases: queue });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
