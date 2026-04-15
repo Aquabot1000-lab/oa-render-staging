@@ -2066,14 +2066,34 @@ if (isSupabaseEnabled()) {
         return attempts;
     }
 
-    async function createFollowUpTask(supabase, { case_id, title, due_days = 2, assigned_to = 'Tyler' }) {
+    // Auto-priority: HIGH if awaiting response >24h, missing notice after outreach, payment pending, savings >$2k
+    // MEDIUM for routine follow-ups/verification. LOW for internal/VIP monitoring.
+    function calcTaskPriority({ priority, title = '', savings = 0, context = '' }) {
+        if (priority) return priority; // explicit override
+        const t = (title + ' ' + context).toLowerCase();
+        // HIGH triggers
+        if (savings >= 2000) return 'high';
+        if (t.includes('payment') || t.includes('initiation fee')) return 'high';
+        if (t.includes('awaiting') && t.includes('response')) return 'high';
+        if (t.includes('missing notice') || t.includes('notice upload')) return 'high';
+        if (t.includes('no response') || t.includes('check for response')) return 'high';
+        if (t.includes('both channels') || t.includes('unreachable')) return 'high';
+        // LOW triggers
+        if (t.includes('internal') || t.includes('vip monitor') || t.includes('admin')) return 'low';
+        // Default MEDIUM
+        return 'normal';
+    }
+
+    async function createFollowUpTask(supabase, { case_id, title, due_days = 2, assigned_to = 'Tyler', priority, savings = 0, context = '' }) {
         const due = new Date();
         due.setDate(due.getDate() + due_days);
+        const autoPriority = calcTaskPriority({ priority, title, savings, context });
         const { data, error } = await supabase.from('tasks').insert({
             case_id,
             title,
             status: 'open',
             assigned_to,
+            priority: autoPriority,
             due_date: due.toISOString(),
             created_at: new Date().toISOString()
         }).select('id').single();
