@@ -1237,6 +1237,11 @@ function getCommTier(subject, html, recipientStatus) {
 }
 
 async function sendClientEmail(toEmail, subject, html, options = {}) {
+    // ── EXCLUDED EMAIL GUARD ── Silently skip internal/test/system emails
+    if (isExcludedEmail(toEmail)) {
+        console.log(`[EMAIL SKIP] Excluded email: ${toEmail} | Subject: "${subject}"`);
+        return { success: false, reason: 'excluded_email', tier: 'skipped' };
+    }
     // ── MASTER KILL SWITCH ── Blocks ALL client emails, including auto-send
     if (OA_EMAIL_KILLED) {
         console.log(`[EMAIL BLOCKED] Master kill switch ON. Would have sent: "${subject}" to ${toEmail}`);
@@ -1407,6 +1412,25 @@ function buildStatusEmail(sub, newStatus, extras) {
     return templates[newStatus] || null;
 }
 
+// ===== EMAIL EXCLUSION GUARD =====
+// Block all outbound delivery to internal, test, and system emails
+const EXCLUDED_EMAIL_PATTERNS = [
+    /@overassessed\.ai$/i,
+    /@reply\.overassessed\.ai$/i,
+    /^test@/i,
+    /^benchmark@/i,
+    /^noreply@/i,
+    /^no-reply@/i,
+    /^system@/i,
+    /^admin@/i,
+    /^postmaster@/i,
+];
+function isExcludedEmail(email) {
+    if (!email) return true;
+    return EXCLUDED_EMAIL_PATTERNS.some(p => p.test(email.trim()));
+}
+// Usage: if (isExcludedEmail(email)) { /* skip silently, don't count as failure */ }
+
 // ===== FOLLOW-UP SEQUENCE ENGINE (v2 — 2026-04-15) =====
 // Day 0: Initial outreach (already sent by Needs Review engine or manual action)
 // Day 2: Reminder — "Quick reminder, we still need your notice/signature"
@@ -1453,14 +1477,14 @@ async function runFollowUpSequence() {
                 const subject = 'Quick reminder — ' + (isAwaitingNotice ? 'upload your notice' : 'sign to proceed');
                 const body = 'Hi ' + firstName + ',\n\nQuick reminder — we still need your ' + (isAwaitingNotice ? 'Notice of Appraised Value to complete your review' : 'signed authorization to file your protest') + '.' + savingsLine + '\n\n' + linkText + ': ' + link + '\n\nReply if you need help.\n\n– OverAssessed';
 
-                // Send via preferred channel
-                if (c.email && !c.email_unusable) {
+                // Send via preferred channel (skip excluded emails silently)
+                if (c.email && !c.email_unusable && !isExcludedEmail(c.email)) {
                     const sg = require('@sendgrid/mail');
                     try {
                         await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
                         await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
                     } catch (e) { console.log('[FollowUp-v2] Day 2 email failed ' + c.case_id + ': ' + e.message); }
-                }
+                } else if (c.email && isExcludedEmail(c.email)) { console.log('[FollowUp-v2] Skipped excluded email: ' + c.email + ' (' + c.case_id + ')'); }
                 if (savings >= 1000 && c.phone && !c.sms_unusable) {
                     try {
                         const tw = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -1480,13 +1504,13 @@ async function runFollowUpSequence() {
                 const subject = 'Last reminder — don\'t miss your property tax savings';
                 const body = 'Hi ' + firstName + ',\n\nThis is our final reminder.' + savingsLine + '\n\nWe need your ' + (isAwaitingNotice ? 'Notice of Appraised Value' : 'signed authorization') + ' to proceed. If we don\'t hear back, we\'ll close your file.\n\n' + linkText + ': ' + link + '\n\nQuestions? Just reply.\n\n– Tyler, OverAssessed';
 
-                if (c.email && !c.email_unusable) {
+                if (c.email && !c.email_unusable && !isExcludedEmail(c.email)) {
                     const sg = require('@sendgrid/mail');
                     try {
                         await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
                         await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
                     } catch (e) { console.log('[FollowUp-v2] Day 5 email failed ' + c.case_id); }
-                }
+                } else if (c.email && isExcludedEmail(c.email)) { console.log('[FollowUp-v2] Skipped excluded email: ' + c.email + ' (' + c.case_id + ')'); }
                 drip.day5 = new Date().toISOString();
                 updated = true;
                 actions++;
