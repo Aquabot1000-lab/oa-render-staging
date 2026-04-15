@@ -2081,6 +2081,54 @@ if (isSupabaseEnabled()) {
     }
 
     // Helper: send Email via SendGrid
+    // Auto-mark email unusable when bounce/drop/spam detected
+    async function markEmailUnusable(email, reason) {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, email_unusable, sms_unusable')
+                .eq('email', email).is('deleted_at', null);
+            if (!cases?.length) return;
+            for (const c of cases) {
+                if (c.email_unusable) continue; // already marked
+                const updates = { email_unusable: true, email_unusable_reason: reason, preferred_contact: 'sms', updated_at: new Date().toISOString() };
+                await supabaseAdmin.from('submissions').update(updates).eq('case_id', c.case_id);
+                console.log(`[EmailUnusable] ${c.case_id} (${c.owner_name}) — ${reason}`);
+                // If BOTH channels unusable → escalate
+                if (c.sms_unusable) {
+                    console.log(`[ESCALATE] ${c.case_id} — BOTH email and SMS unusable!`);
+                    sendTelegramAlert(`🚨 <b>BOTH CHANNELS FAILED</b>\n\n<b>Case:</b> ${c.case_id}\n<b>Name:</b> ${c.owner_name}\n<b>Email:</b> ${reason}\n<b>SMS:</b> ${c.sms_unusable_reason || 'unusable'}\n\n⚠️ Manual intervention required.`);
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: c.case_id, actor: 'system', action: 'escalation',
+                        details: { reason: 'both_channels_failed', email_reason: reason, sms_unusable: true }
+                    });
+                }
+            }
+        } catch (e) { console.error('[markEmailUnusable] Error:', e.message); }
+    }
+
+    // Auto-mark SMS unusable when delivery fails
+    async function markSmsUnusable(case_id, reason) {
+        try {
+            const { data: c } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, email_unusable, sms_unusable')
+                .eq('case_id', case_id).single();
+            if (!c || c.sms_unusable) return;
+            const updates = { sms_unusable: true, sms_unusable_reason: reason, updated_at: new Date().toISOString() };
+            if (!c.email_unusable) updates.preferred_contact = 'email';
+            await supabaseAdmin.from('submissions').update(updates).eq('case_id', case_id);
+            console.log(`[SmsUnusable] ${case_id} (${c.owner_name}) — ${reason}`);
+            // If BOTH channels unusable → escalate
+            if (c.email_unusable) {
+                console.log(`[ESCALATE] ${case_id} — BOTH email and SMS unusable!`);
+                sendTelegramAlert(`🚨 <b>BOTH CHANNELS FAILED</b>\n\n<b>Case:</b> ${case_id}\n<b>Name:</b> ${c.owner_name}\n<b>Email:</b> ${c.email_unusable_reason || 'unusable'}\n<b>SMS:</b> ${reason}\n\n⚠️ Manual intervention required.`);
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id, actor: 'system', action: 'escalation',
+                    details: { reason: 'both_channels_failed', sms_reason: reason, email_unusable: true }
+                });
+            }
+        } catch (e) { console.error('[markSmsUnusable] Error:', e.message); }
+    }
+
     async function sendEmailAction(to, subject, htmlBody, replyTo) {
         if (!process.env.SENDGRID_API_KEY) {
             console.log('[Email] SendGrid not configured, skipping send');
@@ -2149,6 +2197,9 @@ if (isSupabaseEnabled()) {
         try {
             const { case_id, phone, body, owner_name, email } = req.body;
             if (!case_id || !phone || !body) return res.status(400).json({ error: 'case_id, phone, body required' });
+            // Warn if SMS previously marked unusable (still allow manual override)
+            const { data: chk } = await supabaseAdmin.from('submissions').select('sms_unusable, sms_unusable_reason').eq('case_id', case_id).single();
+            if (chk?.sms_unusable) console.log(`[Action:SMS] WARNING: ${case_id} sms_unusable=true (${chk.sms_unusable_reason}). Manual override.`);
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
 
             // Send the SMS
@@ -2162,7 +2213,10 @@ if (isSupabaseEnabled()) {
                 error_code: smsResult.error_code || null
             });
 
-            // AUTO-FALLBACK: If SMS failed and we have an email, send via email instead
+            // AUTO-FALLBACK: If SMS failed, mark SMS unusable and try email
+            if (!smsResult.sent) {
+                await markSmsUnusable(case_id, `twilio_error_${smsResult.error_code}: ${(smsResult.reason || 'unknown').substring(0, 200)}`);
+            }
             let emailFallback = null;
             if (!smsResult.sent && email) {
                 const firstName = (owner_name || '').split(' ')[0] || 'there';
@@ -3181,6 +3235,13 @@ app.get('/api/sms-status', (req, res) => {
 });
 
 // ── SendGrid Event Webhook — delivery/open/click/bounce tracking ──
+// Bounce dedup: track recent bounce events to suppress duplicate webhook echoes
+const recentBounces = new Map(); // key: email+sgMessageId → timestamp
+setInterval(() => { // Clean stale entries every 5 min
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const [k, v] of recentBounces) { if (v < cutoff) recentBounces.delete(k); }
+}, 5 * 60 * 1000);
+
 app.post('/api/sendgrid-events', (req, res) => {
     try {
         const events = Array.isArray(req.body) ? req.body : [req.body];
@@ -3198,11 +3259,26 @@ app.post('/api/sendgrid-events', (req, res) => {
             } else if (event === 'click') {
                 logComm({ event: 'clicked', channel: 'email', to: email, subject, sgMessageId, url: evt.url });
             } else if (event === 'bounce' || event === 'dropped') {
+                // Dedup: suppress duplicate bounce for same email+message within 10 min
+                const bounceKey = `${email}:${sgMessageId || subject}`;
+                if (recentBounces.has(bounceKey)) {
+                    console.log(`[SendGrid] Suppressed duplicate ${event} for ${email}`);
+                    continue;
+                }
+                recentBounces.set(bounceKey, Date.now());
                 logComm({ event: 'bounced', channel: 'email', to: email, subject, reason: evt.reason || evt.type, sgMessageId });
                 sendTelegramAlert(`📭 <b>Email ${event}</b>\n\n<b>To:</b> ${email}\n<b>Reason:</b> ${(evt.reason || evt.type || '?').substring(0, 100)}\n<b>Subject:</b> ${subject.substring(0, 60)}`);
+                // Auto-mark email unusable on bounce/drop
+                markEmailUnusable(email, `${event}: ${(evt.reason || evt.type || 'unknown').substring(0, 200)}`);
             } else if (event === 'spam_report') {
+                // Dedup spam reports too
+                const spamKey = `spam:${email}`;
+                if (recentBounces.has(spamKey)) { continue; }
+                recentBounces.set(spamKey, Date.now());
                 logComm({ event: 'spam', channel: 'email', to: email, subject, sgMessageId });
                 sendTelegramAlert(`🚨 <b>SPAM REPORT</b>\n\n<b>From:</b> ${email}\n<b>Subject:</b> ${subject.substring(0, 60)}\n\n⚠️ Consider removing from outreach.`);
+                // Auto-mark email unusable on spam report
+                markEmailUnusable(email, `spam_report: user reported as spam`);
             }
         }
         res.status(200).send('OK');
@@ -3239,6 +3315,53 @@ app.get('/api/comms-status', (req, res) => {
         noReplyLeads: noReply24h.slice(0, 10).map(c => ({ email: c.to, deliveredAt: c.at, subject: c.subject })),
         recentActivity: commsLog.slice(0, 20)
     });
+});
+
+// ── Daily Failure Report — excludes test sends, shows only real customer failures ──
+const TEST_NUMBERS = new Set(['+15005550001', '+1000000000', '+11000000000', '+15005550009']);
+app.get('/api/comms-failures', authenticateToken, async (req, res) => {
+    try {
+        const hours = parseInt(req.query.hours) || 24;
+        const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+        const { data: failures } = await supabaseAdmin.from('communications')
+            .select('case_id, channel, recipient, status, error_code, failure_reason, created_at')
+            .in('status', ['failed', 'bounced', 'dropped', 'spam'])
+            .gte('created_at', since)
+            .order('created_at', { ascending: false });
+
+        if (!failures?.length) return res.json({ ok: true, real_failures: 0, results: [] });
+
+        // Filter out test sends and dedup (keep first occurrence per case+channel)
+        const seen = new Set();
+        const real = [];
+        for (const f of failures) {
+            if (TEST_NUMBERS.has(f.recipient)) continue;
+            const key = `${f.case_id}:${f.channel}:${f.recipient}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            // Determine auto-recovery
+            let recovery = 'none';
+            if (f.channel === 'email') {
+                const { data: sub } = await supabaseAdmin.from('submissions')
+                    .select('preferred_contact, email_unusable, sms_unusable').eq('case_id', f.case_id).single();
+                if (sub?.email_unusable && sub?.preferred_contact === 'sms') recovery = 'Switched to SMS';
+                else if (sub?.email_unusable && sub?.sms_unusable) recovery = '⚠️ BOTH FAILED — manual review';
+            } else if (f.channel === 'sms') {
+                const { data: sub } = await supabaseAdmin.from('submissions')
+                    .select('preferred_contact, email_unusable, sms_unusable').eq('case_id', f.case_id).single();
+                if (sub?.sms_unusable && sub?.preferred_contact === 'email') recovery = 'Switched to email';
+                else if (sub?.sms_unusable && sub?.email_unusable) recovery = '⚠️ BOTH FAILED — manual review';
+            }
+
+            real.push({
+                case_id: f.case_id, channel: f.channel, recipient: f.recipient,
+                status: f.status, error_code: f.error_code, reason: f.failure_reason || f.error_code || 'unknown',
+                recovery, time: f.created_at
+            });
+        }
+        res.json({ ok: true, period_hours: hours, real_failures: real.length, test_excluded: failures.length - real.length, results: real });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // TAD data stats (admin)
