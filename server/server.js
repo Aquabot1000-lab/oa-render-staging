@@ -161,6 +161,7 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.h
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
 app.get('/case', (req, res) => res.sendFile(path.join(__dirname, '..', 'case.html')));
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
+app.get('/operator', (req, res) => res.sendFile(path.join(__dirname, '..', 'operator.html')));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
