@@ -2121,6 +2121,61 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // GET /api/case-view/needs-uri — Uri's priority queue
+    app.get('/api/case-view/needs-uri', authenticateToken, async (req, res) => {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, fee_agreement_signed, assigned_to')
+                .is('deleted_at', null)
+                .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")');
+            const queue = (cases || []).filter(c => {
+                const savings = parseFloat(c.estimated_savings) || 0;
+                if (c.assigned_to === 'Uri') return true;
+                if (savings >= 1000) return true;
+                if (c.status === 'Ready to File') return true;
+                if (c.status === 'Analysis Complete' && savings >= 500) return true;
+                return false;
+            }).map(c => {
+                const savings = parseFloat(c.estimated_savings) || 0;
+                let priority = 0;
+                if (c.status === 'Ready to File' && c.fee_agreement_signed) priority += 100;
+                if (c.status === 'Ready to File') priority += 80;
+                if (savings >= 2000) priority += 60;
+                if (savings >= 1000) priority += 40;
+                if (c.status === 'Analysis Complete') priority += 30;
+                return { case_id: c.case_id, name: c.owner_name, status: c.status, savings, signed: !!c.fee_agreement_signed, attempts: c.contact_attempts || 0, assigned_to: c.assigned_to, priority };
+            }).sort((a, b) => b.priority - a.priority);
+            const limit = parseInt(req.query.limit) || 20;
+            res.json({ ok: true, total: queue.length, cases: queue.slice(0, limit) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/revenue — revenue tracking summary
+    app.get('/api/case-view/revenue', authenticateToken, async (req, res) => {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, status, estimated_savings, fee_agreement_signed, fee_agreement_signed_at, filing_status, initiation_paid, initiation_paid_at, payment_status')
+                .is('deleted_at', null)
+                .not('status', 'in', '("Archived","Deleted","Duplicate")');
+            const rate = 0.25;
+            const signed = (cases||[]).filter(c => c.fee_agreement_signed);
+            const filed = (cases||[]).filter(c => c.filing_status === 'filed' || c.status === 'Filed' || c.status === 'Protest Filed');
+            const initPaid = (cases||[]).filter(c => c.initiation_paid);
+            const totalSav = (cases||[]).reduce((s,c) => s + (parseFloat(c.estimated_savings)||0), 0);
+            const signedSav = signed.reduce((s,c) => s + (parseFloat(c.estimated_savings)||0), 0);
+            const filedSav = filed.reduce((s,c) => s + (parseFloat(c.estimated_savings)||0), 0);
+            const initRevenue = initPaid.length * 79;
+            res.json({
+                pipeline: { total_cases: (cases||[]).length, total_savings: totalSav, total_revenue_potential: Math.round(totalSav * rate) },
+                signed: { count: signed.length, savings: signedSav, revenue: Math.round(signedSav * rate), cases: signed.map(c => ({ case_id: c.case_id, name: c.owner_name, savings: c.estimated_savings, signed_at: c.fee_agreement_signed_at })) },
+                filed: { count: filed.length, savings: filedSav, revenue: Math.round(filedSav * rate), cases: filed.map(c => ({ case_id: c.case_id, name: c.owner_name, savings: c.estimated_savings })) },
+                initiation_fees: { collected: initPaid.length, revenue: initRevenue },
+                total_collected: initRevenue,
+                rate
+            });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // GET /api/case-view/analysis-history/:caseId — all analysis versions
     app.get('/api/case-view/analysis-history/:caseId', authenticateToken, async (req, res) => {
         try {

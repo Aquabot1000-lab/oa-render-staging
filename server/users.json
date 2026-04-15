@@ -6,5 +6,13 @@
     "name": "Tyler Worthey",
     "role": "admin",
     "createdAt": "2026-04-07T14:37:34.596Z"
+  },
+  {
+    "id": "uri-1776259665889",
+    "email": "uri@overassessed.ai",
+    "password": "$2b$10$A1SotcytZBKa.CKswVyThuVUTbN9ULheyDPRiYA64uQMhzlKyYBU2",
+    "name": "Uri Uriah",
+    "role": "agent",
+    "createdAt": "2026-04-15T13:27:45.889Z"
   }
 ]
