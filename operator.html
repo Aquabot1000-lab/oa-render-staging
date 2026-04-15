@@ -71,6 +71,15 @@
     </table>
   </div>
 
+  <!-- Signed Not Filed -->
+  <div class="card">
+    <h2>✍️ Signed → Not Filed <span class="badge tag-red" id="snf-count">0</span></h2>
+    <table>
+      <thead><tr><th>Case</th><th>Name</th><th>Signed</th><th>Days</th><th>Next Action</th></tr></thead>
+      <tbody id="snf-body"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
   <!-- Failed Contacts -->
   <div class="card">
     <h2>📵 Failed Contacts (24h) <span class="badge" id="fail-count">0</span></h2>
@@ -78,6 +87,14 @@
       <thead><tr><th>Case</th><th>Channel</th><th>Reason</th></tr></thead>
       <tbody id="fail-body"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
     </table>
+  </div>
+
+  <!-- Revenue + Filing Pipeline -->
+  <div class="card">
+    <h2>💵 Revenue Pipeline</h2>
+    <div class="health-row" id="revenue-row">
+      <div class="health-item"><div class="val">—</div><div class="label">Loading...</div></div>
+    </div>
   </div>
 
   <!-- System Health -->
@@ -144,6 +161,32 @@ async function load() {
       <td><span class="tag tag-${f.channel==='email'?'yellow':'blue'}">${f.channel}</span></td>
       <td>${f.failure_reason||f.error_code||f.status}</td>
     </tr>`).join(''); }
+
+    // Signed not filed
+    const snfb = document.getElementById('snf-body');
+    const snf = d.signedNotFiled || [];
+    document.getElementById('snf-count').textContent = snf.length;
+    if (!snf.length) { snfb.innerHTML = '<tr><td colspan="5" class="empty">All signed cases filed ✅</td></tr>'; }
+    else { snfb.innerHTML = snf.map(s => `<tr>
+      <td><a class="case-link" href="/case?id=${s.case_id}">${s.case_id}</a></td>
+      <td>${s.name||'?'}</td>
+      <td>${s.signed_date}</td>
+      <td style="color:${s.days_since>3?'var(--red)':'var(--text)'}; font-weight:${s.days_since>3?'700':'400'}">${s.days_since}d${s.urgent?' ⚠️':''}</td>
+      <td><span class="tag tag-${s.next_action.includes('File')?'green':s.next_action.includes('fee')?'yellow':'blue'}">${s.next_action}</span></td>
+    </tr>`).join(''); }
+
+    // Revenue
+    const rr = document.getElementById('revenue-row');
+    const rv = d.revenue || {};
+    const fs = d.filingStats || {};
+    rr.innerHTML = `
+      <div class="health-item"><div class="val money">$${(rv.total_pipeline||0).toLocaleString()}</div><div class="label">Pipeline Savings</div></div>
+      <div class="health-item"><div class="val money">$${(rv.signed_revenue||0).toLocaleString()}</div><div class="label">Signed Revenue</div></div>
+      <div class="health-item"><div class="val">${fs.signed_total||0}</div><div class="label">Signed</div></div>
+      <div class="health-item"><div class="val" style="color:${fs.not_filed?'var(--red)':'var(--green)'}">${fs.not_filed||0}</div><div class="label">Not Filed</div></div>
+      <div class="health-item"><div class="val">${fs.filed||0}</div><div class="label">Filed</div></div>
+      <div class="health-item"><div class="val">${fs.completed||0}</div><div class="label">Completed</div></div>
+    `;
 
     // Health
     const hr = document.getElementById('health-row');

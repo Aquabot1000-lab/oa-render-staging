@@ -3754,7 +3754,36 @@ app.get('/api/operator-data', authenticateToken, async (req, res) => {
             dedupedFailures.push(f);
         }
 
-        // 5. System health
+        // 5. Signed not filed tracking
+        const { data: signedCases } = await supabaseAdmin.from('submissions')
+            .select('case_id, owner_name, estimated_savings, status, fee_agreement_signed, fee_agreement_signed_at, signature, filing_status, initiation_paid')
+            .is('deleted_at', null)
+            .or('fee_agreement_signed.eq.true,signature.not.is.null')
+            .not('status', 'in', '("Archived","Deleted")');
+        const signedNotFiled = (signedCases || []).filter(c => !c.filing_status || c.filing_status === 'not_filed' || c.filing_status === 'signed_not_filed' || c.filing_status === 'signed_awaiting_notice').map(c => {
+            const signedAt = c.fee_agreement_signed_at || (typeof c.signature === 'object' ? c.signature?.signedAt : null);
+            const daysSince = signedAt ? Math.round((now - new Date(signedAt).getTime()) / 86400000) : null;
+            let nextAction = 'Collect initiation fee';
+            if (c.filing_status === 'signed_awaiting_notice') nextAction = 'Need notice first';
+            if (c.initiation_paid) nextAction = 'File protest now';
+            return { case_id: c.case_id, name: c.owner_name, savings: c.estimated_savings, signed_date: signedAt ? signedAt.substring(0, 10) : '?', days_since: daysSince, next_action: nextAction, filing_status: c.filing_status || 'not_filed', urgent: daysSince > 3 };
+        }).sort((a, b) => (b.days_since || 0) - (a.days_since || 0));
+
+        const filingStats = {
+            signed_total: (signedCases || []).length,
+            not_filed: signedNotFiled.length,
+            filed: (signedCases || []).filter(c => c.filing_status === 'filed').length,
+            completed: (signedCases || []).filter(c => c.filing_status === 'completed' || c.status === 'Resolved').length,
+            paid: (signedCases || []).filter(c => c.filing_status === 'paid').length
+        };
+
+        // 6. Revenue summary
+        const rate = 0.25;
+        const totalSavings = (allCases || []).reduce((s, c) => s + (parseFloat(c.estimated_savings) || 0), 0);
+        const signedSavings = (signedCases || []).reduce((s, c) => s + (parseFloat(c.estimated_savings) || 0), 0);
+        const revenue = { total_pipeline: totalSavings, total_potential: Math.round(totalSavings * rate), signed_savings: signedSavings, signed_revenue: Math.round(signedSavings * rate) };
+
+        // 7. System health
         let mcHealth = null;
         try {
             const mcRes = await fetch('https://mission-control-production-8225.up.railway.app/api/health');
@@ -3769,7 +3798,7 @@ app.get('/api/operator-data', authenticateToken, async (req, res) => {
             failed_comms_24h: dedupedFailures.length
         };
 
-        res.json({ ok: true, generated: new Date().toISOString(), topActions, blockers, highValue, failedContacts: dedupedFailures, health });
+        res.json({ ok: true, generated: new Date().toISOString(), topActions, blockers, highValue, failedContacts: dedupedFailures, signedNotFiled, filingStats, revenue, health });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
