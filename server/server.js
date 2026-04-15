@@ -1923,6 +1923,59 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // GET /api/case-view/needs-tyler — top priority queue for Tyler's manual attention
+    app.get('/api/case-view/needs-tyler', authenticateToken, async (req, res) => {
+        try {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, email_unusable, sms_unusable, notice_url, upload_status, notes, vip, vip_reason, manual_only')
+                .is('deleted_at', null)
+                .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved")');
+
+            const now = Date.now();
+            const queue = [];
+
+            for (const c of (cases || [])) {
+                const reasons = [];
+                const savings = parseFloat(c.estimated_savings) || 0;
+                const lastAct = c.last_activity_at ? new Date(c.last_activity_at).getTime() : 0;
+                const hoursSince = lastAct ? (now - lastAct) / 3600000 : 9999;
+                let urgency = 0; // higher = more urgent
+
+                // High value
+                if (savings >= 2000) { reasons.push('High value ($' + savings.toLocaleString() + ')'); urgency += 40; }
+                // Both channels failed
+                if (c.email_unusable && c.sms_unusable) { reasons.push('Both channels failed'); urgency += 80; }
+                // Single channel failed
+                else if (c.email_unusable) { reasons.push('Email bounced'); urgency += 20; }
+                else if (c.sms_unusable) { reasons.push('SMS failed'); urgency += 20; }
+                // Stuck > 48h
+                if (hoursSince > 48 && c.contact_attempts > 0) { reasons.push('No response ' + Math.round(hoursSince) + 'h'); urgency += 30; }
+                // No contact info
+                if ((!c.email || c.email.trim() === '') && (!c.phone || c.phone.trim() === '')) { reasons.push('No contact info'); urgency += 60; }
+                // Document issues
+                const notesStr = typeof c.notes === 'string' ? c.notes : JSON.stringify(c.notes || '');
+                if ((c.upload_status || '').includes('wrong') || notesStr.toLowerCase().includes('wrong')) { reasons.push('Wrong document uploaded'); urgency += 35; }
+                if (c.status === 'Needs Review' && !c.notice_url && savings > 0) { reasons.push('Missing notice (has savings)'); urgency += 25; }
+                // VIP / manual only
+                if (c.manual_only) { reasons.push('Manual only'); urgency += 15; }
+                if (c.vip) { reasons.push('VIP: ' + (c.vip_reason || 'flagged')); urgency += 10; }
+
+                if (reasons.length > 0) {
+                    queue.push({
+                        case_id: c.case_id, name: c.owner_name, status: c.status,
+                        savings, reasons, urgency, hours_since_activity: Math.round(hoursSince),
+                        contact_attempts: c.contact_attempts || 0,
+                        channels: { email: c.email && !c.email_unusable ? 'ok' : c.email_unusable ? 'unusable' : 'none', sms: c.phone && !c.sms_unusable ? 'ok' : c.sms_unusable ? 'unusable' : 'none' }
+                    });
+                }
+            }
+
+            queue.sort((a, b) => b.urgency - a.urgency);
+            const limit = parseInt(req.query.limit) || 10;
+            res.json({ ok: true, total: queue.length, top: queue.slice(0, limit) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // GET /api/case-view/analysis-history/:caseId — all analysis versions
     app.get('/api/case-view/analysis-history/:caseId', authenticateToken, async (req, res) => {
         try {
