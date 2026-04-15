@@ -1443,7 +1443,7 @@ async function runFollowUpSequence() {
         const now = Date.now();
         // Get all active cases that have been contacted at least once
         const { data: cases } = await supabaseAdmin.from('submissions')
-            .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact')
+            .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact, fee_agreement_signed, signature')
             .is('deleted_at', null)
             .gt('contact_attempts', 0)
             .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved","Form Signed","Protest Filed","Cold")');
@@ -1452,6 +1452,12 @@ async function runFollowUpSequence() {
         for (const c of (cases || [])) {
             // Skip excluded cases
             if (c.automation_excluded || c.manual_only) continue;
+
+            // SIGNING GUARD — skip cases that are already signed
+            if (c.fee_agreement_signed || c.signature) {
+                console.log('[FollowUp-v2] Skipped ' + c.case_id + ' — already signed');
+                continue;
+            }
 
             // Check for customer reply (any inbound comm = stop)
             const { data: inbound } = await supabaseAdmin.from('communications')
@@ -2598,10 +2604,21 @@ if (isSupabaseEnabled()) {
     });
 
     // 5. POST /api/case-view/action/send-signing — send signing link
+    // ⚠️ SIGNING GUARD: Never send signing links to already-signed customers
     app.post('/api/case-view/action/send-signing', authenticateToken, async (req, res) => {
         try {
             const { case_id, channel, phone, email, owner_name, estimated_savings } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
+
+            // SIGNING GUARD — check if already signed
+            const { data: signCheck } = await supabaseAdmin.from('submissions')
+                .select('fee_agreement_signed, fee_agreement_signed_at, signature')
+                .eq('case_id', case_id).single();
+            if (signCheck && (signCheck.fee_agreement_signed || signCheck.signature)) {
+                console.log(`[Action:SendSigning] ⛔ BLOCKED — ${case_id} already signed (at: ${signCheck.fee_agreement_signed_at || 'unknown'})`);
+                return res.status(409).json({ error: 'already_signed', message: 'Customer has already signed. Move to filing stage.', signed_at: signCheck.fee_agreement_signed_at });
+            }
+
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
             const firstName = (owner_name || '').split(' ')[0] || 'there';
             const savingsStr = estimated_savings ? '$' + Number(estimated_savings).toLocaleString() : 'significant savings';
