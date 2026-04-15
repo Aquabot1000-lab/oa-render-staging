@@ -1236,6 +1236,24 @@ function getCommTier(subject, html, recipientStatus) {
     return 'approval-required';
 }
 
+// ── NAME + ENTITY VALIDATION ── Ensures outbound comms use CRM name, flags LLC
+function validateOutboundName(caseId, nameUsed, crmName) {
+    if (!crmName) return { valid: false, reason: 'no_crm_name' };
+    const crmFirst = (crmName || '').split(' ')[0].toLowerCase();
+    const usedFirst = (nameUsed || '').split(' ')[0].toLowerCase();
+    if (crmFirst && usedFirst && crmFirst !== usedFirst) {
+        console.log(`[NAME GUARD] ⚠️ ${caseId}: CRM="${crmName}" vs Used="${nameUsed}" — MISMATCH`);
+        return { valid: false, reason: 'name_mismatch', crm: crmName, used: nameUsed };
+    }
+    return { valid: true };
+}
+
+function isLLCOwned(ownerName) {
+    if (!ownerName) return false;
+    const llcPatterns = /\b(LLC|L\.L\.C\.|Inc\.?|Corp\.?|LP|L\.P\.|LLP|Trust|Partnership|Holdings|Investments|Properties|Enterprises|Group|Associates|Company|Co\.)\b/i;
+    return llcPatterns.test(ownerName);
+}
+
 async function sendClientEmail(toEmail, subject, html, options = {}) {
     // ── EXCLUDED EMAIL GUARD ── Silently skip internal/test/system emails
     if (isExcludedEmail(toEmail)) {
