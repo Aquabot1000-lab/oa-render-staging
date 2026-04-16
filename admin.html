@@ -1057,7 +1057,7 @@ function renderOverview() {
         const nextAction = s.next_action || s.nextAction || '—';
         const priority = s.next_action_priority || s.nextActionPriority || 0;
         const pBadge = priority >= 80 ? '🚨' : priority >= 60 ? '🔥' : priority >= 30 ? '➖' : '⭕';
-        return `<tr onclick="openDetail('${s.id}')" style="cursor:pointer;">
+        return `<tr onclick="goToCase('${esc(caseId)}'${caseId === '-' ? ',\'' + s.id + '\'' : ''})" style="cursor:pointer;">
             <td><strong>${esc(caseId)}</strong></td>
             <td>${esc(name)}</td>
             <td>${statusBadge(s.status)}</td>
@@ -1126,7 +1126,7 @@ function renderSubmissionsTable() {
         ].filter(Boolean).join('');
         const savingsHighlight = savings >= 5000 ? 'color:#059669;font-weight:700;' : savings >= 2000 ? 'color:#d97706;font-weight:600;' : '';
 
-        return `<tr onclick="openDetail('${s.id}')" style="cursor:pointer;">
+        return `<tr onclick="goToCase('${esc(caseId)}'${caseId === '-' ? ',\'' + s.id + '\'' : ''})" style="cursor:pointer;">
             <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="${s.id}" onchange="updateBulk()" ${selectedIds.has(s.id) ? 'checked' : ''}></td>
             <td><strong>${esc(caseId)}</strong></td>
             <td>${esc(name).substring(0,22)} ${icons}</td>
@@ -1157,7 +1157,7 @@ function renderSignatures() {
     if (!signed.length) { document.getElementById('sigEmpty').style.display = 'block'; document.getElementById('signaturesBody').innerHTML = ''; return; }
     document.getElementById('sigEmpty').style.display = 'none';
     document.getElementById('signaturesBody').innerHTML = signed.map(s => `
-        <tr onclick="openDetail('${s.id}')">
+        <tr onclick="goToCase('${esc(s.caseId)}')" style="cursor:pointer;">
             <td><strong>${esc(s.caseId)}</strong></td>
             <td>${esc(s.ownerName)}</td>
             <td style="font-family:Georgia,serif;font-style:italic;">${esc(s.signature.fullName)}</td>
@@ -1175,7 +1175,7 @@ function renderNotices() {
         const link = s.noticeUrl || s.notice_url || s.noticeOfValue;
         const isLive = link && link.startsWith('http');
         return `
-        <tr onclick="openDetail('${s.id}')">
+        <tr onclick="goToCase('${esc(s.caseId)}')" style="cursor:pointer;">
             <td><strong>${esc(s.caseId)}</strong></td>
             <td>${esc(s.ownerName)}</td>
             <td><a href="${link}" target="_blank" onclick="event.stopPropagation()">${isLive ? '📄 View' : '⚠️ Unavailable'}</a></td>
@@ -1199,7 +1199,7 @@ function renderRevenue() {
 
     document.getElementById('revenueBody').innerHTML = withSavings.map(s => {
         const sav = s.estimatedSavings || s.savings || 0;
-        return `<tr onclick="openDetail('${s.id}')">
+        return `<tr onclick="goToCase('${esc(s.caseId || '-')}')" style="cursor:pointer;">
             <td><strong>${esc(s.caseId || '-')}</strong></td>
             <td>${esc(s.ownerName)}</td>
             <td>${esc(s.propertyAddress).substring(0, 25)}</td>
@@ -1269,6 +1269,14 @@ async function bulkAnalyze() {
 }
 
 // ===== DETAIL PANEL =====
+function goToCase(caseId, fallbackId) {
+    if (caseId && caseId !== '-') {
+        window.location.href = '/case?id=' + encodeURIComponent(caseId);
+    } else if (fallbackId) {
+        window.location.href = '/case?uuid=' + encodeURIComponent(fallbackId);
+    }
+}
+
 function openDetail(id) {
     const s = submissions.find(x => x.id === id);
     if (!s) return;

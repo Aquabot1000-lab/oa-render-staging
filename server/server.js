@@ -2043,6 +2043,70 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // ═══ CASE DOCUMENTS API ═══
+    // GET /api/case-documents/:caseId — all documents for a case
+    app.get('/api/case-documents/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('case_documents')
+                .select('*').eq('case_id', req.params.caseId)
+                .order('uploaded_at', { ascending: false });
+            if (error) return res.status(500).json({ error: error.message });
+            res.json({ documents: data || [] });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // POST /api/case-documents — upload/link a document to a case
+    app.post('/api/case-documents', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, file_name, file_url, file_type, notes } = req.body;
+            if (!case_id || !file_name || !file_url) return res.status(400).json({ error: 'case_id, file_name, file_url required' });
+            const { data, error } = await supabaseAdmin.from('case_documents').insert({
+                case_id, file_name, file_url,
+                file_type: file_type || 'other',
+                uploaded_by: req.user?.email || 'admin',
+                notes: notes || null
+            }).select().single();
+            if (error) return res.status(500).json({ error: error.message });
+            // Log activity
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: req.user?.email || 'admin', action: 'document_added',
+                details: { file_name, file_type: file_type || 'other', file_url }
+            });
+            res.json({ ok: true, document: data });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // DELETE /api/case-documents/:id — remove a document
+    app.delete('/api/case-documents/:id', authenticateToken, async (req, res) => {
+        try {
+            const { error } = await supabaseAdmin.from('case_documents').delete().eq('id', req.params.id);
+            if (error) return res.status(500).json({ error: error.message });
+            res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // GET /api/case-view/full/:caseId — FULL case data (submission + documents + comms + tasks)
+    app.get('/api/case-view/full/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const caseId = req.params.caseId;
+            const [subResult, docsResult, commsResult, tasksResult, actResult] = await Promise.all([
+                supabaseAdmin.from('submissions').select('*').eq('case_id', caseId).single(),
+                supabaseAdmin.from('case_documents').select('*').eq('case_id', caseId).order('uploaded_at', { ascending: false }),
+                supabaseAdmin.from('communications').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(50),
+                supabaseAdmin.from('tasks').select('*').eq('case_id', caseId).order('due_date', { ascending: true }).limit(20),
+                supabaseAdmin.from('activity_log').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(50)
+            ]);
+            if (subResult.error || !subResult.data) return res.status(404).json({ error: 'Case not found' });
+            res.json({
+                case: subResult.data,
+                documents: docsResult.data || [],
+                communications: commsResult.data || [],
+                tasks: tasksResult.data || [],
+                activities: actResult.data || []
+            });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // GET /api/case-view/next-actions — dashboard: all active cases sorted by next_action_priority
     app.get('/api/case-view/next-actions', authenticateToken, async (req, res) => {
         try {

@@ -357,7 +357,8 @@ async function autoFilingCheck() {
 module.exports = { runAutoFiling, autoFilingCheck, validateReadyToFile, generatePackage };
 
 // ═══ PRE-APPROVAL SCORING ═══
-// All 4 checks must PASS before sending to Tyler's approval queue
+// All checks must PASS before sending to Tyler's approval queue
+// CHECK 0 (comp source) is a HARD FAIL — blocks everything if ANY comp is non-county
 function scorePackage(caseData, comps, adjs) {
     const checks = [];
     const assessedValue = parseFloat(String(caseData.assessed_value).replace(/[$,]/g, '')) || 0;
@@ -365,6 +366,30 @@ function scorePackage(caseData, comps, adjs) {
     const opinion = assessedValue - savings;
     const pd = caseData.property_data || {};
     const sqft = pd.sqft || pd.square_footage || 0;
+
+    // 0. COMP SOURCE — HARD BLOCK. Every comp MUST be county_verified. No exceptions.
+    let sourcePass = true;
+    let sourceIssue = '';
+    if (!comps || comps.length === 0) {
+        sourcePass = false;
+        sourceIssue = 'no comps at all';
+    } else {
+        const nonCounty = comps.filter(c => {
+            const src = (c.source || c.data_source || '').toLowerCase();
+            return !ALLOWED_COMP_SOURCES.some(a => src.toLowerCase() === a.toLowerCase());
+        });
+        if (nonCounty.length > 0) {
+            sourcePass = false;
+            sourceIssue = nonCounty.length + '/' + comps.length + ' comps from non-county sources: ' +
+                nonCounty.map(c => (c.address || '?').substring(0,30) + ' [' + (c.source || c.data_source || 'unknown') + ']').join('; ');
+            console.error('[PRE-SCORE] ❌ HARD FAIL — non-county comps detected for ' + (caseData.case_id || '?'));
+        }
+    }
+    checks.push({ check: 'Comp source (county_verified)', pass: sourcePass, issue: sourceIssue, hard_fail: !sourcePass });
+    // If source check fails, STOP — do not evaluate further checks
+    if (!sourcePass) {
+        return { allPass: false, checks, recommendation: 'HARD_FAIL_NON_COUNTY_COMPS' };
+    }
 
     // 1. COMPS MATCH — ±20% sqft, ±15 years, same county, 8+ comps
     let compsPass = true;
@@ -543,3 +568,175 @@ function validateTemplate(requestedVersion) {
 module.exports.TEMPLATE_VERSION = TEMPLATE_VERSION;
 module.exports.getTemplateVersion = getTemplateVersion;
 module.exports.validateTemplate = validateTemplate;
+
+// ═══ FILING VERIFICATION GATE ═══
+// NEVER mark as "Filed" until ALL present:
+// 1. Confirmation number
+// 2. Filed timestamp  
+// 3. Filed package attached (in case_documents)
+// 4. Receipt/screenshot attached (in case_documents)
+// If ANY missing → filing_pending_verification
+
+async function verifyFilingComplete(caseId) {
+    const { data: submission } = await supabase.from('submissions')
+        .select('filing_confirmation_number, filed_at, filing_method')
+        .eq('case_id', caseId).single();
+    
+    const { data: docs } = await supabase.from('case_documents')
+        .select('file_type').eq('case_id', caseId);
+    
+    const docTypes = (docs || []).map(d => d.file_type);
+    
+    const checks = {
+        confirmation_number: !!submission?.filing_confirmation_number && submission.filing_confirmation_number !== 'UNVERIFIED',
+        filed_timestamp: !!submission?.filed_at,
+        package_attached: docTypes.includes('evidence') || docTypes.includes('protest'),
+        receipt_attached: docTypes.includes('receipt')
+    };
+    
+    const allPass = Object.values(checks).every(v => v);
+    
+    if (!allPass) {
+        // Block — set to pending verification
+        await supabase.from('submissions').update({
+            filing_status: 'filing_pending_verification',
+            updated_at: new Date().toISOString()
+        }).eq('case_id', caseId);
+        
+        console.log('[FILING] ⚠️ ' + caseId + ' blocked from Filed — missing: ' + 
+            Object.entries(checks).filter(([,v]) => !v).map(([k]) => k).join(', '));
+        
+        return { verified: false, checks, missing: Object.entries(checks).filter(([,v]) => !v).map(([k]) => k) };
+    }
+    
+    // All pass — OK to mark as Filed
+    return { verified: true, checks };
+}
+
+module.exports.verifyFilingComplete = verifyFilingComplete;
+
+// ═══ FILE FREEZE RULE ═══
+// Once PDF is generated for approval:
+// - Lock the file (file_locked = true)
+// - Assign version ID (sha256 hash)
+// - SAME file must be used for filing — NO regeneration after approval
+// - If regenerated → new approval required
+
+const crypto = require('crypto');
+
+async function lockFileForApproval(caseId, filePath, fileType) {
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(filePath);
+    const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    const versionId = 'v1_' + hash.substring(0, 12);
+    
+    // Store in case_documents with lock flag
+    const { data, error } = await supabase.from('case_documents').insert({
+        case_id: caseId,
+        file_name: require('path').basename(filePath),
+        file_url: filePath, // Will be replaced with Supabase storage URL after upload
+        file_type: fileType,
+        uploaded_by: 'auto-filing-engine',
+        notes: JSON.stringify({ locked: true, version_id: versionId, hash: hash, locked_at: new Date().toISOString() })
+    }).select().single();
+    
+    if (error) {
+        console.error('[FILE FREEZE] Failed to lock ' + caseId + ':', error.message);
+        return { ok: false, error: error.message };
+    }
+    
+    console.log('[FILE FREEZE] ✅ ' + caseId + ' locked: ' + versionId);
+    return { ok: true, version_id: versionId, hash, document_id: data.id };
+}
+
+async function validateFileForFiling(caseId, filePath) {
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(filePath);
+    const currentHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    
+    // Get the locked document
+    const { data: docs } = await supabase.from('case_documents')
+        .select('*').eq('case_id', caseId)
+        .in('file_type', ['evidence', 'protest']);
+    
+    const locked = (docs || []).find(d => {
+        try {
+            const meta = JSON.parse(d.notes || '{}');
+            return meta.locked === true;
+        } catch { return false; }
+    });
+    
+    if (!locked) {
+        return { valid: false, error: 'No locked file found. Generate and lock before filing.' };
+    }
+    
+    const meta = JSON.parse(locked.notes);
+    if (meta.hash !== currentHash) {
+        // File was regenerated — block filing, require new approval
+        console.error('[FILE FREEZE] ❌ ' + caseId + ' file hash mismatch! Regeneration detected.');
+        await supabase.from('submissions').update({
+            filing_approval_status: 'needs_approval',
+            filing_status: 'ready_to_file',
+            updated_at: new Date().toISOString()
+        }).eq('case_id', caseId);
+        
+        return { valid: false, error: 'File regenerated after approval. New approval required.', expected: meta.hash, actual: currentHash };
+    }
+    
+    return { valid: true, version_id: meta.version_id };
+}
+
+module.exports.lockFileForApproval = lockFileForApproval;
+module.exports.validateFileForFiling = validateFileForFiling;
+
+// ═══ HARD BLOCK: NO SYNTHETIC COMPS ═══
+// ONLY county appraisal district data allowed
+const ALLOWED_COMP_SOURCES = ['BCAD', 'FBCAD', 'KCAD', 'CCAD', 'HCAD', 'DCAD', 'TCAD', 'WCAD', 'county_verified'];
+const BLOCKED_COMP_SOURCES = ['rentcast-api', 'synthetic-estimate', 'zillow', 'redfin', 'realtor', 'mls'];
+const MIN_COUNTY_COMPS = 8;
+
+function validateCompSource(comp) {
+    const src = (comp.source || comp.data_source || '').toLowerCase();
+    if (BLOCKED_COMP_SOURCES.some(b => src.includes(b))) {
+        return { valid: false, reason: 'BLOCKED source: ' + src };
+    }
+    if (!ALLOWED_COMP_SOURCES.some(a => src.toLowerCase() === a.toLowerCase())) {
+        return { valid: false, reason: 'Unrecognized source: ' + src + '. Must be county CAD.' };
+    }
+    return { valid: true, source: src };
+}
+
+function validateAllComps(comps) {
+    if (!comps || !Array.isArray(comps)) {
+        return { valid: false, error: 'No comps provided', county_count: 0 };
+    }
+    
+    const results = comps.map((c, i) => ({
+        index: i + 1,
+        address: c.address || '?',
+        ...validateCompSource(c)
+    }));
+    
+    const validComps = results.filter(r => r.valid);
+    const invalidComps = results.filter(r => !r.valid);
+    
+    if (invalidComps.length > 0) {
+        console.error('[COMP BLOCK] Invalid comps found:', invalidComps.map(c => c.address + ' (' + c.reason + ')').join('; '));
+    }
+    
+    if (validComps.length < MIN_COUNTY_COMPS) {
+        return {
+            valid: false,
+            error: 'Only ' + validComps.length + ' county comps. Need minimum ' + MIN_COUNTY_COMPS + '.',
+            county_count: validComps.length,
+            invalid: invalidComps
+        };
+    }
+    
+    return { valid: true, county_count: validComps.length, comps: validComps };
+}
+
+module.exports.validateCompSource = validateCompSource;
+module.exports.validateAllComps = validateAllComps;
+module.exports.ALLOWED_COMP_SOURCES = ALLOWED_COMP_SOURCES;
+module.exports.MIN_COUNTY_COMPS = MIN_COUNTY_COMPS;
