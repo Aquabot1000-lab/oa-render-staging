@@ -519,11 +519,13 @@
             ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
         }
 
-        function renderDocuments(d) {
+        function renderDocuments(d, dbDocs) {
             const body = document.getElementById('documentsBody');
             const docs = [];
 
-            // Notice document with visual warning badges
+            // --- Key documents from submission record ---
+
+            // 1. Notice of Appraised Value
             if (d.notice_url) {
                 const isWrong = (d.notes || '').includes('WRONG FILE');
                 docs.push({
@@ -534,7 +536,6 @@
                     url: d.notice_url
                 });
             } else {
-                // Missing notice badge
                 docs.push({
                     icon: '📄', cls: 'error',
                     name: 'Notice of Appraised Value',
@@ -543,27 +544,65 @@
                     url: null
                 });
             }
-            if (d.evidence_packet_path) {
-                docs.push({ icon: '📋', cls: 'evidence', name: 'Evidence Packet', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">GENERATED</span>', meta: `Generated · ${d.analysis_status || ''}`, url: null });
-            }
+
+            // 2. Form 50-162 (Agent Appointment)
             if (d.signature) {
-                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">SIGNED</span>', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
+                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162 (Agent Appointment)', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">SIGNED</span>', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
             } else {
-                docs.push({ icon: '✍️', cls: 'error', name: 'Form 50-162', badge: '<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">NOT SIGNED</span>', meta: 'Agreement not yet signed', url: null });
+                docs.push({ icon: '✍️', cls: 'error', name: 'Form 50-162 (Agent Appointment)', badge: '<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">NOT SIGNED</span>', meta: 'Authorization not yet signed', url: null });
             }
+
+            // 3. TaxNet / Evidence Packet
+            if (d.evidence_packet_path) {
+                docs.push({ icon: '📋', cls: 'evidence', name: 'TaxNet Evidence Package', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">GENERATED</span>', meta: `Generated · ${d.analysis_status || ''}`, url: null });
+            }
+
+            // 4. Filing package
+            if (d.filing_data?.filingPdfPath) {
+                docs.push({ icon: '📨', cls: 'evidence', name: 'Filing Package', badge: '<span style="background:#312e81;color:#c7d2fe;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">PREPARED</span>', meta: `Prepared ${fmtDate(d.filing_data.preparedAt)}`, url: null });
+            }
+
+            // 5. Fee Agreement
             if (d.agreement_url) {
                 docs.push({ icon: '📝', cls: 'agreement', name: 'Fee Agreement', badge: '', meta: d.agreement_type || '', url: d.agreement_url });
             }
 
+            // --- Documents from case_documents table ---
+            const typeIcons = { notice: '📄', protest: '📋', evidence: '📊', receipt: '🧾', form_50_162: '✍️', package: '📦', other: '📎' };
+            const typeCls = { notice: 'notice', protest: 'evidence', evidence: 'evidence', receipt: 'agreement', form_50_162: 'agreement', package: 'evidence', other: 'notice' };
+
+            if (dbDocs && dbDocs.length > 0) {
+                for (const doc of dbDocs) {
+                    docs.push({
+                        icon: typeIcons[doc.file_type] || '📎',
+                        cls: typeCls[doc.file_type] || 'notice',
+                        name: doc.file_name || doc.file_type || 'Document',
+                        badge: `<span style="background:#312e81;color:#c7d2fe;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">${(doc.file_type || 'file').toUpperCase()}</span>`,
+                        meta: `Uploaded ${fmtDate(doc.uploaded_at)}`,
+                        url: doc.file_url,
+                        id: doc.id
+                    });
+                }
+            }
+
             document.getElementById('docCount').textContent = docs.length;
+
+            if (docs.length === 0) {
+                body.innerHTML = '<div class="empty-state">No documents yet</div>';
+                return;
+            }
+
             body.innerHTML = docs.map(doc => `
-                <div class="doc-item">
+                <div class="doc-item" ${doc.url ? 'style="cursor:pointer;"' : ''}>
                     <div class="doc-icon ${doc.cls}">${doc.icon}</div>
-                    <div>
+                    <div style="flex:1;">
                         <div class="doc-name">${doc.name}${doc.badge || ''}</div>
                         <div class="doc-meta">${doc.meta}</div>
                     </div>
-                    ${doc.url ? `<div class="doc-action"><a href="${doc.url}" target="_blank">View →</a></div>` : ''}
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        ${doc.url ? `<a href="${doc.url}" target="_blank" style="color:#818cf8;font-size:12px;text-decoration:none;font-weight:600;" title="Open document">View →</a>` : ''}
+                        ${doc.url ? `<a href="${doc.url}" download style="color:#64748b;font-size:14px;text-decoration:none;" title="Download">⬇</a>` : ''}
+                    </div>
                 </div>
             `).join('');
         }
@@ -749,13 +788,20 @@
             await loadTimeline();
         }
 
-        async function loadCase() {
-            const data = await apiGet(`case/${caseId}`);
+        let caseDocs = []; // from case_documents table
+
+        async function loadAll() {
+            const data = await apiGet(`full/${caseId}`);
             if (!data || data.error) {
                 document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:#ef4444;font-size:18px;">Case not found: ' + caseId + (data?.error ? ' — ' + data.error : '') + '</div>';
                 return;
             }
-            caseData = data;
+            caseData = data.case || data;
+            caseDocs = data.documents || [];
+            const comms = data.communications || [];
+            const tasks = data.tasks || [];
+            const activities = data.activities || [];
+
             document.title = `${caseId} — ${caseData.owner_name} — OverAssessed`;
             document.getElementById('caseIdBadge').textContent = caseId;
             const pill = document.getElementById('statusPill');
@@ -765,23 +811,21 @@
             renderCustomer(caseData);
             renderProperty(caseData);
             renderAnalysis(caseData);
-            renderDocuments(caseData);
+            renderDocuments(caseData, caseDocs);
             computeNextBestAction(caseData);
             renderAnalysisWarning(caseData);
+            renderTimeline(activities, comms);
+            renderTasks(tasks);
+            updateActionBarState();
         }
 
-        async function loadTimeline() {
-            const data = await apiGet(`timeline/${caseId}`);
-            renderTimeline(data?.activities || [], data?.communications || []);
-        }
-
-        async function loadTasks() {
-            const data = await apiGet(`tasks/${caseId}`);
-            renderTasks(data?.tasks || []);
-        }
+        // Keep legacy loaders as fallbacks for individual refresh
+        async function loadCase() { await loadAll(); }
+        async function loadTimeline() { /* loaded in loadAll */ }
+        async function loadTasks() { /* loaded in loadAll */ }
 
         async function refreshData() {
-            await Promise.all([loadCase(), loadTimeline(), loadTasks()]);
+            await loadAll();
             toast('↻ Refreshed');
         }
 
@@ -1152,18 +1196,9 @@
             }
         }
 
-        // Hook into loadCase to update action bar state
-        const _origLoadCase = loadCase;
-        loadCase = async function() {
-            await _origLoadCase();
-            updateActionBarState();
-        };
-
-        // Init
+        // Init — single call loads everything
         if (caseId) {
-            loadCase();
-            loadTimeline();
-            loadTasks();
+            loadAll();
         }
     </script>
 </body>
