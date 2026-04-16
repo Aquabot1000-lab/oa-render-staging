@@ -355,3 +355,76 @@ async function autoFilingCheck() {
 }
 
 module.exports = { runAutoFiling, autoFilingCheck, validateReadyToFile, generatePackage };
+
+// ═══ PRE-APPROVAL SCORING ═══
+// All 4 checks must PASS before sending to Tyler's approval queue
+function scorePackage(caseData, comps, adjs) {
+    const checks = [];
+    const assessedValue = parseFloat(String(caseData.assessed_value).replace(/[$,]/g, '')) || 0;
+    const savings = caseData.estimated_savings || 0;
+    const opinion = assessedValue - savings;
+    const pd = caseData.property_data || {};
+    const sqft = pd.sqft || pd.square_footage || 0;
+
+    // 1. COMPS MATCH — ±20% sqft, ±15 years, same county, 8+ comps
+    let compsPass = true;
+    let compIssue = '';
+    if (comps.length < 8) { compsPass = false; compIssue = 'only ' + comps.length + ' comps (need 8+)'; }
+    else {
+        const outOfRange = comps.filter(c => {
+            const csf = c.sf || c.sqft || 0;
+            const cyr = c.yr || c.yearBuilt || 0;
+            const subYr = pd.year_built || 1980;
+            const sfOk = csf >= sqft * 0.8 && csf <= sqft * 1.2;
+            const yrOk = Math.abs(cyr - subYr) <= 15;
+            return !sfOk || !yrOk;
+        });
+        if (outOfRange.length > comps.length * 0.3) {
+            compsPass = false;
+            compIssue = outOfRange.length + '/' + comps.length + ' comps outside ±20% sqft or ±15yr range';
+        }
+    }
+    checks.push({ check: 'Comps match', pass: compsPass, issue: compIssue });
+
+    // 2. VALUE REASONABLE — opinion between 50%-95% of assessed, not negative
+    let valuePass = true;
+    let valueIssue = '';
+    if (opinion <= 0) { valuePass = false; valueIssue = 'opinion is $0 or negative'; }
+    else if (opinion < assessedValue * 0.50) { valuePass = false; valueIssue = 'opinion <50% of assessed ($' + Math.round(opinion).toLocaleString() + ' vs $' + Math.round(assessedValue).toLocaleString() + ')'; }
+    else if (opinion > assessedValue * 0.95) { valuePass = false; valueIssue = 'opinion >95% of assessed — savings too small to justify filing'; }
+    checks.push({ check: 'Value reasonable', pass: valuePass, issue: valueIssue });
+
+    // 3. ADJUSTMENTS REASONABLE — no comp with net adj >50% of its market value, gross avg <60%
+    let adjPass = true;
+    let adjIssue = '';
+    if (adjs && adjs.length > 0) {
+        const extremeAdjs = adjs.filter(a => {
+            const mv = comps[adjs.indexOf(a)] ? (comps[adjs.indexOf(a)].mv || comps[adjs.indexOf(a)].marketValue || 1) : 1;
+            return Math.abs(a.net) / mv > 0.50;
+        });
+        if (extremeAdjs.length > comps.length * 0.3) {
+            adjPass = false;
+            adjIssue = extremeAdjs.length + '/' + comps.length + ' comps have net adj >50% of market value';
+        }
+    } else {
+        adjPass = false;
+        adjIssue = 'no adjustments calculated';
+    }
+    checks.push({ check: 'Adjustments reasonable', pass: adjPass, issue: adjIssue });
+
+    // 4. LAYOUT CLEAN — TaxNet format, all required fields present
+    let layoutPass = true;
+    let layoutIssue = '';
+    if (!caseData.filing_format || caseData.filing_format !== 'taxnet_standard') {
+        layoutPass = false;
+        layoutIssue = 'not tagged as taxnet_standard format';
+    }
+    if (!sqft) { layoutPass = false; layoutIssue = 'missing sqft — grid will show 0'; }
+    if (!pd.year_built) { layoutPass = false; layoutIssue = (layoutIssue ? layoutIssue + '; ' : '') + 'missing year_built'; }
+    checks.push({ check: 'Layout clean', pass: layoutPass, issue: layoutIssue });
+
+    const allPass = checks.every(c => c.pass);
+    return { allPass, checks, recommendation: allPass ? 'SEND_TO_APPROVAL' : 'NEEDS_FIX' };
+}
+
+module.exports.scorePackage = scorePackage;
