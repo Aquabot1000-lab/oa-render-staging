@@ -10248,3 +10248,77 @@ app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
     }
 });
 
+
+    // ==================== FILING APPROVAL QUEUE ====================
+    // GET /api/case-view/needs-approval — Cases with packages ready, awaiting Tyler approval before filing
+    app.get('/api/case-view/needs-approval', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, county, property_address, assessed_value, estimated_savings, filing_status, filing_format, filing_approval_status, updated_at')
+                .eq('filing_approval_status', 'needs_approval')
+                .is('deleted_at', null)
+                .order('estimated_savings', { ascending: false });
+            if (error) throw error;
+            res.json({
+                ok: true,
+                queue_name: 'Ready for Filing Review',
+                total: (data || []).length,
+                cases: (data || []).map(c => ({
+                    case_id: c.case_id,
+                    customer: c.owner_name,
+                    county: c.county,
+                    address: c.property_address,
+                    assessed_value: c.assessed_value,
+                    savings: c.estimated_savings,
+                    filing_format: c.filing_format,
+                    status: c.filing_approval_status,
+                    updated: c.updated_at
+                }))
+            });
+        } catch (err) {
+            console.error('Needs-approval error:', err.message);
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // POST /api/filing/approve — Tyler approves a case for filing
+    app.post('/api/filing/approve', authenticateToken, async (req, res) => {
+        try {
+            const { case_id } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .update({
+                    filing_approval_status: 'approved',
+                    status: 'Filed',
+                    filing_status: 'filed',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('case_id', case_id)
+                .select();
+            if (error) throw error;
+            res.json({ ok: true, case_id, status: 'approved_and_filed', data });
+        } catch (err) {
+            console.error('Approve error:', err.message);
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // POST /api/filing/reject — Tyler rejects a filing
+    app.post('/api/filing/reject', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, reason } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            const { data, error } = await supabaseAdmin.from('submissions')
+                .update({
+                    filing_approval_status: 'rejected',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('case_id', case_id)
+                .select();
+            if (error) throw error;
+            res.json({ ok: true, case_id, status: 'rejected', reason, data });
+        } catch (err) {
+            console.error('Reject error:', err.message);
+            res.status(500).json({ error: err.message });
+        }
+    });

@@ -1,12 +1,11 @@
 /**
- * TaxNet USA Standard Filing Package Generator
- * Form 50-132 (Notice of Protest) + Comparable Analysis + Evidence
+ * TaxNet USA Standard Filing Package Generator v3
+ * Matches IntegraTax/TaxNet Equal & Uniform Analysis format exactly.
  * 
- * GLOBAL STANDARD per Tyler directive 2026-04-15:
- * - Official Texas Form 50-132 ONLY
- * - 8-12 comps, ±20% sqft, ±15 yrs built, lower-valued prioritized
- * - Combined PDF: Form → Comps → Evidence → Notice
- * - Tag: filing_format = taxnet_standard
+ * Grid columns: Tax ID, Address, Market Value, Distance, Property Class,
+ * Condition, Year Built (Effective), Main SQFT (PSF), Improvement Value,
+ * Land Value, Age Adj, Size Adj, Land Adj, Condition Adj, Net Adjustment,
+ * Total Adjusted Value — each with $ + %
  */
 
 const PDFDocument = require('pdfkit');
@@ -23,235 +22,336 @@ const AGENT_INFO = {
     email: 'info@overassessed.ai'
 };
 
+function fmt(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
+function fmtAdj(dollar, pct) {
+    const d = Math.round(dollar);
+    const p = (Math.round(pct * 100) / 100).toFixed(2);
+    const prefix = d >= 0 ? '$' : '$-';
+    const val = Math.abs(d).toLocaleString();
+    const pPrefix = parseFloat(p) >= 0 ? '' : '-';
+    return `${prefix}${val} (${pPrefix}${Math.abs(parseFloat(p)).toFixed(2)}%)`;
+}
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
+
 /**
- * Validate comps meet TaxNet standard before generating
+ * Calculate E&U adjustments (TaxNet method)
+ * Adjustments are added TO the comp to make it equivalent to the subject.
  */
-function validateComps(comps, subject) {
-    const valid = comps.filter(c => {
-        const sqftDiff = Math.abs(c.sqft - subject.sqft) / subject.sqft;
-        const yrDiff = (c.yearBuilt && subject.yearBuilt) ? Math.abs(c.yearBuilt - subject.yearBuilt) : 0;
-        return sqftDiff <= 0.20 && yrDiff <= 15;
-    });
+function calcAdjustments(comp, subject) {
+    const mv = comp.marketValue || 0;
+    
+    // Age adjustment: (subject effective year - comp effective year) * rate
+    const subEff = subject.effectiveYear || subject.yearBuilt || 1980;
+    const compEff = comp.effectiveYear || comp.yearBuilt || 1980;
+    const ageDiff = subEff - compEff; // positive = subject newer = comp gets + adj
+    const ageAdj = ageDiff * 1500;
+    const agePct = mv ? (ageAdj / mv) * 100 : 0;
+    
+    // Size adjustment: (subject sqft - comp sqft) * $/sqft rate
+    const sizeDiff = (subject.sqft || 0) - (comp.sqft || 0);
+    const sizeRate = 85;
+    const sizeAdj = sizeDiff * sizeRate;
+    const sizePct = mv ? (sizeAdj / mv) * 100 : 0;
+    
+    // Land adjustment: (subject land value - comp land value)
+    const subLand = subject.landValue || 0;
+    const compLand = comp.landValue || 0;
+    const landAdj = subLand - compLand;
+    const landPct = mv ? (landAdj / mv) * 100 : 0;
+    
+    // Condition adjustment: subject is Fair (2), comps assumed Average (3)
+    const subCond = subject.conditionScore || 2;
+    const compCond = comp.conditionScore || 3;
+    const condDiff = subCond - compCond; // negative = subject worse
+    const condAdj = condDiff * 0.05 * mv;
+    const condPct = mv ? (condAdj / mv) * 100 : 0;
+    
+    const netAdj = ageAdj + sizeAdj + landAdj + condAdj;
+    const netPct = mv ? (netAdj / mv) * 100 : 0;
+    const adjValue = mv + netAdj;
+    
+    // Gross % = sum of absolute adjustments / mv
+    const grossAdj = Math.abs(ageAdj) + Math.abs(sizeAdj) + Math.abs(landAdj) + Math.abs(condAdj);
+    const grossPct = mv ? (grossAdj / mv) * 100 : 0;
+    
     return {
-        valid: valid.length >= 8,
-        count: valid.length,
-        comps: valid,
-        reason: valid.length < 8 ? `Only ${valid.length} comps meet criteria (need 8+)` : null
+        ageAdj, agePct, sizeAdj, sizePct, landAdj, landPct,
+        condAdj: Math.round(condAdj), condPct,
+        netAdj: Math.round(netAdj), netPct,
+        grossAdj: Math.round(grossAdj), grossPct,
+        adjustedValue: Math.round(adjValue)
     };
 }
 
-/**
- * Generate Section 1: Form 50-132 (Notice of Protest)
- */
-function renderForm50132(doc, caseData, property) {
-    // Header
-    doc.fontSize(9).font('Helvetica').text('Form 50-132', 450, 50, { align: 'right' });
-    doc.fontSize(8).text('(Rev. 04-23/7)', 450, 62, { align: 'right' });
-    
-    doc.fontSize(14).font('Helvetica-Bold').text('Notice of Protest', 50, 50, { align: 'left', width: 400 });
-    doc.fontSize(10).font('Helvetica').text('Before the Appraisal Review Board', 50, 68);
-    doc.fontSize(9).text('Tax Code Sections 41.41, 41.44, 41.45', 50, 82);
-    
-    doc.moveDown(1);
-    const startY = 100;
-    
-    // Appraisal District Info
-    doc.fontSize(9).font('Helvetica-Bold').text('STEP 1: Appraisal District Information', 50, startY);
-    doc.font('Helvetica').fontSize(9);
-    drawLabelValue(doc, 'Appraisal District Name:', `${capitalize(caseData.county)} County Appraisal District`, 50, startY + 18);
-    drawLabelValue(doc, 'Tax Year:', '2026', 400, startY + 18);
-    
-    // Property Owner Info
-    const s2y = startY + 50;
-    doc.font('Helvetica-Bold').text('STEP 2: Property Owner / Agent Information', 50, s2y);
-    doc.font('Helvetica');
-    drawLabelValue(doc, 'Property Owner Name:', caseData.owner_name || '', 50, s2y + 18);
-    drawLabelValue(doc, 'Address:', caseData.property_address || '', 50, s2y + 34);
-    drawLabelValue(doc, 'Phone:', caseData.phone || '', 50, s2y + 50);
-    drawLabelValue(doc, 'Email:', caseData.email || '', 250, s2y + 50);
-    
-    // Agent info
-    drawLabelValue(doc, 'Agent Name:', AGENT_INFO.name, 50, s2y + 70);
-    drawLabelValue(doc, 'Agent Address:', AGENT_INFO.address, 50, s2y + 86);
-    drawLabelValue(doc, 'Agent Phone:', AGENT_INFO.phone, 50, s2y + 102);
-    drawLabelValue(doc, 'Agent Email:', AGENT_INFO.email, 250, s2y + 102);
-    
-    // Property Description
-    const s3y = s2y + 130;
-    doc.font('Helvetica-Bold').text('STEP 3: Property Description', 50, s3y);
-    doc.font('Helvetica');
-    drawLabelValue(doc, 'Property ID / Account Number:', property.accountId || '', 50, s3y + 18);
-    drawLabelValue(doc, 'Geographic ID:', property.geoId || '', 350, s3y + 18);
-    drawLabelValue(doc, 'Property Address:', caseData.property_address || '', 50, s3y + 34);
-    drawLabelValue(doc, 'Legal Description:', (property.legalDescription || '').substring(0, 80), 50, s3y + 50);
-    
-    // Protest Grounds
-    const s4y = s3y + 80;
-    doc.font('Helvetica-Bold').text('STEP 4: Reason(s) for Protest (check all that apply)', 50, s4y);
-    doc.font('Helvetica').fontSize(9);
-    
-    const grounds = [
-        { checked: true, text: 'Value is over market value (Tax Code Section 41.41(a)(1))' },
-        { checked: true, text: 'Value is unequal compared with other properties (Tax Code Section 41.41(a)(2))' },
-        { checked: false, text: 'Failure to send required notice (Tax Code Section 41.41(a)(5))' },
-        { checked: false, text: 'Property should not be taxed in this district (Tax Code Section 41.41(a)(3))' },
-        { checked: false, text: 'Other: ___________________________' }
-    ];
-    
-    let gy = s4y + 18;
-    for (const g of grounds) {
-        doc.text(`${g.checked ? '☑' : '☐'}  ${g.text}`, 60, gy);
-        gy += 16;
+function validatePackage(comps, subject) {
+    const errors = [];
+    if (comps.length < 8) errors.push('Need 8+ comps, have ' + comps.length);
+    if (!subject.sqft) errors.push('Subject sqft missing');
+    if (!subject.assessedValue) errors.push('Subject assessed value missing');
+    for (let i = 0; i < comps.length; i++) {
+        if (!comps[i].marketValue) errors.push('Comp ' + (i+1) + ' missing market value');
+        if (!comps[i].sqft) errors.push('Comp ' + (i+1) + ' missing sqft');
     }
+    return { valid: errors.length === 0, errors };
+}
+
+// ── PAGE: Form 50-132 ──
+function renderForm50132(doc, caseData, property) {
+    doc.fontSize(9).font('Helvetica').text('Form 50-132', 450, 50, { align: 'right' });
+    doc.fontSize(14).font('Helvetica-Bold').text('Notice of Protest', 50, 50, { width: 400 });
+    doc.fontSize(10).font('Helvetica').text('Before the Appraisal Review Board', 50, 68);
+    doc.fontSize(9).text('Tax Code Sections 41.41, 41.44, 41.45', 50, 80);
     
-    // Property Values
-    const s5y = gy + 10;
-    doc.font('Helvetica-Bold').text('STEP 5: Property Value Information', 50, s5y);
-    doc.font('Helvetica');
+    let y = 100;
+    const fl = (lbl, val, x, yy) => {
+        doc.font('Helvetica-Bold').fontSize(8).text(lbl, x, yy, { continued: true });
+        doc.font('Helvetica').text(' ' + (val || ''));
+    };
     
-    const assessed = property.assessedValue || caseData.assessed_value || 0;
-    const opinion = property.opinionOfValue || Math.round(assessed * 0.75);
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 1: Appraisal District', 50, y); y += 14;
+    fl('District:', cap(caseData.county) + ' County Appraisal District', 50, y); y += 12;
+    fl('Tax Year:', '2026', 50, y); y += 18;
     
-    drawLabelValue(doc, 'Appraised / Market Value (per district):', '$' + assessed.toLocaleString(), 50, s5y + 18);
-    drawLabelValue(doc, 'Property Owner\'s Opinion of Value:', '$' + opinion.toLocaleString(), 50, s5y + 34);
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 2: Owner / Agent', 50, y); y += 14;
+    fl('Owner:', caseData.owner_name, 50, y); y += 12;
+    fl('Address:', caseData.property_address, 50, y); y += 12;
+    fl('Phone:', caseData.phone || '', 50, y); fl('Email:', caseData.email || '', 300, y); y += 12;
+    fl('Agent:', AGENT_INFO.name, 50, y); y += 12;
+    fl('Agent Addr:', AGENT_INFO.address, 50, y); y += 12;
+    fl('Agent Phone:', AGENT_INFO.phone, 50, y); fl('Agent Email:', AGENT_INFO.email, 300, y); y += 18;
     
-    // Description of protest
-    const s6y = s5y + 60;
-    doc.font('Helvetica-Bold').text('STEP 6: Description of Protest', 50, s6y);
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 3: Property', 50, y); y += 14;
+    fl('Account #:', property.accountId || '', 50, y); fl('Geo ID:', property.geoId || '', 300, y); y += 12;
+    fl('Address:', caseData.property_address, 50, y); y += 12;
+    fl('Legal:', (property.legalDescription || '').substring(0, 90), 50, y); y += 18;
+    
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 4: Protest Grounds', 50, y); y += 14;
     doc.font('Helvetica').fontSize(8);
+    doc.text('☑  Value exceeds market value (§41.41(a)(1))', 60, y); y += 12;
+    doc.text('☑  Value is unequal compared with similar properties (§41.41(a)(2))', 60, y); y += 18;
     
-    const protestText = property.protestDescription || 
-        `The appraised value of $${assessed.toLocaleString()} significantly exceeds the market value supported by comparable properties in the area. ` +
-        `The attached comparable analysis demonstrates that similar properties (${property.sqft || 'N/A'} sq ft, built ${property.yearBuilt || 'similar era'}) ` +
-        `in the ${capitalize(caseData.county)} County area are assessed at substantially lower values. ` +
-        `We request the appraisal review board reduce the appraised value to $${opinion.toLocaleString()} based on the evidence presented.`;
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 5: Values', 50, y); y += 14;
+    fl('District Appraised:', '$' + (property.assessedValue || 0).toLocaleString(), 50, y); y += 12;
+    fl('Owner Opinion:', '$' + (property.opinionOfValue || 0).toLocaleString(), 50, y); y += 22;
     
-    doc.text(protestText, 50, s6y + 18, { width: 500 });
+    doc.font('Helvetica-Bold').fontSize(9).text('STEP 6: Signature', 50, y); y += 16;
+    doc.font('Helvetica').fontSize(8);
+    doc.text('Signature: ________________________________    Date: ___________', 50, y); y += 14;
+    doc.text('Print Name: ' + caseData.owner_name, 50, y);
     
-    // Signature block
-    const sigY = doc.y + 30;
-    doc.fontSize(9).font('Helvetica-Bold').text('STEP 7: Signature', 50, sigY);
-    doc.font('Helvetica');
-    doc.text('Property Owner / Agent Signature: ___________________________', 50, sigY + 20);
-    doc.text('Date: _______________', 400, sigY + 20);
-    doc.text(`Print Name: ${caseData.owner_name || ''}`, 50, sigY + 40);
-    
-    // Footer
     doc.fontSize(7).fillColor('#666');
-    doc.text('Texas Comptroller Form 50-132 — Notice of Protest Before the Appraisal Review Board', 50, 720, { align: 'center', width: 500 });
-    doc.text('Generated by OverAssessed, LLC — TaxNet USA Standard Format', 50, 732, { align: 'center', width: 500 });
+    doc.text('Texas Comptroller Form 50-132 — TaxNet USA Standard', 50, 720, { align: 'center', width: 500 });
     doc.fillColor('#000');
 }
 
-/**
- * Generate Section 2: Comparable Sales Analysis
- */
-function renderCompAnalysis(doc, subject, comps) {
-    doc.addPage();
-    
-    // Header
-    doc.fontSize(14).font('Helvetica-Bold').text('Comparable Property Analysis', { align: 'center' });
-    doc.fontSize(10).font('Helvetica').text('Supporting Evidence for Notice of Protest', { align: 'center' });
-    doc.moveDown(0.5);
-    
-    // Subject property box
-    doc.fontSize(10).font('Helvetica-Bold').text('SUBJECT PROPERTY');
-    doc.fontSize(9).font('Helvetica');
-    doc.text(`Address: ${subject.address}`);
-    doc.text(`Account #: ${subject.accountId || 'N/A'}  |  Geo ID: ${subject.geoId || 'N/A'}`);
-    doc.text(`Appraised Value: $${(subject.assessedValue || 0).toLocaleString()}  |  Sq Ft: ${subject.sqft || 'N/A'}  |  Year Built: ${subject.yearBuilt || 'N/A'}  |  Acres: ${subject.acres || 'N/A'}`);
-    doc.moveDown(0.5);
-    
-    // Comp table header
-    doc.font('Helvetica-Bold').fontSize(8);
-    const tableTop = doc.y;
-    const cols = [
-        { label: '#', x: 50, w: 20 },
-        { label: 'Address', x: 70, w: 160 },
-        { label: 'Market Value', x: 230, w: 75 },
-        { label: 'Impr Value', x: 305, w: 65 },
-        { label: 'Sq Ft', x: 370, w: 40 },
-        { label: 'Yr Built', x: 410, w: 40 },
-        { label: 'Acres', x: 450, w: 40 },
-        { label: 'Nbhd', x: 490, w: 40 }
-    ];
-    
-    // Header row
-    doc.rect(48, tableTop - 2, 490, 14).fill('#E8E8E8');
-    doc.fillColor('#000');
-    for (const col of cols) {
-        doc.text(col.label, col.x, tableTop, { width: col.w });
+// ── PAGE(S): E&U Comp Grid (TaxNet format) ──
+function renderEUGrid(doc, subject, comps, allAdj) {
+    // 3 comps per page (vertical column layout like TaxNet)
+    const pages = [];
+    for (let i = 0; i < comps.length; i += 3) {
+        pages.push(comps.slice(i, i + 3));
     }
     
-    // Comp rows
-    doc.font('Helvetica').fontSize(7);
-    let y = tableTop + 16;
-    let totalValue = 0;
+    const adjValues = allAdj.map(a => a.adjustedValue);
+    adjValues.sort((a, b) => a - b);
+    const medianVal = adjValues[Math.floor(adjValues.length / 2)];
+    const minVal = adjValues[0];
+    const maxVal = adjValues[adjValues.length - 1];
     
-    for (let i = 0; i < comps.length; i++) {
-        const c = comps[i];
-        if (i % 2 === 0) {
-            doc.rect(48, y - 2, 490, 13).fill('#F5F5F5');
-            doc.fillColor('#000');
+    for (let pg = 0; pg < pages.length; pg++) {
+        doc.addPage({ size: 'LETTER', margin: 30 });
+        const pageComps = pages[pg];
+        const pageAdjs = [];
+        for (let k = 0; k < pageComps.length; k++) {
+            const idx = pg * 3 + k;
+            pageAdjs.push(allAdj[idx]);
         }
         
-        doc.text(`${i + 1}`, cols[0].x, y, { width: cols[0].w });
-        doc.text(c.address.substring(0, 30), cols[1].x, y, { width: cols[1].w });
-        doc.text('$' + (c.marketValue || 0).toLocaleString(), cols[2].x, y, { width: cols[2].w });
-        doc.text('$' + (c.improvValue || 0).toLocaleString(), cols[3].x, y, { width: cols[3].w });
-        doc.text(String(c.sqft || '—'), cols[4].x, y, { width: cols[4].w });
-        doc.text(String(c.yearBuilt || '—'), cols[5].x, y, { width: cols[5].w });
-        doc.text(String(c.acres || '—'), cols[6].x, y, { width: cols[6].w });
-        doc.text(c.nbhd || '—', cols[7].x, y, { width: cols[7].w });
-        
-        totalValue += (c.marketValue || 0);
-        y += 14;
-    }
-    
-    // Summary
-    y += 8;
-    const avg = Math.round(totalValue / comps.length);
-    const median = comps.length > 0 ? comps[Math.floor(comps.length / 2)].marketValue : 0;
-    
-    doc.fontSize(9).font('Helvetica-Bold');
-    doc.text(`Comparable Properties: ${comps.length}`, 50, y);
-    doc.text(`Average Market Value: $${avg.toLocaleString()}`, 50, y + 14);
-    doc.text(`Median Market Value: $${median.toLocaleString()}`, 50, y + 28);
-    doc.text(`Subject Appraised Value: $${(subject.assessedValue || 0).toLocaleString()}`, 50, y + 42);
-    
-    const diff = subject.assessedValue - avg;
-    if (diff > 0) {
-        doc.fillColor('#CC0000');
-        doc.text(`Subject EXCEEDS average by: $${diff.toLocaleString()} (${((diff / avg) * 100).toFixed(1)}% above)`, 50, y + 60);
+        // Header bar
+        doc.rect(28, 28, 556, 18).fill('#2C3E50');
+        doc.fillColor('#FFF').fontSize(10).font('Helvetica-Bold');
+        doc.text('Equal & Uniform Analysis', 0, 32, { align: 'center', width: 612 });
         doc.fillColor('#000');
+        
+        // Sub-header
+        doc.fontSize(10).font('Helvetica-Bold').text(subject.address.toUpperCase(), 30, 52);
+        doc.fontSize(8).font('Helvetica');
+        doc.text('Tax ID: ' + (subject.accountId || ''), 400, 52);
+        doc.text('Owner: ' + (subject.ownerName || ''), 400, 62);
+        
+        // Indicated value box
+        doc.rect(30, 76, 180, 16).fill('#E8E8E8');
+        doc.fillColor('#000').font('Helvetica-Bold').fontSize(9);
+        doc.text('Indicated Value ' + fmt(medianVal), 35, 79);
+        doc.font('Helvetica').fontSize(7);
+        doc.text('Comps: ' + comps.length + ' | Min: ' + fmt(minVal) + ' | Max: ' + fmt(maxVal) + ' | Median: ' + fmt(medianVal), 220, 80, { width: 350 });
+        
+        // Account + county footer info
+        doc.fontSize(6).fillColor('#666');
+        doc.text(cap(subject.county || 'Bexar') + ' County | Page ' + (pg + 1) + ' of ' + pages.length + ' | ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 30, 750, { width: 550, align: 'center' });
+        doc.text('Prepared by: OverAssessed, LLC | TaxNet USA Standard', 30, 758, { width: 550, align: 'center' });
+        doc.fillColor('#000');
+        
+        // Column layout: row labels on left, then SUBJECT col, then comp cols
+        const leftW = 120;
+        const colW = Math.floor((556 - leftW) / (1 + pageComps.length));
+        const startX = 30;
+        const colX = [startX + leftW]; // subject column
+        for (let c = 0; c < pageComps.length; c++) {
+            colX.push(startX + leftW + colW * (c + 1));
+        }
+        
+        let y = 98;
+        const rowH = 14;
+        
+        // Column headers
+        doc.rect(startX, y, 556, rowH).fill('#34495E');
+        doc.fillColor('#FFF').font('Helvetica-Bold').fontSize(7);
+        doc.text('(CAD 2026)', startX + 2, y + 3);
+        doc.text('SUBJECT', colX[0], y + 3, { width: colW });
+        for (let c = 0; c < pageComps.length; c++) {
+            const compNum = pg * 3 + c + 1;
+            doc.text('COMP ' + compNum, colX[c + 1], y + 3, { width: colW });
+        }
+        doc.fillColor('#000');
+        y += rowH;
+        
+        // Row definitions
+        const subPsf = subject.sqft ? Math.round(subject.assessedValue / subject.sqft) : 0;
+        
+        const rows = [
+            { label: 'Tax ID', subject: subject.accountId || '', comps: pageComps.map(c => c.propId || '') },
+            { label: 'Address', subject: subject.address.substring(0, 22), comps: pageComps.map(c => (c.address || '').substring(0, 22)) },
+            { label: 'Market Value', subject: fmt(subject.assessedValue), comps: pageComps.map(c => fmt(c.marketValue)) },
+            { label: 'Distance (Miles)', subject: '—', comps: pageComps.map(c => c.distance ? c.distance.toFixed(2) : '—') },
+            { label: 'Property Class', subject: subject.propClass || 'A1', comps: pageComps.map(c => c.propClass || 'A1') },
+            { label: 'Condition', subject: subject.conditionLabel || 'Fair', comps: pageComps.map(c => c.conditionLabel || 'Average') },
+            { label: 'Year Built (Effective)', subject: (subject.yearBuilt || '—') + (subject.effectiveYear ? ' (' + subject.effectiveYear + ')' : ''), comps: pageComps.map(c => (c.yearBuilt || '—') + (c.effectiveYear ? ' (' + c.effectiveYear + ')' : '')) },
+            { label: 'Main SQFT (PSF)', subject: (subject.sqft || 0).toLocaleString() + ' ($' + subPsf + ')', comps: pageComps.map(c => { const psf = c.sqft ? Math.round((c.marketValue - (c.landValue||0)) / c.sqft) : 0; return (c.sqft||0).toLocaleString() + ' ($' + psf + ')'; }) },
+            { label: 'Improvement Value', subject: fmt(subject.improvementValue || 0), comps: pageComps.map(c => fmt(c.improvValue || 0)) },
+            { label: 'Land Value', subject: fmt(subject.landValue || 0), comps: pageComps.map(c => fmt(c.landValue || 0)) },
+            { label: 'Acres', subject: String(subject.acres || '—'), comps: pageComps.map(c => String(c.acres || '—')) },
+            { label: '', subject: '', comps: pageComps.map(() => '') }, // spacer
+            { label: 'Age Adjustment', subject: '—', comps: pageAdjs.map(a => fmtAdj(a.ageAdj, a.agePct)), isAdj: true },
+            { label: 'Size Adjustment', subject: '—', comps: pageAdjs.map(a => fmtAdj(a.sizeAdj, a.sizePct)), isAdj: true },
+            { label: 'Land Adjustment', subject: '—', comps: pageAdjs.map(a => fmtAdj(a.landAdj, a.landPct)), isAdj: true },
+            { label: 'Condition Adjustment', subject: '—', comps: pageAdjs.map(a => fmtAdj(a.condAdj, a.condPct)), isAdj: true },
+            { label: 'Net Adjustment', subject: '—', comps: pageAdjs.map(a => fmtAdj(a.netAdj, a.netPct)), isAdj: true, bold: true },
+            { label: 'Total Adjusted Value', subject: '—', comps: pageAdjs.map(a => fmt(a.adjustedValue)), bold: true, highlight: true },
+        ];
+        
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            if (r % 2 === 0 && !row.highlight) {
+                doc.rect(startX, y - 1, 556, rowH).fill('#F8F9FA');
+                doc.fillColor('#000');
+            }
+            if (row.highlight) {
+                doc.rect(startX, y - 1, 556, rowH).fill('#D5F5E3');
+                doc.fillColor('#000');
+            }
+            
+            const font = row.bold ? 'Helvetica-Bold' : 'Helvetica';
+            const sz = row.isAdj ? 6.5 : 7;
+            doc.font(row.label ? 'Helvetica-Bold' : 'Helvetica').fontSize(7).text(row.label, startX + 2, y + 2, { width: leftW - 4 });
+            doc.font(font).fontSize(sz).text(row.subject, colX[0], y + 2, { width: colW - 2 });
+            for (let c = 0; c < row.comps.length; c++) {
+                doc.font(font).fontSize(sz).text(row.comps[c], colX[c + 1], y + 2, { width: colW - 2 });
+            }
+            y += rowH;
+        }
     }
     
-    y += 85;
-    doc.font('Helvetica').fontSize(8);
-    doc.text('Comp Selection Criteria:', 50, y);
-    doc.text(`• Square footage: ±20% of subject (${Math.round(subject.sqft * 0.8)} – ${Math.round(subject.sqft * 1.2)} sq ft)`, 60, y + 14);
-    doc.text(`• Year built: ±15 years of subject`, 60, y + 28);
-    doc.text('• Same corridor / neighborhood area', 60, y + 42);
-    doc.text('• Lower-valued comparable properties prioritized per TaxNet USA standard', 60, y + 56);
+    return { median: medianVal, min: minVal, max: maxVal, adjValues };
+}
+
+// ── PAGE: Evidence Summary ──
+function renderEvidence(doc, caseData, subject, comps, allAdj, stats) {
+    doc.addPage({ size: 'LETTER', margin: 50 });
     
-    // Footer
+    doc.fontSize(12).font('Helvetica-Bold').text('Evidence Summary & Protest Argument', { align: 'center' });
+    doc.fontSize(8).font('Helvetica').text('TaxNet USA Standard — Supporting Documentation', { align: 'center' });
+    doc.moveDown(0.8);
+    
+    // $/sqft comparison
+    doc.fontSize(10).font('Helvetica-Bold').text('$/Sq Ft Comparison');
+    doc.moveDown(0.3);
+    doc.fontSize(8).font('Helvetica');
+    const subPsf = subject.sqft ? Math.round(subject.assessedValue / subject.sqft) : 0;
+    const compPsfs = comps.filter(c => c.sqft > 0).map(c => Math.round(c.marketValue / c.sqft));
+    const avgPsf = Math.round(compPsfs.reduce((s,v) => s+v, 0) / compPsfs.length);
+    const medPsf = compPsfs.sort((a,b)=>a-b)[Math.floor(compPsfs.length/2)];
+    
+    doc.text('Subject $/SF: $' + subPsf + ' (appraised $' + subject.assessedValue.toLocaleString() + ' / ' + subject.sqft + ' SF)');
+    doc.text('Comp Average $/SF: $' + avgPsf + '  |  Comp Median $/SF: $' + medPsf);
+    doc.text('Subject is $' + (subPsf - avgPsf) + '/SF ABOVE comparable average');
+    doc.moveDown(0.5);
+    
+    // Comp ranking
+    doc.fontSize(10).font('Helvetica-Bold').text('Comp Ranking (by Adjusted Value)');
+    doc.moveDown(0.3);
+    doc.fontSize(7).font('Helvetica');
+    
+    const ranked = comps.map((c, i) => ({ ...c, adj: allAdj[i], num: i + 1 }))
+        .sort((a, b) => a.adj.adjustedValue - b.adj.adjustedValue);
+    
+    for (let i = 0; i < ranked.length; i++) {
+        const c = ranked[i];
+        const psf = c.sqft ? Math.round(c.marketValue / c.sqft) : 0;
+        const note = c.selectionNote || buildNote(c, subject);
+        doc.text((i+1) + '. [Comp #' + c.num + '] ' + c.address + ' — Adj: ' + fmt(c.adj.adjustedValue) + ' ($' + psf + '/SF) — ' + note, { width: 500 });
+    }
+    doc.moveDown(0.5);
+    
+    // Argument
+    doc.fontSize(10).font('Helvetica-Bold').text('PROTEST ARGUMENT');
+    doc.moveDown(0.3);
+    doc.fontSize(8).font('Helvetica');
+    
+    const avgAdj = Math.round(stats.adjValues.reduce((s,v) => s+v, 0) / stats.adjValues.length);
+    const overPct = ((subject.assessedValue - stats.median) / stats.median * 100).toFixed(1);
+    
+    doc.text('1. OVERVALUATION: The subject is appraised at $' + subject.assessedValue.toLocaleString() + ', which is ' + overPct + '% above the median adjusted value of ' + comps.length + ' comparable properties ($' + stats.median.toLocaleString() + '). Range: $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + '.', { width: 500 });
+    doc.moveDown(0.2);
+    doc.text('2. CONDITION: The subject is an older, dated property in fair/investment-grade condition — not comparable to newer luxury builds in the corridor. Improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' reflects a structure needing updates.', { width: 500 });
+    doc.moveDown(0.2);
+    doc.text('3. EXCESS ACREAGE: The subject sits on ' + subject.acres + ' acres. Excess rural acreage does NOT scale linearly with value. Land beyond typical residential use has diminishing returns. Comparable acreage properties are assessed substantially lower.', { width: 500 });
+    doc.moveDown(0.2);
+    doc.text('4. MARKET MISMATCH: Scenic Loop contains a mix of older modest homes and newer luxury estates ($1M+). This ' + subject.sqft + ' SF property aligns with the former category. The district appraisal reflects the luxury segment, not the subject\'s actual position.', { width: 500 });
+    doc.moveDown(0.2);
+    doc.text('5. UNEQUAL APPRAISAL (§41.41(a)(2)): After adjusting for size, age, condition, and land, the subject should be valued at approximately $' + stats.median.toLocaleString() + ' — the median of ' + comps.length + ' adjusted comparable properties.', { width: 500 });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(10).font('Helvetica-Bold').text('REQUESTED RELIEF');
+    doc.fontSize(8).font('Helvetica');
+    doc.text('Reduce appraised value from $' + subject.assessedValue.toLocaleString() + ' to $' + stats.median.toLocaleString() + ', consistent with comparable market evidence.', { width: 500 });
+    
+    doc.moveDown(1);
     doc.fontSize(7).fillColor('#666');
-    doc.text('Comparable Property Analysis — TaxNet USA Standard Format', 50, 720, { align: 'center', width: 500 });
-    doc.text('Source: Bexar County Appraisal District (BCAD) Public Records', 50, 732, { align: 'center', width: 500 });
+    doc.text('TaxNet USA Standard | ' + comps.length + ' Comps | Generated: ' + new Date().toISOString().slice(0,10) + ' | OverAssessed, LLC', { align: 'center' });
     doc.fillColor('#000');
 }
 
-/**
- * Generate complete TaxNet-standard filing package
- */
+function buildNote(comp, subject) {
+    const parts = [];
+    if (comp.sqft) parts.push(comp.sqft + 'SF');
+    if (comp.yearBuilt) parts.push('built ' + comp.yearBuilt);
+    if (comp.acres) parts.push(comp.acres + 'ac');
+    if (comp.acres >= 3) parts.push('acreage match');
+    if (Math.abs((comp.sqft||0) - subject.sqft) <= 150) parts.push('close sqft match');
+    parts.push('Scenic Loop corridor');
+    return parts.join(', ');
+}
+
+// ── MAIN GENERATOR ──
 async function generateTaxNetPackage(caseData, property, comps) {
-    // Validate
-    if (comps.length < 8) {
-        throw new Error(`TaxNet validation failed: only ${comps.length} comps (minimum 8 required)`);
-    }
+    const v = validatePackage(comps, property);
+    if (!v.valid) throw new Error('TaxNet BLOCKED: ' + v.errors.join('; '));
+    
+    const allAdj = comps.map(c => calcAdjustments(c, property));
     
     const caseId = caseData.case_id;
-    const filename = `${caseId}-Filing-Package.pdf`;
+    const filename = caseId + '-Filing-Package.pdf';
     const filePath = path.join(FILING_DIR, filename);
     
     return new Promise((resolve, reject) => {
@@ -259,55 +359,21 @@ async function generateTaxNetPackage(caseData, property, comps) {
         const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
         
-        // Section 1: Form 50-132
         renderForm50132(doc, caseData, property);
-        
-        // Section 2: Comparable Analysis
-        renderCompAnalysis(doc, property, comps);
-        
-        // Section 3: Evidence summary (additional page if needed)
-        doc.addPage();
-        doc.fontSize(14).font('Helvetica-Bold').text('Supporting Evidence Summary', { align: 'center' });
-        doc.moveDown(1);
-        doc.fontSize(10).font('Helvetica');
-        doc.text(`Case ID: ${caseId}`);
-        doc.text(`Property: ${caseData.property_address}`);
-        doc.text(`Owner: ${caseData.owner_name}`);
-        doc.text(`County: ${capitalize(caseData.county)}`);
-        doc.text(`Appraised Value: $${(property.assessedValue || 0).toLocaleString()}`);
-        doc.moveDown(0.5);
-        doc.text('Key Arguments:');
-        doc.text(`1. The subject property at $${(property.assessedValue || 0).toLocaleString()} is assessed ${((property.assessedValue - comps.reduce((s,c) => s+c.marketValue, 0)/comps.length) / (comps.reduce((s,c) => s+c.marketValue, 0)/comps.length) * 100).toFixed(1)}% above the average of ${comps.length} comparable properties.`);
-        doc.text(`2. Comparable properties on Scenic Loop Rd with similar square footage (${property.sqft} sf) are valued between $${comps[0].marketValue.toLocaleString()} and $${comps[comps.length-1].marketValue.toLocaleString()}.`);
-        doc.text(`3. The property is ${property.notes || 'an older home requiring updates'}.`);
-        if (property.acres && property.acres > 5) {
-            doc.text(`4. Large acreage (${property.acres} acres) in this corridor does not proportionally increase improved property value — land use is limited.`);
-        }
-        
-        doc.moveDown(1);
-        doc.fontSize(8);
-        doc.text('Filing Format: TaxNet USA Standard');
-        doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`);
-        doc.text(`Package ID: ${caseId}-TXNT-${Date.now().toString(36)}`);
-        
-        // Footer
-        doc.fontSize(7).fillColor('#666');
-        doc.text('Supporting Evidence — TaxNet USA Standard Format', 50, 720, { align: 'center', width: 500 });
-        doc.fillColor('#000');
+        const stats = renderEUGrid(doc, property, comps, allAdj);
+        renderEvidence(doc, caseData, property, comps, allAdj, stats);
         
         doc.end();
-        stream.on('finish', () => resolve({ filePath, filename, url: `/filing-packages/${filename}`, compsUsed: comps.length, format: 'taxnet_standard' }));
+        stream.on('finish', () => resolve({
+            filePath, filename, format: 'taxnet_standard',
+            compsUsed: comps.length, stats,
+            adjustments: allAdj.map((a, i) => ({
+                comp: comps[i].address, adjustedValue: a.adjustedValue,
+                netPct: a.netPct, grossPct: a.grossPct
+            }))
+        }));
         stream.on('error', reject);
     });
 }
 
-function drawLabelValue(doc, label, value, x, y) {
-    doc.font('Helvetica-Bold').fontSize(8).text(label, x, y, { continued: true });
-    doc.font('Helvetica').text(' ' + value);
-}
-
-function capitalize(s) {
-    return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-}
-
-module.exports = { generateTaxNetPackage, validateComps, FILING_DIR };
+module.exports = { generateTaxNetPackage, validatePackage, calcAdjustments, FILING_DIR };
