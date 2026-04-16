@@ -460,3 +460,65 @@ function setFilingAgent(fullName, trecLicense) {
 module.exports.validateLicense = validateLicense;
 module.exports.setFilingAgent = setFilingAgent;
 module.exports.FILING_AGENT = FILING_AGENT;
+
+// ═══ FILING CONFIRMATION SYSTEM ═══
+// After every filing: capture confirmation #, timestamp, method, screenshot
+// If confirmation not captured → ERROR → alert immediately
+
+async function recordFilingConfirmation(caseId, confirmation) {
+    const { number, method, screenshot_path } = confirmation;
+    
+    if (!number) {
+        // ERROR: no confirmation number
+        console.error('[FILING] ❌ ' + caseId + ' — NO CONFIRMATION NUMBER CAPTURED');
+        await supabase.from('submissions').update({
+            filing_status: 'filing_error',
+            filing_method: method || 'unknown',
+            updated_at: new Date().toISOString()
+        }).eq('case_id', caseId);
+        
+        // Log error
+        await supabase.from('communications').insert({
+            case_id: caseId,
+            type: 'system',
+            channel: 'internal',
+            direction: 'internal',
+            subject: 'FILING ERROR: No confirmation number captured',
+            body: 'Method: ' + (method || 'unknown') + '. Filing may not have completed. Requires manual verification.',
+            created_at: new Date().toISOString()
+        });
+        
+        return { ok: false, error: 'no confirmation number' };
+    }
+    
+    // Success: store everything
+    const { error } = await supabase.from('submissions').update({
+        filing_confirmation_number: number,
+        filed_at: new Date().toISOString(),
+        filing_method: method,
+        filing_status: 'filed',
+        status: 'Filed',
+        updated_at: new Date().toISOString()
+    }).eq('case_id', caseId);
+    
+    if (error) {
+        console.error('[FILING] DB error for ' + caseId + ':', error.message);
+        return { ok: false, error: error.message };
+    }
+    
+    // Log confirmation
+    await supabase.from('communications').insert({
+        case_id: caseId,
+        type: 'system',
+        channel: 'internal',
+        direction: 'internal',
+        subject: 'Filing confirmed: ' + number,
+        body: 'Confirmation #: ' + number + '\nMethod: ' + method + '\nFiled at: ' + new Date().toISOString() + (screenshot_path ? '\nScreenshot: ' + screenshot_path : ''),
+        created_at: new Date().toISOString()
+    });
+    
+    console.log('[FILING] ✅ ' + caseId + ' confirmed: #' + number + ' via ' + method);
+    return { ok: true, confirmation: number, method, filed_at: new Date().toISOString() };
+}
+
+module.exports.recordFilingConfirmation = recordFilingConfirmation;
