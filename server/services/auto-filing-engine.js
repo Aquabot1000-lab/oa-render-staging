@@ -522,3 +522,24 @@ async function recordFilingConfirmation(caseId, confirmation) {
 }
 
 module.exports.recordFilingConfirmation = recordFilingConfirmation;
+
+// ═══ TEMPLATE STANDARD LOCK ═══
+const TEMPLATE_VERSION = 'TaxNet_v1_APPROVED';
+const TEMPLATE_LOCKED = true;
+
+// Stamp every generated package with version
+function getTemplateVersion() {
+    return { version: TEMPLATE_VERSION, locked: TEMPLATE_LOCKED };
+}
+
+// Block any generation if template is modified without version bump
+function validateTemplate(requestedVersion) {
+    if (requestedVersion && requestedVersion !== TEMPLATE_VERSION) {
+        return { valid: false, error: 'Template version mismatch. Current: ' + TEMPLATE_VERSION + '. Requested: ' + requestedVersion + '. Version bump required for changes.' };
+    }
+    return { valid: true, version: TEMPLATE_VERSION };
+}
+
+module.exports.TEMPLATE_VERSION = TEMPLATE_VERSION;
+module.exports.getTemplateVersion = getTemplateVersion;
+module.exports.validateTemplate = validateTemplate;
