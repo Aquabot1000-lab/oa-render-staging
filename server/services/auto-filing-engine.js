@@ -428,3 +428,35 @@ function scorePackage(caseData, comps, adjs) {
 }
 
 module.exports.scorePackage = scorePackage;
+
+// ═══ LICENSE LOCK — HARD BLOCK ═══
+// Every TX filing MUST include agent name + TREC license #
+// Block ALL filings if missing
+const FILING_AGENT = {
+    name: null,         // SET: Uri's full legal name (get at 9AM meeting)
+    license: null,      // SET: TREC license number (get at 9AM meeting)
+    email: 'uri@overassessed.ai',
+    role: 'Filing Agent'
+};
+
+function validateLicense() {
+    if (!FILING_AGENT.name || !FILING_AGENT.license) {
+        return {
+            valid: false,
+            error: 'FILING BLOCKED: Agent name or TREC license # not configured. Set FILING_AGENT.name and FILING_AGENT.license before any filing.'
+        };
+    }
+    return { valid: true, agent: FILING_AGENT };
+}
+
+// Override: call this after getting Uri's info at the 9AM meeting
+function setFilingAgent(fullName, trecLicense) {
+    FILING_AGENT.name = fullName;
+    FILING_AGENT.license = trecLicense;
+    console.log('[LICENSE] Filing agent set: ' + fullName + ' (TREC #' + trecLicense + ')');
+    return FILING_AGENT;
+}
+
+module.exports.validateLicense = validateLicense;
+module.exports.setFilingAgent = setFilingAgent;
+module.exports.FILING_AGENT = FILING_AGENT;
