@@ -4385,7 +4385,7 @@ app.post('/api/simple-lead', async (req, res) => {
                 try {
                     await supabaseAdmin.from("tasks").insert({
                         case_id: caseNum,
-                        title: "Run valuation",
+                        type: "valuation", title: "Run valuation",
                         description: "New lead entered — run property valuation analysis",
                         assigned_to: "valuation_agent",
                         status: "pending",
@@ -4662,7 +4662,7 @@ app.post('/api/simple-lead', async (req, res) => {
             if (caseIdForTask) {
                 await supabaseAdmin.from('tasks').insert({
                     case_id: caseIdForTask,
-                    title: 'Run valuation',
+                    type: 'valuation', title: 'Run valuation',
                     description: 'New lead entered — run property valuation analysis',
                     assigned_to: 'valuation_agent',
                     status: 'pending',
@@ -4753,7 +4753,7 @@ app.post('/api/calculator-lead', async (req, res) => {
             if (calcCaseId) {
                 await supabaseAdmin.from('tasks').insert({
                     case_id: calcCaseId,
-                    title: 'Run valuation',
+                    type: 'valuation', title: 'Run valuation',
                     description: 'New calculator lead — run property valuation analysis',
                     assigned_to: 'valuation_agent',
                     status: 'pending',
@@ -5153,7 +5153,7 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             try {
                 await supabaseAdmin.from('tasks').insert({
                     case_id: caseId,
-                    title: 'Run valuation',
+                    type: 'valuation', title: 'Run valuation',
                     description: 'New lead entered — run property valuation analysis',
                     assigned_to: 'valuation_agent',
                     status: 'pending',
@@ -5299,7 +5299,7 @@ app.post('/api/commercial-intake', async (req, res) => {
             try {
                 await supabaseAdmin.from('tasks').insert({
                     case_id: caseId,
-                    title: 'Run valuation',
+                    type: 'valuation', title: 'Run valuation',
                     description: 'New commercial lead — run property valuation analysis',
                     assigned_to: 'valuation_agent',
                     status: 'pending',
