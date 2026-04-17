@@ -209,6 +209,25 @@
         </div>
     </div>
 
+    <!-- GLOBAL SEARCH BAR -->
+    <div id="globalSearchBar" style="display:none;background:#141621;border-bottom:1px solid #2d3148;padding:12px 24px;position:sticky;top:56px;z-index:90;">
+        <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:12px;">
+            <div style="position:relative;flex:1;max-width:600px;">
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+                <input type="search" id="globalSearch"
+                    placeholder="Search by case ID, name, email, phone, address..."
+                    oninput="handleGlobalSearch()"
+                    autocomplete="off"
+                    style="width:100%;background:#1a1d2e;border:1px solid #2d3148;border-radius:10px;padding:10px 14px 10px 38px;color:#e2e8f0;font-size:14px;font-family:inherit;outline:none;"
+                    onfocus="this.style.borderColor='#6366f1'"
+                    onblur="this.style.borderColor='#2d3148'"
+                >
+            </div>
+            <span id="globalSearchCount" style="font-size:12px;color:#64748b;"></span>
+            <button onclick="clearGlobalSearch()" style="background:transparent;border:1px solid #2d3148;border-radius:8px;color:#94a3b8;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit;">Clear</button>
+        </div>
+    </div>
+
     <div class="main">
         <!-- Tabs -->
         <div class="tabs">
@@ -903,6 +922,7 @@ function showDashboard() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     if (currentUser) document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+    showGlobalSearch();
     loadAll();
 }
 
@@ -1064,7 +1084,10 @@ function renderOverview() {
 function renderSubmissionsTable() {
     const statusFilter = document.getElementById('statusFilter')?.value || '';
     const stateFilter = document.getElementById('stateFilter')?.value || '';
-    const searchQuery = (document.getElementById('caseSearch')?.value || '').toLowerCase().trim();
+    // Merge global search + tab search (global takes precedence if set)
+    const globalQ = (document.getElementById('globalSearch')?.value || '').toLowerCase().trim();
+    const tabQ = (document.getElementById('caseSearch')?.value || '').toLowerCase().trim();
+    const searchQuery = globalQ || tabQ;
     const sortField = document.getElementById('sortField')?.value || 'priority';
     const grid = document.getElementById('submissionsGrid');
     const empty = document.getElementById('emptyMsg');
@@ -1075,7 +1098,7 @@ function renderSubmissionsTable() {
     if (stateFilter) filtered = filtered.filter(s => (s.state || '').toUpperCase() === stateFilter);
     if (searchQuery) {
         filtered = filtered.filter(s => {
-            const hay = [s.caseId, s.case_id, s.ownerName, s.owner_name, s.email, s.propertyAddress, s.property_address, s.county].filter(Boolean).join(' ').toLowerCase();
+            const hay = [s.caseId, s.case_id, s.ownerName, s.owner_name, s.email, s.phone, s.propertyAddress, s.property_address, s.county].filter(Boolean).join(' ').toLowerCase();
             return hay.includes(searchQuery);
         });
     }
@@ -2474,6 +2497,44 @@ function exportUriCommissions() {
 }
 
 // ===== QUICK ACTIONS (for card-based control center) =====
+// ==================== GLOBAL SEARCH ====================
+function handleGlobalSearch() {
+    const q = (document.getElementById('globalSearch')?.value || '').trim().toLowerCase();
+    const countEl = document.getElementById('globalSearchCount');
+
+    // Sync to the tab search input if on submissions tab
+    const tabSearch = document.getElementById('caseSearch');
+    if (tabSearch) { tabSearch.value = q; }
+
+    // Always switch to submissions tab and render filtered results
+    if (q.length > 0) {
+        switchTab('submissions');
+        renderSubmissionsTable();
+        // Update count
+        const grid = document.getElementById('submissionsGrid');
+        const count = grid ? grid.children.length : 0;
+        countEl.textContent = count + ' result' + (count !== 1 ? 's' : '');
+    } else {
+        countEl.textContent = '';
+        if (tabSearch) tabSearch.value = '';
+        renderSubmissionsTable();
+    }
+}
+
+function clearGlobalSearch() {
+    const el = document.getElementById('globalSearch');
+    if (el) el.value = '';
+    const tabSearch = document.getElementById('caseSearch');
+    if (tabSearch) tabSearch.value = '';
+    document.getElementById('globalSearchCount').textContent = '';
+    renderSubmissionsTable();
+}
+
+function showGlobalSearch() {
+    const bar = document.getElementById('globalSearchBar');
+    if (bar) bar.style.display = 'block';
+}
+
 function quickCall(e, phone, name) {
     e.stopPropagation();
     if (!phone) return;
