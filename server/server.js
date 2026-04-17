@@ -64,6 +64,7 @@ const coinbaseRouter = require('./routes/coinbase');
 const emailNurtureRouter = require('./routes/email-nurture');
 const uriCommissionsRouter = require('./routes/uri-commissions');
 const pipelineRouter = require('./routes/pipeline');
+const esignRouter = require('./routes/esign');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
 // Twilio setup
@@ -2478,6 +2479,26 @@ if (isSupabaseEnabled()) {
             res.json({ ok: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
+    // POST /api/case-view/approve-package — approve or reject filing package
+    app.post('/api/case-view/approve-package', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, action, reason } = req.body;
+            const isApprove = action === 'approve';
+            const update = {
+                approval_status: isApprove ? 'approved' : 'rejected',
+                last_activity_at: new Date().toISOString()
+            };
+            await supabaseAdmin.from('submissions').update(update).eq('case_id', case_id);
+            await supabaseAdmin.from('activity_log').insert({
+                case_id,
+                actor: 'tyler',
+                action: isApprove ? 'package_approved' : 'package_rejected',
+                details: { reason: reason || null }
+            });
+            res.json({ ok: true, status: update.approval_status });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // ==================== CASE PAGE ACTION ENDPOINTS ====================
     // Shared helpers for all actions
     async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status, error_code }) {
@@ -3132,7 +3153,9 @@ if (isSupabaseEnabled()) {
     // Coinbase Commerce Bitcoin payment routes (all public - webhook needs raw body)
     app.use('/api/coinbase', coinbaseRouter);
     app.use('/api/email', emailNurtureRouter);
-    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email');
+    app.use('/sign', esignRouter);
+    app.use('/api/esign', esignRouter);
+    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email, /sign');
 }
 
 // ==================== AGREEMENT SIGNING + FILING GATE ====================
@@ -4353,10 +4376,26 @@ app.post('/api/simple-lead', async (req, res) => {
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
-                
+
                 // === AUTO-RESPONSE SYSTEM ===
                 const leadId = fbData.id;
                 const caseNum = caseId;
+
+                // === AUTO-CREATE VALUATION TASK ===
+                try {
+                    await supabaseAdmin.from("tasks").insert({
+                        case_id: caseNum,
+                        title: "Run valuation",
+                        description: "New lead entered — run property valuation analysis",
+                        assigned_to: "valuation_agent",
+                        status: "pending",
+                        priority: "high",
+                        due_date: new Date(Date.now() + 24*60*60*1000).toISOString()
+                    });
+                    console.log(`[SIMPLE LEAD] ✅ Auto-created valuation task for ${caseNum}`);
+                } catch (taskErr) {
+                    console.error(`[SIMPLE LEAD] ⚠️ Task creation failed (non-blocking):`, taskErr.message);
+                }
 
                 // Skip auto-outreach for unsupported states
                 if (routingStatus === 'Waitlist - OUT_OF_STATE') {
@@ -4617,6 +4656,28 @@ app.post('/api/simple-lead', async (req, res) => {
         
         sendTelegramAlert(`🎯 SIMPLE FORM LEAD\n\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>State:</b> ${state || '—'}\n<b>County:</b> ${county || '—'}\n\n✅ Auto-email sent to lead\n✅ Assigned to Tyler`);
 
+        // === AUTO-CREATE VALUATION TASK (simple_leads primary path) ===
+        try {
+            const caseIdForTask = data.case_id || null;
+            if (caseIdForTask) {
+                await supabaseAdmin.from('tasks').insert({
+                    case_id: caseIdForTask,
+                    title: 'Run valuation',
+                    description: 'New lead entered — run property valuation analysis',
+                    assigned_to: 'valuation_agent',
+                    status: 'pending',
+                    priority: 'high',
+                    auto_generated: true,
+                    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`[SIMPLE LEAD] ✅ Auto-created valuation task for ${caseIdForTask}`);
+            } else {
+                console.log('[SIMPLE LEAD] ⚠️ No case_id on simple_leads record — task skipped');
+            }
+        } catch (taskErr) {
+            console.error('[SIMPLE LEAD] ⚠️ Task creation failed (non-blocking):', taskErr.message);
+        }
+
         res.json({ success: true, id: data.id, state, county });
     } catch (error) {
         console.error('Simple lead error:', error);
@@ -4685,6 +4746,27 @@ app.post('/api/calculator-lead', async (req, res) => {
         const { data, error } = await supabaseAdmin.from('calculator_leads').insert(insertData).select().single();
         if (error) throw error;
         sendTelegramAlert(`📊 CALCULATOR LEAD\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Phone:</b> ${phone || '—'}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county}\n<b>Assessed:</b> $${parseInt(assessed_value).toLocaleString()}\n<b>Est. Savings:</b> $${parseInt(estimated_savings || 0).toLocaleString()}\n\n➡️ Hot lead — used savings calculator.`);
+
+        // === AUTO-CREATE VALUATION TASK (calculator-lead path) ===
+        try {
+            const calcCaseId = data.case_id || null;
+            if (calcCaseId) {
+                await supabaseAdmin.from('tasks').insert({
+                    case_id: calcCaseId,
+                    title: 'Run valuation',
+                    description: 'New calculator lead — run property valuation analysis',
+                    assigned_to: 'valuation_agent',
+                    status: 'pending',
+                    priority: 'high',
+                    auto_generated: true,
+                    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`[CALC LEAD] ✅ Auto-created valuation task for ${calcCaseId}`);
+            }
+        } catch (taskErr) {
+            console.error('[CALC LEAD] ⚠️ Task creation failed (non-blocking):', taskErr.message);
+        }
+
         res.json({ success: true, data });
     } catch (error) {
         console.error('Calculator lead error:', error);
@@ -5066,6 +5148,25 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         }, 2000);
         } // END FROZEN auto-analysis block
 
+        // === AUTO-CREATE VALUATION TASK (/api/intake path) ===
+        if (isSupabaseEnabled()) {
+            try {
+                await supabaseAdmin.from('tasks').insert({
+                    case_id: caseId,
+                    title: 'Run valuation',
+                    description: 'New lead entered — run property valuation analysis',
+                    assigned_to: 'valuation_agent',
+                    status: 'pending',
+                    priority: 'high',
+                    auto_generated: true,
+                    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`[INTAKE] ✅ Auto-created valuation task for ${caseId}`);
+            } catch (taskErr) {
+                console.error('[INTAKE] ⚠️ Task creation failed (non-blocking):', taskErr.message);
+            }
+        }
+
         res.json({
             success: true,
             message: 'Submitted successfully',
@@ -5192,6 +5293,25 @@ app.post('/api/commercial-intake', async (req, res) => {
             }
         }, 2000);
         } // END FROZEN commercial auto-analysis
+
+        // === AUTO-CREATE VALUATION TASK (/api/commercial-intake path) ===
+        if (isSupabaseEnabled()) {
+            try {
+                await supabaseAdmin.from('tasks').insert({
+                    case_id: caseId,
+                    title: 'Run valuation',
+                    description: 'New commercial lead — run property valuation analysis',
+                    assigned_to: 'valuation_agent',
+                    status: 'pending',
+                    priority: 'high',
+                    auto_generated: true,
+                    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`[COMMERCIAL] ✅ Auto-created valuation task for ${caseId}`);
+            } catch (taskErr) {
+                console.error('[COMMERCIAL] ⚠️ Task creation failed (non-blocking):', taskErr.message);
+            }
+        }
 
         console.log(`[Commercial] New lead: ${caseId} - ${name} (${propertyType}) at ${propertyAddress}`);
         res.json({ success: true, caseId, message: 'Commercial intake received' });
@@ -7833,7 +7953,7 @@ ABOUT OVERASSESSED:
 - How it works: Give us your property address → we run a free analysis → if you're overpaying, we file the protest and handle everything → you save money
 - Pricing: 25% of tax savings across all states (TX, GA, WA, AZ, CO). Just a $79 initiation fee to get started, which gets credited toward your contingency fee.
 - Timeline: TX protest season is mid-April through August. TX deadline is May 15. GA deadline is 45 days after assessment notice (April-June).
-- Georgia special: If you win an appeal, your value is FROZEN for 3 years. That's 3 years of guaranteed savings from one appeal.
+- Georgia special: If you win an appeal, your value is FROZEN for 3 years. That's 3 years of locked-in savings from one appeal.
 - Homestead exemptions: We file those too, included free with our service
 - Website: overassessed.ai (Georgia: overassessed.ai/georgia)
 - Owner: Tyler Worthey personally reviews every case

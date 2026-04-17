@@ -170,11 +170,69 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast.error { background: #7f1d1d; color: #fca5a5; }
 
+        /* Readiness Gate */
+        .readiness-gate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+        .gate-item { background: #141621; border-radius: 10px; padding: 14px 16px; text-align: center; border: 1px solid #2d3148; }
+        .gate-item.ready { border-color: #059669; }
+        .gate-item.blocked { border-color: #991b1b; }
+        .gate-icon { font-size: 28px; margin-bottom: 6px; }
+        .gate-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .gate-status { font-size: 13px; font-weight: 700; margin-top: 4px; }
+        .gate-status.yes { color: #6ee7b7; }
+        .gate-status.no { color: #fca5a5; }
+        .gate-status.pending { color: #fcd34d; }
+
+        /* Value Comparison */
+        .value-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .value-card { background: #141621; border-radius: 10px; padding: 16px; text-align: center; }
+        .value-card.highlight { background: linear-gradient(135deg, #065f46, #047857); }
+        .value-amount { font-size: 22px; font-weight: 800; color: #f1f5f9; }
+        .value-card.highlight .value-amount { color: #6ee7b7; }
+        .value-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
+        .value-card.highlight .value-label { color: #a7f3d0; }
+        .confidence-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-top: 8px; }
+        .confidence-high { background: #065f46; color: #6ee7b7; }
+        .confidence-medium { background: #78350f; color: #fcd34d; }
+        .confidence-low { background: #7f1d1d; color: #fca5a5; }
+
+        /* Approval buttons */
+        .approval-bar { display: flex; gap: 12px; margin-bottom: 20px; padding: 16px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px; align-items: center; }
+        .approval-bar .approval-label { flex: 1; font-size: 14px; font-weight: 700; color: #c7d2fe; }
+        .approval-bar .approval-status { font-size: 12px; padding: 4px 12px; border-radius: 6px; font-weight: 700; }
+        .approval-bar .approval-status.approved { background: #065f46; color: #6ee7b7; }
+        .approval-bar .approval-status.pending { background: #78350f; color: #fcd34d; }
+        .approval-bar .approval-status.rejected { background: #7f1d1d; color: #fca5a5; }
+        .btn-approve { background: #065f46; color: #6ee7b7; border: 1px solid #059669; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+        .btn-approve:hover { background: #047857; }
+        .btn-approve:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-reject { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+        .btn-reject:hover { background: #991b1b; }
+
+        /* Doc preview */
+        .doc-preview-frame { width: 100%; height: 300px; border: 1px solid #2d3148; border-radius: 8px; background: #0f1117; margin-top: 8px; }
+        .doc-version { font-size: 10px; color: #818cf8; background: #1e1b4b; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+
+        /* Pipeline Stepper */
+        .pipeline-stepper { background: #141621; border-bottom: 1px solid #2d3148; padding: 20px 24px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .pipeline-stage { display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
+        .pipeline-stage:hover .stage-circle { transform: scale(1.1); }
+        .stage-circle { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #2d3148; background: #1a1d2e; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; }
+        .stage-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pipeline-stage.active .stage-circle { background: #6366f1; border-color: #818cf8; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); }
+        .pipeline-stage.active .stage-label { color: #a5b4fc; }
+        .pipeline-stage.completed .stage-circle { background: #065f46; border-color: #059669; }
+        .pipeline-stage.completed .stage-label { color: #6ee7b7; }
+        .pipeline-arrow { color: #2d3148; font-size: 18px; margin: 0 4px; }
+
         /* Mobile */
         @media (max-width: 900px) {
             .page { grid-template-columns: 1fr; }
             .side-col { border-left: none; border-top: 1px solid #2d3148; }
             .info-grid { grid-template-columns: 1fr; }
+            .pipeline-stepper { padding: 16px; gap: 4px; overflow-x: auto; justify-content: flex-start; }
+            .stage-label { font-size: 9px; }
+            .stage-circle { width: 30px; height: 30px; font-size: 14px; }
+            .pipeline-arrow { font-size: 14px; margin: 0 2px; }
             .property-stats { grid-template-columns: repeat(2, 1fr); }
             .analysis-grid { grid-template-columns: 1fr; }
             .topbar { flex-direction: column; gap: 10px; align-items: flex-start; }
@@ -195,6 +253,34 @@
         <div class="topbar-right">
             <button class="btn-outline" onclick="refreshData()">↻ Refresh</button>
             <button class="btn-primary" id="btnChangeStatus" onclick="showStatusModal()">Change Status</button>
+        </div>
+    </div>
+
+    <!-- Pipeline Stepper -->
+    <div class="pipeline-stepper">
+        <div class="pipeline-stage" data-stage="NEW" onclick="changePipelineStage('NEW')">
+            <div class="stage-circle">🆕</div>
+            <div class="stage-label">New</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-stage" data-stage="ANALYZING" onclick="changePipelineStage('ANALYZING')">
+            <div class="stage-circle">🔍</div>
+            <div class="stage-label">Analyzing</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-stage" data-stage="READY" onclick="changePipelineStage('READY')">
+            <div class="stage-circle">✅</div>
+            <div class="stage-label">Ready</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-stage" data-stage="SENT" onclick="changePipelineStage('SENT')">
+            <div class="stage-circle">📤</div>
+            <div class="stage-label">Sent</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-stage" data-stage="CLOSED" onclick="changePipelineStage('CLOSED')">
+            <div class="stage-circle">🏁</div>
+            <div class="stage-label">Closed</div>
         </div>
     </div>
 
@@ -284,6 +370,30 @@
                     <div id="savingsBanner"></div>
                     <div class="analysis-grid" id="analysisGrid"></div>
                 </div>
+            </div>
+
+            <!-- Readiness Gate -->
+            <div class="card" id="readinessCard">
+                <div class="card-header"><h3>🚦 Filing Readiness</h3><span class="badge" id="readinessBadge">—</span></div>
+                <div class="card-body">
+                    <div class="readiness-gate" id="readinessGate"></div>
+                </div>
+            </div>
+
+            <!-- Value Comparison -->
+            <div class="card" id="valueCard">
+                <div class="card-header"><h3>💰 Value Comparison</h3></div>
+                <div class="card-body">
+                    <div class="value-grid" id="valueGrid"></div>
+                </div>
+            </div>
+
+            <!-- Approval Control -->
+            <div class="approval-bar" id="approvalBar" style="display:none;">
+                <div class="approval-label">📋 Package Approval</div>
+                <span class="approval-status" id="approvalStatus">—</span>
+                <button class="btn-approve" id="btnApprove" onclick="approvePackage()">✅ Approve Package</button>
+                <button class="btn-reject" id="btnReject" onclick="rejectPackage()">❌ Reject Package</button>
             </div>
 
             <!-- Documents -->
@@ -592,19 +702,32 @@
                 return;
             }
 
-            body.innerHTML = docs.map(doc => `
-                <div class="doc-item" ${doc.url ? 'style="cursor:pointer;"' : ''}>
+            // Check if package is approved for badge
+            const pkgApproved = d.approval_status === 'approved' || d.filing_data?.approved;
+
+            body.innerHTML = docs.map((doc, idx) => {
+                const ver = doc.version || ('v' + (idx + 1));
+                const approvedBadge = (pkgApproved && (doc.name.includes('Evidence') || doc.name.includes('Filing') || doc.name.includes('Package')))
+                    ? '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:6px;">APPROVED</span>' : '';
+                const isPdf = doc.url && (doc.url.endsWith('.pdf') || doc.url.includes('pdf'));
+                const isImg = doc.url && /\.(jpg|jpeg|png|gif|webp)/i.test(doc.url);
+                const previewId = 'preview-' + idx;
+                const previewBtn = doc.url ? `<button onclick="togglePreview('${previewId}','${doc.url}')" style="background:none;border:1px solid #2d3148;border-radius:6px;color:#818cf8;font-size:11px;padding:3px 8px;cursor:pointer;font-weight:600;" title="Inline preview">👁 Preview</button>` : '';
+                return `
+                <div class="doc-item" style="flex-wrap:wrap;">
                     <div class="doc-icon ${doc.cls}">${doc.icon}</div>
-                    <div style="flex:1;">
-                        <div class="doc-name">${doc.name}${doc.badge || ''}</div>
+                    <div style="flex:1;min-width:200px;">
+                        <div class="doc-name">${doc.name}<span class="doc-version">${ver}</span>${approvedBadge}${doc.badge || ''}</div>
                         <div class="doc-meta">${doc.meta}</div>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
+                        ${previewBtn}
                         ${doc.url ? `<a href="${doc.url}" target="_blank" style="color:#818cf8;font-size:12px;text-decoration:none;font-weight:600;" title="Open document">View →</a>` : ''}
                         ${doc.url ? `<a href="${doc.url}" download style="color:#64748b;font-size:14px;text-decoration:none;" title="Download">⬇</a>` : ''}
                     </div>
-                </div>
-            `).join('');
+                    <div id="${previewId}" style="display:none;width:100%;margin-top:8px;"></div>
+                </div>`;
+            }).join('');
         }
 
         function computeNextBestAction(d) {
@@ -697,6 +820,11 @@
                     case 'close_attempt': text = `<strong>Close attempt</strong> via ${det.channel || 'unknown'}`; dotClass = det.channel === 'sms' ? 'sms' : 'email'; break;
                     case 'do_not_contact_set': text = `<strong>⛔ DO NOT CONTACT</strong> set — ${det.reason || ''}`; dotClass = 'system'; break;
                     case 'send_blocked_do_not_contact': text = `<strong>⛔ Send BLOCKED</strong> (DNC flag)`; dotClass = 'system'; break;
+                    case 'package_approved': text = `<strong>✅ Package APPROVED</strong>${det.by ? ' by ' + det.by : ''}`; dotClass = 'agreement'; break;
+                    case 'package_rejected': text = `<strong>❌ Package REJECTED</strong>${det.reason ? ' — ' + det.reason : ''}`; dotClass = 'system'; break;
+                    case 'protest_filed': text = `<strong>📨 Protest FILED</strong> with ${det.county || ''} County${det.confirmation_number ? ' — Conf# <strong>' + det.confirmation_number + '</strong>' : ''}`; dotClass = 'agreement'; break;
+                    case 'filing_confirmed': text = `<strong>✅ Filing CONFIRMED</strong>${det.confirmation_number ? ' — Conf# <strong>' + det.confirmation_number + '</strong>' : ''}`; dotClass = 'agreement'; break;
+                    case 'approval_requested': text = `<strong>📋 Approval requested</strong> for filing package`; dotClass = 'status'; break;
                     default: text = `<strong>${a.action}</strong>${det.reason ? ' — ' + det.reason : ''}`; dotClass = 'system';
                 }
                 items.push({ time: a.created_at, html: text, dotClass, actor: a.actor });
@@ -778,6 +906,66 @@
             await refreshData();
         }
 
+        // Pipeline stage mapping
+        const PIPELINE_MAPPING = {
+            'NEW': ['New', 'Contacted'],
+            'ANALYZING': ['Awaiting Notice', 'Notice Received', 'Needs Review', 'Needs Info', 'Analysis Complete'],
+            'READY': ['Ready to File', 'Filing Prepared'],
+            'SENT': ['Protest Filed', 'Hearing Scheduled'],
+            'CLOSED': ['Resolved', 'No Case']
+        };
+
+        function updatePipelineVisual(currentStatus) {
+            // Find which stage this status belongs to
+            let activeStage = 'NEW';
+            for (const [stage, statuses] of Object.entries(PIPELINE_MAPPING)) {
+                if (statuses.includes(currentStatus)) {
+                    activeStage = stage;
+                    break;
+                }
+            }
+
+            // Update visual state
+            document.querySelectorAll('.pipeline-stage').forEach(el => {
+                el.classList.remove('active', 'completed');
+                const stageType = el.getAttribute('data-stage');
+
+                if (stageType === activeStage) {
+                    el.classList.add('active');
+                } else {
+                    // Mark previous stages as completed
+                    const stageOrder = ['NEW', 'ANALYZING', 'READY', 'SENT', 'CLOSED'];
+                    const activeIdx = stageOrder.indexOf(activeStage);
+                    const currentIdx = stageOrder.indexOf(stageType);
+                    if (currentIdx < activeIdx) {
+                        el.classList.add('completed');
+                    }
+                }
+            });
+        }
+
+        async function changePipelineStage(stage) {
+            const statuses = PIPELINE_MAPPING[stage];
+            if (!statuses || statuses.length === 0) return;
+
+            // Use the first status in the stage as default
+            const newStatus = statuses[0];
+            const oldStatus = caseData.status;
+
+            if (newStatus === oldStatus) {
+                return toast('Already at that stage', true);
+            }
+
+            // Confirm if moving backwards or to CLOSED
+            if (stage === 'CLOSED' && !oldStatus.match(/Resolved|No Case/)) {
+                if (!confirm(`Move case to ${newStatus}? This marks the case as closed.`)) return;
+            }
+
+            await apiPost('change-status', { case_id: caseId, old_status: oldStatus, new_status: newStatus });
+            toast(`Pipeline: ${stage} (${newStatus})`);
+            await refreshData();
+        }
+
         async function addNote() {
             const text = document.getElementById('noteText').value.trim();
             if (!text) return toast('Type a note first', true);
@@ -808,10 +996,16 @@
             pill.textContent = caseData.status;
             pill.className = 'status-pill status-' + statusClass(caseData.status);
 
+            // Update pipeline visual
+            updatePipelineVisual(caseData.status);
+
             renderCustomer(caseData);
             renderProperty(caseData);
             renderAnalysis(caseData);
             renderDocuments(caseData, caseDocs);
+            renderReadinessGate(caseData);
+            renderValueComparison(caseData);
+            renderApprovalBar(caseData);
             computeNextBestAction(caseData);
             renderAnalysisWarning(caseData);
             renderTimeline(activities, comms);
@@ -827,6 +1021,140 @@
         async function refreshData() {
             await loadAll();
             toast('↻ Refreshed');
+        }
+
+        // ========== FEATURE 1: READINESS GATE ==========
+        function renderReadinessGate(d) {
+            const gate = document.getElementById('readinessGate');
+            const badge = document.getElementById('readinessBadge');
+
+            const hasNotice = !!d.notice_url && !(d.notes || '').includes('WRONG FILE');
+            const hasSig = !!(d.signature || d.fee_agreement_signed);
+            const approvalStatus = d.approval_status || (d.filing_data?.approved ? 'approved' : 'pending');
+            const isApproved = approvalStatus === 'approved';
+            const hasPackage = !!d.evidence_packet_path || !!d.filing_data;
+
+            const allReady = hasNotice && hasSig && isApproved;
+            badge.textContent = allReady ? 'READY TO FILE' : 'NOT READY';
+            badge.style.background = allReady ? '#065f46' : '#78350f';
+            badge.style.color = allReady ? '#6ee7b7' : '#fcd34d';
+
+            gate.innerHTML = [
+                { label: 'Notice', ready: hasNotice, icon: hasNotice ? '✅' : '❌', status: hasNotice ? 'Uploaded' : 'Missing' },
+                { label: 'Signature', ready: hasSig, icon: hasSig ? '✅' : '❌', status: hasSig ? 'Signed' : 'Not Signed' },
+                { label: 'Package', ready: isApproved, icon: isApproved ? '✅' : (hasPackage ? '⏳' : '❌'),
+                  status: isApproved ? 'APPROVED' : (hasPackage ? 'PREPARED' : 'Not Ready') },
+            ].map(g => `
+                <div class="gate-item ${g.ready ? 'ready' : 'blocked'}">
+                    <div class="gate-icon">${g.icon}</div>
+                    <div class="gate-label">${g.label}</div>
+                    <div class="gate-status ${g.ready ? 'yes' : (g.status === 'PREPARED' ? 'pending' : 'no')}">${g.status}</div>
+                </div>
+            `).join('');
+        }
+
+        // ========== FEATURE 2: VALUE COMPARISON ==========
+        function renderValueComparison(d) {
+            const grid = document.getElementById('valueGrid');
+            const assessed = d.assessed_value ? (typeof d.assessed_value === 'string' ? parseFloat(d.assessed_value.replace(/[$,]/g, '')) : d.assessed_value) : 0;
+            const opinion = d.our_opinion_of_value || d.opinion_value || d.target_value || (assessed > 0 ? Math.round(assessed * 0.85) : 0);
+            const savings = d.estimated_savings || 0;
+            const reduction = assessed > 0 && opinion > 0 ? Math.round(((assessed - opinion) / assessed) * 100) : 0;
+
+            // Confidence based on data quality
+            let confidence = 'Low';
+            if (d.qa_status === 'passed' && d.comp_validation_status && !d.comp_validation_status.includes('Only 0')) {
+                confidence = 'High';
+            } else if (d.evidence_packet_path || d.analysis_status === 'complete') {
+                confidence = 'Medium';
+            }
+
+            grid.innerHTML = `
+                <div class="value-card">
+                    <div class="value-amount">${assessed > 0 ? fmtMoney(assessed) : '—'}</div>
+                    <div class="value-label">County Value</div>
+                </div>
+                <div class="value-card">
+                    <div class="value-amount">${opinion > 0 ? fmtMoney(opinion) : '—'}</div>
+                    <div class="value-label">Our Opinion</div>
+                </div>
+                <div class="value-card highlight">
+                    <div class="value-amount">${savings > 0 ? fmtMoney(savings) + '/yr' : '—'}</div>
+                    <div class="value-label">Est. Savings</div>
+                </div>
+                <div class="value-card">
+                    <div class="value-amount">${reduction > 0 ? reduction + '%' : '—'}</div>
+                    <div class="value-label">Reduction</div>
+                    <div class="confidence-badge confidence-${confidence.toLowerCase()}">${confidence} Confidence</div>
+                </div>
+            `;
+        }
+
+        // ========== FEATURE 3: APPROVAL CONTROL ==========
+        let packageApproved = false;
+
+        function renderApprovalBar(d) {
+            const bar = document.getElementById('approvalBar');
+            const statusEl = document.getElementById('approvalStatus');
+            const approveBtn = document.getElementById('btnApprove');
+            const rejectBtn = document.getElementById('btnReject');
+
+            // Show approval bar when case has analysis/package
+            const hasPackage = !!d.evidence_packet_path || !!d.filing_data || d.status === 'Ready to File' || d.status === 'Analysis Complete' || d.status === 'Filing Prepared';
+            if (!hasPackage) { bar.style.display = 'none'; return; }
+            bar.style.display = 'flex';
+
+            const approval = d.approval_status || (d.filing_data?.approved ? 'approved' : 'pending');
+            packageApproved = (approval === 'approved');
+
+            if (approval === 'approved') {
+                statusEl.textContent = '✅ APPROVED';
+                statusEl.className = 'approval-status approved';
+                approveBtn.disabled = true;
+                approveBtn.textContent = '✅ Approved';
+                rejectBtn.style.display = 'none';
+            } else if (approval === 'rejected') {
+                statusEl.textContent = '❌ REJECTED';
+                statusEl.className = 'approval-status rejected';
+                approveBtn.disabled = false;
+                approveBtn.textContent = '✅ Re-Approve';
+                rejectBtn.style.display = 'inline-block';
+            } else {
+                statusEl.textContent = '⏳ NEEDS APPROVAL';
+                statusEl.className = 'approval-status pending';
+                approveBtn.disabled = false;
+                approveBtn.textContent = '✅ Approve Package';
+                rejectBtn.style.display = 'inline-block';
+            }
+
+            // Lock filing button until approved
+            const fileBtn = document.getElementById('btnFile');
+            if (fileBtn && !packageApproved) {
+                fileBtn.disabled = true;
+                fileBtn.title = 'Filing locked — package must be approved first';
+            }
+        }
+
+        async function approvePackage() {
+            try {
+                await apiPost('approve-package', { case_id: caseId, action: 'approve' });
+                toast('✅ Package approved — filing unlocked');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Approval failed', true);
+            }
+        }
+
+        async function rejectPackage() {
+            const reason = prompt('Rejection reason (required):');
+            if (!reason) return;
+            try {
+                await apiPost('approve-package', { case_id: caseId, action: 'reject', reason });
+                toast('❌ Package rejected');
+                await refreshData();
+            } catch (e) {
+                toast('❌ Rejection failed', true);
+            }
         }
 
         // ========== ACTION BAR FUNCTIONS ==========
@@ -856,8 +1184,15 @@
             document.getElementById('btnNotice').disabled = hasValidNotice;
             // Disable signing if already signed
             document.getElementById('btnSign').disabled = !!(d.signature || d.fee_agreement_signed);
-            // Disable filed if already filed
-            document.getElementById('btnFile').disabled = (d.filing_status === 'filed' || d.status === 'Filed');
+            // Disable filed if already filed OR not approved
+            const isFiled = (d.filing_status === 'filed' || d.status === 'Filed' || d.status === 'Protest Filed');
+            const isApproved = packageApproved || d.approval_status === 'approved' || d.filing_data?.approved;
+            document.getElementById('btnFile').disabled = isFiled || !isApproved;
+            if (!isApproved && !isFiled) {
+                document.getElementById('btnFile').title = '🔒 Filing locked — package must be approved first';
+            } else {
+                document.getElementById('btnFile').title = '';
+            }
         }
 
         // 1. CALL — click-to-call + log
@@ -1193,6 +1528,27 @@
                 await refreshData();
             } catch (e) {
                 toast('❌ Failed to mark as filed', true);
+            }
+        }
+
+        // ========== FEATURE 4: INLINE DOC PREVIEW ==========
+        function togglePreview(previewId, url) {
+            const el = document.getElementById(previewId);
+            if (!el) return;
+            if (el.style.display !== 'none') {
+                el.style.display = 'none';
+                el.innerHTML = '';
+                return;
+            }
+            el.style.display = 'block';
+            const isPdf = url.includes('.pdf') || url.includes('pdf');
+            const isImg = /\.(jpg|jpeg|png|gif|webp)/i.test(url);
+            if (isPdf) {
+                el.innerHTML = `<iframe src="${url}" class="doc-preview-frame"></iframe>`;
+            } else if (isImg) {
+                el.innerHTML = `<img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid #2d3148;" />`;
+            } else {
+                el.innerHTML = `<iframe src="${url}" class="doc-preview-frame"></iframe>`;
             }
         }
 

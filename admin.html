@@ -303,13 +303,7 @@
                     <button class="btn btn-purple btn-sm" onclick="bulkAnalyze()">📊 Run Analysis</button>
                     <button class="btn btn-outline btn-sm" onclick="clearBulk()">Clear</button>
                 </div>
-                <table>
-                    <thead><tr>
-                        <th style="width:30px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                        <th>Case</th><th>Name</th><th class="hide-mobile">State</th><th>Status</th><th class="hide-mobile">Savings</th><th>Next Action</th><th class="hide-mobile">Priority</th><th class="hide-mobile">Last Activity</th>
-                    </tr></thead>
-                    <tbody id="submissionsBody"></tbody>
-                </table>
+                <div id="submissionsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;padding:4px 0;"></div>
                 <div class="empty-msg" id="emptyMsg" style="display:none;">No submissions yet.</div>
             </div>
         </div>
@@ -1072,7 +1066,7 @@ function renderSubmissionsTable() {
     const stateFilter = document.getElementById('stateFilter')?.value || '';
     const searchQuery = (document.getElementById('caseSearch')?.value || '').toLowerCase().trim();
     const sortField = document.getElementById('sortField')?.value || 'priority';
-    const tbody = document.getElementById('submissionsBody');
+    const grid = document.getElementById('submissionsGrid');
     const empty = document.getElementById('emptyMsg');
 
     // Filter: exclude archived from main view
@@ -1100,43 +1094,79 @@ function renderSubmissionsTable() {
         }
     });
 
-    if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
 
-    tbody.innerHTML = filtered.map(s => {
+    grid.innerHTML = filtered.map(s => {
         const caseId = s.caseId || s.case_id || '-';
         const name = s.ownerName || s.owner_name || '?';
-        const state = s.state || '?';
+        const address = s.propertyAddress || s.property_address || '?';
+        const status = s.status || 'New';
         const savings = s.estimatedSavings || s.estimated_savings || 0;
         const nextAction = s.next_action || s.nextAction || 'Triage';
         const priority = s.next_action_priority || s.nextActionPriority || 0;
         const lastAct = s.last_activity_at || s.lastActivityAt;
         const lastActStr = lastAct ? timeAgo(new Date(lastAct)) : '—';
-        const savingsStr = savings > 0 ? '$' + Number(savings).toLocaleString() : '—';
-        const stateColors = { TX: '#dbeafe;color:#1e40af', GA: '#fef3c7;color:#92400e', CO: '#d1fae5;color:#065f46', AZ: '#fce7f3;color:#9d174d', WA: '#e0f2fe;color:#0c4a6e' };
-        const stateBg = stateColors[state.toUpperCase()] || '#f8d7da;color:#721c24';
-        const priorityBadge = priority >= 80 ? '<span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">CRITICAL</span>'
-            : priority >= 60 ? '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">HIGH</span>'
-            : priority >= 30 ? '<span style="background:#3b82f6;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">MED</span>'
-            : '<span style="background:#6b7280;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;">LOW</span>';
+        const phone = s.phone || s.ownerPhone || '';
+        const email = s.email || '';
+
+        const priorityBadge = priority >= 80 ? '<span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;">🔥 CRITICAL</span>'
+            : priority >= 60 ? '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;">⚠️ HIGH</span>'
+            : priority >= 30 ? '<span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;">MED</span>'
+            : '';
+
         const icons = [
             s.signature || s.fee_agreement_signed ? '✍️' : '',
             s.noticeUrl || s.notice_url || s.noticeOfValue ? '📄' : '',
             s.initiation_paid || s.initiationPaid ? '💰' : ''
-        ].filter(Boolean).join('');
-        const savingsHighlight = savings >= 5000 ? 'color:#059669;font-weight:700;' : savings >= 2000 ? 'color:#d97706;font-weight:600;' : '';
+        ].filter(Boolean).join(' ');
 
-        return `<tr onclick="goToCase('${esc(caseId)}'${caseId === '-' ? ',\'' + s.id + '\'' : ''})" style="cursor:pointer;">
-            <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="${s.id}" onchange="updateBulk()" ${selectedIds.has(s.id) ? 'checked' : ''}></td>
-            <td><strong>${esc(caseId)}</strong></td>
-            <td>${esc(name).substring(0,22)} ${icons}</td>
-            <td class="hide-mobile"><span style="font-size:0.75rem;font-weight:700;padding:2px 6px;border-radius:4px;background:${stateBg}">${state.toUpperCase()}</span></td>
-            <td>${statusBadge(s.status)}</td>
-            <td class="hide-mobile" style="${savingsHighlight}">${savingsStr}</td>
-            <td style="font-size:0.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(nextAction)}</td>
-            <td class="hide-mobile">${priorityBadge}</td>
-            <td class="hide-mobile" style="font-size:0.8rem;color:#9ca3af;">${lastActStr}</td>
-        </tr>`;
+        return `<div class="case-card" onclick="goToCase('${esc(caseId)}'${caseId === '-' ? ',\'' + s.id + '\'' : ''})" style="
+  background:#1a1d2e;
+  border:1px solid #2d3148;
+  border-radius:12px;
+  padding:20px;
+  cursor:pointer;
+  transition:border-color 0.15s,transform 0.1s;
+  position:relative;
+  overflow:hidden;
+" onmouseover="this.style.borderColor='#6366f1';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#2d3148';this.style.transform='none'">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <span style="background:#312e81;color:#c7d2fe;padding:3px 10px;border-radius:6px;font-weight:700;font-size:13px;">${esc(caseId)}</span>
+    ${statusBadge(status)}
+  </div>
+
+  <div style="margin-bottom:12px;">
+    <div style="font-size:16px;font-weight:700;color:#f1f5f9;">${esc(name)}</div>
+    <div style="font-size:12px;color:#94a3b8;margin-top:3px;">${esc(address)}</div>
+  </div>
+
+  ${savings > 0 ? `<div style="background:linear-gradient(135deg,#065f46,#047857);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:20px;font-weight:800;color:#6ee7b7;">$${savings.toLocaleString()}/yr</span>
+    <span style="font-size:11px;color:#a7f3d0;">Est. Savings</span>
+  </div>` : ''}
+
+  <div style="background:#141621;border-radius:8px;padding:10px 14px;margin-bottom:12px;border-left:3px solid #6366f1;">
+    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:4px;">Next Action</div>
+    <div style="font-size:13px;color:#e2e8f0;font-weight:500;">${esc(nextAction)}</div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <span style="font-size:11px;color:#64748b;">⏱ ${lastActStr}</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      ${icons ? `<span style="font-size:14px;">${icons}</span>` : ''}
+      ${priorityBadge}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" onclick="event.stopPropagation()">
+    <button onclick="quickCall(event,'${phone}','${esc(name)}')" ${!phone ? 'disabled' : ''} style="padding:7px 4px;border-radius:8px;border:1px solid #059669;background:transparent;color:${phone ? '#6ee7b7' : '#374151'};font-size:11px;font-weight:600;cursor:${phone ? 'pointer' : 'not-allowed'};font-family:inherit;">📞 Call</button>
+    <button onclick="quickSMS(event,'${phone}','${esc(caseId)}')" ${!phone ? 'disabled' : ''} style="padding:7px 4px;border-radius:8px;border:1px solid #0891b2;background:transparent;color:${phone ? '#22d3ee' : '#374151'};font-size:11px;font-weight:600;cursor:${phone ? 'pointer' : 'not-allowed'};font-family:inherit;">💬 SMS</button>
+    <button onclick="quickEmail(event,'${email}','${esc(caseId)}')" ${!email ? 'disabled' : ''} style="padding:7px 4px;border-radius:8px;border:1px solid #6366f1;background:transparent;color:${email ? '#818cf8' : '#374151'};font-size:11px;font-weight:600;cursor:${email ? 'pointer' : 'not-allowed'};font-family:inherit;">📧 Email</button>
+    <button onclick="quickNotice(event,'${esc(caseId)}')" style="padding:7px 4px;border-radius:8px;border:1px solid #d97706;background:transparent;color:#fcd34d;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📄 Notice</button>
+  </div>
+</div>`;
     }).join('');
 }
 
@@ -2441,6 +2471,37 @@ function exportUriCommissions() {
             URL.revokeObjectURL(url);
         })
         .catch(e => alert('Export error: ' + e.message));
+}
+
+// ===== QUICK ACTIONS (for card-based control center) =====
+function quickCall(e, phone, name) {
+    e.stopPropagation();
+    if (!phone) return;
+    window.open("tel:" + phone);
+}
+
+function quickSMS(e, phone, caseId) {
+    e.stopPropagation();
+    if (!phone) return;
+    const msg = prompt("SMS to " + phone + ":", "Hi, this is Tyler from OverAssessed...");
+    if (!msg) return;
+    const token = localStorage.getItem("oa_token");
+    fetch("/api/admin/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ case_id: caseId, to: phone, message: msg })
+    }).then(r => r.json()).then(d => alert(d.ok ? "SMS sent!" : "Error: " + (d.error || "unknown")));
+}
+
+function quickEmail(e, email, caseId) {
+    e.stopPropagation();
+    if (!email) return;
+    window.location.href = "case.html?caseId=" + caseId + "#email";
+}
+
+function quickNotice(e, caseId) {
+    e.stopPropagation();
+    window.location.href = "case.html?caseId=" + caseId + "#notice";
 }
 </script>
 </body>
