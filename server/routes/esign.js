@@ -46,7 +46,7 @@ router.get('/:token', async (req, res) => {
 
         const { data: signData, error } = await supabaseAdmin
             .from('esign_tokens')
-            .select('*, submissions(*)')
+            .select('id, case_id, signer_name, signer_email, status, expires_at, signed_at')
             .eq('token', token)
             .single();
 
@@ -54,7 +54,17 @@ router.get('/:token', async (req, res) => {
         if (signData.status === 'signed') return res.status(200).send(signingPage('already_signed', signData));
         if (new Date(signData.expires_at) < new Date()) return res.status(410).send(signingPage('expired'));
 
-        const sub = signData.submissions;
+        // Fetch submission separately (no FK relationship needed)
+        let sub = null;
+        if (signData.case_id) {
+            const { data: subData } = await supabaseAdmin
+                .from('submissions')
+                .select('owner_name, property_address, county, state, estimated_savings, assessed_value')
+                .eq('case_id', signData.case_id)
+                .maybeSingle();
+            sub = subData;
+        }
+
         res.send(signingPage('ready', signData, sub));
     } catch (err) {
         res.status(500).send('Server error: ' + err.message);
@@ -338,5 +348,89 @@ function signingPage(state, signData = null, sub = null) {
 </body>
 </html>`;
 }
+
+// POST /api/esign/send — generate token + send signing link to customer
+// Also sets case status to AWAITING_SIGNATURE
+router.post('/send', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { case_id, email, phone, owner_name } = req.body;
+        if (!case_id || !email) return res.status(400).json({ error: 'case_id and email required' });
+
+        // Generate signing token (30-day expiry)
+        const crypto = require('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: tokenRow, error: tokenErr } = await supabaseAdmin
+            .from('esign_tokens')
+            .insert({ case_id, token, signer_name: owner_name || null, signer_email: email, status: 'pending', expires_at, created_at: new Date().toISOString() })
+            .select().single();
+        if (tokenErr) throw tokenErr;
+
+        const baseUrl = process.env.BASE_URL || 'https://overassessed.ai';
+        const sign_url = `${baseUrl}/sign/${token}`;
+
+        // Update case status to AWAITING_SIGNATURE
+        await supabaseAdmin.from('submissions').update({
+            status: 'Awaiting Signature',
+            last_activity_at: new Date().toISOString()
+        }).eq('case_id', case_id);
+
+        // Log activity
+        await supabaseAdmin.from('activity_log').insert({
+            case_id, actor: 'tyler', action: 'esign_sent',
+            details: { sign_url, email, token: token.slice(0, 8) + '...' }
+        }).catch(() => {});
+
+        // Send email with signing link
+        const sgMail = require('@sendgrid/mail');
+        if (process.env.SENDGRID_API_KEY) {
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            const firstName = (owner_name || 'there').split(' ')[0];
+            try {
+                await sgMail.send({
+                    to: email,
+                    from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                    replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                    subject: `Sign Your Authorization — ${case_id}`,
+                    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                        <h2 style="color:#6c5ce7;">Your Tax Protest Authorization</h2>
+                        <p>Hi ${firstName},</p>
+                        <p>Your property tax savings analysis is complete. To authorize us to file your protest, please sign Form 50-162 using the link below.</p>
+                        <p style="text-align:center;margin:28px 0;">
+                            <a href="${sign_url}" style="background:#6c5ce7;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">Sign Form 50-162</a>
+                        </p>
+                        <p style="color:#666;font-size:13px;">This link is valid for 30 days. If you have questions, reply to this email.</p>
+                        <p>— Tyler Worthey<br>OverAssessed</p>
+                    </div>`
+                });
+            } catch (emailErr) {
+                console.error('[esign/send] Email failed:', emailErr.message);
+            }
+        }
+
+        // Send SMS if phone provided
+        if (phone) {
+            try {
+                const twilio = require('twilio');
+                const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                const toNum = phone.startsWith('+') ? phone : '+1' + phone.replace(/\D/g, '');
+                await client.messages.create({
+                    body: `Hi ${(owner_name||'').split(' ')[0] || 'there'}, your OverAssessed authorization is ready to sign: ${sign_url}`,
+                    from: process.env.TWILIO_PHONE_NUMBER,
+                    to: toNum
+                });
+            } catch (smsErr) {
+                console.error('[esign/send] SMS failed:', smsErr.message);
+            }
+        }
+
+        res.json({ ok: true, sign_url, token: tokenRow.token, expires_at, status: 'Awaiting Signature' });
+    } catch (err) {
+        console.error('[esign/send] Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 module.exports = router;

@@ -2483,19 +2483,44 @@ if (isSupabaseEnabled()) {
     app.post('/api/case-view/approve-package', authenticateToken, async (req, res) => {
         try {
             const { case_id, action, reason } = req.body;
+            if (!case_id || !action) return res.status(400).json({ error: 'case_id and action required' });
             const isApprove = action === 'approve';
+
+            // Fetch case for county_value / our_opinion display
+            const { data: sub } = await supabaseAdmin
+                .from('submissions')
+                .select('owner_name, estimated_savings, assessed_value, comp_results, fee_agreement_signed, upload_status, notice_url')
+                .eq('case_id', case_id).single();
+
+            // Eligibility guard on approve
+            if (isApprove && sub) {
+                const hasNotice = (sub.upload_status === 'uploaded' || !!sub.notice_url) && sub.upload_status !== 'wrong_document';
+                const hasSig = sub.fee_agreement_signed === true;
+                if (!hasNotice) return res.status(422).json({ error: 'Cannot approve: no notice uploaded', reason: 'MISSING_NOTICE' });
+                if (!hasSig) return res.status(422).json({ error: 'Cannot approve: fee agreement not signed', reason: 'MISSING_SIGNATURE' });
+            }
+
+            const now = new Date().toISOString();
             const update = {
-                approval_status: isApprove ? 'approved' : 'rejected',
-                last_activity_at: new Date().toISOString()
+                filing_approval_status: isApprove ? 'approved' : 'rejected',
+                last_activity_at: now,
+                ...(isApprove ? { filing_approved: true, filing_approved_at: now, filing_approved_by: 'tyler' } : {})
             };
             await supabaseAdmin.from('submissions').update(update).eq('case_id', case_id);
+
+            const comps = (sub && sub.comp_results) || {};
             await supabaseAdmin.from('activity_log').insert({
                 case_id,
                 actor: 'tyler',
                 action: isApprove ? 'package_approved' : 'package_rejected',
-                details: { reason: reason || null }
+                details: {
+                    reason: reason || null,
+                    county_value: parseFloat(comps.countyValue || comps.county_value || sub?.assessed_value) || 0,
+                    our_opinion: parseFloat(comps.ourOpinion || comps.our_opinion || comps.recommendedValue) || 0,
+                    estimated_savings: parseFloat(sub?.estimated_savings) || 0
+                }
             });
-            res.json({ ok: true, status: update.approval_status });
+            res.json({ ok: true, status: update.filing_approval_status, county_value: comps.countyValue || 0, our_opinion: comps.ourOpinion || 0, savings: sub?.estimated_savings || 0 });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -2915,8 +2940,27 @@ if (isSupabaseEnabled()) {
             const firstName = (owner_name || '').split(' ')[0] || 'there';
             const savingsStr = estimated_savings ? '$' + Number(estimated_savings).toLocaleString() : 'significant savings';
 
-            // Build signing link
-            const signingLink = `https://overassessed.ai/sign/${case_id}`;
+            // Build signing link via esign token system
+            let signingLink = `https://overassessed.ai/sign/${case_id}`;
+            try {
+                const crypto = require('crypto');
+                const esignToken = crypto.randomBytes(32).toString('hex');
+                const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                const { error: tokenErr } = await supabaseAdmin.from('esign_tokens').insert({
+                    case_id, token: esignToken, signer_name: owner_name || null, signer_email: email || null,
+                    status: 'pending', expires_at, created_at: new Date().toISOString()
+                });
+                if (!tokenErr) {
+                    signingLink = `${process.env.BASE_URL || 'https://overassessed.ai'}/sign/${esignToken}`;
+                    // Set case status to Awaiting Signature
+                    await supabaseAdmin.from('submissions').update({
+                        status: 'Awaiting Signature',
+                        last_activity_at: new Date().toISOString()
+                    }).eq('case_id', case_id);
+                }
+            } catch (tokenGenErr) {
+                console.error('[Action:SendSigning] Token gen failed (non-blocking):', tokenGenErr.message);
+            }
 
             const smsBody = `Hi ${firstName}, your analysis is complete — ${savingsStr}/yr potential savings! Sign the authorization form to get your protest filed: ${signingLink}. Questions? Reply to this text.`;
             const emailSubject = `Sign to Save ${savingsStr}/yr — Your Analysis is Ready`;
@@ -2966,6 +3010,28 @@ if (isSupabaseEnabled()) {
         try {
             const { case_id, filing_date, confirmation_number, notes, notify_customer, phone, email, owner_name, county } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
+
+            // === FILING LOCK — all 4 conditions must pass ===
+            if (isSupabaseEnabled()) {
+                const { data: lockCheck } = await supabaseAdmin
+                    .from('submissions')
+                    .select('filing_approval_status, filing_approved, fee_agreement_signed, upload_status, notice_url')
+                    .eq('case_id', case_id).single();
+                if (lockCheck) {
+                    const approved = lockCheck.filing_approval_status === 'approved' || lockCheck.filing_approved === true;
+                    const hasSig = lockCheck.fee_agreement_signed === true;
+                    const hasNotice = (lockCheck.upload_status === 'uploaded' || !!lockCheck.notice_url) && lockCheck.upload_status !== 'wrong_document';
+                    const hasConfirmation = !!(confirmation_number && confirmation_number.trim());
+                    const errors = [];
+                    if (!approved) errors.push('Package not approved — run approval first');
+                    if (!hasSig) errors.push('Fee agreement not signed');
+                    if (!hasNotice) errors.push('No notice of value uploaded');
+                    if (!hasConfirmation) errors.push('Portal confirmation number required');
+                    if (errors.length > 0) {
+                        return res.status(422).json({ error: 'Filing blocked', reasons: errors });
+                    }
+                }
+            }
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
             const firstName = (owner_name || '').split(' ')[0] || 'there';
 
@@ -6496,33 +6562,60 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
 // GET /api/approval-queue — all leads in Pending Approval status
 app.get('/api/approval-queue', authenticateToken, async (req, res) => {
     try {
-        const allSubmissions = await readAllSubmissions();
-        const queue = allSubmissions
-            .filter(s => s.status === 'Pending Approval')
-            .map(s => ({
-                id: s.id,
-                caseId: s.caseId || s.case_id,
-                ownerName: s.ownerName || s.owner_name,
+        if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+
+        // Real eligibility: notice received + fee agreement signed + valid data + not synthetic comps
+        const { data: rows, error } = await supabaseAdmin
+            .from('submissions')
+            .select('id, case_id, owner_name, email, phone, property_address, property_type, county, state, assessed_value, estimated_savings, savings_min, savings_max, fee_agreement_signed, fee_agreement_signed_at, upload_status, notice_url, notice_of_value, comp_results, data_validation_status, comp_validation_status, filing_approval_status, missing_data_reason, status, created_at, last_activity_at')
+            .not('status', 'in', '("Archived","Deleted","No Case","Filed","Protest Filed","Resolved","Won","Lost")')
+            .not('case_id', 'like', 'BM-%');
+
+        if (error) throw error;
+
+        const queue = (rows || []).filter(s => {
+            // Must have notice uploaded
+            const hasNotice = (s.upload_status === 'uploaded' || !!s.notice_url || !!s.notice_of_value) && s.upload_status !== 'wrong_document';
+            // Must have signed fee agreement
+            const hasSig = s.fee_agreement_signed === true;
+            // Must not have incomplete address
+            const notIncomplete = !s.missing_data_reason || s.missing_data_reason !== 'INCOMPLETE_ADDRESS';
+            // Must have some estimated savings (analysis ran)
+            const hasAnalysis = parseFloat(s.estimated_savings) > 0;
+            // Must not have synthetic / zero-comp data flagged
+            const compVal = s.comp_validation_status || '';
+            const notSyntheticComps = !compVal.includes('Only 0') && s.data_validation_status !== 'synthetic';
+            // Not already approved
+            const notYetApproved = s.filing_approval_status !== 'approved';
+
+            return hasNotice && hasSig && notIncomplete && hasAnalysis && notSyntheticComps && notYetApproved;
+        }).map(s => {
+            const comps = s.comp_results || {};
+            return {
+                case_id: s.case_id,
+                owner_name: s.owner_name,
                 email: s.email,
                 phone: s.phone,
-                propertyAddress: s.propertyAddress || s.property_address,
-                propertyType: s.propertyType || s.property_type,
+                property_address: s.property_address,
                 county: s.county,
                 state: s.state,
-                estimatedSavings: s.estimatedSavings || s.estimated_savings || 0,
-                assessedValue: s.assessedValue || s.assessed_value,
-                analysisStatus: s.analysisStatus || s.analysis_status,
-                evidencePackage: s.evidencePackage || s.evidence_package || null,
-                compsUsed: s.compsUsed || s.comps_used || null,
-                createdAt: s.createdAt || s.created_at,
-                source: s.source
-            }))
-            .sort((a, b) => (b.estimatedSavings || 0) - (a.estimatedSavings || 0));
+                assessed_value: parseFloat(s.assessed_value) || 0,
+                county_value: parseFloat(comps.countyValue || comps.county_value || s.assessed_value) || 0,
+                our_opinion: parseFloat(comps.ourOpinion || comps.our_opinion || comps.recommendedValue) || 0,
+                estimated_savings: parseFloat(s.estimated_savings) || 0,
+                savings_min: parseFloat(s.savings_min) || 0,
+                savings_max: parseFloat(s.savings_max) || 0,
+                fee_agreement_signed_at: s.fee_agreement_signed_at,
+                filing_approval_status: s.filing_approval_status || 'pending',
+                status: s.status,
+                last_activity_at: s.last_activity_at
+            };
+        }).sort((a, b) => b.estimated_savings - a.estimated_savings);
 
         res.json({
             count: queue.length,
-            totalPotentialSavings: queue.reduce((sum, s) => sum + (s.estimatedSavings || 0), 0),
-            leads: queue
+            total_savings: queue.reduce((sum, s) => sum + s.estimated_savings, 0),
+            cases: queue
         });
     } catch (error) {
         console.error('[ApprovalQueue] Error:', error.message);

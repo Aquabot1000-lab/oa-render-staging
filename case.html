@@ -500,7 +500,9 @@
             const r = await fetch(`/api/case-view/${path}`, {
                 method: 'POST', headers: apiHeaders(), body: JSON.stringify(data)
             });
-            return r.json();
+            const json = await r.json();
+            if (!r.ok) { const err = new Error(json.error || 'Request failed'); Object.assign(err, json); throw err; }
+            return json;
         }
 
         function toast(msg, isError) {
@@ -1166,11 +1168,14 @@
 
         async function approvePackage() {
             try {
-                await apiPost('approve-package', { case_id: caseId, action: 'approve' });
-                toast('✅ Package approved — filing unlocked');
+                const res = await apiPost('approve-package', { case_id: caseId, action: 'approve' });
+                const county = fmtMoney(res.county_value);
+                const opinion = fmtMoney(res.our_opinion);
+                const savings = fmtMoney(res.savings);
+                toast(`✅ Package approved — County: ${county} → Our Opinion: ${opinion} → Savings: ${savings}`);
                 await refreshData();
             } catch (e) {
-                toast('❌ Approval failed', true);
+                toast('❌ Approval failed: ' + (e.reason || e.message || 'unknown'), true);
             }
         }
 
@@ -1182,7 +1187,7 @@
                 toast('❌ Package rejected');
                 await refreshData();
             } catch (e) {
-                toast('❌ Rejection failed', true);
+                toast('❌ Rejection failed: ' + (e.message || 'unknown'), true);
             }
         }
 
@@ -1516,8 +1521,8 @@
                     <input type="date" id="filingDate" value="${new Date().toISOString().split('T')[0]}" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" />
                 </div>
                 <div class="action-group">
-                    <label>Confirmation # (optional)</label>
-                    <input type="text" id="filingConfirmation" placeholder="e.g. ARB-2026-12345" style="width:100%;background:#141621;border:1px solid #2d3148;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" />
+                    <label>Portal Confirmation # <span style="color:#ef4444;">*required</span></label>
+                    <input type="text" id="filingConfirmation" placeholder="e.g. ARB-2026-12345" style="width:100%;background:#141621;border:1px solid #6366f1;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;" required />
                 </div>
                 <div class="action-group">
                     <label>Notes (optional)</label>
@@ -1540,8 +1545,13 @@
             const confirmation = document.getElementById('filingConfirmation').value.trim();
             const notes = document.getElementById('filingNotes').value.trim();
             const notify = document.getElementById('filingNotify').checked;
+            if (!confirmation) {
+                toast('❌ Portal confirmation number is required before filing', true);
+                document.getElementById('filingConfirmation').focus();
+                return;
+            }
             try {
-                await apiPost('action/mark-filed', {
+                const result = await apiPost('action/mark-filed', {
                     case_id: caseId,
                     filing_date: filingDate,
                     confirmation_number: confirmation,
@@ -1556,7 +1566,9 @@
                 toast('✅ Protest marked as filed');
                 await refreshData();
             } catch (e) {
-                toast('❌ Failed to mark as filed', true);
+                const reasons = e.reasons || [];
+                const msg = reasons.length ? '❌ Filing blocked: ' + reasons.join('; ') : '❌ Failed to mark as filed: ' + (e.message || e.error || 'unknown error');
+                toast(msg, true);
             }
         }
 
