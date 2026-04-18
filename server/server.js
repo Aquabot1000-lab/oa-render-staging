@@ -418,9 +418,24 @@ app.post('/api/estimate', async (req, res) => {
     }
 });
 
-// Mount /sign BEFORE static files so /sign/:token/pdf-url routes correctly
+// Mount /sign BEFORE static files so /sign/:token/* routes correctly
 app.use('/sign', esignRouter);
 app.use('/api/esign', esignRouter);
+
+// Explicit GET interceptors for sign sub-paths — must be BEFORE express.static
+// express.static can match /sign/:token/pdf-url before the router for GET requests
+app.get('/sign/:token/pdf-url', (req, res, next) => {
+    req.url = '/' + req.params.token + '/pdf-url';
+    esignRouter(req, res, next);
+});
+app.get('/sign/:token/status', (req, res, next) => {
+    req.url = '/' + req.params.token + '/status';
+    esignRouter(req, res, next);
+});
+app.get('/sign/:token', (req, res, next) => {
+    req.url = '/' + req.params.token;
+    esignRouter(req, res, next);
+});
 
 app.use(express.static(path.join(__dirname, '..'), { index: false, redirect: false }));
 
