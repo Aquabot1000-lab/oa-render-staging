@@ -418,6 +418,10 @@ app.post('/api/estimate', async (req, res) => {
     }
 });
 
+// Mount /sign BEFORE static files so /sign/:token/pdf-url routes correctly
+app.use('/sign', esignRouter);
+app.use('/api/esign', esignRouter);
+
 app.use(express.static(path.join(__dirname, '..'), { index: false, redirect: false }));
 
 // File paths
@@ -3219,8 +3223,7 @@ if (isSupabaseEnabled()) {
     // Coinbase Commerce Bitcoin payment routes (all public - webhook needs raw body)
     app.use('/api/coinbase', coinbaseRouter);
     app.use('/api/email', emailNurtureRouter);
-    app.use('/sign', esignRouter);
-    app.use('/api/esign', esignRouter);
+    // /sign and /api/esign already mounted before static middleware (see top of file)
     console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email, /sign');
 }
 
