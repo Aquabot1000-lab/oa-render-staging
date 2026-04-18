@@ -657,9 +657,21 @@
                 });
             }
 
-            // 2. Form 50-162 (Agent Appointment)
-            if (d.signature) {
-                docs.push({ icon: '✍️', cls: 'agreement', name: 'Form 50-162 (Agent Appointment)', badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">SIGNED</span>', meta: `Signed ${fmtDate(d.signature?.signedAt)}`, url: null });
+            // 2. Form 50-162 (Agent Appointment) — check for signed PDF in dbDocs first
+            const signed50162 = (dbDocs || []).find(doc => doc.file_type === 'signed_50_162');
+            const signedUrl = signed50162?.file_url || d.agreement_url || null;
+            if (d.fee_agreement_signed || d.signature || signed50162) {
+                const signedAt = d.fee_agreement_signed_at || d.signature?.signedAt || signed50162?.created_at;
+                docs.push({
+                    icon: '✍️', cls: 'agreement',
+                    name: 'Form 50-162 (Agent Appointment)',
+                    badge: '<span style="background:#065f46;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">SIGNED</span>',
+                    meta: `Signed ${fmtDate(signedAt)}`,
+                    url: signedUrl,
+                    extraActions: signedUrl
+                        ? `<a href="${signedUrl}" target="_blank" style="margin-left:8px;background:#6c5ce7;color:white;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;text-decoration:none;">📄 View</a><a href="${signedUrl}" download style="margin-left:4px;background:#334155;color:#e2e8f0;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;text-decoration:none;">⬇ Download</a>`
+                        : ''
+                });
             } else {
                 docs.push({ icon: '✍️', cls: 'error', name: 'Form 50-162 (Agent Appointment)', badge: '<span style="background:#78350f;color:#fcd34d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:8px;">NOT SIGNED</span>', meta: 'Authorization not yet signed', url: null });
             }
@@ -722,10 +734,11 @@
                         <div class="doc-name">${doc.name}<span class="doc-version">${ver}</span>${approvedBadge}${doc.badge || ''}</div>
                         <div class="doc-meta">${doc.meta}</div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         ${previewBtn}
                         ${doc.url ? `<a href="${doc.url}" target="_blank" style="color:#818cf8;font-size:12px;text-decoration:none;font-weight:600;" title="Open document">View →</a>` : ''}
                         ${doc.url ? `<a href="${doc.url}" download style="color:#64748b;font-size:14px;text-decoration:none;" title="Download">⬇</a>` : ''}
+                        ${doc.extraActions || ''}
                     </div>
                     <div id="${previewId}" style="display:none;width:100%;margin-top:8px;"></div>
                 </div>`;

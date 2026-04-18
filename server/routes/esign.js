@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 const crypto = require('crypto');
+const { generateAndStoreSigned } = require('../services/sign-form-50-162');
 
 // Generate signing token for a case
 router.post('/generate', async (req, res) => {
@@ -105,22 +106,57 @@ router.post('/:token/submit', express.json(), async (req, res) => {
 
         if (updateErr) throw updateErr;
 
+        const signedAt = new Date().toISOString();
+
         // Update submission record
-        const { error: subErr } = await supabaseAdmin
+        const { data: subData, error: subErr } = await supabaseAdmin
             .from('submissions')
             .update({
                 fee_agreement_signed: true,
-                fee_agreement_signed_at: new Date().toISOString(),
+                fee_agreement_signed_at: signedAt,
                 status: 'SIGNED_READY_TO_FILE'
             })
-            .eq('case_id', signData.case_id);
+            .eq('case_id', signData.case_id)
+            .select('owner_name, property_address, county, phone')
+            .single();
 
         if (subErr) console.error('Failed to update submission:', subErr);
 
-        res.json({ success: true, message: 'Document signed successfully' });
+        // Generate signed PDF in background (non-blocking)
+        let signedPdfUrl = null;
+        try {
+            const stored = await generateAndStoreSigned(supabaseAdmin, {
+                caseId: signData.case_id,
+                ownerName: subData?.owner_name || signData.signer_name,
+                propertyAddress: subData?.property_address || '',
+                county: subData?.county || '',
+                phone: subData?.phone || '',
+                signatureDataUrl: signature_data,
+                signedAt
+            });
+            signedPdfUrl = stored.publicUrl;
+            console.log(`[esign] Signed PDF stored: ${signedPdfUrl}`);
+        } catch (pdfErr) {
+            console.error('[esign] PDF generation failed (non-blocking):', pdfErr.message);
+        }
+
+        res.json({ success: true, message: 'Document signed successfully', signed_pdf_url: signedPdfUrl, case_id: signData.case_id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// GET pdf-url for a token — returns signed PDF URL if ready
+router.get('/:token/pdf-url', async (req, res) => {
+    if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
+    try {
+        const { data: tok } = await supabaseAdmin.from('esign_tokens').select('case_id').eq('token', req.params.token).single();
+        if (!tok) return res.status(404).json({ url: null });
+        const { data: doc } = await supabaseAdmin.from('case_documents')
+            .select('file_url').eq('case_id', tok.case_id).eq('file_type','signed_50_162')
+            .order('uploaded_at',{ascending:false}).limit(1).single();
+        res.json({ url: doc?.file_url || null });
+    } catch (err) { res.json({ url: null }); }
 });
 
 // Check signing status
@@ -148,7 +184,19 @@ function signingPage(state, signData = null, sub = null) {
 
     if (state === 'not_found') return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OverAssessed - Sign</title></head><body style="font-family:-apple-system,sans-serif;max-width:600px;margin:40px auto;padding:20px;">${logo}<div style="background:#fee;padding:20px;border-radius:8px;text-align:center;"><h2>Document Not Found</h2><p>This signing link is invalid or has been removed.</p></div></body></html>`;
     if (state === 'expired') return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OverAssessed - Expired</title></head><body style="font-family:-apple-system,sans-serif;max-width:600px;margin:40px auto;padding:20px;">${logo}<div style="background:#fff3cd;padding:20px;border-radius:8px;text-align:center;"><h2>Link Expired</h2><p>This signing link has expired. Please contact OverAssessed for a new link.</p></div></body></html>`;
-    if (state === 'already_signed') return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OverAssessed - Signed</title></head><body style="font-family:-apple-system,sans-serif;max-width:600px;margin:40px auto;padding:20px;">${logo}<div style="background:#d4edda;padding:20px;border-radius:8px;text-align:center;"><h2>✅ Already Signed</h2><p>This document was signed on ${signData.signed_at ? new Date(signData.signed_at).toLocaleDateString() : 'a previous date'}.</p><p>No further action needed. Thank you!</p></div></body></html>`;
+    if (state === 'already_signed') {
+        // Fetch signed PDF URL if available
+        let pdfLink = '';
+        if (signData && signData.case_id && isSupabaseEnabled()) {
+            try {
+                const { data: doc } = await supabaseAdmin.from('case_documents')
+                    .select('file_url').eq('case_id', signData.case_id).eq('file_type','signed_50_162')
+                    .order('uploaded_at',{ascending:false}).limit(1).single();
+                if (doc?.file_url) pdfLink = `<p style="margin-top:16px;"><a href="${doc.file_url}" target="_blank" style="background:#6c5ce7;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:700;">📄 View Signed Document</a> &nbsp; <a href="${doc.file_url}" download style="background:#e9ecef;color:#333;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:700;">⬇️ Download PDF</a></p>`;
+            } catch {}
+        }
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OverAssessed - Signed</title></head><body style="font-family:-apple-system,sans-serif;max-width:600px;margin:40px auto;padding:20px;">${logo}<div style="background:#d4edda;padding:20px;border-radius:8px;text-align:center;"><h2>✅ Already Signed</h2><p>This document was signed on ${signData.signed_at ? new Date(signData.signed_at).toLocaleDateString() : 'a previous date'}.</p><p>No further action needed. Thank you!</p>${pdfLink}</div></body></html>`;
+    }
 
     const ownerName = sub ? sub.owner_name : (signData.signer_name || 'Property Owner');
     const address = sub ? sub.property_address : '';
@@ -258,7 +306,8 @@ function signingPage(state, signData = null, sub = null) {
         <h2>✅ Successfully Signed!</h2>
         <p>Your Form 50-162 has been signed and submitted to OverAssessed LLC.</p>
         <p>We'll begin working on your property tax protest right away.</p>
-        <p style="color:#666;font-size:14px;margin-top:20px;">A confirmation will be sent to your email. You may close this page.</p>
+        <div id="pdfLinks" style="margin-top:20px;"></div>
+        <p style="color:#666;font-size:14px;margin-top:16px;">A confirmation will be sent to your email. You may close this page.</p>
     </div>
 
     <script>
@@ -333,6 +382,28 @@ function signingPage(state, signData = null, sub = null) {
                 if (result.success) {
                     document.getElementById('formView').style.display = 'none';
                     document.getElementById('successView').style.display = 'block';
+                    // Show signed PDF links if available
+                    if (result.signed_pdf_url) {
+                        document.getElementById('pdfLinks').innerHTML =
+                            '<a href="' + result.signed_pdf_url + '" target="_blank" style="display:inline-block;background:#6c5ce7;color:white;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;margin-right:10px;">📄 View Signed Document</a>' +
+                            '<a href="' + result.signed_pdf_url + '" download style="display:inline-block;background:#e9ecef;color:#333;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;">⬇️ Download PDF</a>';
+                    } else {
+                        // Poll for PDF — generated async, may take a few seconds
+                        let polls = 0;
+                        const poll = setInterval(async () => {
+                            polls++;
+                            if (polls > 10) { clearInterval(poll); return; }
+                            try {
+                                const st = await fetch(window.location.pathname.replace('/submit','') + '/pdf-url').then(r=>r.json());
+                                if (st.url) {
+                                    clearInterval(poll);
+                                    document.getElementById('pdfLinks').innerHTML =
+                                        '<a href="' + st.url + '" target="_blank" style="display:inline-block;background:#6c5ce7;color:white;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;margin-right:10px;">📄 View Signed Document</a>' +
+                                        '<a href="' + st.url + '" download style="display:inline-block;background:#e9ecef;color:#333;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;">⬇️ Download PDF</a>';
+                                }
+                            } catch {}
+                        }, 2000);
+                    }
                 } else {
                     alert(result.error || 'Error submitting. Please try again.');
                     btn.textContent = 'Sign & Submit Form 50-162';
