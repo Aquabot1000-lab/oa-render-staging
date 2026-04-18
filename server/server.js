@@ -8090,9 +8090,10 @@ Object.entries(STATE_REDIRECTS).forEach(([path, state]) => {
     });
 });
 
-// Catch-all: serve frontend (skip /admin/*, /api/*, and static asset paths)
+// Catch-all: serve frontend (skip /admin/*, /api/*, /sign/*, and static asset paths)
 app.get('{*path}', (req, res, next) => {
     if (req.path.startsWith('/admin/') || req.path.startsWith('/api/')) return next();
+    if (req.path.startsWith('/sign/') || req.path === '/sign') return next();
     if (req.path.startsWith('/filing-packages/') || req.path.startsWith('/evidence-packets/') || req.path.startsWith('/generated-forms/') || req.path.startsWith('/uploads/')) return next();
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
