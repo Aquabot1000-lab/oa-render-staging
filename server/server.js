@@ -4239,7 +4239,86 @@ app.post('/api/pre-register', async (req, res) => {
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
 
-        // Send confirmation email
+        // === INCOMPLETE ADDRESS HANDLING ===
+        const isIncompletePreReg = insertData.status === 'NEEDS_REVIEW' && parsed.flagged;
+        if (isIncompletePreReg) {
+            const missingParts = [];
+            if (!parsed.state) missingParts.push('state');
+            if (!(property_address || '').match(/,\s*[A-Za-z]/)) missingParts.push('city');
+            if (!/(\d{5})/.test(property_address || '')) missingParts.push('zip');
+            const missingStr = missingParts.length > 0 ? missingParts.join(', ') : 'city, state, or zip';
+
+            // 1. Create task linked to pre_reg id
+            try {
+                await supabaseAdmin.from('tasks').insert({
+                    case_id: data.id,
+                    type: 'data_fix',
+                    title: 'Fix incomplete lead data',
+                    description: `Pre-reg lead missing: ${missingStr}. Address: "${property_address}". Contact ${name} to get complete address.`,
+                    assigned_to: 'intake_agent',
+                    status: 'pending',
+                    priority: 'high',
+                    auto_generated: true,
+                    due_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+                });
+                console.log(`[Pre-Reg] ✅ Incomplete address task created for pre-reg ${data.id}`);
+            } catch (taskErr) {
+                console.error('[Pre-Reg] Task creation failed (non-blocking):', taskErr.message);
+            }
+
+            // 2. Send SMS if phone available
+            if (phone) {
+                try {
+                    const smsMsg = `Hi ${name.split(' ')[0]}, we received your property tax submission but need a complete address (${missingStr}) to continue your savings analysis. Please reply with your full address including city, state, and zip.`;
+                    const smsResult = await sendClientSMS(phone, smsMsg, { email, customerName: name, context: 'incomplete_address' });
+                    console.log(`[Pre-Reg] ✅ Incomplete address SMS sent to ${phone}`, smsResult ? JSON.stringify(smsResult) : '');
+                    // Log to communications
+                    await supabaseAdmin.from('communications').insert({
+                        case_id: data.id,
+                        direction: 'outbound',
+                        channel: 'sms',
+                        recipient: phone,
+                        body: smsMsg,
+                        status: 'sent'
+                    }).catch(() => {});
+                } catch (smsErr) {
+                    console.error('[Pre-Reg] Incomplete SMS failed:', smsErr.message);
+                }
+            } else {
+                console.log(`[Pre-Reg] ⚠️ No phone for incomplete lead ${data.id} — SMS skipped`);
+            }
+
+            // 3. Send incomplete address email (override confirmation below)
+            try {
+                const firstName = name.split(' ')[0];
+                const incompleteHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                    <h2 style="color:#dc2626;">⚠️ Action Required: Complete Your Submission</h2>
+                    <p>Hi ${firstName},</p>
+                    <p>We received your property tax submission, but we need a complete address to continue your savings analysis.</p>
+                    <p><strong>Address received:</strong> ${property_address}</p>
+                    <p><strong>Missing information:</strong> ${missingStr}</p>
+                    <p>Please reply to this email with your complete property address including <strong>city, state, and zip code</strong>.</p>
+                    <p style="color:#dc2626;font-weight:bold;">We cannot run your analysis until we have a complete address.</p>
+                    <p>— Tyler Worthey<br>OverAssessed</p>
+                </div>`;
+                await sgMail.send({
+                    to: email,
+                    bcc: [{ email: 'tyler@overassessed.ai' }],
+                    from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                    replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                    subject: `Action Required: Complete Your Address — OverAssessed`,
+                    html: incompleteHtml
+                });
+                console.log(`[Pre-Reg] ✅ Incomplete address email sent to ${email}`);
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
+                    details: { missing: missingParts, sms_sent: !!phone, email_sent: true, address: property_address }
+                }).catch(() => {});
+            } catch (emailErr) {
+                console.error('[Pre-Reg] Incomplete email failed:', emailErr.message);
+            }
+        } else {
+        // Send confirmation email (complete leads only)
         if (process.env.SENDGRID_API_KEY) {
             try {
                 const firstName = name.split(' ')[0];
@@ -4252,6 +4331,7 @@ app.post('/api/pre-register', async (req, res) => {
                     html: preRegistrationEmail({ firstName, propertyAddress: property_address, county })
                 });
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
+        }
         }
         // Notify admin
         const flagNote = parsed.flagged ? ` ⚠️ FLAGGED: ${parsed.reason}` : '';
@@ -5973,6 +6053,14 @@ function buildAnalysisHtml(sub, propertyData, compResults) {
 // Main analyze endpoint
 app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
     try {
+        // Block analysis if lead has incomplete address
+        if (isSupabaseEnabled()) {
+            const { data: subCheck } = await supabaseAdmin.from('submissions').select('missing_data_reason, missing_fields, status').eq('id', req.params.id).maybeSingle()
+                || await supabaseAdmin.from('pre_registrations').select('review_reason, status').eq('id', req.params.id).maybeSingle();
+            if (subCheck && (subCheck.missing_data_reason === 'INCOMPLETE_ADDRESS' || subCheck.review_reason?.includes('incomplete-address') || subCheck.status === 'NEEDS_REVIEW')) {
+                return res.status(422).json({ error: 'Analysis blocked: incomplete address. Provide complete city, state, and zip before running analysis.', reason: 'INCOMPLETE_ADDRESS', missing_fields: subCheck.missing_fields || [] });
+            }
+        }
         const result = await runFullAnalysis(req.params.id);
 
         // STANDING RULE: No client emails until analysis is manually reviewed and confirmed correct
@@ -5991,6 +6079,14 @@ app.post('/api/analyze/:id', authenticateToken, async (req, res) => {
 // Alias: POST /api/cases/:id/analyze
 app.post('/api/cases/:id/analyze', authenticateToken, async (req, res) => {
     try {
+        // Block analysis if lead has incomplete address
+        if (isSupabaseEnabled()) {
+            const { data: subCheck } = await supabaseAdmin.from('submissions').select('missing_data_reason, missing_fields, status').eq('id', req.params.id).maybeSingle()
+                || await supabaseAdmin.from('pre_registrations').select('review_reason, status').eq('id', req.params.id).maybeSingle();
+            if (subCheck && (subCheck.missing_data_reason === 'INCOMPLETE_ADDRESS' || subCheck.review_reason?.includes('incomplete-address') || subCheck.status === 'NEEDS_REVIEW')) {
+                return res.status(422).json({ error: 'Analysis blocked: incomplete address. Provide complete city, state, and zip before running analysis.', reason: 'INCOMPLETE_ADDRESS', missing_fields: subCheck.missing_fields || [] });
+            }
+        }
         const result = await runFullAnalysis(req.params.id);
         res.json({ success: true, ...result });
     } catch (error) {

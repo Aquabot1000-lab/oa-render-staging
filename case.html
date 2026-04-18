@@ -792,11 +792,40 @@
         }
 
         function renderAnalysisWarning(d) {
-            // Add warning if insufficient comps
+            // INCOMPLETE ADDRESS — highest priority warning
+            const isIncomplete = d.missing_data_reason === 'INCOMPLETE_ADDRESS' ||
+                (d.review_reason && d.review_reason.includes('incomplete-address')) ||
+                (d.missing_fields && d.missing_fields.length > 0);
+            if (isIncomplete) {
+                const missing = d.missing_fields && d.missing_fields.length > 0
+                    ? d.missing_fields.join(', ')
+                    : (d.review_reason ? d.review_reason.replace('incomplete-address: ','') : 'city, state, or zip');
+                const mainCol = document.querySelector('.main-col');
+                if (mainCol && !document.getElementById('incompleteBanner')) {
+                    const banner = document.createElement('div');
+                    banner.id = 'incompleteBanner';
+                    banner.style.cssText = 'background:#7f1d1d;border:2px solid #991b1b;border-radius:10px;padding:16px 20px;margin-bottom:20px;';
+                    banner.innerHTML = `
+                        <div style="display:flex;align-items:flex-start;gap:12px;">
+                            <span style="font-size:28px;flex-shrink:0;">⚠️</span>
+                            <div>
+                                <div style="font-size:15px;font-weight:800;color:#fca5a5;margin-bottom:4px;">Incomplete Address — Analysis Blocked</div>
+                                <div style="font-size:13px;color:#fca5a5;">Missing: <strong>${missing}</strong></div>
+                                <div style="font-size:12px;color:#f87171;margin-top:6px;">A complete address with city, state, and zip is required before valuation, comps, or savings can be calculated.</div>
+                            </div>
+                        </div>`;
+                    mainCol.insertBefore(banner, mainCol.firstChild);
+                }
+                // Highlight property address in red
+                const propAddr = document.getElementById('propertyAddress');
+                if (propAddr) { propAddr.style.color = '#ef4444'; propAddr.textContent += ' ⚠️ INCOMPLETE'; }
+            }
+
+            // Insufficient comp data warning
             const hasInsufficientData = d.data_validation_status === 'insufficient_data' || ((d.comp_validation_status || '').includes('Only 0'));
             if (hasInsufficientData && d.estimated_savings > 0) {
                 const banner = document.getElementById('savingsBanner');
-                banner.innerHTML += `<div style="background:#78350f;border:1px solid #92400e;border-radius:8px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#fcd34d;font-weight:600;">⚠️ Insufficient comp data — savings estimate may not be reliable. Manual review recommended before filing.</div>`;
+                if (banner) banner.innerHTML += `<div style="background:#78350f;border:1px solid #92400e;border-radius:8px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#fcd34d;font-weight:600;">⚠️ Insufficient comp data — savings estimate may not be reliable. Manual review recommended before filing.</div>`;
             }
         }
 
