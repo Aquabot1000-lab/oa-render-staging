@@ -111,7 +111,7 @@ router.post('/:token/submit', express.json(), async (req, res) => {
             .update({
                 fee_agreement_signed: true,
                 fee_agreement_signed_at: new Date().toISOString(),
-                status: 'SIGNED'
+                status: 'SIGNED_READY_TO_FILE'
             })
             .eq('case_id', signData.case_id);
 
