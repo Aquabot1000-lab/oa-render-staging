@@ -92,6 +92,14 @@ const TX_CITY_COUNTY = {
     'sugar land': 'Fort Bend',
     'pearland': 'Brazoria',
     'league city': 'Galveston',
+    'san leon': 'Galveston',
+    'dickinson': 'Galveston',
+    'la marque': 'Galveston',
+    'texas city': 'Galveston',
+    'galveston': 'Galveston',
+    'kemah': 'Galveston',
+    'santa fe': 'Galveston',
+    'friendswood': 'Galveston',
     'denton': 'Denton',
     'irving': 'Dallas',
     'garland': 'Dallas',
@@ -480,6 +488,12 @@ function parseAddress(address, hints = {}) {
             '77406':'Fort Bend','77407':'Fort Bend','77441':'Fort Bend','77459':'Fort Bend',
             '77461':'Fort Bend','77469':'Fort Bend','77471':'Fort Bend','77478':'Fort Bend',
             '77479':'Fort Bend','77494':'Fort Bend','77498':'Fort Bend','77545':'Fort Bend',
+            // Galveston County
+            '77510':'Galveston','77511':'Galveston','77517':'Galveston','77518':'Galveston',
+            '77539':'Galveston','77546':'Galveston','77550':'Galveston','77551':'Galveston',
+            '77554':'Galveston','77555':'Galveston','77563':'Galveston','77565':'Galveston',
+            '77568':'Galveston','77573':'Galveston','77574':'Galveston','77590':'Galveston',
+            '77591':'Galveston','77598':'Galveston',
             // Bowie (Texarkana)
             '75501':'Bowie','75503':'Bowie','75504':'Bowie','75507':'Bowie',
             // Austin / Travis / Williamson / Hays

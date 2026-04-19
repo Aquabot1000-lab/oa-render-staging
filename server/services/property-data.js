@@ -951,7 +951,7 @@ function detectCounty(address, state) {
     if (addr.includes('dallas') || addr.includes('garland') || addr.includes('mesquite') || addr.includes('irving') || addr.includes('richardson') || addr.includes('carrollton') || addr.includes('farmers branch') || addr.includes('desoto') || addr.includes('duncanville') || addr.includes('cedar hill') || addr.includes('lancaster') || addr.includes('glenn heights') || addr.includes('rowlett') || addr.includes('sachse') || addr.includes('coppell') || addr.includes('grand prairie') || addr.includes('balch springs')) return 'dallas';
     if (addr.includes('denton') || addr.includes('lewisville') || addr.includes('flower mound') || addr.includes('little elm') || addr.includes('the colony') || addr.includes('corinth') || addr.includes('highland village') || addr.includes('argyle') || addr.includes('aubrey') || addr.includes('sanger')) return 'denton';
     if (addr.includes('forney') || addr.includes('kaufman') || addr.includes('terrell')) return 'kaufman';
-    if (addr.includes('greenville') || addr.includes('hunt') || addr.includes('commerce') || addr.includes('quinlan') || addr.includes('caddo mills') || addr.includes('wolfe city')) return 'hunt';
+    if (addr.includes('greenville') || addr.includes('hunt county') || /\bcommerce,/.test(addr) || addr.includes('quinlan') || addr.includes('caddo mills') || addr.includes('wolfe city')) return 'hunt';
     if (addr.includes('williamson') || addr.includes('georgetown') || addr.includes('taylor') || addr.includes('jarrell') || addr.includes('liberty hill') || addr.includes('hutto') || addr.includes('granger') || addr.includes('bartlett') || addr.includes('thrall')) return 'williamson';
     if (addr.includes('montgomery') || addr.includes('conroe') || addr.includes('the woodlands') || addr.includes('magnolia') || addr.includes('willis') || addr.includes('new caney') || addr.includes('spring') || addr.includes('tomball') || addr.includes('porter') || addr.includes('huntsville') || addr.includes('splendora')) return 'montgomery';
     if (addr.includes('guadalupe') || addr.includes('seguin') || addr.includes('schertz') || addr.includes('cibolo') || addr.includes('new braunfels') || addr.includes('marion')) return 'guadalupe';
@@ -959,7 +959,12 @@ function detectCounty(address, state) {
     if (addr.includes('hays') || addr.includes('san marcos') || addr.includes('kyle') || addr.includes('buda') || addr.includes('wimberley') || addr.includes('dripping springs')) return 'hays';
     if (addr.includes('hidalgo') || addr.includes('mcallen') || addr.includes('edinburg') || addr.includes('pharr') || addr.includes('mission') || addr.includes('weslaco') || addr.includes('donna') || addr.includes('alamo') || addr.includes('mercedes') || addr.includes('san juan')) return 'hidalgo';
     if (addr.includes('el paso') || addr.includes('canutillo') || addr.includes('horizon city') || addr.includes('socorro') || addr.includes('anthony') || addr.includes('clint')) return 'el paso';
-    return 'bexar'; // Default for San Antonio area
+    // Galveston County
+    if (addr.includes('san leon') || addr.includes('league city') || addr.includes('dickinson') || addr.includes('la marque') || addr.includes('texas city') || addr.includes('galveston') || addr.includes('kemah') || addr.includes('friendswood') || addr.includes('santa fe')) return 'galveston';
+    // Bexar — only when address explicitly indicates San Antonio
+    if (addr.includes('san antonio') || addr.includes('bexar') || addr.includes('helotes') || addr.includes('converse') || addr.includes('live oak') || addr.includes('leon valley') || addr.includes('windcrest') || addr.includes('kirby') || addr.includes('castle hills') || addr.includes('shavano park') || addr.includes('terrell hills')) return 'bexar';
+    // Unknown — do not default, let caller handle
+    return null;
 }
 
 /**
