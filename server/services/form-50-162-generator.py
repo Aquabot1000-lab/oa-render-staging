@@ -135,15 +135,17 @@ def generate_form(case_data, agent_info, output_path=None):
     # Confidential info = Yes (the long field name)
     check_box(writer, 'The agent identified above is authorized to receive confidential information pursuant to Tax Code §§11.48(b)(2), 22.27(b)(2), 23.123(c)(2), 23.126(c)(2), and 23.45(b)(2):')
     
-    # Communications
+    # Communications — all three
     check_box(writer, 'all communications from the chief appraiser')
     check_box(writer, 'all communications from the appraisal review board')
+    check_box(writer, 'all communications from all taxing units participating in the appraisal district')
     
-    # STEP 5: End date
-    set_field(writer, 'Date Agents Authority Ends', '12/31/2026')
+    # STEP 5: End date — per Thursday approval
+    set_field(writer, 'Date Agents Authority Ends', 'Until Otherwise Notified')
     
     # STEP 6: Leave signature blank, but fill printed name + title
     set_field(writer, 'Name of Property Owner', case_data.get('owner_name', ''))
+    set_field(writer, 'Title', 'Property Owner')
     check_box(writer, 'the property owner')
     
     # Leave Date and Signature1 BLANK

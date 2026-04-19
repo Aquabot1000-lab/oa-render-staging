@@ -20,7 +20,7 @@ const TEMPLATE_PATH = path.join(__dirname, '../../templates/form-50-162-agent-ap
 const OUTPUT_DIR = path.join(__dirname, '../../generated-forms');
 
 const AGENT_INFO = {
-    name: 'OverAssessed LLC',
+    name: 'Uri Galor - OverAssessed LLC',
     phone: '(210) 315-8885',
     address: '6002 Camp Bullis, Suite 208',
     city_state_zip: 'San Antonio, TX 78257'
