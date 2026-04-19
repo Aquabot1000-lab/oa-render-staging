@@ -8138,6 +8138,11 @@ Object.entries(STATE_REDIRECTS).forEach(([path, state]) => {
     });
 });
 
+// Serve sign.html for query-param style: /sign?id=X&t=Y
+app.get('/sign', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'sign.html'));
+});
+
 // Catch-all: serve frontend (skip /admin/*, /api/*, /sign/*, and static asset paths)
 app.get('{*path}', (req, res, next) => {
     if (req.path.startsWith('/admin/') || req.path.startsWith('/api/')) return next();
