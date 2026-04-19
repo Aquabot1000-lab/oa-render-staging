@@ -64,23 +64,58 @@ def set_field(writer, field_name, value):
 
 
 def check_box(writer, field_name):
-    """Check a checkbox field"""
+    """Check a checkbox field by T name, handling child widgets and radio buttons"""
     for page in writer.pages:
         if '/Annots' in page:
             for annot in page['/Annots']:
                 obj = annot.get_object()
-                if obj.get('/T') and str(obj['/T']) == field_name:
-                    # Try standard checkbox values
-                    ap = obj.get('/AP', {})
-                    n = ap.get('/N', {}) if isinstance(ap, dict) else {}
-                    
-                    # Common checkbox on-values
-                    for on_val in ['/Yes', '/On', '/1']:
-                        obj.update({
-                            NameObject('/V'): NameObject(on_val),
-                            NameObject('/AS'): NameObject(on_val),
-                        })
-                        return True
+                t = obj.get('/T')
+                if t and str(t) == field_name:
+                    # Find the on-value from AP/N
+                    ap = obj.get('/AP')
+                    on_val = '/On'
+                    if ap:
+                        ap_obj = ap.get_object() if hasattr(ap, 'get_object') else ap
+                        n = ap_obj.get('/N')
+                        if n:
+                            n_obj = n.get_object() if hasattr(n, 'get_object') else n
+                            keys = list(n_obj.keys()) if hasattr(n_obj, 'keys') else []
+                            for k in keys:
+                                if k != '/Off':
+                                    on_val = k
+                                    break
+                    obj.update({
+                        NameObject('/V'): NameObject(on_val),
+                        NameObject('/AS'): NameObject(on_val),
+                    })
+                    return True
+    return False
+
+
+def check_yes_confidential(writer):
+    """Check the Yes radio button for the confidential info question (child widget, no /T)"""
+    for page in writer.pages:
+        if '/Annots' in page:
+            for annot in page['/Annots']:
+                obj = annot.get_object()
+                # No /T means it's a child widget — check if AP/N has /Yes
+                if not obj.get('/T'):
+                    ap = obj.get('/AP')
+                    if ap:
+                        ap_obj = ap.get_object() if hasattr(ap, 'get_object') else ap
+                        n = ap_obj.get('/N')
+                        if n:
+                            n_obj = n.get_object() if hasattr(n, 'get_object') else n
+                            keys = list(n_obj.keys()) if hasattr(n_obj, 'keys') else []
+                            if '/Yes' in keys:
+                                # Set this widget's AS to /Yes
+                                obj.update({NameObject('/AS'): NameObject('/Yes')})
+                                # Also set parent /V to /Yes
+                                parent = obj.get('/Parent')
+                                if parent:
+                                    p = parent.get_object() if hasattr(parent, 'get_object') else parent
+                                    p.update({NameObject('/V'): NameObject('/Yes')})
+                                return True
     return False
 
 
@@ -118,9 +153,12 @@ def generate_form(case_data, agent_info, output_path=None):
     # STEP 2: Property identification
     check_box(writer, 'the property(ies) listed below:')
     
-    # First property
+    # First property — use full address (street + city/state/zip)
+    full_address = addr
+    if owner_csz and owner_csz not in addr:
+        full_address = f"{addr}, {owner_csz}" if addr else owner_csz
     set_field(writer, 'Appraisal District Account Number_2', case_data.get('account_number', ''))
-    set_field(writer, 'Physical or Situs Address of Property_2', addr)
+    set_field(writer, 'Physical or Situs Address of Property_2', full_address)
     set_field(writer, 'Legal Description_2', case_data.get('legal_description', ''))
     
     # STEP 3: Agent info
@@ -132,8 +170,8 @@ def generate_form(case_data, agent_info, output_path=None):
     # STEP 4: Agent's Authority
     check_box(writer, 'all property tax matters concerning the property identified')
     
-    # Confidential info = Yes (the long field name)
-    check_box(writer, 'The agent identified above is authorized to receive confidential information pursuant to Tax Code §§11.48(b)(2), 22.27(b)(2), 23.123(c)(2), 23.126(c)(2), and 23.45(b)(2):')
+    # Confidential info = Yes (child radio widget — no /T field name)
+    check_yes_confidential(writer)
     
     # Communications — all three
     check_box(writer, 'all communications from the chief appraiser')
