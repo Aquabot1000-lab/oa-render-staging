@@ -6375,35 +6375,57 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
 
         // Upload to Supabase Storage (permanent) instead of local filesystem
         let filePath = `/uploads/notices/${req.file.filename}`; // local fallback
+        const sub0 = await findSubmission(req.params.id);
+        const uploadCaseIdForStorage = sub0?.caseId || sub0?.case_id || req.params.id;
         try {
-            const storage = require('./services/storage');
-            const sub0 = await findSubmission(req.params.id);
-            const caseId = sub0?.caseId || sub0?.case_id || req.params.id;
-            const result = await storage.uploadNotice(caseId, req.file);
+            const storageSvc = require('./services/storage');
+            const result = await storageSvc.uploadNotice(uploadCaseIdForStorage, req.file);
             if (result && result.url) {
                 filePath = result.url;
-                console.log(`[Storage] Notice uploaded to Supabase: ${result.url}`);
+                console.log(`[Storage] ✅ Notice uploaded to Supabase: ${result.url}`);
+            } else {
+                console.error(`[Storage] ❌ Supabase upload returned no URL for ${uploadCaseIdForStorage} — using local fallback`);
             }
         } catch (storageErr) {
-            console.error('[Storage] Supabase upload failed, using local fallback:', storageErr.message);
+            console.error(`[Storage] ❌ Supabase upload FAILED for ${uploadCaseIdForStorage}: ${storageErr.message}`);
         }
+        const noticeInSupabase = filePath.startsWith('http');
         const pinMatch = req.file.originalname.match(/(\d{6,})/);
         const sub = await updateSubmissionInPlace(req.params.id, (submissions, idx) => {
             submissions[idx].noticeOfValue = filePath;
-            submissions[idx].noticeUrl = filePath.startsWith('http') ? filePath : null;
+            submissions[idx].noticeUrl = noticeInSupabase ? filePath : null;
+            submissions[idx].notice_url = noticeInSupabase ? filePath : null;
             // Only set upload_status=uploaded if it's a valid notice
             if (isKnownWrong) {
                 submissions[idx].uploadStatus = 'wrong_document';
-                // Append warning to notes
+                submissions[idx].upload_status = 'wrong_document';
                 const existing = submissions[idx].notes || '';
                 submissions[idx].notes = existing + `\n[${new Date().toISOString().slice(0,10)}] WRONG FILE uploaded: ${filename}. Document classified as: ${docType}. Not a Notice of Appraised Value.`;
             } else {
-                submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
+                submissions[idx].uploadStatus = noticeInSupabase ? 'uploaded' : 'local-only';
+                submissions[idx].upload_status = noticeInSupabase ? 'uploaded' : 'local-only';
             }
             submissions[idx].updatedAt = new Date().toISOString();
             if (pinMatch) submissions[idx].pin = pinMatch[1];
         });
         if (!sub) return res.status(404).json({ error: 'Case not found' });
+
+        // Insert into case_documents if stored in Supabase and it's a valid notice
+        if (noticeInSupabase && isNotice && isSupabaseEnabled()) {
+            try {
+                await supabaseAdmin.from('case_documents').insert({
+                    case_id: uploadCaseIdForStorage,
+                    file_type: 'notice_of_value',
+                    file_name: req.file.originalname,
+                    file_url: filePath,
+                    uploaded_by: 'customer',
+                    notes: `Notice of Appraised Value. Classified: ${docType}. Size: ${(req.file.size/1024).toFixed(0)} KB`
+                });
+                console.log(`[Storage] ✅ case_documents entry created for ${uploadCaseIdForStorage}`);
+            } catch (docErr) {
+                console.error(`[Storage] ❌ case_documents insert failed for ${uploadCaseIdForStorage}: ${docErr.message}`);
+            }
+        }
 
         // === PHASE 1: Log upload to activity_log ===
         const uploadCaseId = sub.caseId || sub.case_id;
@@ -7589,24 +7611,47 @@ app.post('/api/quick-upload/:caseId', uploadNotice.single('notice'), async (req,
         // Upload to Supabase
         let filePath = `/uploads/notices/${req.file.filename}`;
         try {
-            const storage = require('./services/storage');
-            const result = await storage.uploadNotice(caseId, req.file);
+            const storageSvc = require('./services/storage');
+            const result = await storageSvc.uploadNotice(caseId, req.file);
             if (result && result.url) {
                 filePath = result.url;
                 console.log(`[Quick Upload] ✅ Notice uploaded to Supabase: ${result.url}`);
+            } else {
+                console.error(`[Quick Upload] ❌ Supabase upload returned no URL for ${caseId} — falling back to local`);
             }
         } catch (storageErr) {
-            console.error('[Quick Upload] Supabase upload failed:', storageErr.message);
+            console.error(`[Quick Upload] ❌ Supabase upload FAILED for ${caseId}: ${storageErr.message}`);
         }
-        
+
+        const noticeStoredInSupabase = filePath.startsWith('http');
+
         // Update case
         await updateSubmissionInPlace(caseId, (submissions, idx) => {
             submissions[idx].noticeOfValue = filePath;
-            submissions[idx].noticeUrl = filePath.startsWith('http') ? filePath : null;
-            submissions[idx].uploadStatus = filePath.startsWith('http') ? 'uploaded' : 'local-only';
+            submissions[idx].noticeUrl = noticeStoredInSupabase ? filePath : null;
+            submissions[idx].notice_url = noticeStoredInSupabase ? filePath : null;
+            submissions[idx].uploadStatus = noticeStoredInSupabase ? 'uploaded' : 'local-only';
+            submissions[idx].upload_status = noticeStoredInSupabase ? 'uploaded' : 'local-only';
             submissions[idx].status = 'NOTICE_RECEIVED';
             submissions[idx].updatedAt = new Date().toISOString();
         });
+
+        // Insert into case_documents if stored in Supabase
+        if (noticeStoredInSupabase && isSupabaseEnabled()) {
+            try {
+                await supabaseAdmin.from('case_documents').insert({
+                    case_id: caseId,
+                    file_type: 'notice_of_value',
+                    file_name: req.file.originalname,
+                    file_url: filePath,
+                    uploaded_by: 'customer',
+                    notes: `Notice of Appraised Value uploaded via quick-upload. Size: ${(req.file.size/1024).toFixed(0)} KB`
+                });
+                console.log(`[Quick Upload] ✅ case_documents entry created for ${caseId}`);
+            } catch (docErr) {
+                console.error(`[Quick Upload] ❌ case_documents insert failed for ${caseId}: ${docErr.message}`);
+            }
+        }
         
         // Notify Tyler immediately
         const customerName = sub.ownerName || sub.owner_name || 'Unknown';
