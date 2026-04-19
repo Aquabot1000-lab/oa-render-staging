@@ -19,8 +19,10 @@ import sys, os, json, copy
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject, TextStringObject, BooleanObject, ArrayObject, NumberObject
 
-TEMPLATE_PATH = "/Users/aquabot/Documents/OverAssessed/templates/form-50-162-agent-appointment.pdf"
-OUTPUT_DIR = "/Users/aquabot/Documents/OverAssessed/generated-forms"
+# Use paths relative to this script's location (works on any server)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_PATH = os.path.join(_SCRIPT_DIR, '..', '..', 'templates', 'form-50-162-agent-appointment.pdf')
+OUTPUT_DIR = os.path.join(_SCRIPT_DIR, '..', '..', 'generated-forms')
 
 # County -> Appraisal District Name mapping
 COUNTY_TO_AD = {

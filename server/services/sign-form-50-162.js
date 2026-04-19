@@ -214,17 +214,44 @@ async function generateAndStoreSigned(supabase, { caseId, ownerName, propertyAdd
         legal_description: ''
     };
 
+    console.log(`[sign-form] ▶ Starting pipeline for case ${caseId}`);
+    console.log(`[sign-form]   owner: ${ownerName}, county: ${county}, address: ${propertyAddress}`);
+    console.log(`[sign-form]   template: ${TEMPLATE_PATH}`);
+    console.log(`[sign-form]   template exists: ${fs.existsSync(TEMPLATE_PATH)}`);
+    console.log(`[sign-form]   output dir: ${OUTPUT_DIR}`);
+    console.log(`[sign-form]   generator script: ${GENERATOR_SCRIPT}`);
+    console.log(`[sign-form]   generator exists: ${fs.existsSync(GENERATOR_SCRIPT)}`);
+    console.log(`[sign-form]   signature data length: ${signatureDataUrl ? signatureDataUrl.length : 0}`);
+
     // 1. Generate pre-filled PDF
-    const prefilledPath = generatePrefilledPDF(caseData);
-    console.log(`[sign-form] Pre-filled: ${prefilledPath}`);
+    let prefilledPath;
+    try {
+        prefilledPath = generatePrefilledPDF(caseData);
+        console.log(`[sign-form] ✅ Step 1 — Pre-filled PDF: ${prefilledPath}`);
+    } catch (err) {
+        console.error(`[sign-form] ❌ Step 1 FAILED — Pre-fill PDF generation: ${err.message}`);
+        throw err;
+    }
 
     // 2. Overlay signature + date
-    const signedPath = await overlaySignature(prefilledPath, signatureDataUrl, signedAt);
-    console.log(`[sign-form] Signed PDF: ${signedPath}`);
+    let signedPath;
+    try {
+        signedPath = await overlaySignature(prefilledPath, signatureDataUrl, signedAt);
+        console.log(`[sign-form] ✅ Step 2 — Signature overlay: ${signedPath}`);
+    } catch (err) {
+        console.error(`[sign-form] ❌ Step 2 FAILED — Signature overlay: ${err.message}`);
+        throw err;
+    }
 
-    // 3. Store
-    const stored = await storeSignedPDF(supabase, caseId, signedPath, ownerName);
-    console.log(`[sign-form] Stored: ${stored.publicUrl}`);
+    // 3. Store in Supabase
+    let stored;
+    try {
+        stored = await storeSignedPDF(supabase, caseId, signedPath, ownerName);
+        console.log(`[sign-form] ✅ Step 3 — Stored: ${stored.publicUrl}`);
+    } catch (err) {
+        console.error(`[sign-form] ❌ Step 3 FAILED — Storage/DB: ${err.message}`);
+        throw err;
+    }
 
     // Clean up local signed file after upload
     try { fs.unlinkSync(signedPath); } catch {}
