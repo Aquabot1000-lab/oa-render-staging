@@ -3,8 +3,8 @@ const express = require('express');
 const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 
-// Initialize Stripe
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe (guard against missing key on Render/staging)
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 // ============================================================
 // INITIATION FEE PRODUCT & PRICE
