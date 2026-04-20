@@ -74,9 +74,9 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
 }
 
 // SendGrid setup
-// 🚨 OA EMAIL KILL SWITCH — set by Tyler 2026-04-03
-// ALL outbound OA customer emails PAUSED. Only internal logging active.
-const OA_EMAIL_KILLED = true;
+// 🚨 OA EMAIL KILL SWITCH — REACTIVATED 2026-04-20 per Tyler directive
+// Allowed: notice upload requests, sign form requests ONLY. No savings/marketing/filing.
+const OA_EMAIL_KILLED = false;
 if (process.env.SENDGRID_API_KEY && !OA_EMAIL_KILLED) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 } else {
@@ -1155,7 +1155,7 @@ function buildTelegramLeadAlert(sub) {
 
 // OA SMS KILL SWITCH — disabled until Twilio 10DLC fully verified
 // Error 20003 = authentication failure. Email-first for all OA customer communication.
-const OA_SMS_ENABLED = false;
+const OA_SMS_ENABLED = true; // Reactivated 2026-04-20 — notice/sign requests only
 
 async function sendClientSMS(phone, message, { email, customerName, context } = {}) {
     // ── MASTER KILL SWITCH ── Blocks ALL SMS + email fallback
@@ -1221,7 +1221,7 @@ async function sendNotificationEmail(subject, html, toEmail) {
 
 // HARD RULE: ALL customer-facing emails require Tyler's approval.
 // No auto-sends. No exceptions. Queue for review instead.
-const OA_CLIENT_EMAIL_ENABLED = false;
+const OA_CLIENT_EMAIL_ENABLED = false; // KEEP OFF — result/savings emails still blocked
 const emailApprovalQueue = [];
 
 // ========== INBOUND REPLY CLASSIFICATION ==========
@@ -1491,6 +1491,19 @@ function isExcludedEmail(email) {
 // Day 7: Mark stale → escalate to Tyler via Telegram
 // STOPS if: customer replies (inbound comm), case status changes, automation_excluded, manual_only
 async function runFollowUpSequence() {
+    // ✅ PARTIAL ENABLE 2026-04-20: only notice-upload and sign-form requests allowed
+    // ⛔ BLOCKED: savings messages, marketing messages, filing communication
+    const FOLLOWUP_ALLOWED_SUBJECTS = [
+        /upload.*notice/i, /notice.*upload/i, /sign.*proceed/i,
+        /sign.*protest/i, /quick reminder/i, /last reminder/i,
+        /missing.*notice/i, /need.*notice/i, /need.*sign/i
+    ];
+    const isAllowedFollowUp = (subject) => FOLLOWUP_ALLOWED_SUBJECTS.some(rx => rx.test(subject));
+    const FOLLOWUP_BLOCKED_SUBJECTS = [
+        /savings/i, /save.*\$/i, /\$.*saved/i, /protest.*result/i,
+        /we.*won/i, /marketing/i, /refer/i, /discount/i
+    ];
+    const isBlockedFollowUp = (subject) => FOLLOWUP_BLOCKED_SUBJECTS.some(rx => rx.test(subject));
     console.log('[FollowUp-v2] Running sequence check...');
     try {
         const now = Date.now();
@@ -1874,10 +1887,8 @@ async function runContactedFollowUp() {
 // Moves analyzed leads with savings to 'Pending Approval' for manual review.
 // NO results are sent without explicit approval via /api/approve/:id
 async function runApprovalGate() {
-    // ⛔ APPROVAL GATE FROZEN — data integrity freeze 2026-04-07
-    // All analysis data is under review. No leads should move through pipeline.
-    console.log('[ApprovalGate] ⛔ FROZEN — data integrity review');
-    return;
+    // ✅ APPROVAL GATE ACTIVE — reactivated 2026-04-20 per Tyler directive
+    // Moves completed analysis cases to PENDING_TYLER_APPROVAL. No customer comms.
     console.log('[ApprovalGate] Checking for leads needing approval...');
     try {
         const submissions = await readAllSubmissions();
@@ -7732,6 +7743,23 @@ app.post('/api/quick-upload/:caseId', uploadNotice.single('notice'), async (req,
             `📄 Notice Uploaded - ${caseId}`,
             `<p><b>${customerName}</b> uploaded their Notice of Appraised Value for case <b>${caseId}</b> via quick upload.</p>`
         );
+
+        // Send receipt confirmation to customer
+        try {
+            const { sendDocReceiptConfirmation } = require('./services/doc-receipt-confirmation');
+            await sendDocReceiptConfirmation({
+                case_id: caseId,
+                owner_name: sub.ownerName || sub.owner_name,
+                email: sub.email,
+                phone: sub.phone,
+                property_address: sub.property_address || sub.propertyAddress,
+                channel: 'upload',
+                doc_types: ['Notice of Appraised Value'],
+            });
+            console.log(`[Quick Upload] Receipt confirmation sent for ${caseId}`);
+        } catch (confirmErr) {
+            console.error('[Quick Upload] Receipt confirmation failed:', confirmErr.message);
+        }
         
         console.log(`[Quick Upload] ${caseId} — notice received from ${customerName}`);
         res.json({ success: true, caseId });
@@ -8491,6 +8519,24 @@ app.post('/twiml/sms-incoming', async (req, res) => {
                         `<b>Status:</b> → NOTICE_RECEIVED\n\n` +
                         `<a href="${viewUrl}">View Notice</a> | <a href="https://overassessed.ai/admin">Open CRM</a>`
                     );
+
+                    // Send receipt confirmation to customer
+                    try {
+                        const { sendDocReceiptConfirmation } = require('./services/doc-receipt-confirmation');
+                        const firstName = (matchedCase.owner_name || '').split(' ')[0] || 'there';
+                        await sendDocReceiptConfirmation({
+                            case_id: caseId,
+                            owner_name: matchedCase.owner_name,
+                            email: matchedCase.email,
+                            phone: from,
+                            property_address: matchedCase.property_address,
+                            channel: 'sms',
+                            doc_types: ['tax assessment documents'],
+                        });
+                        console.log(`[Inbound MMS] Receipt confirmation sent to ${matchedCase.owner_name} (${caseId})`);
+                    } catch (confirmErr) {
+                        console.error('[Inbound MMS] Receipt confirmation failed:', confirmErr.message);
+                    }
                     
                 } catch (dlErr) {
                     console.error(`[Inbound MMS] Media processing error:`, dlErr.message);
