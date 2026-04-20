@@ -8216,12 +8216,16 @@ app.use((err, req, res, next) => {
 async function startServer() {
     await initializeDataFiles();
 
-    // Download county data files if not present (Railway deployment)
-    try {
-        const { downloadAll } = require('./scripts/download-data');
-        if (typeof downloadAll === 'function') await downloadAll();
-    } catch (e) {
-        console.log('[DataDownloader] Skipped:', e.message);
+    // Download county data files if not present (Railway/local only — skip on Render)
+    if (process.env.LAZY_PARCEL_LOAD !== 'true' && process.env.SKIP_BULK_DATA !== 'true') {
+        try {
+            const { downloadAll } = require('./scripts/download-data');
+            if (typeof downloadAll === 'function') await downloadAll();
+        } catch (e) {
+            console.log('[DataDownloader] Skipped:', e.message);
+        }
+    } else {
+        console.log('[DataDownloader] Skipped (lazy-load mode)');
     }
 
     // Parcel data loading — lazy on Render, eager locally
