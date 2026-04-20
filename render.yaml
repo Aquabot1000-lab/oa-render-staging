@@ -37,3 +37,5 @@ services:
         value: "+12105598725"
       - key: RENTCAST_API_KEY
         sync: false
+      - key: LAZY_PARCEL_LOAD
+        value: "true"

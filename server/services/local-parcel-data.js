@@ -207,25 +207,30 @@ function getCountyData(countyName) {
 }
 
 // Pre-initialize for counties with data files
+// On Render (LAZY_PARCEL_LOAD=true or SKIP_BULK_DATA=true): skip startup load entirely.
+// Data will be loaded on first lookup via getCountyData().
 function initAllCounties() {
+    if (process.env.LAZY_PARCEL_LOAD === 'true' || process.env.SKIP_BULK_DATA === 'true') {
+        console.log('[ParcelData] Lazy-load mode: skipping startup preload. Data loads on first request.');
+        return Promise.resolve();
+    }
+
     const dataDir = path.join(__dirname, '..', 'data');
-    if (!fs.existsSync(dataDir)) return;
-    
+    if (!fs.existsSync(dataDir)) return Promise.resolve();
+
     const counties = fs.readdirSync(dataDir).filter(d => {
         const dir = path.join(dataDir, d);
-        return fs.statSync(dir).isDirectory() && 
+        return fs.statSync(dir).isDirectory() &&
                d !== 'shared' && d !== 'tx' && d !== 'ga' && d !== 'wa' &&
-               d !== 'tarrant' && d !== 'dallas'; // These have their own loaders
+               d !== 'tarrant' && d !== 'dallas';
     });
-    
+
     const promises = counties.map(async (county) => {
         const loader = getCountyData(county);
         const dataPath = loader.getDataPath();
-        if (dataPath) {
-            await loader.loadData();
-        }
+        if (dataPath) await loader.loadData();
     });
-    
+
     return Promise.all(promises);
 }
 

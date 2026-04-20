@@ -8224,25 +8224,30 @@ async function startServer() {
         console.log('[DataDownloader] Skipped:', e.message);
     }
 
-    // Load Tarrant County real property data (async, non-blocking)
-    tarrantData.loadData().then(loaded => {
-        if (loaded) {
-            const stats = tarrantData.getStats();
-            console.log(`🏠 Tarrant CAD: ${stats.totalRecords.toLocaleString()} parcels loaded (${stats.memoryMB}MB)`);
-        } else {
-            console.log('⚠️  Tarrant CAD data not available - using synthetic comps for Tarrant County');
-        }
-    }).catch(err => {
-        console.error('❌ Tarrant CAD load error:', err.message);
-    });
+    // Parcel data loading — lazy on Render, eager locally
+    if (process.env.LAZY_PARCEL_LOAD === 'true' || process.env.SKIP_BULK_DATA === 'true') {
+        console.log('🏠 Parcel data: lazy-load mode (loads on first lookup, not at startup)');
+    } else {
+        // Load Tarrant County real property data (async, non-blocking)
+        tarrantData.loadData().then(loaded => {
+            if (loaded) {
+                const stats = tarrantData.getStats();
+                console.log(`🏠 Tarrant CAD: ${stats.totalRecords.toLocaleString()} parcels loaded (${stats.memoryMB}MB)`);
+            } else {
+                console.log('⚠️  Tarrant CAD data not available - using synthetic comps for Tarrant County');
+            }
+        }).catch(err => {
+            console.error('❌ Tarrant CAD load error:', err.message);
+        });
 
-    // Load all other county bulk data (Bexar, Harris, etc.)
-    const { initAllCounties } = require('./services/local-parcel-data');
-    initAllCounties().then(() => {
-        console.log('🏠 All county bulk data loaded');
-    }).catch(err => {
-        console.error('❌ County data load error:', err.message);
-    });
+        // Load all other county bulk data (Bexar, Harris, etc.)
+        const { initAllCounties } = require('./services/local-parcel-data');
+        initAllCounties().then(() => {
+            console.log('🏠 All county bulk data loaded');
+        }).catch(err => {
+            console.error('❌ County data load error:', err.message);
+        });
+    }
     
 // ===== AI-POWERED PHONE ANSWERING SERVICE =====
 // Conversation state: CallSid -> { messages: [], callerInfo: {}, startTime: Date }
