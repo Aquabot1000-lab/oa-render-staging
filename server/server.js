@@ -7451,6 +7451,66 @@ app.patch('/api/creator-reply/:id', (req, res) => {
 });
 
 // Request customer re-upload their notice
+// POST /api/cases/email-document — email a stored document to the customer
+app.post('/api/cases/email-document', authenticateToken, async (req, res) => {
+    try {
+        const { case_id, document_url, document_name, to_email, owner_name } = req.body;
+        if (!case_id || !document_url || !to_email) return res.status(400).json({ error: 'case_id, document_url, and to_email required' });
+
+        // Fetch the document bytes
+        const https = require('https');
+        const http = require('http');
+        const pdfBytes = await new Promise((resolve, reject) => {
+            const lib = document_url.startsWith('https') ? https : http;
+            lib.get(document_url, (r) => {
+                const chunks = [];
+                r.on('data', d => chunks.push(d));
+                r.on('end', () => resolve(Buffer.concat(chunks)));
+                r.on('error', reject);
+            }).on('error', reject);
+        });
+
+        const firstName = (owner_name || 'there').split(' ')[0];
+        const safeFileName = (document_name || 'document').replace(/[^a-zA-Z0-9._-]/g, '_') + (document_name?.endsWith('.pdf') ? '' : '.pdf');
+
+        await sgMail.send({
+            to: to_email,
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+            subject: `Your Document — ${document_name || 'OverAssessed'}`,
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                <h2 style="color:#6c5ce7;">Your Document</h2>
+                <p>Hi ${firstName},</p>
+                <p>Please find your document attached: <strong>${document_name}</strong></p>
+                <p style="color:#666;font-size:13px;">Case: ${case_id} — Sent from OverAssessed CRM</p>
+                <p>— Tyler Worthey<br>OverAssessed</p>
+            </div>`,
+            attachments: [{
+                content: pdfBytes.toString('base64'),
+                filename: safeFileName,
+                type: 'application/pdf',
+                disposition: 'attachment'
+            }]
+        });
+
+        // Log to activity
+        if (isSupabaseEnabled()) {
+            await supabaseAdmin.from('activity_log').insert({
+                case_id,
+                actor: 'tyler',
+                action: 'document_emailed',
+                details: { document_name, to_email, document_url }
+            }).catch(() => {});
+        }
+
+        console.log(`[EmailDoc] Sent "${document_name}" for ${case_id} to ${to_email}`);
+        res.json({ ok: true, to: to_email, document: document_name });
+    } catch (err) {
+        console.error('[EmailDoc] Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/cases/:id/request-notice', authenticateToken, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);

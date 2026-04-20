@@ -109,6 +109,9 @@
         .status-Won { background: #c6f6d5; color: #276749; }
         .status-Lost { background: #fed7d7; color: #9b2c2c; }
         .status-Contacted { background: #e0f2fe; color: #0369a1; }
+        .status-PENDING_TYLER_APPROVAL { background: #fff7ed; color: #c2410c; border: 1.5px solid #fb923c; }
+        .status-APPROVED { background: #c6f6d5; color: #276749; }
+        .status-NEEDS_REVIEW { background: #fed7d7; color: #9b2c2c; }
 
         /* New tab status badges */
         .status-pending { background: #ebf8ff; color: #2b6cb0; }
@@ -244,6 +247,7 @@
             <button class="tab" onclick="switchTab('prereg')">📋 Pre-Reg</button>
             <button class="tab" onclick="switchTab('filings')">📋 Filings</button>
             <button class="tab" onclick="switchTab('archived')">🗑️ Archived</button>
+            <button class="tab" onclick="switchTab('approval-queue')" id="tab-btn-approval-queue">⏳ Approval Queue</button>
         </div>
 
         <!-- OVERVIEW TAB -->
@@ -786,6 +790,59 @@
         </div>
 
         <!-- ARCHIVED TAB -->
+        <!-- APPROVAL QUEUE TAB -->
+        <div class="tab-content" id="tab-approval-queue">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h2 style="margin:0;font-size:1.1rem;">⏳ Protest Approval Queue</h2>
+                <button class="btn btn-outline btn-sm" onclick="loadApprovalQueue()">↺ Refresh</button>
+            </div>
+            <div id="approvalQueueStats" style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;"></div>
+            <div style="overflow-x:auto;">
+            <table id="approvalQueueTable">
+                <thead><tr>
+                    <th>Case</th>
+                    <th>Name</th>
+                    <th>County</th>
+                    <th>Appraised Value</th>
+                    <th>Est. Market Value</th>
+                    <th>Savings Range</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr></thead>
+                <tbody id="approvalQueueBody"><tr><td colspan="9" style="text-align:center;color:#999;padding:2rem;">Loading...</td></tr></tbody>
+            </table>
+            </div>
+        </div>
+
+        <!-- ADJUST VALUE MODAL -->
+        <div id="adjustValueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:12px;padding:2rem;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+                <h3 style="margin:0 0 1.25rem;color:#6c5ce7;">Adjust Estimated Value</h3>
+                <input type="hidden" id="adjustCaseId">
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.75rem;font-weight:700;color:#666;text-transform:uppercase;display:block;margin-bottom:4px;">Case</label>
+                    <div id="adjustCaseLabel" style="font-weight:600;"></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.75rem;font-weight:700;color:#666;text-transform:uppercase;display:block;margin-bottom:4px;">County Appraised Value</label>
+                    <div id="adjustAppraisedDisplay" style="color:#333;font-weight:600;"></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.75rem;font-weight:700;color:#666;text-transform:uppercase;display:block;margin-bottom:4px;">New Estimated Market Value ($)</label>
+                    <input type="number" id="adjustEstValue" style="width:100%;padding:0.6rem;border:1.5px solid #d1d5db;border-radius:6px;font-size:1rem;" oninput="recalcAdjustSavings()">
+                </div>
+                <div style="margin-bottom:1.5rem;padding:0.75rem;background:#f8f9fa;border-radius:8px;">
+                    <div style="font-size:0.75rem;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Projected Savings</div>
+                    <div id="adjustSavingsPreview" style="font-size:1.25rem;font-weight:800;color:#6c5ce7;">—</div>
+                </div>
+                <div style="display:flex;gap:0.75rem;">
+                    <button class="btn btn-purple" style="flex:1;" onclick="submitAdjustValue()">✅ Save &amp; Keep in Queue</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="closeAdjustModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div class="tab-content" id="tab-archived">
             <div class="panel">
                 <div class="panel-header"><h2>🗑️ Archived (Soft-Deleted) Records</h2></div>
@@ -2153,7 +2210,141 @@ window.switchTab = function(tab) {
     _baseSwitchTab(tab);
     if (tab === 'filings') loadFilings();
     if (tab === 'archived') loadArchived();
+    if (tab === 'approval-queue') loadApprovalQueue();
 };
+
+// ==================== APPROVAL QUEUE ====================
+let _approvalData = [];
+
+async function loadApprovalQueue() {
+    const tbody = document.getElementById('approvalQueueBody');
+    const stats = document.getElementById('approvalQueueStats');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:2rem;">Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/db/submissions?limit=500', { headers: authHeaders() });
+        const data = await res.json();
+        const all = (data.submissions || data || []);
+        // Show PENDING_TYLER_APPROVAL + APPROVED + NEEDS_REVIEW
+        const queue = all.filter(s => ['PENDING_TYLER_APPROVAL','APPROVED','NEEDS_REVIEW'].includes(s.status));
+        _approvalData = queue;
+        renderApprovalQueue(queue, stats, tbody);
+    } catch(err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#ef4444;padding:2rem;">Error: ${err.message}</td></tr>`;
+    }
+}
+
+function renderApprovalQueue(queue, stats, tbody) {
+    const pending = queue.filter(s => s.status === 'PENDING_TYLER_APPROVAL').length;
+    const approved = queue.filter(s => s.status === 'APPROVED').length;
+    const needsReview = queue.filter(s => s.status === 'NEEDS_REVIEW').length;
+    if (stats) stats.innerHTML = [
+        `<div style="background:#fff7ed;border:1px solid #fb923c;border-radius:8px;padding:0.6rem 1.2rem;font-weight:700;color:#c2410c;">⏳ Pending: ${pending}</div>`,
+        `<div style="background:#c6f6d5;border:1px solid #34d399;border-radius:8px;padding:0.6rem 1.2rem;font-weight:700;color:#065f46;">✅ Approved: ${approved}</div>`,
+        `<div style="background:#fed7d7;border:1px solid #f87171;border-radius:8px;padding:0.6rem 1.2rem;font-weight:700;color:#991b1b;">🔄 Needs Review: ${needsReview}</div>`
+    ].join('');
+
+    if (!queue.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;padding:2rem;">No cases in approval queue</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = queue.map(s => {
+        const appraisedVal = s.appraised_value || s.county_value || 0;
+        const estVal = s.estimated_value || s.our_value || s.analysis?.estimatedValue || 0;
+        const savingsLow = appraisedVal && estVal ? Math.max(0, Math.round((appraisedVal - estVal) * 0.018)) : 0;
+        const savingsHigh = appraisedVal && estVal ? Math.max(0, Math.round((appraisedVal - estVal) * 0.025)) : 0;
+        const confidence = s.analysis?.confidenceScore || s.confidence_score || '—';
+        const fmtMon = v => v ? '$' + Number(v).toLocaleString() : '—';
+        const statusCls = s.status === 'PENDING_TYLER_APPROVAL' ? 'PENDING_TYLER_APPROVAL' : s.status === 'APPROVED' ? 'APPROVED' : 'NEEDS_REVIEW';
+        return `<tr>
+            <td><a href="/case.html?id=${s.case_id}" target="_blank" style="color:#6c5ce7;font-weight:700;">${s.case_id}</a></td>
+            <td>${s.owner_name || '—'}</td>
+            <td>${s.county || '—'}</td>
+            <td>${fmtMon(appraisedVal)}</td>
+            <td id="estval-${s.case_id}">${fmtMon(estVal)}</td>
+            <td id="savings-${s.case_id}">${savingsLow || savingsHigh ? fmtMon(savingsLow) + ' – ' + fmtMon(savingsHigh) : '—'}</td>
+            <td>${confidence}</td>
+            <td><span class="status-badge status-${statusCls}">${s.status.replace(/_/g,' ')}</span></td>
+            <td>
+                <div class="btn-row">
+                    ${s.status !== 'APPROVED' ? `<button class="btn btn-green btn-sm" onclick="approvalAction('${s.case_id}','approve')">✅ Approve</button>` : ''}
+                    ${s.status !== 'NEEDS_REVIEW' ? `<button class="btn btn-sm" style="background:#ef4444;color:white;" onclick="approvalAction('${s.case_id}','reject')">❌ Reject</button>` : ''}
+                    <button class="btn btn-outline btn-sm" onclick="openAdjustModal('${s.case_id}')">✏️ Adjust</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function approvalAction(caseId, action) {
+    const newStatus = action === 'approve' ? 'APPROVED' : 'NEEDS_REVIEW';
+    try {
+        const res = await fetch(`/api/db/case/${caseId}`, {
+            method: 'PATCH',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        // Update local data and re-render
+        const idx = _approvalData.findIndex(s => s.case_id === caseId);
+        if (idx !== -1) _approvalData[idx].status = newStatus;
+        renderApprovalQueue(_approvalData, document.getElementById('approvalQueueStats'), document.getElementById('approvalQueueBody'));
+    } catch(err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+let _adjustCase = null;
+function openAdjustModal(caseId) {
+    _adjustCase = _approvalData.find(s => s.case_id === caseId);
+    if (!_adjustCase) return;
+    const appraisedVal = _adjustCase.appraised_value || _adjustCase.county_value || 0;
+    document.getElementById('adjustCaseId').value = caseId;
+    document.getElementById('adjustCaseLabel').textContent = caseId + ' — ' + (_adjustCase.owner_name || '');
+    document.getElementById('adjustAppraisedDisplay').textContent = appraisedVal ? '$' + Number(appraisedVal).toLocaleString() : 'Not on file';
+    document.getElementById('adjustEstValue').value = _adjustCase.estimated_value || _adjustCase.our_value || '';
+    recalcAdjustSavings();
+    document.getElementById('adjustValueModal').style.display = 'flex';
+}
+
+function closeAdjustModal() {
+    document.getElementById('adjustValueModal').style.display = 'none';
+    _adjustCase = null;
+}
+
+function recalcAdjustSavings() {
+    if (!_adjustCase) return;
+    const appraised = _adjustCase.appraised_value || _adjustCase.county_value || 0;
+    const estVal = parseFloat(document.getElementById('adjustEstValue').value) || 0;
+    const diff = appraised - estVal;
+    const low = diff > 0 ? Math.round(diff * 0.018) : 0;
+    const high = diff > 0 ? Math.round(diff * 0.025) : 0;
+    document.getElementById('adjustSavingsPreview').textContent = diff > 0
+        ? `$${low.toLocaleString()} – $${high.toLocaleString()} / yr`
+        : 'No savings at this value';
+}
+
+async function submitAdjustValue() {
+    const caseId = document.getElementById('adjustCaseId').value;
+    const estVal = parseFloat(document.getElementById('adjustEstValue').value);
+    if (!caseId || isNaN(estVal)) { alert('Enter a valid estimated value'); return; }
+    try {
+        const res = await fetch(`/api/db/case/${caseId}`, {
+            method: 'PATCH',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estimated_value: estVal })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        // Update local and re-render
+        const idx = _approvalData.findIndex(s => s.case_id === caseId);
+        if (idx !== -1) _approvalData[idx].estimated_value = estVal;
+        closeAdjustModal();
+        renderApprovalQueue(_approvalData, document.getElementById('approvalQueueStats'), document.getElementById('approvalQueueBody'));
+    } catch(err) {
+        alert('Error saving: ' + err.message);
+    }
+}
 
 // ==================== FOLLOW-UPS DUE ====================
 async function loadFollowUpsDue() {

@@ -734,11 +734,11 @@
                         <div class="doc-name">${doc.name}<span class="doc-version">${ver}</span>${approvedBadge}${doc.badge || ''}</div>
                         <div class="doc-meta">${doc.meta}</div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                        ${previewBtn}
-                        ${doc.url ? `<a href="${doc.url}" target="_blank" style="color:#818cf8;font-size:12px;text-decoration:none;font-weight:600;" title="Open document">View →</a>` : ''}
-                        ${doc.url ? `<a href="${doc.url}" download style="color:#64748b;font-size:14px;text-decoration:none;" title="Download">⬇</a>` : ''}
-                        ${doc.extraActions || ''}
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        ${doc.url ? `<a href="${doc.url}" target="_blank" style="background:#6c5ce7;color:white;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;text-decoration:none;" title="View">📄 View</a>` : ''}
+                        ${doc.url ? `<a href="${doc.url}" download style="background:#334155;color:#e2e8f0;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;text-decoration:none;" title="Download">⬇ Download</a>` : ''}
+                        ${doc.url ? `<button onclick="printDoc('${doc.url}')" style="background:#0f766e;color:white;border:none;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;" title="Print">🖨 Print</button>` : ''}
+                        ${doc.url ? `<button onclick="emailDoc('${encodeURIComponent(doc.url)}','${encodeURIComponent(doc.name)}')" style="background:#b45309;color:white;border:none;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;" title="Email to customer">✉️ Email</button>` : ''}
                     </div>
                     <div id="${previewId}" style="display:none;width:100%;margin-top:8px;"></div>
                 </div>`;
@@ -1586,6 +1586,43 @@
         }
 
         // ========== FEATURE 4: INLINE DOC PREVIEW ==========
+        // ── Document Actions ────────────────────────────────
+        function printDoc(url) {
+            const win = window.open(url, '_blank');
+            if (win) { win.onload = () => { win.focus(); win.print(); }; }
+        }
+
+        async function emailDoc(encodedUrl, encodedName) {
+            const url = decodeURIComponent(encodedUrl);
+            const name = decodeURIComponent(encodedName);
+            if (!caseData) { showToast('Case not loaded yet', true); return; }
+            const customerEmail = caseData.email;
+            if (!customerEmail) { showToast('No customer email on file', true); return; }
+            if (!confirm(`Send "${name}" to ${customerEmail}?`)) return;
+            try {
+                const res = await fetch('/api/cases/email-document', {
+                    method: 'POST',
+                    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_id: caseId,
+                        document_url: url,
+                        document_name: name,
+                        to_email: customerEmail,
+                        owner_name: caseData.owner_name
+                    })
+                });
+                const result = await res.json();
+                if (res.ok && result.ok) {
+                    showToast(`✅ Emailed "${name}" to ${customerEmail}`);
+                } else {
+                    showToast('❌ Email failed: ' + (result.error || 'Unknown error'), true);
+                }
+            } catch(err) {
+                showToast('❌ Network error: ' + err.message, true);
+            }
+        }
+        // ────────────────────────────────────────────────────
+
         function togglePreview(previewId, url) {
             const el = document.getElementById(previewId);
             if (!el) return;
