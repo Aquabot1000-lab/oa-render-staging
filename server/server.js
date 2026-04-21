@@ -10545,6 +10545,16 @@ function validateCrmEvidence(lead) {
     const withDates = real.filter(c => c.sale_date);
     if (withDates.length < 3) errors.push(`Only ${withDates.length} comps with sale dates (need 3)`);
     if (!lead.agreement_type) errors.push('Agreement type not set');
+
+    // ── WA-SPECIFIC: Parcel ID required + validation must pass ──
+    if (lead.state === 'WA') {
+        if (!lead.pin) errors.push('WA case missing Parcel/Tax ID (pin) — required before filing');
+        const dvs = lead.data_validation_status;
+        if (dvs && dvs !== 'verified') {
+            errors.push(`WA parcel validation not passed (status: ${dvs}) — resolve before filing`);
+        }
+    }
+
     return { valid: errors.length === 0, errors };
 }
 
