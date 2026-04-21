@@ -146,10 +146,12 @@ function renderForm50132(doc, caseData, property) {
 
 // ── PAGE(S): E&U Comp Grid (TaxNet format) ──
 function renderEUGrid(doc, subject, comps, allAdj) {
-    // 3 comps per page (vertical column layout like TaxNet)
+    // All comps on ONE page — no blank pages ever
+    // Use all comps per page; column width shrinks for more comps but stays readable
+    const COMPS_PER_PAGE = comps.length;
     const pages = [];
-    for (let i = 0; i < comps.length; i += 3) {
-        pages.push(comps.slice(i, i + 3));
+    for (let i = 0; i < comps.length; i += COMPS_PER_PAGE) {
+        pages.push(comps.slice(i, i + COMPS_PER_PAGE));
     }
     
     const adjValues = allAdj.map(a => a.adjustedValue);
@@ -159,59 +161,69 @@ function renderEUGrid(doc, subject, comps, allAdj) {
     const maxVal = adjValues[adjValues.length - 1];
     
     for (let pg = 0; pg < pages.length; pg++) {
-        doc.addPage({ size: 'LETTER', margin: 30 });
+        // Landscape for comp grid — wider canvas fits 10 columns legibly
+        doc.addPage({ size: 'LETTER', layout: 'landscape', margin: 30 });
+        // Landscape LETTER: 792w x 612h (vs portrait 612w x 792h)
+        const PW = 792; const PH = 612;
         const pageComps = pages[pg];
         const pageAdjs = [];
         for (let k = 0; k < pageComps.length; k++) {
-            const idx = pg * 3 + k;
+            const idx = pg * COMPS_PER_PAGE + k;
             pageAdjs.push(allAdj[idx]);
         }
         
-        // Header bar
-        doc.rect(28, 28, 556, 18).fill('#2C3E50');
+        // Header bar (full landscape width)
+        const contentW = PW - 60; // 60 = left+right margin
+        doc.rect(28, 28, contentW, 18).fill('#2C3E50');
         doc.fillColor('#FFF').fontSize(10).font('Helvetica-Bold');
-        doc.text('Equal & Uniform Analysis', 0, 32, { align: 'center', width: 612 });
+        doc.text('Equal & Uniform Analysis', 0, 32, { align: 'center', width: PW });
         doc.fillColor('#000');
-        
+
         // Sub-header
-        doc.fontSize(10).font('Helvetica-Bold').text(subject.address.toUpperCase(), 30, 52);
-        doc.fontSize(8).font('Helvetica');
-        doc.text('Tax ID: ' + (subject.accountId || ''), 400, 52);
-        doc.text('Owner: ' + (subject.ownerName || ''), 400, 62);
-        
+        doc.fontSize(9).font('Helvetica-Bold').text(subject.address.toUpperCase(), 30, 52);
+        doc.fontSize(7.5).font('Helvetica');
+        doc.text('Tax ID: ' + (subject.accountId || ''), 530, 52);
+        doc.text('Owner: ' + (subject.ownerName || ''), 530, 62);
+
         // Indicated value box
-        doc.rect(30, 76, 180, 16).fill('#E8E8E8');
+        doc.rect(30, 70, 220, 16).fill('#E8E8E8');
         doc.fillColor('#000').font('Helvetica-Bold').fontSize(9);
-        doc.text('Indicated Value ' + fmt(medianVal), 35, 79);
+        doc.text('Indicated Value ' + fmt(medianVal), 35, 73);
         doc.font('Helvetica').fontSize(7);
-        doc.text('Comps: ' + comps.length + ' | Min: ' + fmt(minVal) + ' | Max: ' + fmt(maxVal) + ' | Median: ' + fmt(medianVal), 220, 80, { width: 350 });
-        
-        // Account + county footer info
+        doc.text('Comps: ' + comps.length + ' | Min: ' + fmt(minVal) + ' | Max: ' + fmt(maxVal) + ' | Median: ' + fmt(medianVal), 260, 74, { width: 400 });
+
+        // Footer
         doc.fontSize(6).fillColor('#666');
-        doc.text(cap(subject.county || 'Bexar') + ' County | Page ' + (pg + 1) + ' of ' + pages.length + ' | ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 30, 750, { width: 550, align: 'center' });
-        doc.text('Prepared by: OverAssessed, LLC | TaxNet USA Standard', 30, 758, { width: 550, align: 'center' });
+        doc.text(cap(subject.county || 'Bexar') + ' County | Page ' + (pg + 1) + ' of ' + pages.length + ' | ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 30, PH - 22, { width: contentW, align: 'center' });
+        doc.text('Prepared by: OverAssessed, LLC | TaxNet USA Standard', 30, PH - 14, { width: contentW, align: 'center' });
         doc.fillColor('#000');
-        
-        // Column layout: row labels on left, then SUBJECT col, then comp cols
-        const leftW = 120;
-        const colW = Math.floor((556 - leftW) / (1 + pageComps.length));
+
+        // Column layout across full landscape width
+        const leftW = 130;
+        const colW = Math.floor((contentW - leftW) / (1 + pageComps.length));
         const startX = 30;
-        const colX = [startX + leftW]; // subject column
+        const colX = [startX + leftW];
         for (let c = 0; c < pageComps.length; c++) {
             colX.push(startX + leftW + colW * (c + 1));
         }
-        
-        let y = 98;
-        const rowH = 14;
-        
+
+        let y = 92;
+        // Fill available vertical space: PH - header(92) - footer(40)
+        const availableH = PH - 92 - 40;
+        const numRows = 18;
+        const rowH = Math.floor(availableH / numRows);
+
+        // Font scales with number of comps but landscape gives much more room
+        const gridFontSz = pageComps.length <= 6 ? 7.5 : pageComps.length <= 8 ? 7 : 6.5;
+
         // Column headers
-        doc.rect(startX, y, 556, rowH).fill('#34495E');
-        doc.fillColor('#FFF').font('Helvetica-Bold').fontSize(7);
-        doc.text('(CAD 2026)', startX + 2, y + 3);
-        doc.text('SUBJECT', colX[0], y + 3, { width: colW });
+        doc.rect(startX, y, contentW, rowH).fill('#34495E');
+        doc.fillColor('#FFF').font('Helvetica-Bold').fontSize(gridFontSz);
+        doc.text('(CAD 2026)', startX + 2, y + 2);
+        doc.text('SUBJECT', colX[0], y + 2, { width: colW });
         for (let c = 0; c < pageComps.length; c++) {
-            const compNum = pg * 3 + c + 1;
-            doc.text('COMP ' + compNum, colX[c + 1], y + 3, { width: colW });
+            const compNum = pg * COMPS_PER_PAGE + c + 1;
+            doc.text('COMP ' + compNum, colX[c + 1], y + 2, { width: colW });
         }
         doc.fillColor('#000');
         y += rowH;
@@ -243,17 +255,17 @@ function renderEUGrid(doc, subject, comps, allAdj) {
         for (let r = 0; r < rows.length; r++) {
             const row = rows[r];
             if (r % 2 === 0 && !row.highlight) {
-                doc.rect(startX, y - 1, 556, rowH).fill('#F8F9FA');
+                doc.rect(startX, y - 1, contentW, rowH).fill('#F8F9FA');
                 doc.fillColor('#000');
             }
             if (row.highlight) {
-                doc.rect(startX, y - 1, 556, rowH).fill('#D5F5E3');
+                doc.rect(startX, y - 1, contentW, rowH).fill('#D5F5E3');
                 doc.fillColor('#000');
             }
             
             const font = row.bold ? 'Helvetica-Bold' : 'Helvetica';
-            const sz = row.isAdj ? 6.5 : 7;
-            doc.font(row.label ? 'Helvetica-Bold' : 'Helvetica').fontSize(7).text(row.label, startX + 2, y + 2, { width: leftW - 4 });
+            const sz = row.isAdj ? Math.min(6.5, gridFontSz) : gridFontSz;
+            doc.font(row.label ? 'Helvetica-Bold' : 'Helvetica').fontSize(gridFontSz).text(row.label, startX + 2, y + 2, { width: leftW - 4 });
             doc.font(font).fontSize(sz).text(row.subject, colX[0], y + 2, { width: colW - 2 });
             for (let c = 0; c < row.comps.length; c++) {
                 doc.font(font).fontSize(sz).text(row.comps[c], colX[c + 1], y + 2, { width: colW - 2 });
