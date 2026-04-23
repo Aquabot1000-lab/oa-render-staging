@@ -10397,70 +10397,137 @@ async function orchAnalyzeLead(payload) {
         return { frozen: true, reason: 'build_mode_freeze', case_id: payload?.case_id };
     }
     console.log(`[ORCH:ANALYZE] ✅ Running analysis for ${payload?.case_id || payload?.lead_id || '?'}`);
-    // === ACTIVE CODE ===
+
+    // ── OI-010 FIX 2026-04-23: replaced Rentcast AVM sale-price logic with findComparables()
+    // Rentcast sale prices are WRONG for protest savings (sale price ≠ assessed value).
+    // New construction: sale > assessed → savings always $0. Older: understated savings.
+    // findComparables() uses assessed-value comps (TaxNetUSA/CAD scraper) per RULE 9 + RULE 10.
+    // status is NEVER written here — runApprovalGate() owns all status promotion.
+
     const { lead_id } = payload;
     if (!lead_id) throw new Error('lead_id required');
     const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
     if (!lead) throw new Error('Lead not found');
-    
-    const addr = lead.property_address;
-    const state = lead.state || 'TX';
-    const key = process.env.RENTCAST_API_KEY || '3a0f6f09999b41cc9ef23aa9d5fbab57';
-    
-    // Fetch comps
-    const axios = require('axios');
-    const { data: avmData } = await axios.get('https://api.rentcast.io/v1/avm/value', {
-        params: { address: `${addr}, ${state}` },
-        headers: { 'X-Api-Key': key },
-        timeout: 15000
-    });
-    
-    const comps = [];
-    for (const c of (avmData.comparables || [])) {
-        const sd = (c.removedDate || c.lastSaleDate || c.listedDate || '').substring(0, 10);
-        if (!sd || !c.price) continue;
-        comps.push({
-            address: c.formattedAddress || c.addressLine1,
-            sale_price: c.price,
-            sale_date: sd,
-            sqft: c.squareFootage,
-            bedrooms: c.bedrooms,
-            bathrooms: c.bathrooms,
-            year_built: c.yearBuilt,
-            distance_miles: c.distance ? parseFloat(c.distance.toFixed(2)) : null,
-            correlation: c.correlation || 0,
-            source: 'rentcast-api'
-        });
+
+    // ── STEP 1 GUARD: skip if real comps already stored ────────────────────────────────────
+    // Never overwrite real assessed-value comp data with Rentcast AVM output on re-queue.
+    const REAL_COMP_SOURCES = new Set([
+        'tarrant-cad', 'tarrant-cad-local', 'bexar-cad-local', 'denton-cad-local',
+        'BCAD', 'cad_scraper', 'real', 'taxnetusa', 'local-bulk'
+    ]);
+    const storedCR = lead.comp_results || {};
+    const storedSource = storedCR.comp_source || (storedCR.comps && storedCR.comps[0] && storedCR.comps[0].source);
+    const storedCompCount = (storedCR.comps || []).length;
+    if (storedSource && REAL_COMP_SOURCES.has(storedSource) && storedCompCount >= 5) {
+        console.log(`[ORCH:ANALYZE] ${lead.case_id} — real comps already stored (source: ${storedSource}, count: ${storedCompCount}), skipping re-fetch`);
+        return { case_id: lead.case_id, skipped: true, reason: 'real_comps_already_stored', comp_source: storedSource, comps: storedCompCount };
     }
-    comps.sort((a, b) => (b.correlation || 0) - (a.correlation || 0));
-    const top5 = comps.slice(0, 5);
-    
-    const prices = top5.filter(c => c.sale_price).map(c => c.sale_price);
-    const proposed = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
-    const assessed = parseFloat(String(lead.assessed_value || '0').replace(/[,$]/g, ''));
-    const taxRates = { 'bexar':0.0225,'kaufman':0.025,'tarrant':0.023,'collin':0.022,'dallas':0.023,'harris':0.023,'travis':0.021,'kitsap':0.0102,'king':0.010,'fort bend':0.023 };
+
+    // ── STEP 2: build subject + call findComparables() ─────────────────────────────────────
+    const pd = lead.property_data || {};
+    const subject = {
+        address:        lead.property_address,
+        assessedValue:  parseFloat(String(lead.assessed_value || pd.assessedValue || '0').replace(/[,$]/g, '')),
+        sqft:           lead.sqft || pd.sqft || pd.livingArea || null,
+        yearBuilt:      lead.year_built || pd.yearBuilt || pd.year_built || null,
+        bedrooms:       lead.bedrooms || pd.bedrooms || null,
+        bathrooms:      lead.bathrooms || pd.bathrooms || null,
+        propertyType:   lead.property_type || pd.propertyType || 'Single Family Home',
+        county:         lead.county || null
+    };
+    const caseData = {
+        county:  lead.county || null,
+        case_id: lead.case_id || null
+    };
+
+    let compResult;
+    try {
+        compResult = await findComparables(subject, caseData);
+    } catch (compErr) {
+        console.error(`[ORCH:ANALYZE] findComparables error for ${lead.case_id}: ${compErr.message}`);
+        await supabaseAdmin.from('submissions').update({
+            analysis_status: 'DATA_BLOCKED',
+            qa_status: 'failed',
+            qa_run_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }).eq('id', lead_id);
+        await supabaseAdmin.from('activity_log').insert({
+            case_id: lead.case_id, actor: 'orch', action: 'analysis_error',
+            details: { error: compErr.message, rule: 'OI-010-fix' }
+        });
+        return { case_id: lead.case_id, blocked: true, reason: compErr.message };
+    }
+
+    // ── DATA_BLOCKED branch: no real comps available ────────────────────────────────────────
+    if (compResult.data_blocked) {
+        console.log(`[ORCH:ANALYZE] ${lead.case_id} — DATA_BLOCKED (${compResult.data_issue}). Not promoting.`);
+        await supabaseAdmin.from('submissions').update({
+            analysis_status: 'DATA_BLOCKED',
+            comp_results: {
+                ...storedCR,
+                data_blocked: true,
+                data_issue: compResult.data_issue,
+                filing_ready: false,
+                block_reason: compResult.block_reason || compResult.data_issue
+            },
+            qa_status: 'failed',
+            qa_run_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+            // ⛔ status NOT written here
+        }).eq('id', lead_id);
+        await supabaseAdmin.from('activity_log').insert({
+            case_id: lead.case_id, actor: 'orch',
+            action: compResult.data_issue === 'TAXNET_SOURCE_REQUIRED' ? 'data_blocked_taxnet_failure' : 'synthetic_comps_blocked',
+            details: { data_issue: compResult.data_issue, block_reason: compResult.block_reason, rule: 'RULE_9_RULE_10' }
+        });
+        return { case_id: lead.case_id, blocked: true, data_issue: compResult.data_issue };
+    }
+
+    // ── SAVINGS from assessed-value comps (correct protest math) ───────────────────────────
+    // recommendedValue = median/min of assessed-value comps (NOT sale prices)
+    const taxRates = {
+        'bexar':0.0225,'kaufman':0.025,'tarrant':0.023,'collin':0.022,'dallas':0.023,
+        'harris':0.023,'travis':0.021,'kitsap':0.0102,'king':0.010,'fort bend':0.023,
+        'denton':0.023,'williamson':0.022,'montgomery':0.025,'galveston':0.022
+    };
     const taxRate = taxRates[(lead.county||'').toLowerCase()] || 0.022;
-    const savings = Math.max(0, Math.round((assessed - proposed) * taxRate));
-    
-    // QA
-    const withDates = top5.filter(c => c.sale_date);
-    const qaPassed = withDates.length >= 3;
-    
-    let stage = 'Needs Analysis';
-    if (qaPassed && top5.length >= 3 && savings > 0) stage = 'Pending Approval';
-    else if (qaPassed && savings <= 0) stage = 'No Case';
-    
+    const assessed = subject.assessedValue;
+    const recommendedValue = compResult.recommendedValue || 0;
+    const savings = Math.max(0, Math.round((assessed - recommendedValue) * taxRate));
+    const realComps = (compResult.comps || []).filter(c => !c._synthetic && c.source !== 'synthetic-estimate');
+    const qaPassed = realComps.length >= 5 && compResult.has_real_comps;
+
+    // ── analysis_status only — NEVER write status field ────────────────────────────────────
+    // status promotion is owned exclusively by runApprovalGate()
+    let analysisStatus;
+    if (!qaPassed)                       analysisStatus = 'Insufficient Data';
+    else if (savings > 0)                analysisStatus = 'Analysis Complete';
+    else                                 analysisStatus = 'No Case (verified)';
+
     await supabaseAdmin.from('submissions').update({
-        comp_results: { comps: top5, avm: avmData.price, confidence: top5.length >= 3 ? 'high' : 'insufficient_data', fetched_at: new Date().toISOString(), data_sources: [{source:'rentcast-api',comps_found:top5.length}] },
+        comp_results: {
+            ...compResult,
+            filing_ready: false  // approval gate sets this via its own checks
+        },
         estimated_savings: savings,
-        qa_status: qaPassed ? 'passed' : 'failed',
-        qa_run_at: new Date().toISOString(),
-        status: stage,
-        updated_at: new Date().toISOString()
+        analysis_status:   analysisStatus,
+        qa_status:         qaPassed ? 'passed' : 'failed',
+        qa_run_at:         new Date().toISOString(),
+        updated_at:        new Date().toISOString()
+        // ⛔ status NOT written — runApprovalGate() owns promotion
     }).eq('id', lead_id);
-    
-    console.log(`[ORCH:ANALYZE] ${lead.case_id} | ${top5.length} comps | $${savings}/yr | ${stage}`);
-    return { case_id: lead.case_id, comps: top5.length, savings, stage, qa: qaPassed };
+
+    await supabaseAdmin.from('activity_log').insert({
+        case_id: lead.case_id, actor: 'orch', action: 'taxnet_routing_applied',
+        details: {
+            comp_source: compResult.comp_source, comps: realComps.length,
+            savings, recommended_value: recommendedValue, assessed,
+            analysis_status: analysisStatus, rule: 'OI-010-fix'
+        }
+    });
+
+    console.log(`[ORCH:ANALYZE] ${lead.case_id} | source: ${compResult.comp_source} | ${realComps.length} real comps | recommended: $${recommendedValue} | savings: $${savings}/yr | analysis: ${analysisStatus}`);
+    return { case_id: lead.case_id, comps: realComps.length, savings, comp_source: compResult.comp_source, analysis_status: analysisStatus, qa: qaPassed };
 }
 
 async function orchRunComps(payload) {
