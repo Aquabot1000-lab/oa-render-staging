@@ -4363,13 +4363,15 @@ app.post('/api/pre-register', async (req, res) => {
             // 3. High-confidence single match → update record, advance status
             if (highConfidence) {
                 const comp = geocodeMatches[0].addressComponents;
-                await supabaseAdmin.from('pre_registrations').update({
-                    resolved_address: suggestedAddress,
-                    resolved_zip: comp.zip,
-                    state: comp.state || 'TX',
-                    status: 'WAITING_FOR_NOTICE_UPLOAD'
-                }).eq('id', data.id).catch(() => {});
-                console.log(`[Pre-Reg] ✅ Auto-resolved address for ${data.id}: ${suggestedAddress}`);
+                try {
+                    await supabaseAdmin.from('pre_registrations').update({
+                        resolved_address: suggestedAddress,
+                        resolved_zip: comp.zip,
+                        state: comp.state || 'TX',
+                        status: 'WAITING_FOR_NOTICE_UPLOAD'
+                    }).eq('id', data.id);
+                    console.log(`[Pre-Reg] ✅ Auto-resolved address for ${data.id}: ${suggestedAddress}`);
+                } catch (resolveErr) { console.error('[Pre-Reg] Auto-resolve update failed:', resolveErr.message); }
             }
 
             // 4. Send address confirmation email (once only — address_fix_requested guard)
@@ -4412,11 +4414,13 @@ app.post('/api/pre-register', async (req, res) => {
                         subject: confirmSubject, html: confirmHtml
                     });
                     console.log(`[Pre-Reg] ✅ Address confirmation email sent to ${email} (highConfidence=${highConfidence})`);
-                    await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id).catch(() => {});
-                    await supabaseAdmin.from('activity_log').insert({
-                        case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
-                        details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'v2_confirmation' }
-                    }).catch(() => {});
+                    try { await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id); } catch(e) { console.error('[Pre-Reg] address_fix_requested update failed:', e.message); }
+                    try {
+                        await supabaseAdmin.from('activity_log').insert({
+                            case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
+                            details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'v2_confirmation' }
+                        });
+                    } catch(e) { console.error('[Pre-Reg] activity_log insert failed:', e.message); }
                 } catch (emailErr) { console.error('[Pre-Reg] Address confirmation email failed:', emailErr.message); }
             }
 
@@ -4427,7 +4431,9 @@ app.post('/api/pre-register', async (req, res) => {
                         ? `Hi ${name.split(' ')[0]}, this is OverAssessed. We think your property is at ${suggestedAddress}. Reply YES to confirm or send your correct address.`
                         : `Hi ${name.split(' ')[0]}, this is OverAssessed. We need to confirm your property address. Can you reply with your full address including city, state, and zip?`;
                     await sendClientSMS(phone, smsMsg, { email, customerName: name, context: 'incomplete_address' });
-                    await supabaseAdmin.from('communications').insert({ case_id: data.id, direction: 'outbound', channel: 'sms', recipient: phone, body: smsMsg, status: 'sent' }).catch(() => {});
+                    try {
+                        await supabaseAdmin.from('communications').insert({ case_id: data.id, direction: 'outbound', channel: 'sms', recipient: phone, body: smsMsg, status: 'sent' });
+                    } catch(e) { console.error('[Pre-Reg] comms SMS insert failed:', e.message); }
                 } catch (smsErr) { console.error('[Pre-Reg] SMS failed:', smsErr.message); }
             }
         } else {
