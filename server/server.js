@@ -10367,12 +10367,20 @@ async function orchExecuteJob(job) {
     }
 }
 
-async function orchAnalyzeLead(payload) {
-    // ⛔ FREEZE: No auto-analysis or status changes — build mode (Tyler directive 2026-04-09)
-    console.log(`[ORCH:ANALYZE] ⛔ FROZEN — skipping analyze_lead for ${payload?.case_id || payload?.lead_id || '?'} (build mode)`);
-    return { frozen: true, reason: 'build_mode_freeze', case_id: payload?.case_id };
+// ALLOW_ANALYSIS = true — build_mode_freeze lifted 2026-04-23 per Tyler directive
+// Safety constraints:
+//   - No customer emails or SMS (OA_CLIENT_EMAIL_ENABLED=false enforced separately)
+//   - Status auto-transitions remain frozen (orchStageTransition still frozen)
+//   - Analysis + data updates only
+const ALLOW_ANALYSIS = true;
 
-    // === FROZEN CODE BELOW — do not execute until freeze is lifted ===
+async function orchAnalyzeLead(payload) {
+    if (!ALLOW_ANALYSIS) {
+        console.log(`[ORCH:ANALYZE] ⛔ FROZEN — skipping analyze_lead for ${payload?.case_id || payload?.lead_id || '?'} (build mode)`);
+        return { frozen: true, reason: 'build_mode_freeze', case_id: payload?.case_id };
+    }
+    console.log(`[ORCH:ANALYZE] ✅ Running analysis for ${payload?.case_id || payload?.lead_id || '?'}`);
+    // === ACTIVE CODE ===
     const { lead_id } = payload;
     if (!lead_id) throw new Error('lead_id required');
     const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
@@ -10573,11 +10581,12 @@ function validateCrmEvidence(lead) {
 }
 
 async function orchStageTransition(payload) {
-    // ⛔ FREEZE: No auto stage transitions — build mode (Tyler directive 2026-04-09)
-    console.log(`[CRM-WORKER] ⛔ FROZEN — skipping stage transition for ${payload?.lead_id || '?'} → ${payload?.target_stage || '?'} (build mode)`);
-    return { frozen: true, reason: 'build_mode_freeze', target_stage: payload?.target_stage };
+    // ⛔ FREEZE: Status auto-transitions remain frozen — Tyler directive 2026-04-23
+    // Only analysis (orchAnalyzeLead) was unfrozen. Stage mutations still require manual approval.
+    console.log(`[CRM-WORKER] ⛔ FROZEN — skipping stage transition for ${payload?.lead_id || '?'} → ${payload?.target_stage || '?'} (status transitions still frozen)`);
+    return { frozen: true, reason: 'status_transitions_frozen', target_stage: payload?.target_stage };
 
-    // === FROZEN CODE BELOW — do not execute until freeze is lifted ===
+    // === FROZEN CODE BELOW — do not execute until explicitly unfrozen ===
     const { lead_id, target_stage, reason } = payload;
     if (!lead_id || !target_stage) throw new Error('lead_id and target_stage required');
     const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('id', lead_id).single();
