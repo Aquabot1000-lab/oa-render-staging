@@ -1760,30 +1760,56 @@ async function runContactedFollowUp() {
 async function runApprovalGate() {
     // ✅ APPROVAL GATE ACTIVE — reactivated 2026-04-20 per Tyler directive
     // Moves completed analysis cases to PENDING_TYLER_APPROVAL. No customer comms.
+    // Gate conditions tightened 2026-04-23 — ALL six must pass before promoting.
     console.log('[ApprovalGate] Checking for leads needing approval...');
     try {
         const submissions = await readAllSubmissions();
         let moved = 0;
+        let skipped = 0;
 
         for (const sub of submissions) {
-            // Skip if already signed, deleted, or duplicate
-            if (sub.signature || sub.feeAgreementSigned || sub.feeAgreementSignature) continue;
-            if (sub.status === 'Deleted' || sub.status === 'Duplicate') continue;
+            // Hard excludes — test/benchmark sources
             if (sub.source === 'stephen-benchmark') continue;
             if (sub.email && (sub.email.includes('benchmark@') || sub.email.includes('test@'))) continue;
 
-            // Only process leads with completed analysis and positive savings
-            const analysis = sub.analysisStatus || sub.analysis_status || '';
-            const savings = sub.estimatedSavings || sub.estimated_savings || 0;
-            if (!['Evidence Generated', 'Complete', 'Analysis Complete'].includes(analysis)) continue;
-            if (savings <= 0) continue;
+            // Skip if already in approval flow or past it (canonical + legacy strings)
+            if (['PENDING_TYLER_APPROVAL', 'Pending Approval', 'APPROVED', 'Approved',
+                 'RESULTS_SENT', 'Results Sent', 'SIGNED_READY_TO_FILE', 'Form Signed',
+                 'FILING_PREPARED', 'Filing Prepared', 'PROTEST_FILED', 'Protest Filed',
+                 'Submitted', 'Hearing Scheduled', 'Won', 'Lost',
+                 'RESOLVED', 'Resolved', 'COLD', 'Cold',
+                 'DELETED', 'Deleted', 'DUPLICATE', 'Duplicate', 'ARCHIVED', 'Archived'].includes(sub.status)) continue;
 
-            // Skip if already in approval flow or past it
-            if (['Pending Approval', 'Approved', 'Results Sent', 'Form Signed', 'Filing Prepared',
-                 'Protest Filed', 'Submitted', 'Hearing Scheduled', 'Won', 'Lost', 'Resolved', 'Cold'].includes(sub.status)) continue;
+            // ── GATE CONDITION 1: Fee agreement signed ──
+            // Must have fee_agreement_signed=true OR a captured signature
+            const isSigned = sub.fee_agreement_signed || sub.feeAgreementSigned ||
+                             !!sub.signature || !!sub.feeAgreementSignature;
+            if (!isSigned) { skipped++; continue; }
 
-            // Move to PENDING_TYLER_APPROVAL (canonical status) — NO email/SMS sent
-            // Updated 2026-04-23: was 'Pending Approval' (legacy) — now canonical only
+            // ── GATE CONDITION 2: Positive savings ──
+            const savings = parseFloat(sub.estimatedSavings || sub.estimated_savings || 0);
+            if (savings <= 0) { skipped++; continue; }
+
+            // ── GATE CONDITION 3: Not flagged for manual review ──
+            if (sub.needsManualReview || sub.needs_manual_review) { skipped++; continue; }
+
+            // ── GATE CONDITION 4: Minimum 3 comparable sales ──
+            const compData = sub.compResults || sub.comp_results || null;
+            const compCount = compData
+                ? (compData.totalCompsFound ?? (compData.comps || []).length ?? 0)
+                : 0;
+            if (compCount < 3) { skipped++; continue; }
+
+            // ── GATE CONDITION 5: Evidence package generated ──
+            const hasPackage = !!(sub.evidencePacketPath || sub.evidence_packet_path);
+            if (!hasPackage) { skipped++; continue; }
+
+            // ── GATE CONDITION 6: No missing required fields ──
+            const mf = sub.missingFields || sub.missing_fields;
+            const hasMissingFields = Array.isArray(mf) ? mf.length > 0 : !!mf;
+            if (hasMissingFields) { skipped++; continue; }
+
+            // All six gates passed — promote to PENDING_TYLER_APPROVAL
             const now = new Date().toISOString();
             if (isSupabaseEnabled()) {
                 await supabaseAdmin.from('submissions').update({
@@ -1791,9 +1817,11 @@ async function runApprovalGate() {
                     updated_at: now
                 }).eq('id', sub.id);
             }
-            console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → PENDING_TYLER_APPROVAL (savings: $${savings.toLocaleString()}/yr)`);
+            console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → PENDING_TYLER_APPROVAL (savings: $${savings.toLocaleString()}/yr, comps: ${compCount})`);
             moved++;
         }
+
+        if (skipped > 0) console.log(`[ApprovalGate] ${skipped} leads skipped (did not meet all gate conditions)`);
 
         if (moved > 0) {
             console.log(`[ApprovalGate] Moved ${moved} leads to PENDING_TYLER_APPROVAL`);
