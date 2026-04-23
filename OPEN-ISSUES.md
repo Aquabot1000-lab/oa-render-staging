@@ -28,13 +28,34 @@
 
 ---
 
-## OI-002 — 3 pre_registrations stuck in NEEDS_REVIEW (geocoder-resolved, not promoted)
+## OI-002 — 6 NEEDS_REVIEW pre-registrations awaiting address confirmation (customer reply required)
 **Priority:** 🟡 MEDIUM  
-**Opened:** 2026-04-22
+**Opened:** 2026-04-22 | **Reframed:** 2026-04-23
 
-**Problem:** 3 records have `status = NEEDS_REVIEW` but their addresses were geocoder-resolved (i.e., `resolved_address IS NOT NULL`). They should be `WAITING_FOR_NOTICE_UPLOAD`. Were not promoted during the batch normalization because the promotion condition requires manual confirmation of the resolved address.
+**Original framing (stale — closed):**  
+"3 NEEDS_REVIEW records with `resolved_address IS NOT NULL` not promoted." DB verification on 2026-04-23 confirmed `resolved_address = NULL` across all pre-reg records. The original 3 were either promoted during the April 22 batch normalization run or never persisted `resolved_address` due to the same `.catch()` bug fixed in FIX-008. Original framing no longer present in DB. Superseded by current framing below.
 
-**To close:** Review 3 records → confirm resolved address is correct → update status to `WAITING_FOR_NOTICE_UPLOAD` → log in FIX-LOG.md.
+**Current problem:**  
+6 pre-registration records remain in `NEEDS_REVIEW` with `resolved_address = NULL`. All 6 were created during the broken `.catch()` window (2026-04-23 00:08–10:54 UTC, before FIX-008). Email and SMS outreach fired successfully for each, but `address_fix_requested` was never set to `true` (DB write failed silently). Geocoder returned 0 matches for 5 of 6 addresses (too ambiguous without city/state/zip). 1 record (Arnoldo Corona) geocodes to a single high-confidence match.
+
+**Records:**
+
+| Pre-reg ID | Name | Email | Original Address | Geocoder |
+|---|---|---|---|---|
+| `1a6ea8a1` | Maria Montemayor | flylupita@icloud.com | 10260 Stone Gate Dr | 0 matches |
+| `54a0bb4b` | Arnoldo Corona | acorona605@gmail.com | 4342 Woodcrest Ln Dallas 75206 | ✅ 1 match |
+| `a65d386b` | Arturo Barrera | abarrera3564@hotmail.com | 790 Tierra Linda Dr | 0 matches |
+| `8f9f3dce` | Cpn Ling | cpnking001@gmail.com | 11457 hillhaven dr | 0 matches |
+| `71f155d1` | Manuel Mejia | mejdom@gmail.com | 614 white ash dr | 0 matches |
+| `d5526a8c` | Joseph Strand | joseph7351@gmail.com | 1701 E Round Rock Dr | 0 matches |
+
+**Root cause of DB state:** FIX-008 `.catch()` bug — outreach sent but `address_fix_requested` update silently failed for all 6.
+
+**To close:**  
+1. Arnoldo Corona (`54a0bb4b`): Tyler confirms `4342 WOODCREST LN, DALLAS, TX, 75206` → promote to `WAITING_FOR_NOTICE_UPLOAD`, backfill `resolved_address`/`resolved_zip`/`state`  
+2. Remaining 5: await customer replies with corrected address → v2 handler re-processes on reply → promote automatically  
+3. Backfill `address_fix_requested = true` on all 6 so re-outreach doesn't fire  
+4. Log in FIX-LOG.md when all 6 are resolved or moved to `INCOMPLETE_INTAKE`
 
 ---
 
@@ -134,7 +155,7 @@ Prior query used implicit `.limit(50)` default. Actual DB count confirmed as 76 
 | ID | Priority | Issue | Blocked by |
 |---|---|---|---|
 | OI-001 | ✅ RESOLVED | v2 incomplete-address handler live + all 6 DB writes verified | FIX-008 |
-| OI-002 | 🟡 MED | 3 pre_regs stuck in NEEDS_REVIEW, geocoder-resolved | Manual review |
+| OI-002 | 🟡 MED | 6 NEEDS_REVIEW pre-regs, resolved_address=NULL, awaiting customer replies | Backfill address_fix_requested + Tyler confirm 1 record |
 | OI-003 | 🟡 MED | OA-0031, OA-0001 have no filing package | Package regen |
 | OI-004 | ✅ RESOLVED | documents RLS blocks portal reads | FIX-007 |
 | OI-005 | 🟠 LOW-MED | 5 duplicate hardcoded templates in server.js | Phase 3 cleanup |

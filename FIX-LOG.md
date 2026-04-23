@@ -339,3 +339,20 @@ Verification test: pre-reg `b96ebdbe-870c-4856-b954-c3f442fe880e` submitted 2026
 | Zero runtime errors | ✅ | Render log for request: no `catch is not a function` |
 
 ### STATUS: ✅ FIXED
+
+---
+
+## FIX-LOG NOTE — OI-002 original framing became stale after DB verification (2026-04-23)
+
+**Logged:** 2026-04-23  
+**Relates to:** OI-002
+
+OI-002 was opened on 2026-04-22 with the description: "3 NEEDS_REVIEW records with `resolved_address IS NOT NULL` — not promoted to WAITING_FOR_NOTICE_UPLOAD."
+
+DB verification on 2026-04-23 (`SELECT * FROM pre_registrations WHERE resolved_address IS NOT NULL`) returned 0 rows across all 68 non-test records. The original 3 records described in OI-002 no longer exist in that state.
+
+**Conclusion:** The original 3 records were either:
+1. Promoted during the April 22 batch normalization run (most likely), or
+2. Never persisted `resolved_address` due to the same `.catch()` bug documented in FIX-008 — meaning they were in the broken window and geocoder results were computed but never written to DB.
+
+OI-002 has been reframed in OPEN-ISSUES.md to reflect the actual current DB state: 6 NEEDS_REVIEW records created during the FIX-008 broken window, all with `resolved_address = NULL`, all awaiting customer address replies.
