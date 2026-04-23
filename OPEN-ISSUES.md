@@ -161,4 +161,66 @@ Prior query used implicit `.limit(50)` default. Actual DB count confirmed as 76 
 | OI-005 | 🟠 LOW-MED | 5 duplicate hardcoded templates in server.js | Phase 3 cleanup |
 | OI-006 | 🟠 LOW-MED | 4 templates not using wrapEmail() | Phase 3 cleanup |
 | OI-007 | 🟠 LOW | runFollowUpSequence old status exclusion list | Minor code fix |
+| OI-010 | 🔴 HIGH | Orchestrator new-build comp bug (Rentcast AVM sale-price → \$0 savings) | Refactor orchAnalyzeLead |
+| OI-011 | 🔴 HIGH | CCAD 403 + FBCAD AJAX parser broken → 23 cases on synthetic data | Fix BIS scraper / switch to Rentcast |
 | OI-008 | 🟠 LOW | Filing packages not in documents table | Decision needed |
+| OI-010 | 🔴 HIGH | Orchestrator new-build comp bug (zero savings on Rentcast AVM sale-price calc) | Refactor `orchAnalyzeLead` to use stored property_data or assessed-value comps |
+| OI-011 | 🔴 HIGH | County scrapers fall back to synthetic comps for CCAD (Collin) + FBCAD (Fort Bend) | Fix CCAD 403 bot-block + FBCAD AJAX-rendered results parser |
+
+---
+
+## OI-010 — Orchestrator new-build comp bug: Rentcast AVM sale-price calc produces \$0 savings
+**Priority:** 🔴 HIGH  
+**Opened:** 2026-04-23
+
+**Problem:** `orchAnalyzeLead()` (server.js:10376 onward, active after `ec795b6` freeze lift) calls Rentcast AVM fresh for comps and computes savings using **sale prices** of comps: `savings = (assessed - avg(compSalePrice)) * taxRate`. For new-construction properties where recent sale prices exceed the county-assessed value, this always produces `savings ≤ 0` and stages the case as `No Case`.
+
+**Evidence (2026-04-23):**
+- **OA-0010** (Khiem Nguyen, 3315 Marlene Meadow Way, Fort Bend): assessed \$648,786. Orch pulled Rentcast comps at \$574K – \$775K sale prices → `savings: 0, stage: No Case`. Real assessed-value comps (median \$608,011) → \$938/yr savings at 2.3% tax rate.
+- **OA-0013** (Shabir Rupani, 708 Santa Lucia Dr, Collin): assessed \$399,042. Orch pulled Rentcast comps at \$334K–\$367K sale prices → \$572/yr savings. Real assessed-value comps (median \$354,916) → \$971/yr.
+
+**Root cause:** Property-tax protests are decided on **assessed value** comparisons, not sale price. Using sale prices:
+1. Produces wrong results for new construction (sale > assessed)
+2. Ignores already-fetched real `property_data` stored in `submissions.property_data`
+3. Doesn't call the proper `findComparables`/E&U engine in `services/comp-engine.js`
+
+**To close:**
+1. Refactor `orchAnalyzeLead` to either:
+   - (a) Call `runFullAnalysis(caseId)` (the real pipeline), or
+   - (b) Use `services/comp-engine.js findComparables` directly with stored `property_data`
+2. Remove the Rentcast-AVM-only path or restrict to cases where assessed data is unavailable
+3. Add guard: if orch savings differ from `findComparables` result by >20%, flag for manual review
+4. Log in FIX-LOG.md
+
+---
+
+## OI-011 — County scrapers broken: CCAD 403 bot-block, FBCAD AJAX-rendered parser stale
+**Priority:** 🔴 HIGH  
+**Opened:** 2026-04-23
+
+**Problem:** `services/property-data.js` BIS adapter (used for Collin + Fort Bend + Williamson + Montgomery + Hunt + Kaufman) no longer returns real property/comp data:
+- **CCAD (collincad.org + esearch.collincad.org):** Returns `HTTP 403` on all scraper requests. Blocks multiple user-agents, multiple endpoints. Confirmed 2026-04-23 across `/Search/Result`, `/propertysearch`, `/Search/SearchResults`. Bot detection active.
+- **FBCAD (esearch.fbcad.org):** Returns `HTTP 200` but table body is empty — results are fetched client-side via AJAX after page load. Current scraper parses server-rendered HTML (`$('table tbody tr')`) which is empty. Working JSON endpoint exists at `/Search/SearchResults` (not currently used).
+
+**Impact:** Every Collin County and Fort Bend case falls back to:
+1. `property_data.source = 'intake-fallback'` with synthetic \$300K assessed value
+2. `comp-engine.js` line 213 triggers `generateSyntheticComps(subject, 15)` with fake neighborhood values
+3. Resulting evidence packets are built on entirely fabricated comparables
+
+**Confirmed affected cases (2026-04-23 audit):** 23 cases have synthetic or unverified comps. Full list in activity_log under `synthetic_comps_blocked`.
+
+**Immediate mitigation (already deployed 2026-04-23):**
+- `ALLOW_SYNTHETIC = false` in `services/comp-engine.js` — synthetic fallback now throws `DATA_UNAVAILABLE` instead of generating fake comps
+- `ApprovalGate` Gate 7 added — rejects any case with `comp_source !== 'real'`
+- `generateEvidencePacket()` throws `SYNTHETIC_COMPS_BLOCK` error if synthetic comps are passed
+
+**To close:**
+1. **CCAD:** Find alternate Collin data source. Options:
+   - (a) Switch to Rentcast `/v1/properties` tax-assessment endpoint (proven working for OA-0013/OA-0010 2025 data)
+   - (b) Use CCAD bulk data download/FTP if available
+   - (c) Implement residential proxy rotation (last resort)
+2. **FBCAD:** Refactor BIS adapter to call `/Search/SearchResults?searchtext=...` JSON endpoint instead of scraping `/Search/Result` HTML. Map `propertyId` → detail page.
+3. **Comp fetching:** Same scrapers feed `comp-engine.js` — need parallel fix for comp lookup (currently returns 0 real comps for both counties)
+4. Log in FIX-LOG.md
+
+**Dependencies:** Rentcast API quota check before making it the primary Collin source.

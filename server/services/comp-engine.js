@@ -31,6 +31,8 @@ const MIN_COMPS_FOR_EU = 5;       // Minimum for E&U to run
 const MAX_EVIDENCE_COMPS = 5;     // Market value comps in evidence
 const MAX_EU_EVIDENCE_COMPS = 20; // E&U comps in evidence
 const SYNTHETIC_FILL_TARGET = 15; // Generate enough synthetics to reach this
+const ALLOW_SYNTHETIC = false;  // ⛔ HARD BLOCK: synthetic comps disabled 2026-04-23 (Tyler directive)
+                                 // Set true ONLY for local dev/testing; never in production
 const V2_COMP_FILTERS = {
     sqftRange: 0.15,    // ±15% sqft
     bedRange: 1,        // ±1 bedroom
@@ -210,6 +212,24 @@ async function findComparables(subject, caseData) {
     if (!usedRealData) {
         const syntheticTarget = Math.max(0, SYNTHETIC_FILL_TARGET - rawComps.length);
         if (syntheticTarget > 0) {
+            if (!ALLOW_SYNTHETIC) {
+                // ⛔ SYNTHETIC COMPS BLOCKED — ALLOW_SYNTHETIC=false (Tyler directive 2026-04-23)
+                console.warn(`[CompEngine] ⛔ SYNTHETIC BLOCKED — ${rawComps.length} real comps found for ${subject.address || '?'} — returning DATA_UNAVAILABLE`);
+                return {
+                    comps: [],
+                    totalCompsFound: 0,
+                    comps_generated: false,
+                    comp_engine_fallback: false,
+                    data_blocked: true,
+                    data_issue: 'SYNTHETIC_COMPS_BLOCK',
+                    data_source: 'no_real_comps',
+                    block_reason: `0 real comps scraped from county — synthetic fallback disabled`,
+                    recommendedValue: null,
+                    estimatedSavings: 0,
+                    verificationTag: 'DATA_UNAVAILABLE',
+                    analyzedAt: new Date().toISOString()
+                };
+            }
             console.log(`[CompEngine] Generating ${syntheticTarget} synthetic comps (${rawComps.length} scraped)`);
             rawComps = rawComps.concat(generateSyntheticComps(subject, syntheticTarget));
         }
@@ -576,7 +596,17 @@ async function findComparables(subject, caseData) {
         } : null,
 
         // Legacy ratio E&U (kept for backward compat)
-        euAnalysis: euAnalysisLegacy
+        euAnalysis: euAnalysisLegacy,
+
+        // ⛔ Synthetic comp metadata — used by approval gate, evidence generator, and filing checks
+        comps_generated: hasSyntheticComps,
+        comp_engine_fallback: hasSyntheticComps,
+        has_real_comps: hasRealComps,
+        comp_source: hasRealComps ? 'real' : (hasSyntheticComps ? 'synthetic' : 'none'),
+        data_sources: [
+            { source: usedRealData ? 'cad-scrape' : (hasRealComps ? 'real' : 'none'), comps_found: bestComps.filter(c => !c._synthetic).length },
+            ...(hasSyntheticComps ? [{ source: 'synthetic', comps_found: bestComps.filter(c => c._synthetic).length }] : [])
+        ]
     };
 
     if (needsManualReview) {

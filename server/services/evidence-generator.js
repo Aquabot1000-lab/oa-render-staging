@@ -26,6 +26,21 @@ const WHITE = '#ffffff';
  * Generate a professional one-page evidence packet PDF.
  */
 async function generateEvidencePacket(caseData, propertyData, compResults) {
+    // ⛔ HARD BLOCK: Reject synthetic comps — Tyler directive 2026-04-23
+    if (compResults) {
+        const isSynthetic = compResults.comp_source === 'synthetic'
+            || compResults.comps_generated === true
+            || compResults.comp_engine_fallback === true
+            || compResults.data_blocked === true
+            || (compResults.comps && compResults.comps.length > 0
+                && compResults.comps.every(c => c._synthetic || c.source === 'synthetic-estimate' || c.source === 'synthetic'));
+        if (isSynthetic) {
+            const msg = `[EvidenceGenerator] ⛔ BLOCKED — synthetic comps detected for ${caseData.caseId || '?'} (comp_source: ${compResults.comp_source || 'unknown'}). Real county comp data required.`;
+            console.error(msg);
+            throw new Error(`SYNTHETIC_COMPS_BLOCK: Evidence packet generation requires real comparable sales data. Case ${caseData.caseId || '?'} has synthetic comps — run real county scrape first.`);
+        }
+    }
+
     await fs.promises.mkdir(EVIDENCE_DIR, { recursive: true });
 
     const filename = `${(caseData.caseId || 'case').replace(/[^a-zA-Z0-9-]/g, '')}-Evidence-Packet.pdf`;

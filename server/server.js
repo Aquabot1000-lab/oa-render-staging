@@ -1809,7 +1809,20 @@ async function runApprovalGate() {
             const hasMissingFields = Array.isArray(mf) ? mf.length > 0 : !!mf;
             if (hasMissingFields) { skipped++; continue; }
 
-            // All six gates passed — promote to PENDING_TYLER_APPROVAL
+            // ── GATE CONDITION 7: Real comps required — no synthetic ──
+            // ⛔ HARD BLOCK: synthetic comps never pass to approval (Tyler directive 2026-04-23)
+            const compSource = compData && compData.comp_source;
+            const hasSyntheticFlag = compData && (compData.comps_generated === true || compData.comp_engine_fallback === true);
+            const allCompsReal = compData && compData.comps && compData.comps.length > 0
+                ? compData.comps.every(c => !c._synthetic && c.source !== 'synthetic-estimate' && c.source !== 'synthetic')
+                : false;
+            const realCompsConfirmed = compSource === 'real' || (!hasSyntheticFlag && allCompsReal);
+            if (!realCompsConfirmed) {
+                console.log(`[ApprovalGate] ⛔ ${sub.caseId || sub.case_id} BLOCKED Gate 7 — synthetic comps detected (comp_source: ${compSource || 'unknown'}, synthetic_flag: ${hasSyntheticFlag})`);
+                skipped++; continue;
+            }
+
+            // All seven gates passed — promote to PENDING_TYLER_APPROVAL
             const now = new Date().toISOString();
             if (isSupabaseEnabled()) {
                 await supabaseAdmin.from('submissions').update({
