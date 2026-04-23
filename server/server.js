@@ -10447,6 +10447,7 @@ async function orchAnalyzeLead(payload) {
         console.error(`[ORCH:ANALYZE] findComparables error for ${lead.case_id}: ${compErr.message}`);
         await supabaseAdmin.from('submissions').update({
             analysis_status: 'DATA_BLOCKED',
+            estimated_savings: null,  // ⛔ clear stale savings — data blocked, no valid comps
             qa_status: 'failed',
             qa_run_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -10463,11 +10464,13 @@ async function orchAnalyzeLead(payload) {
         console.log(`[ORCH:ANALYZE] ${lead.case_id} — DATA_BLOCKED (${compResult.data_issue}). Not promoting.`);
         await supabaseAdmin.from('submissions').update({
             analysis_status: 'DATA_BLOCKED',
+            estimated_savings: null,  // ⛔ clear stale savings — blocked analysis must not show old savings
             comp_results: {
                 ...storedCR,
                 data_blocked: true,
                 data_issue: compResult.data_issue,
                 filing_ready: false,
+                savings_valid: false,  // explicit flag — savings field is stale/invalid
                 block_reason: compResult.block_reason || compResult.data_issue
             },
             qa_status: 'failed',
