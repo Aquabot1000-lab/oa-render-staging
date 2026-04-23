@@ -3315,6 +3315,89 @@ app.post('/api/agreements/sign', async (req, res) => {
             submissionId = newSub.id;
         }
 
+        // AUTO-CREATE CLIENT on agreement sign
+        // Rule: upsert by email (no duplicates). Link via email — submissions has no client_id column.
+        // Existing records are NOT affected (only runs in this sign flow).
+        try {
+            const normalizedEmail = (email || '').toLowerCase().trim();
+            // 1. Check if client already exists by email
+            const { data: existingClient } = await supabaseAdmin
+                .from('clients')
+                .select('id, email')
+                .eq('email', normalizedEmail)
+                .single();
+
+            let clientId;
+            if (existingClient) {
+                // Reuse existing — update phone/address if missing
+                clientId = existingClient.id;
+                await supabaseAdmin.from('clients').update({
+                    phone: phone || undefined,
+                    updated_at: new Date().toISOString()
+                }).eq('id', clientId);
+                console.log(`[Agreement] Client already exists for ${normalizedEmail} → ${clientId}`);
+            } else {
+                // 2. Parse address parts from the submitted address string
+                const addrParts = (address || '').split(',').map(s => s.trim());
+                const streetAddress = addrParts[0] || address;
+                const cityPart = addrParts[1] || null;
+                const stateZipMatch = (addrParts[2] || '').match(/([A-Za-z]{2})\s*(\d{5})?/);
+                const statePart = stateZipMatch ? stateZipMatch[1].toUpperCase() : null;
+                const zipPart = stateZipMatch ? stateZipMatch[2] || null : null;
+
+                // 3. Get county from matching submission
+                const { data: subForCounty } = await supabaseAdmin
+                    .from('submissions')
+                    .select('county')
+                    .eq('id', submissionId)
+                    .single();
+                const countyVal = subForCounty ? subForCounty.county : null;
+
+                const { data: newClient, error: clientErr } = await supabaseAdmin.from('clients').insert({
+                    name: name,
+                    email: normalizedEmail,
+                    phone: phone || null,
+                    address: streetAddress,
+                    city: cityPart,
+                    state: statePart,
+                    zip: zipPart,
+                    county: countyVal,
+                    lead_source: 'submission',
+                    lead_stage: 'signed',
+                    signed_at: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }).select('id').single();
+
+                if (clientErr) {
+                    console.error(`[Agreement] Client insert failed for ${normalizedEmail}:`, clientErr.message);
+                } else {
+                    clientId = newClient.id;
+                    console.log(`[Agreement] ✅ Client auto-created: ${name} (${normalizedEmail}) → ${clientId}`);
+                }
+            }
+
+            // 4. Log activity
+            if (clientId) {
+                try {
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: submissionId,
+                        actor: 'system',
+                        action: 'client_created_from_submission',
+                        details: {
+                            client_id: clientId,
+                            email: normalizedEmail,
+                            method: existingClient ? 'reused_existing' : 'created_new',
+                            submission_id: submissionId
+                        }
+                    });
+                } catch (logErr) { console.error('[Agreement] Activity log failed:', logErr.message); }
+            }
+        } catch (clientAutoErr) {
+            // Non-fatal — sign flow completes regardless
+            console.error('[Agreement] Client auto-create error (non-fatal):', clientAutoErr.message);
+        }
+
         // Create Stripe checkout session
         let checkout_url = null;
         try {
