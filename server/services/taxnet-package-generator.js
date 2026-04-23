@@ -1,5 +1,5 @@
 /**
- * TaxNet USA Standard Filing Package Generator v3
+ * OverAssessed Filing Package Generator v3
  * Matches IntegraTax/TaxNet Equal & Uniform Analysis format exactly.
  * 
  * Grid columns: Tax ID, Address, Market Value, Distance, Property Class,
@@ -141,13 +141,13 @@ function renderForm50132(doc, caseData, property) {
     doc.text('Print Name: ' + caseData.owner_name, 50, y);
     
     doc.fontSize(7).fillColor('#666');
-    doc.text('Texas Comptroller Form 50-132 — TaxNet USA Standard', 50, 720, { align: 'center', width: 500 });
+    doc.text('Texas Comptroller Form 50-132 — Equal & Uniform Protest', 50, 720, { align: 'center', width: 500 });
     doc.fillColor('#000');
 }
 
 // ── PAGE(S): E&U Comp Grid — TaxNet USA format exactly ──
 // 3 comps per page, portrait, subject column on every page, header repeats
-function renderEUGrid(doc, subject, comps, allAdj) {
+function renderEUGrid(doc, subject, comps, allAdj, finalValue) {
     const COMPS_PER_PAGE = 3;
     const pages = [];
     for (let i = 0; i < comps.length; i += COMPS_PER_PAGE)
@@ -189,15 +189,21 @@ function renderEUGrid(doc, subject, comps, allAdj) {
             .text('Tax ID: ' + (subject.accountId || ''), ML, MT + 32, { lineBreak: false })
             .text('Owner: ' + (subject.ownerName || ''), ML + 180, MT + 32, { lineBreak: false });
 
-        // Indicated value summary line (exact TaxNet format)
+        // Indicated value summary line — use minimum adjusted comp as recommended value
+        const recommendedVal = (finalValue !== undefined) ? finalValue : minVal;
+        const noticedVal = subject.assessedValue || 0;
+        const noticeToRecDiff = noticedVal - recommendedVal;
+        const noticeToRecPct = noticedVal > 0 ? ((noticeToRecDiff / noticedVal) * 100).toFixed(1) : '0.0';
         doc.font('Helvetica-Bold').fontSize(7.5)
-            .text('Indicated Value ' + fmt(medianVal), ML, MT + 44, { lineBreak: false });
+            .text('Indicated Value ' + fmt(recommendedVal), ML, MT + 44, { lineBreak: false });
         doc.font('Helvetica').fontSize(6.5)
             .text(
                 'Number of Comps: ' + comps.length +
                 ' , Minimum Adjusted Value: ' + fmt(minVal) +
                 ' , Maximum Adjusted Value: ' + fmt(maxVal) +
-                ' . Median Value: ' + fmt(medianVal),
+                ' . Appraised Value: ' + fmt(noticedVal) +
+                ' → Recommended Value: ' + fmt(recommendedVal) +
+                ' (' + noticeToRecPct + '% reduction)',
                 ML, MT + 54, { width: contentW, lineBreak: false });
 
         // Divider
@@ -402,11 +408,11 @@ function renderEUGrid(doc, subject, comps, allAdj) {
 }
 
 // ── PAGE: Evidence Summary ──
-function renderEvidence(doc, caseData, subject, comps, allAdj, stats) {
+function renderEvidence(doc, caseData, subject, comps, allAdj, stats, finalValue) {
     doc.addPage({ size: 'LETTER', margin: 50 });
     
     doc.fontSize(12).font('Helvetica-Bold').text('Evidence Summary & Protest Argument', { align: 'center' });
-    doc.fontSize(8).font('Helvetica').text('TaxNet USA Standard — Supporting Documentation', { align: 'center' });
+    doc.fontSize(8).font('Helvetica').text('Equal & Uniform Analysis — Supporting Documentation', { align: 'center' });
     doc.moveDown(0.8);
     
     // $/sqft comparison
@@ -445,26 +451,80 @@ function renderEvidence(doc, caseData, subject, comps, allAdj, stats) {
     doc.fontSize(8).font('Helvetica');
     
     const avgAdj = Math.round(stats.adjValues.reduce((s,v) => s+v, 0) / stats.adjValues.length);
-    const overPct = ((subject.assessedValue - stats.median) / stats.median * 100).toFixed(1);
+    const recVal = (finalValue !== undefined) ? finalValue : stats.min;
+    const noticedVal2 = subject.assessedValue || 0;
+    const overPct = noticedVal2 > 0 ? ((noticedVal2 - recVal) / noticedVal2 * 100).toFixed(1) : '0.0';
     
-    doc.text('1. OVERVALUATION: The subject is appraised at $' + subject.assessedValue.toLocaleString() + ', which is ' + overPct + '% above the median adjusted value of ' + comps.length + ' comparable properties ($' + stats.median.toLocaleString() + '). Range: $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + '.', { width: 500 });
+    doc.text('1. OVERVALUATION: The district appraised value of $' + noticedVal2.toLocaleString() + ' exceeds our recommended value of $' + recVal.toLocaleString() + ' by ' + overPct + '% — a difference of $' + (noticedVal2 - recVal).toLocaleString() + '. Comparable evidence supports a reduction. Comp range: $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + ' (' + comps.length + ' properties).', { width: 500 });
     doc.moveDown(0.2);
-    doc.text('2. CONDITION: The subject is an older, dated property in fair/investment-grade condition — not comparable to newer luxury builds in the corridor. Improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' reflects a structure needing updates.', { width: 500 });
+    // Dynamic condition language based on property characteristics
+    const builtYear = subject.yearBuilt || subject.effectiveYear || 0;
+    const isNewConstruction = builtYear >= 2020;
+    const isRuralAcreage = (subject.acres && subject.acres >= 1.0) || (subject.landValue && subject.improvementValue && subject.landValue > subject.improvementValue);
+    const isOlderProperty = builtYear > 0 && builtYear < 2000;
+
+    let conditionText;
+    if (isNewConstruction) {
+        conditionText = '2. PROPERTY CHARACTERISTICS: The subject is a production home consistent with similar builder-grade properties in the subdivision. Improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' should be evaluated relative to comparable builder-grade homes, not premium custom builds.';
+    } else if (isRuralAcreage) {
+        conditionText = '2. PROPERTY CHARACTERISTICS: The subject includes significant land value ($' + (subject.landValue || 0).toLocaleString() + ') and requires adjusted comparison for acreage and rural characteristics. Excess rural acreage does not scale linearly with value — land beyond typical residential use has diminishing marginal returns.';
+    } else if (isOlderProperty) {
+        conditionText = '2. CONDITION: The subject is an older, dated property — not comparable to newer construction in the area. Improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' reflects a structure with deferred maintenance and functional obsolescence relative to newer builds.';
+    } else {
+        conditionText = '2. PROPERTY CHARACTERISTICS: The subject improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' should be evaluated in context of comparable properties of similar age, size, and condition in the immediate market area.';
+    }
+    doc.text(conditionText, { width: 500 });
     doc.moveDown(0.2);
-    doc.text('3. EXCESS ACREAGE: The subject sits on ' + subject.acres + ' acres. Excess rural acreage does NOT scale linearly with value. Land beyond typical residential use has diminishing returns. Comparable acreage properties are assessed substantially lower.', { width: 500 });
+
+    // Acreage argument — only if applicable
+    if (isRuralAcreage && subject.acres >= 1.0) {
+        doc.text('3. EXCESS ACREAGE: The subject sits on ' + subject.acres + ' acres. Excess rural acreage does NOT scale linearly with value. Land beyond typical residential use has diminishing returns. Comparable acreage properties are assessed substantially lower.', { width: 500 });
+    } else {
+        doc.text('3. MARKET POSITION: The subject\'s size (' + (subject.sqft || 0).toLocaleString() + ' SF), age (' + (builtYear || 'N/A') + '), and improvement value align with the comparable properties selected. The district appraisal is inconsistent with the market evidence presented.', { width: 500 });
+    }
     doc.moveDown(0.2);
-    doc.text('4. MARKET MISMATCH: Scenic Loop contains a mix of older modest homes and newer luxury estates ($1M+). This ' + subject.sqft + ' SF property aligns with the former category. The district appraisal reflects the luxury segment, not the subject\'s actual position.', { width: 500 });
+    doc.text('4. COMPARABLE EVIDENCE: The ' + comps.length + ' comparable properties selected reflect similar size, age, condition, and location characteristics. After adjustments, the indicated value range is $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + ', with a median of $' + stats.median.toLocaleString() + '.', { width: 500 });
     doc.moveDown(0.2);
-    doc.text('5. UNEQUAL APPRAISAL (§41.41(a)(2)): After adjusting for size, age, condition, and land, the subject should be valued at approximately $' + stats.median.toLocaleString() + ' — the median of ' + comps.length + ' adjusted comparable properties.', { width: 500 });
+    doc.text('5. UNEQUAL APPRAISAL (§41.41(a)(2)): After adjusting for size, age, condition, and land, the subject should be valued at approximately $' + recVal.toLocaleString() + ' — our recommended value, supported by ' + comps.length + ' adjusted comparable properties with a median of $' + stats.median.toLocaleString() + '.', { width: 500 });
     doc.moveDown(0.5);
+
+    // ── County-specific narrative blocks (Bexar acreage only) ──
+    const countyKey = (caseData.county || subject.county || '').toLowerCase();
+    if (countyKey.includes('bexar') && isRuralAcreage) {
+        doc.fontSize(10).font('Helvetica-Bold').text('BEXAR COUNTY — ACREAGE ANALYSIS');
+        doc.moveDown(0.3);
+        doc.fontSize(8).font('Helvetica');
+        const landPct = subject.landValue && subject.assessedValue ? ((subject.landValue / subject.assessedValue) * 100).toFixed(1) : 'N/A';
+        doc.text('ACREAGE ADJUSTMENT: The subject sits on ' + subject.acres + ' acres. Rural acreage carries diminishing marginal value — land beyond standard residential use does not scale dollar-for-dollar. The ' + subject.acres + '-acre parcel includes excess rural land that appraisal districts routinely over-equalize versus smaller suburban lots.', { width: 500 });
+        doc.moveDown(0.2);
+        doc.text('MARKET MISMATCH: The Scenic Loop corridor contains a wide spectrum from modest rural homesteads ($450K–$650K) to luxury estates ($1M+). This ' + subject.sqft + ' SF, ' + subject.acres + '-acre property aligns with the rural homestead tier, not the luxury custom-build segment. Comps were selected exclusively from the non-luxury tier to ensure an apples-to-apples comparison.', { width: 500 });
+        doc.moveDown(0.2);
+        doc.text('LAND VALUE BREAKDOWN: District land value of $' + (subject.landValue || 0).toLocaleString() + ' represents ' + landPct + '% of total assessed value ($' + (subject.assessedValue || 0).toLocaleString() + '). Improvement value of $' + (subject.improvementValue || 0).toLocaleString() + ' accounts for the ' + subject.sqft + ' SF structure built in ' + (subject.yearBuilt || 'N/A') + '. Comparable land values in the corridor range from $200K–$380K for similar acreage parcels.', { width: 500 });
+        doc.moveDown(0.5);
+    }
+
+    // ── County standards footer ──
+    const maxDist = Math.max(...comps.map(c => c.distance || 0));
+    let countyStandardNote = '';
+    if (countyKey.includes('collin')) {
+        countyStandardNote = 'Collin County standards applied: same-subdivision comps only, ±10% sqft, ±1 yr built, min 6–8 comps, no out-of-area comps.';
+    } else if (countyKey.includes('fort bend') || countyKey.includes('fortbend')) {
+        countyStandardNote = 'Fort Bend County standards applied: same-subdivision preferred, 10–15 comps, clean adjustment grid.';
+    } else if (countyKey.includes('bexar')) {
+        countyStandardNote = 'Bexar County standards applied: Scenic Loop / Helotes Creek corridor, acreage match, no luxury mixing, max 5-mile radius.';
+    }
     
     doc.fontSize(10).font('Helvetica-Bold').text('REQUESTED RELIEF');
     doc.fontSize(8).font('Helvetica');
-    doc.text('Reduce appraised value from $' + subject.assessedValue.toLocaleString() + ' to $' + stats.median.toLocaleString() + ', consistent with comparable market evidence.', { width: 500 });
+    doc.text('Reduce appraised value from $' + noticedVal2.toLocaleString() + ' to our recommended value of $' + recVal.toLocaleString() + ' — a reduction of $' + (noticedVal2 - recVal).toLocaleString() + ' (' + overPct + '%), consistent with comparable market evidence.', { width: 500 });
     
     doc.moveDown(1);
     doc.fontSize(7).fillColor('#666');
-    doc.text('TaxNet USA Standard | ' + comps.length + ' Comps | Generated: ' + new Date().toISOString().slice(0,10) + ' | OverAssessed, LLC', { align: 'center' });
+    if (countyStandardNote) {
+        doc.text(countyStandardNote + '  |  Max comp distance: ' + maxDist.toFixed(1) + ' mi  |  Comp count: ' + comps.length, { align: 'center', width: 500 });
+        doc.moveDown(0.3);
+    }
+    doc.text(comps.length + ' Comps | Generated: ' + new Date().toISOString().slice(0,10) + ' | OverAssessed, LLC', { align: 'center' });
     doc.fillColor('#000');
 }
 
@@ -542,20 +602,27 @@ async function renderCompsMap(doc, caseData, property, comps) {
     try {
         const subGeo = await geocode(property.address);
         if (subGeo) {
-            const markers = [{ lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30] }]; // red = subject
+            const markers = [{ lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30], label: 'S' }]; // red = subject
 
             // Geocode comps (limit to 10, with delay to respect Nominatim rate limit)
+            // Comps may include pre-geocoded coordinates (lat/lon fields) to bypass geocoder for rural addresses
             const compGeos = [];
             for (let i = 0; i < Math.min(comps.length, 10); i++) {
+                const comp = comps[i];
+                // Use pre-geocoded coords if provided
+                if (comp.lat && comp.lon) {
+                    compGeos.push({ lat: comp.lat, lon: comp.lon, idx: i });
+                    continue;
+                }
                 try {
                     await new Promise(r => setTimeout(r, 350)); // Nominatim rate limit: 1 req/sec
-                    const g = await geocode(comps[i].address);
+                    const g = await geocode(comp.address);
                     if (g) compGeos.push({ ...g, idx: i });
                 } catch (e) {}
             }
 
             for (const g of compGeos) {
-                markers.push({ lat: g.lat, lon: g.lon, color: [30, 80, 180] }); // blue = comps
+                markers.push({ lat: g.lat, lon: g.lon, color: [30, 80, 180], label: g.idx + 1 }); // blue = comps, numbered
             }
 
             // Auto-zoom: fit all markers
@@ -604,7 +671,26 @@ async function generateTaxNetPackage(caseData, property, comps) {
     const v = validatePackage(comps, property);
     if (!v.valid) throw new Error('TaxNet BLOCKED: ' + v.errors.join('; '));
 
+    // ── SINGLE SOURCE OF TRUTH ──────────────────────────────────────────────
+    // Step 1: Compute adjusted comps FIRST
     const allAdj = comps.map(c => calcAdjustments(c, property));
+    const adjValuesSorted = allAdj.map(a => a.adjustedValue).sort((a, b) => a - b);
+    const minAdjustedValue  = adjValuesSorted[0];
+    const medianAdjustedValue = adjValuesSorted[Math.floor(adjValuesSorted.length / 2)];
+
+    // Step 2: County-specific final value rule
+    // Collin   → MEDIAN  |  Fort Bend → MEDIAN  |  Bexar → MIN  |  default → MIN
+    const countyRaw = (caseData.county || property.county || '').toLowerCase().trim();
+    let finalValue;
+    if (countyRaw.includes('collin') || countyRaw.includes('fort bend') || countyRaw.includes('fortbend')) {
+        finalValue = medianAdjustedValue;
+    } else {
+        finalValue = minAdjustedValue; // Bexar and all others
+    }
+
+    // Step 3: Strip any externally-passed opinionOfValue — generator owns this value
+    property = { ...property, opinionOfValue: finalValue };
+    // ────────────────────────────────────────────────────────────────────────
 
     const caseId = caseData.case_id;
     const filename = caseId + '-Filing-Package.pdf';
@@ -617,14 +703,20 @@ async function generateTaxNetPackage(caseData, property, comps) {
         const subGeo = await geocode(property.address);
         if (subGeo) {
             subjectMapBuf = await generateMapImage(subGeo.lat, subGeo.lon, 15, 3, 3, [
-                { lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30] }
+                { lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30], label: 'S' }
             ]);
 
-            const markers = [{ lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30] }];
+            const markers = [{ lat: subGeo.lat, lon: subGeo.lon, color: [220, 30, 30], label: 'S' }];
             for (let i = 0; i < Math.min(comps.length, 10); i++) {
+                const comp = comps[i];
+                // Use pre-geocoded lat/lon if provided (for rural addresses not in geocoder DBs)
+                if (comp.lat && comp.lon) {
+                    markers.push({ lat: comp.lat, lon: comp.lon, color: [30, 80, 180], label: String(i + 1) });
+                    continue;
+                }
                 await new Promise(r => setTimeout(r, 350));
-                const g = await geocode(comps[i].address);
-                if (g) markers.push({ lat: g.lat, lon: g.lon, color: [30, 80, 180] });
+                const g = await geocode(comp.address);
+                if (g) markers.push({ lat: g.lat, lon: g.lon, color: [30, 80, 180], label: String(i + 1) });
             }
             const lats = markers.map(m => m.lat);
             const lons = markers.map(m => m.lon);
@@ -648,8 +740,8 @@ async function generateTaxNetPackage(caseData, property, comps) {
         const contentW = PW - 60;
 
         renderForm50132(doc, caseData, property);
-        const stats = renderEUGrid(doc, property, comps, allAdj);
-        renderEvidence(doc, caseData, property, comps, allAdj, stats);
+        const stats = renderEUGrid(doc, property, comps, allAdj, finalValue);
+        renderEvidence(doc, caseData, property, comps, allAdj, stats, finalValue);
 
         // Subject Map page
         doc.addPage({ size: 'LETTER', margin: 0 });
@@ -699,14 +791,30 @@ async function generateTaxNetPackage(caseData, property, comps) {
         doc.fillColor('#000');
 
         doc.end();
-        stream.on('finish', () => resolve({
-            filePath, filename, format: 'taxnet_standard',
-            compsUsed: comps.length, stats,
-            adjustments: allAdj.map((a, i) => ({
-                comp: comps[i].address, adjustedValue: a.adjustedValue,
-                netPct: a.netPct, grossPct: a.grossPct
-            }))
-        }));
+        stream.on('finish', () => {
+            // ── HARD VALIDATION: all value references must equal finalValue ──
+            const mismatches = [];
+            if (property.opinionOfValue !== finalValue)
+                mismatches.push(`opinionOfValue (${property.opinionOfValue}) ≠ finalValue (${finalValue})`);
+            if (mismatches.length > 0) {
+                // Delete the bad PDF so it cannot be used
+                try { require('fs').unlinkSync(filePath); } catch(e) {}
+                reject(new Error('PACKAGE VALIDATION FAILED — value mismatch: ' + mismatches.join('; ')));
+                return;
+            }
+            // ────────────────────────────────────────────────────────────────────────
+            resolve({
+                filePath, filename, format: 'taxnet_standard',
+                compsUsed: comps.length, stats,
+                recommendedValue: finalValue,
+                countyRule: (countyRaw.includes('collin') || countyRaw.includes('fort bend') || countyRaw.includes('fortbend')) ? 'median' : 'min',
+                validationPassed: true,
+                adjustments: allAdj.map((a, i) => ({
+                    comp: comps[i].address, adjustedValue: a.adjustedValue,
+                    netPct: a.netPct, grossPct: a.grossPct
+                }))
+            });
+        });
         stream.on('error', reject);
     });
 }

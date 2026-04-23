@@ -115,6 +115,40 @@ function drawPin(png, cx, cy, r, g, b) {
     drawCircle(png, cx, cy - 8, 4, 255, 255, 255);
 }
 
+// Minimal 3x5 pixel bitmap font for digits 0-9
+const DIGIT_BITMAPS = {
+  '0': [0b111,0b101,0b101,0b101,0b111],
+  '1': [0b010,0b110,0b010,0b010,0b111],
+  '2': [0b111,0b001,0b111,0b100,0b111],
+  '3': [0b111,0b001,0b111,0b001,0b111],
+  '4': [0b101,0b101,0b111,0b001,0b001],
+  '5': [0b111,0b100,0b111,0b001,0b111],
+  '6': [0b111,0b100,0b111,0b101,0b111],
+  '7': [0b111,0b001,0b011,0b010,0b010],
+  '8': [0b111,0b101,0b111,0b101,0b111],
+  '9': [0b111,0b101,0b111,0b001,0b111],
+};
+
+function drawDigits(png, x, y, text, r, g, b) {
+    let cx = x;
+    for (const ch of text) {
+        const bm = DIGIT_BITMAPS[ch];
+        if (!bm) { cx += 4; continue; }
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 3; col++) {
+                if (bm[row] & (0b100 >> col)) {
+                    const px = cx + col, py = y + row;
+                    if (px >= 0 && px < png.width && py >= 0 && py < png.height) {
+                        const idx = (py * png.width + px) * 4;
+                        png.data[idx] = r; png.data[idx+1] = g; png.data[idx+2] = b; png.data[idx+3] = 255;
+                    }
+                }
+            }
+        }
+        cx += 4;
+    }
+}
+
 /**
  * Generate a stitched map PNG buffer.
  * @param {number} centerLat
@@ -167,11 +201,40 @@ async function generateMapImage(centerLat, centerLon, zoom, tilesWide, tilesHigh
         }
     }
 
-    // Draw markers
+    // Draw markers — dedup stacked markers with pixel offset, draw numbered labels
+    const usedPixels = {};
     for (const m of markers) {
-        const { px, py } = latLonToPixel(m.lat, m.lon, zoom, originX, originY);
+        let { px, py } = latLonToPixel(m.lat, m.lon, zoom, originX, originY);
+        // Offset stacked markers (within 12px)
+        const baseKey = `${Math.round(px / 12)},${Math.round(py / 12)}`;
+        if (!usedPixels[baseKey]) usedPixels[baseKey] = 0;
+        const offset = usedPixels[baseKey];
+        usedPixels[baseKey]++;
+        if (offset > 0) {
+            // Spiral offset: 0=none, 1=right, 2=down, 3=left, 4=up, 5=right+down...
+            const offsets = [[0,0],[14,0],[0,14],[-14,0],[0,-14],[14,14],[-14,14],[14,-14],[-14,-14],[20,0]];
+            const o = offsets[Math.min(offset, offsets.length - 1)];
+            px += o[0]; py += o[1];
+        }
         const [r, g, b] = m.color || [220, 50, 50];
         drawPin(out, px, py, r, g, b);
+        // Draw number label if provided
+        if (m.label) {
+            // Simple white background box then dark text (pixel font approximation)
+            const lx = px + 7, ly = py - 22;
+            // White bg
+            for (let dy = -2; dy <= 8; dy++) {
+                for (let dx = -1; dx <= 7; dx++) {
+                    const ppx = lx + dx, ppy = ly + dy;
+                    if (ppx >= 0 && ppx < out.width && ppy >= 0 && ppy < out.height) {
+                        const idx = (ppy * out.width + ppx) * 4;
+                        out.data[idx] = 255; out.data[idx+1] = 255; out.data[idx+2] = 255; out.data[idx+3] = 220;
+                    }
+                }
+            }
+            // Draw digits using a minimal 3x5 bitmap font
+            drawDigits(out, lx, ly, String(m.label), r, g, b);
+        }
     }
 
     // Encode to PNG buffer
@@ -182,20 +245,33 @@ async function generateMapImage(centerLat, centerLon, zoom, tilesWide, tilesHigh
 }
 
 /**
- * Geocode an address using Nominatim (OSM, free)
+ * Geocode an address — tries Nominatim first, falls back to US Census Bureau geocoder.
  */
 async function geocode(address) {
+    // 1. Try Nominatim
     try {
         const r = await axios.get('https://nominatim.openstreetmap.org/search', {
-            params: { q: address, format: 'json', limit: 1 },
+            params: { q: address, format: 'json', limit: 1, countrycodes: 'us' },
             headers: { 'User-Agent': USER_AGENT },
             timeout: 8000
         });
-        if (!r.data || !r.data[0]) return null;
-        return { lat: parseFloat(r.data[0].lat), lon: parseFloat(r.data[0].lon) };
-    } catch (e) {
-        return null;
-    }
+        if (r.data && r.data[0]) {
+            return { lat: parseFloat(r.data[0].lat), lon: parseFloat(r.data[0].lon) };
+        }
+    } catch (e) { /* fall through */ }
+
+    // 2. Fallback: US Census Bureau Geocoder (no API key, handles TX parcel addresses well)
+    try {
+        const encoded = encodeURIComponent(address);
+        const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encoded}&benchmark=Public_AR_Current&format=json`;
+        const r = await axios.get(url, { timeout: 10000 });
+        const match = r.data?.result?.addressMatches?.[0]?.coordinates;
+        if (match) {
+            return { lat: parseFloat(match.y), lon: parseFloat(match.x) };
+        }
+    } catch (e) { /* fall through */ }
+
+    return null;
 }
 
 module.exports = { generateMapImage, geocode, latLonToTile, latLonToPixel };

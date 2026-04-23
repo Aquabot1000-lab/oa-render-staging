@@ -4334,83 +4334,101 @@ app.post('/api/pre-register', async (req, res) => {
         const { data, error } = await supabaseAdmin.from('pre_registrations').insert(insertData).select().single();
         if (error) throw error;
 
-        // === INCOMPLETE ADDRESS HANDLING ===
+        // === INCOMPLETE ADDRESS HANDLING (v2 — geocode-first, single confirmation template) ===
         const isIncompletePreReg = insertData.status === 'NEEDS_REVIEW' && parsed.flagged;
         if (isIncompletePreReg) {
-            const missingParts = [];
-            if (!parsed.state) missingParts.push('state');
-            if (!(property_address || '').match(/,\s*[A-Za-z]/)) missingParts.push('city');
-            if (!/(\d{5})/.test(property_address || '')) missingParts.push('zip');
-            const missingStr = missingParts.length > 0 ? missingParts.join(', ') : 'city, state, or zip';
-
-            // 1. Create task linked to pre_reg id
+            // 1. Create task
             try {
                 await supabaseAdmin.from('tasks').insert({
-                    case_id: data.id,
-                    type: 'data_fix',
-                    title: 'Fix incomplete lead data',
-                    description: `Pre-reg lead missing: ${missingStr}. Address: "${property_address}". Contact ${name} to get complete address.`,
-                    assigned_to: 'intake_agent',
-                    status: 'pending',
-                    priority: 'high',
-                    auto_generated: true,
-                    due_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+                    case_id: data.id, type: 'data_fix', title: 'Fix incomplete lead data',
+                    description: `Pre-reg address unresolved: "${property_address}". Contact ${name}.`,
+                    assigned_to: 'intake_agent', status: 'pending', priority: 'high',
+                    auto_generated: true, due_date: new Date(Date.now() + 4*3600*1000).toISOString()
                 });
                 console.log(`[Pre-Reg] ✅ Incomplete address task created for pre-reg ${data.id}`);
-            } catch (taskErr) {
-                console.error('[Pre-Reg] Task creation failed (non-blocking):', taskErr.message);
+            } catch (taskErr) { console.error('[Pre-Reg] Task creation failed:', taskErr.message); }
+
+            // 2. Attempt Census geocoder resolution BEFORE sending any email
+            let geocodeMatches = [];
+            try {
+                const gcQuery = encodeURIComponent((property_address || '') + (parsed.state ? '' : ' TX'));
+                const gcRes = await fetch(`https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${gcQuery}&benchmark=Public_AR_Current&format=json`);
+                const gcJson = await gcRes.json();
+                geocodeMatches = gcJson?.result?.addressMatches || [];
+            } catch (gcErr) { console.error('[Pre-Reg] Geocode failed:', gcErr.message); }
+
+            const highConfidence = geocodeMatches.length === 1;
+            const suggestedAddress = highConfidence ? geocodeMatches[0].matchedAddress : null;
+
+            // 3. High-confidence single match → update record, advance status
+            if (highConfidence) {
+                const comp = geocodeMatches[0].addressComponents;
+                await supabaseAdmin.from('pre_registrations').update({
+                    resolved_address: suggestedAddress,
+                    resolved_zip: comp.zip,
+                    state: comp.state || 'TX',
+                    status: 'WAITING_FOR_NOTICE_UPLOAD'
+                }).eq('id', data.id).catch(() => {});
+                console.log(`[Pre-Reg] ✅ Auto-resolved address for ${data.id}: ${suggestedAddress}`);
             }
 
-            // 2. Send SMS if phone available
+            // 4. Send address confirmation email (once only — address_fix_requested guard)
+            if (data.address_fix_requested) {
+                console.log(`[Pre-Reg] ⛔ address_fix_requested=true for ${data.id} — skipping outreach`);
+            } else if (process.env.SENDGRID_API_KEY) {
+                try {
+                    const firstName = (name || 'there').split(' ')[0];
+                    let confirmHtml, confirmSubject;
+                    if (highConfidence) {
+                        confirmSubject = 'We found your property — please confirm';
+                        confirmHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                            <p>Hi ${firstName},</p>
+                            <p>Thanks for registering with OverAssessed. Based on the address you provided, we found:</p>
+                            <p style="background:#f0f9ff;border-left:4px solid #0284c7;padding:12px 16px;font-size:16px;font-weight:bold;">${suggestedAddress}</p>
+                            <p>Is this your property? Just reply <strong>YES</strong> to confirm, or reply with the correct address if this isn't right.</p>
+                            <p>Once confirmed, we'll start your savings analysis right away.</p>
+                            <p>— Tyler Worthey<br>OverAssessed</p>
+                        </div>`;
+                    } else {
+                        const candidateLines = geocodeMatches.slice(0, 3).map(m =>
+                            `<li style="margin:6px 0;">${m.matchedAddress}</li>`).join('');
+                        const candidateBlock = candidateLines
+                            ? `<p>We found a few possible matches:</p><ul>${candidateLines}</ul><p>Reply with the correct one, or your full address if none match.</p>`
+                            : `<p>Please reply with your complete address including <strong>street, city, state, and zip</strong> and we'll pick up right where we left off.</p>`;
+                        confirmSubject = 'Quick question about your property address';
+                        confirmHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                            <p>Hi ${firstName},</p>
+                            <p>Thanks for registering — we want to make sure we're analyzing the right property for you.</p>
+                            <p><strong>Address we received:</strong> ${property_address}</p>
+                            ${candidateBlock}
+                            <p>— Tyler Worthey<br>OverAssessed</p>
+                        </div>`;
+                    }
+                    await sgMail.send({
+                        to: email,
+                        bcc: [{ email: 'tyler@overassessed.ai' }],
+                        from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                        replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                        subject: confirmSubject, html: confirmHtml
+                    });
+                    console.log(`[Pre-Reg] ✅ Address confirmation email sent to ${email} (highConfidence=${highConfidence})`);
+                    await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id).catch(() => {});
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
+                        details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'v2_confirmation' }
+                    }).catch(() => {});
+                } catch (emailErr) { console.error('[Pre-Reg] Address confirmation email failed:', emailErr.message); }
+            }
+
+            // 5. SMS if phone available
             if (phone) {
                 try {
-                    const smsMsg = `Hi ${name.split(' ')[0]}, we received your property tax submission but need a complete address (${missingStr}) to continue your savings analysis. Please reply with your full address including city, state, and zip.`;
-                    const smsResult = await sendClientSMS(phone, smsMsg, { email, customerName: name, context: 'incomplete_address' });
-                    console.log(`[Pre-Reg] ✅ Incomplete address SMS sent to ${phone}`, smsResult ? JSON.stringify(smsResult) : '');
-                    // Log to communications
-                    await supabaseAdmin.from('communications').insert({
-                        case_id: data.id,
-                        direction: 'outbound',
-                        channel: 'sms',
-                        recipient: phone,
-                        body: smsMsg,
-                        status: 'sent'
-                    }).catch(() => {});
-                } catch (smsErr) {
-                    console.error('[Pre-Reg] Incomplete SMS failed:', smsErr.message);
-                }
-            } else {
-                console.log(`[Pre-Reg] ⚠️ No phone for incomplete lead ${data.id} — SMS skipped`);
-            }
-
-            // 3. Send incomplete address email (override confirmation below)
-            try {
-                const firstName = name.split(' ')[0];
-                const incompleteHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                    <h2 style="color:#dc2626;">⚠️ Action Required: Complete Your Submission</h2>
-                    <p>Hi ${firstName},</p>
-                    <p>We received your property tax submission, but we need a complete address to continue your savings analysis.</p>
-                    <p><strong>Address received:</strong> ${property_address}</p>
-                    <p><strong>Missing information:</strong> ${missingStr}</p>
-                    <p>Please reply to this email with your complete property address including <strong>city, state, and zip code</strong>.</p>
-                    <p style="color:#dc2626;font-weight:bold;">We cannot run your analysis until we have a complete address.</p>
-                    <p>— Tyler Worthey<br>OverAssessed</p>
-                </div>`;
-                await sgMail.send({
-                    to: email,
-                    bcc: [{ email: 'tyler@overassessed.ai' }],
-                    from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
-                    replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
-                    subject: `Action Required: Complete Your Address — OverAssessed`,
-                    html: incompleteHtml
-                });
-                console.log(`[Pre-Reg] ✅ Incomplete address email sent to ${email}`);
-                await supabaseAdmin.from('activity_log').insert({
-                    case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
-                    details: { missing: missingParts, sms_sent: !!phone, email_sent: true, address: property_address }
-                }).catch(() => {});
-            } catch (emailErr) {
-                console.error('[Pre-Reg] Incomplete email failed:', emailErr.message);
+                    const smsMsg = highConfidence
+                        ? `Hi ${name.split(' ')[0]}, this is OverAssessed. We think your property is at ${suggestedAddress}. Reply YES to confirm or send your correct address.`
+                        : `Hi ${name.split(' ')[0]}, this is OverAssessed. We need to confirm your property address. Can you reply with your full address including city, state, and zip?`;
+                    await sendClientSMS(phone, smsMsg, { email, customerName: name, context: 'incomplete_address' });
+                    await supabaseAdmin.from('communications').insert({ case_id: data.id, direction: 'outbound', channel: 'sms', recipient: phone, body: smsMsg, status: 'sent' }).catch(() => {});
+                } catch (smsErr) { console.error('[Pre-Reg] SMS failed:', smsErr.message); }
             }
         } else {
         // Send confirmation email (complete leads only)
