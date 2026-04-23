@@ -1772,6 +1772,12 @@ async function runApprovalGate() {
             if (sub.source === 'stephen-benchmark') continue;
             if (sub.email && (sub.email.includes('benchmark@') || sub.email.includes('test@'))) continue;
 
+            // ⛔ Hard exclude: DATA_BLOCKED analysis — non-actionable, no real comps, no valid savings
+            // analysis_status=DATA_BLOCKED means comp-engine returned no real data (TAXNET_SOURCE_REQUIRED
+            // or SYNTHETIC_COMPS_BLOCK). These cases must be manually re-analyzed before approval.
+            const analysisStatusVal = sub.analysis_status || sub.analysisStatus || '';
+            if (analysisStatusVal === 'DATA_BLOCKED') { skipped++; continue; }
+
             // Skip if already in approval flow or past it (canonical + legacy strings)
             if (['PENDING_TYLER_APPROVAL', 'Pending Approval', 'APPROVED', 'Approved',
                  'RESULTS_SENT', 'Results Sent', 'SIGNED_READY_TO_FILE', 'Form Signed',
