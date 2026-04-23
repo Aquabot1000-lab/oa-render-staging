@@ -2,21 +2,29 @@
 
 > Only unresolved items live here.  
 > An issue is removed ONLY when all 6 fix layers are complete and logged in FIX-LOG.md.  
-> Last updated: 2026-04-22  
+> Last updated: 2026-04-23  
 > Maintained by: WortheyAquaBot
 
 ---
 
-## OI-001 — Server restart required for address v2 handler to go live
-**Priority:** 🔴 HIGH  
-**Opened:** 2026-04-22  
-**Relates to:** FIX-003
+## OI-001 — v2 incomplete-address handler deployed to Render ✅ RESOLVED
+**Priority:** ✅ RESOLVED  
+**Opened:** 2026-04-22 | **Resolved:** 2026-04-23  
+**Fix:** FIX-008 in FIX-LOG.md
 
-**Problem:** `server/server.js` was patched with the new v2 address confirmation flow. Server process (PID 66672) has NOT been restarted. Live incoming `POST /api/prereg` requests still execute the old handler from the in-memory process.
+**Problem was two-stage:**
+1. Server restart needed (resolved by git push → Render auto-deploy, commit `2d69b8d`)
+2. Post-restart verification revealed 4 broken `supabaseAdmin.from(...).catch(() => {})` chains in the v2 block — task creation + email + SMS sent fine but `address_fix_requested`, `activity_log`, `communications`, and auto-resolve status update all silently failed (deploy commit `77f1048`)
 
-**Blocked by:** Tyler approval (server restart = brief downtime)
-
-**To close:** Tyler restarts server → confirm new `/api/prereg` handler fires Census geocoder first → log in FIX-LOG.md FIX-003 PERSISTENCE FIX section → remove this issue.
+**Final production verification (test pre-reg `b96ebdbe-870c-4856-b954-c3f442fe880e`, 2026-04-23 12:24 UTC):**
+- ✅ Geocoder returned results (1 match, high-confidence)
+- ✅ Email sent (SendGrid, `oi001-postfix4@...`)
+- ✅ SMS sent (Twilio, `+12105550044`, SID logged)
+- ✅ `address_fix_requested = true` in DB
+- ✅ `communications` row inserted (channel=sms, status=sent)
+- ✅ `activity_log` row inserted (action=incomplete_address_outreach)
+- ✅ Auto-resolve: status advanced to `WAITING_FOR_NOTICE_UPLOAD`, `resolved_address` populated
+- ✅ Zero errors in Render logs for this request
 
 ---
 
@@ -125,7 +133,7 @@ Prior query used implicit `.limit(50)` default. Actual DB count confirmed as 76 
 
 | ID | Priority | Issue | Blocked by |
 |---|---|---|---|
-| OI-001 | 🔴 HIGH | Server restart needed for v2 address handler | Tyler approval |
+| OI-001 | ✅ RESOLVED | v2 incomplete-address handler live + all 6 DB writes verified | FIX-008 |
 | OI-002 | 🟡 MED | 3 pre_regs stuck in NEEDS_REVIEW, geocoder-resolved | Manual review |
 | OI-003 | 🟡 MED | OA-0031, OA-0001 have no filing package | Package regen |
 | OI-004 | ✅ RESOLVED | documents RLS blocks portal reads | FIX-007 |

@@ -286,3 +286,56 @@ Schema changes applied:
 - **Note:** No client rows currently have `auth_user_id` populated (no portal users have signed up yet). Policy is structurally correct and will activate automatically when clients create portal accounts.
 
 ### STATUS: ✅ FIXED
+
+---
+
+## FIX-008 — v2 incomplete-address pre-reg flow (deploy + broken `.catch()` chains)
+**Date:** 2026-04-23  
+**Reported by:** Tyler Worthey  
+**Related:** OI-001, FIX-003
+
+### 1. ROOT CAUSE
+Two-part failure in `POST /api/pre-register` incomplete-address branch (`server/server.js`, lines ~4295–4440):
+1. **Deploy:** v2 handler patch was on local disk only. Production (Render) still ran the old handler until local commit → git push → Render auto-deploy.
+2. **Runtime bug (post-deploy):** 4 Supabase query chains used `.catch(() => {})` directly on the query builder. The deployed `@supabase/supabase-js` client on Render does not return a thenable with a `.catch` method from the builder chain — calling `.catch(…)` on it throws `TypeError: supabaseAdmin.from(...).update(...).eq(...).catch is not a function` at runtime. The surrounding `try { ... } catch(emailErr) { ... }` swallowed the TypeError and logged it as an email failure, which is why the symptom appeared as "email failed" even though the email had already been sent successfully by SendGrid a split-second earlier.
+
+Render log excerpt (pre-fix):
+```
+[Pre-Reg] ✅ Address confirmation email sent to ... (highConfidence=false)
+[Pre-Reg] Address confirmation email failed: supabaseAdmin.from(...).update(...).eq(...).catch is not a function
+[Pre-Reg] SMS failed: supabaseAdmin.from(...).insert(...).catch is not a function
+```
+
+### 2. CODE FIX
+- File: `server/server.js`
+- Replaced 4 broken chains with explicit `try/catch` blocks:
+  1. Auto-resolve `pre_registrations` update (high-confidence match) — ~L4364
+  2. `address_fix_requested = true` update after email — ~L4416
+  3. `activity_log` insert (`incomplete_address_outreach`) — ~L4418
+  4. `communications` insert (SMS outbound) — ~L4432
+- Each failure now logs a distinct diagnostic (e.g., `[Pre-Reg] activity_log insert failed: …`) so future regressions are visible in Render logs instead of being masked as "email failed".
+
+### 3. DATA FIX
+- Test records from the broken window remain in DB (status `NEEDS_REVIEW`, no activity/comms) — all internal `@overassessed-internal.invalid` emails, no real users affected. No backfill needed. Any future pre-regs use the fixed code path.
+
+### 4. AUTOMATION FIX
+- Each DB write in the v2 block now has its own try/catch with a unique diagnostic prefix. Tail `[Pre-Reg] ... insert failed` / `... update failed` in Render logs to detect silent regressions.
+
+### 5. PERSISTENCE FIX
+- Commit `77f1048` pushed to `origin/main` and `oa-render-staging/main`. Render auto-deploy at 2026-04-23 12:21 UTC. Service version `mobgamw8`, deployed 12:24 UTC confirmed live.
+
+### 6. VERIFICATION (Production — Render)
+Verification test: pre-reg `b96ebdbe-870c-4856-b954-c3f442fe880e` submitted 2026-04-23 12:24:47 UTC.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Geocoder returned results | ✅ | `geocode_matches: 1` in activity_log details |
+| Email send function executed | ✅ | Render log: `✅ Address confirmation email sent to oi001-postfix4@…` |
+| SMS send function executed | ✅ | SMS delivered to `+12105550044`, SID logged in Twilio |
+| `address_fix_requested = true` update succeeded | ✅ | DB row: `address_fix_requested: true` |
+| `communications` row inserted | ✅ | DB row: `{channel: sms, direction: outbound, status: sent, recipient: +12105550044}` |
+| `activity_log` row inserted | ✅ | DB row: `action: incomplete_address_outreach, template: v2_confirmation` |
+| Auto-resolve status advanced | ✅ | DB: `status: WAITING_FOR_NOTICE_UPLOAD`, `resolved_address: 654 BIRCH LN TRL, CORINTH, VT, 05039` |
+| Zero runtime errors | ✅ | Render log for request: no `catch is not a function` |
+
+### STATUS: ✅ FIXED
