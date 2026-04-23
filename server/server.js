@@ -4354,23 +4354,30 @@ app.post('/api/pre-register', async (req, res) => {
                 const gcQuery = encodeURIComponent((property_address || '') + (parsed.state ? '' : ' TX'));
                 const gcRes = await fetch(`https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${gcQuery}&benchmark=Public_AR_Current&format=json`);
                 const gcJson = await gcRes.json();
-                geocodeMatches = gcJson?.result?.addressMatches || [];
+                // Only keep TX results — system only serves TX; non-TX matches are invalid
+                const allMatches = gcJson?.result?.addressMatches || [];
+                geocodeMatches = allMatches.filter(m => (m.addressComponents?.state || '').toUpperCase() === 'TX');
+                const rejectedNonTX = allMatches.length - geocodeMatches.length;
+                if (rejectedNonTX > 0) {
+                    console.log(`[Pre-Reg] ⚠️ Rejected ${rejectedNonTX} non-TX geocoder result(s) for ${data.id} — state validation failed`);
+                }
             } catch (gcErr) { console.error('[Pre-Reg] Geocode failed:', gcErr.message); }
 
+            // HIGH confidence ONLY if exactly 1 result AND state = TX (enforced by filter above)
             const highConfidence = geocodeMatches.length === 1;
             const suggestedAddress = highConfidence ? geocodeMatches[0].matchedAddress : null;
 
-            // 3. High-confidence single match → update record, advance status
+            // 3. High-confidence single TX match → update record, advance status
             if (highConfidence) {
                 const comp = geocodeMatches[0].addressComponents;
                 try {
                     await supabaseAdmin.from('pre_registrations').update({
                         resolved_address: suggestedAddress,
                         resolved_zip: comp.zip,
-                        state: comp.state || 'TX',
+                        state: 'TX',
                         status: 'WAITING_FOR_NOTICE_UPLOAD'
                     }).eq('id', data.id);
-                    console.log(`[Pre-Reg] ✅ Auto-resolved address for ${data.id}: ${suggestedAddress}`);
+                    console.log(`[Pre-Reg] ✅ Auto-resolved TX address for ${data.id}: ${suggestedAddress}`);
                 } catch (resolveErr) { console.error('[Pre-Reg] Auto-resolve update failed:', resolveErr.message); }
             }
 
