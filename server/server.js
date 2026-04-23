@@ -8,7 +8,7 @@ const path = require('path');
 const multer = require('multer');
 const twilio = require('twilio');
 const sgMail = require('@sendgrid/mail');
-const { preRegistrationEmail, leadAcknowledgmentEmail, analysisCompleteEmail, analysisInProgressEmail, uploadNoticeEmail, filingApprovedEmail, noticeUploadReminderEmail } = require('./oa-email-templates');
+const { preRegistrationEmail, leadAcknowledgmentEmail, analysisCompleteEmail, analysisInProgressEmail, uploadNoticeEmail, filingApprovedEmail, noticeUploadReminderEmail, addressConfirmationEmail } = require('./oa-email-templates');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // RentCast analysis service
@@ -1060,7 +1060,8 @@ async function sendSMS(to, message, { useMessagingService = false } = {}) {
 
 // Customer-facing SMS with EMAIL FALLBACK
 // If SMS fails (30034 10DLC, 30032 toll-free, or any error), auto-sends email instead
-async function sendCustomerSMS(to, message, { email, customerName, context, caseId, doNotContact } = {}) {
+async function sendCustomerSMS(to, message, opts = {}) {
+    const { email, customerName, context, caseId, doNotContact, firstName, originalAddress, highConfidence, suggestedAddress, candidates } = opts;
     // === DO NOT CONTACT CHECK ===
     if (doNotContact) {
         console.log(`[DNC] Blocked send to ${customerName || to} (${caseId || 'unknown'}) — do_not_contact=true`);
@@ -1076,19 +1077,25 @@ async function sendCustomerSMS(to, message, { email, customerName, context, case
         console.log(`[SMS→Email Fallback] SMS failed (${errorCode}) for ${to}. Attempting email fallback.`);
         
         // Try email fallback if we have an email address
+        // RULE: SMS fallback uses the SAME template as the primary email path (addressConfirmationEmail).
+        // Raw inline HTML bodies are NOT permitted here. Template params are passed through opts from caller.
         if (email) {
             try {
-                const emailHtml = `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
-                        <p>${message.replace(/\n/g, '<br>')}</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                        <p style="color: #999; font-size: 12px;">This message was sent via email because SMS delivery is temporarily unavailable.</p>
-                    </div>`;
-                await sendNotificationEmail('Message from OverAssessed', emailHtml, email);
+                const { addressConfirmationEmail: addrConfEmail } = require('./oa-email-templates');
+                const tmplParams = {
+                    firstName: firstName || (customerName ? customerName.split(' ')[0] : 'there'),
+                    originalAddress: originalAddress || '',
+                    highConfidence: !!highConfidence,
+                    suggestedAddress: suggestedAddress || null,
+                    candidates: candidates || [],
+                    channel: 'sms_fallback'
+                };
+                const { subject: fallbackSubject, html: fallbackHtml } = addrConfEmail(tmplParams);
+                await sendNotificationEmail(fallbackSubject, fallbackHtml, email);
                 logSmsAttempt(to, false, errorCode, 'email_sent', context || 'customer');
-                console.log(`[SMS→Email Fallback] ✅ Email sent to ${email} (SMS error: ${errorCode})`);
+                console.log(`[SMS→Email Fallback] ✅ Email sent to ${email} (SMS error: ${errorCode}) — template: addressConfirmationEmail`);
                 
-                sendTelegramAlert(`⚠️ <b>SMS FAILED → EMAIL SENT</b>\n\n<b>To:</b> ${customerName || to}\n<b>SMS Error:</b> ${errorCode}\n<b>Fallback:</b> Email sent to ${email}\n<b>Message:</b> ${message.substring(0, 100)}...`);
+                sendTelegramAlert(`⚠️ <b>SMS FAILED → EMAIL SENT</b>\n\n<b>To:</b> ${customerName || to}\n<b>SMS Error:</b> ${errorCode}\n<b>Fallback:</b> Email sent to ${email}\n<b>Template:</b> addressConfirmationEmail (sms_fallback)`);
                 
                 return { success: true, method: 'email_fallback', originalError: errorCode };
             } catch (emailErr) {
@@ -1157,7 +1164,7 @@ function buildTelegramLeadAlert(sub) {
 // Error 20003 = authentication failure. Email-first for all OA customer communication.
 const OA_SMS_ENABLED = true; // Reactivated 2026-04-20 — notice/sign requests only
 
-async function sendClientSMS(phone, message, { email, customerName, context } = {}) {
+async function sendClientSMS(phone, message, opts = {}) {
     // ── MASTER KILL SWITCH ── Blocks ALL SMS + email fallback
     if (OA_EMAIL_KILLED) {
         console.log(`[SMS BLOCKED] Master kill switch ON. Would have sent to ${phone}: "${message.substring(0, 50)}..."`);
@@ -1171,7 +1178,9 @@ async function sendClientSMS(phone, message, { email, customerName, context } = 
     let cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) cleaned = '1' + cleaned;
     if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
-    return await sendCustomerSMS(cleaned, message, { email, customerName, context });
+    // Forward ALL options (email, customerName, context, plus template params like firstName/originalAddress/highConfidence/suggestedAddress/candidates)
+    // so sendCustomerSMS email fallback can reconstruct the same template output as the primary email path.
+    return await sendCustomerSMS(cleaned, message, opts);
 }
 
 async function sendNotificationEmail(subject, html, toEmail) {
@@ -4382,37 +4391,21 @@ app.post('/api/pre-register', async (req, res) => {
             }
 
             // 4. Send address confirmation email (once only — address_fix_requested guard)
+            // ALL outreach routes through addressConfirmationEmail() in oa-email-templates.js
             if (data.address_fix_requested) {
                 console.log(`[Pre-Reg] ⛔ address_fix_requested=true for ${data.id} — skipping outreach`);
             } else if (process.env.SENDGRID_API_KEY) {
                 try {
                     const firstName = (name || 'there').split(' ')[0];
-                    let confirmHtml, confirmSubject;
-                    if (highConfidence) {
-                        confirmSubject = 'We found your property — please confirm';
-                        confirmHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                            <p>Hi ${firstName},</p>
-                            <p>Thanks for registering with OverAssessed. Based on the address you provided, we found:</p>
-                            <p style="background:#f0f9ff;border-left:4px solid #0284c7;padding:12px 16px;font-size:16px;font-weight:bold;">${suggestedAddress}</p>
-                            <p>Is this your property? Just reply <strong>YES</strong> to confirm, or reply with the correct address if this isn't right.</p>
-                            <p>Once confirmed, we'll start your savings analysis right away.</p>
-                            <p>— Tyler Worthey<br>OverAssessed</p>
-                        </div>`;
-                    } else {
-                        const candidateLines = geocodeMatches.slice(0, 3).map(m =>
-                            `<li style="margin:6px 0;">${m.matchedAddress}</li>`).join('');
-                        const candidateBlock = candidateLines
-                            ? `<p>We found a few possible matches:</p><ul>${candidateLines}</ul><p>Reply with the correct one, or your full address if none match.</p>`
-                            : `<p>Please reply with your complete address including <strong>street, city, state, and zip</strong> and we'll pick up right where we left off.</p>`;
-                        confirmSubject = 'Quick question about your property address';
-                        confirmHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-                            <p>Hi ${firstName},</p>
-                            <p>Thanks for registering — we want to make sure we're analyzing the right property for you.</p>
-                            <p><strong>Address we received:</strong> ${property_address}</p>
-                            ${candidateBlock}
-                            <p>— Tyler Worthey<br>OverAssessed</p>
-                        </div>`;
-                    }
+                    const candidates = geocodeMatches.slice(0, 3).map(m => m.matchedAddress);
+                    const { subject: confirmSubject, html: confirmHtml } = addressConfirmationEmail({
+                        firstName,
+                        originalAddress: property_address,
+                        highConfidence,
+                        suggestedAddress,
+                        candidates,
+                        channel: 'email'
+                    });
                     await sgMail.send({
                         to: email,
                         bcc: [{ email: 'tyler@overassessed.ai' }],
@@ -4425,19 +4418,32 @@ app.post('/api/pre-register', async (req, res) => {
                     try {
                         await supabaseAdmin.from('activity_log').insert({
                             case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
-                            details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'v2_confirmation' }
+                            details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'addressConfirmationEmail' }
                         });
                     } catch(e) { console.error('[Pre-Reg] activity_log insert failed:', e.message); }
                 } catch (emailErr) { console.error('[Pre-Reg] Address confirmation email failed:', emailErr.message); }
             }
 
             // 5. SMS if phone available
+            // If SMS fails, sendClientSMS fallback calls addressConfirmationEmail() — same template as the primary email path.
             if (phone) {
                 try {
+                    const firstName = (name || 'there').split(' ')[0];
                     const smsMsg = highConfidence
-                        ? `Hi ${name.split(' ')[0]}, this is OverAssessed. We think your property is at ${suggestedAddress}. Reply YES to confirm or send your correct address.`
-                        : `Hi ${name.split(' ')[0]}, this is OverAssessed. We need to confirm your property address. Can you reply with your full address including city, state, and zip?`;
-                    await sendClientSMS(phone, smsMsg, { email, customerName: name, context: 'incomplete_address' });
+                        ? `Hi ${firstName}, this is OverAssessed. We think your property is at ${suggestedAddress}. Reply YES to confirm or send your correct address.`
+                        : `Hi ${firstName}, this is OverAssessed. We need to confirm your property address. Can you reply with your full address including city, state, and zip?`;
+                    const candidates = geocodeMatches.slice(0, 3).map(m => m.matchedAddress);
+                    await sendClientSMS(phone, smsMsg, {
+                        email,
+                        customerName: name,
+                        context: 'incomplete_address',
+                        // Template params for email fallback — ensures identical output to primary email path
+                        firstName,
+                        originalAddress: property_address,
+                        highConfidence,
+                        suggestedAddress,
+                        candidates
+                    });
                     try {
                         await supabaseAdmin.from('communications').insert({ case_id: data.id, direction: 'outbound', channel: 'sms', recipient: phone, body: smsMsg, status: 'sent' });
                     } catch(e) { console.error('[Pre-Reg] comms SMS insert failed:', e.message); }

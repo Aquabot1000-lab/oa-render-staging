@@ -375,6 +375,70 @@ function noticeUploadReminderEmail({ firstName, propertyAddress, county, uploadU
   });
 }
 
+/**
+ * addressConfirmationEmail
+ * Sent when a pre-registration has an incomplete or unresolvable address.
+ *
+ * @param {Object} params
+ * @param {string} params.firstName        - Customer first name
+ * @param {string} params.originalAddress  - Raw address submitted by the customer
+ * @param {boolean} params.highConfidence  - true = single TX geocoder match; false = no/multi match
+ * @param {string|null} params.suggestedAddress - Matched address (high-confidence only; null otherwise)
+ * @param {string[]} [params.candidates]   - Up to 3 candidate addresses (low-confidence, optional)
+ * @param {'email'|'sms_fallback'} [params.channel] - Delivery channel (informational only; same template)
+ */
+function addressConfirmationEmail({ firstName, originalAddress, highConfidence, suggestedAddress, candidates = [], channel = 'email' }) {
+  let subjectLine, preheaderText, bodyRows;
+
+  if (highConfidence && suggestedAddress) {
+    subjectLine = 'We found your property — please confirm';
+    preheaderText = 'Is this your property? Reply YES to confirm.';
+    bodyRows = `
+<tr><td style="padding:16px 24px 8px 24px; font-family:${BRAND.font};">
+  <p style="margin:0; font-size:21px; line-height:26px; font-weight:bold; color:${BRAND.textDark};">Is this your property?</p>
+  <p style="margin:4px 0 0 0; font-size:14px; line-height:20px; color:${BRAND.textMuted};">We matched your address — just need your confirmation</p>
+</td></tr>
+<tr><td style="padding:8px 24px 12px 24px; font-family:${BRAND.font};">
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Hi ${firstName},</p>
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Thanks for registering with OverAssessed. Based on the address you provided, we found:</p>
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 16px 0;">
+    <tr><td style="background:${BRAND.purpleLight}; border-left:4px solid ${BRAND.purple}; padding:12px 16px; font-size:16px; font-weight:bold; color:${BRAND.textDark};">${suggestedAddress}</td></tr>
+  </table>
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Is this your property? Just reply <strong>YES</strong> to confirm, or reply with the correct address if this isn't right.</p>
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Once confirmed, we'll start your savings analysis right away.</p>
+</td></tr>`;
+  } else {
+    subjectLine = 'Quick question about your property address';
+    preheaderText = 'We need to confirm your property address before we begin.';
+    const candidateRows = candidates.slice(0, 3).map(addr =>
+      `<tr><td style="padding:3px 0 3px 8px; font-size:14px; color:${BRAND.textBody};">&#8226; ${addr}</td></tr>`
+    ).join('');
+    const candidateBlock = candidateRows
+      ? `<p style="margin:0 0 8px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">We found a few possible matches:</p>
+         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 12px 8px;">${candidateRows}</table>
+         <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Reply with the correct one, or your full address if none match.</p>`
+      : `<p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Please reply with your complete address including <strong>street, city, state, and zip</strong> and we'll pick up right where we left off.</p>`;
+    bodyRows = `
+<tr><td style="padding:16px 24px 8px 24px; font-family:${BRAND.font};">
+  <p style="margin:0; font-size:21px; line-height:26px; font-weight:bold; color:${BRAND.textDark};">Quick question about your address</p>
+  <p style="margin:4px 0 0 0; font-size:14px; line-height:20px; color:${BRAND.textMuted};">We want to make sure we're analyzing the right property</p>
+</td></tr>
+<tr><td style="padding:8px 24px 12px 24px; font-family:${BRAND.font};">
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Hi ${firstName},</p>
+  <p style="margin:0 0 12px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};">Thanks for registering — we want to make sure we're analyzing the right property for you.</p>
+  <p style="margin:0 0 8px 0; font-size:14px; line-height:21px; color:${BRAND.textBody};"><strong>Address we received:</strong> ${originalAddress}</p>
+  ${candidateBlock}
+</td></tr>`;
+  }
+
+  const signoffRow = `
+<tr><td style="padding:4px 24px 14px 24px; font-family:${BRAND.font};">
+  <p style="margin:0; font-size:13px; color:${BRAND.textMuted};">&mdash; Tyler Worthey, OverAssessed</p>
+</td></tr>`;
+
+  return { subject: subjectLine, html: wrapEmail({ body: bodyRows + signoffRow, preheader: preheaderText }) };
+}
+
 module.exports = {
   BRAND,
   wrapEmail,
@@ -386,5 +450,6 @@ module.exports = {
   analysisInProgressEmail,
   uploadNoticeEmail,
   filingApprovedEmail,
-  noticeUploadReminderEmail
+  noticeUploadReminderEmail,
+  addressConfirmationEmail
 };
