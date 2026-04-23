@@ -1521,7 +1521,8 @@ async function runFollowUpSequence() {
             .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact, fee_agreement_signed, signature')
             .is('deleted_at', null)
             .gt('contact_attempts', 0)
-            .not('status', 'in', '("Archived","Deleted","Duplicate","Resolved","Form Signed","Protest Filed","Cold")');
+            // CANONICAL status exclusions — updated 2026-04-23 (legacy strings removed)
+            .not('status', 'in', '("ARCHIVED","DELETED","DUPLICATE","SIGNED_READY_TO_FILE","PENDING_TYLER_APPROVAL","Pending Approval","Form Signed","Protest Filed","Cold","Deleted","Duplicate","Resolved","Archived")');
 
         let actions = 0;
         for (const c of (cases || [])) {
@@ -1548,7 +1549,8 @@ async function runFollowUpSequence() {
             const savingsLine = savings > 0 ? ' We\'ve identified $' + savings.toLocaleString() + '/yr in potential savings.' : '';
             const uploadUrl = 'https://overassessed.ai/quick-upload';
             const signUrl = 'https://overassessed.ai/sign?case=' + c.case_id;
-            const isAwaitingNotice = c.status === 'Awaiting Notice' || c.status === 'Needs Review';
+            // CANONICAL status check — updated 2026-04-23
+            const isAwaitingNotice = c.status === 'AWAITING_NOTICE' || c.status === 'NEEDS_REVIEW';
             const link = isAwaitingNotice ? uploadUrl : signUrl;
             const linkText = isAwaitingNotice ? 'Upload your notice' : 'Review & sign';
             let updated = false;
@@ -1558,20 +1560,21 @@ async function runFollowUpSequence() {
                 const subject = 'Quick reminder — ' + (isAwaitingNotice ? 'upload your notice' : 'sign to proceed');
                 const body = 'Hi ' + firstName + ',\n\nQuick reminder — we still need your ' + (isAwaitingNotice ? 'Notice of Appraised Value to complete your review' : 'signed authorization to file your protest') + '.' + savingsLine + '\n\n' + linkText + ': ' + link + '\n\nReply if you need help.\n\n– OverAssessed';
 
-                // Send via preferred channel (skip excluded emails silently)
-                if (c.email && !c.email_unusable && !isExcludedEmail(c.email)) {
-                    const sg = require('@sendgrid/mail');
+                // Send via sendClientEmail — respects OA_CLIENT_EMAIL_ENABLED kill switch and tier guard
+                if (c.email && !c.email_unusable) {
                     try {
-                        await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
-                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
+                        const result = await sendClientEmail(c.email, subject, brandedEmailWrapper(subject, '', body.replace(/\n/g, '<br>')));
+                        if (result && result.success !== false) {
+                            await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
+                        } else {
+                            console.log('[FollowUp-v2] Day 2 email blocked/queued for ' + c.case_id + ' — reason: ' + (result && result.reason || 'unknown'));
+                        }
                     } catch (e) { console.log('[FollowUp-v2] Day 2 email failed ' + c.case_id + ': ' + e.message); }
-                } else if (c.email && isExcludedEmail(c.email)) { console.log('[FollowUp-v2] Skipped excluded email: ' + c.email + ' (' + c.case_id + ')'); }
+                }
                 if (savings >= 1000 && c.phone && !c.sms_unusable) {
                     try {
-                        const tw = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-                        let n = c.phone.replace(/\D/g, ''); if (n.length === 10) n = '1' + n; n = '+' + n;
-                        const m = await tw.messages.create({ body, messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID, to: n });
-                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'sms', recipient: n, body, status: 'sent', twilio_sid: m.sid });
+                        await sendClientSMS(c.phone, body, { email: c.email, customerName: c.owner_name, context: 'followup_day2' });
+                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'sms', recipient: c.phone, body, status: 'sent' });
                     } catch (e) { console.log('[FollowUp-v2] Day 2 SMS failed ' + c.case_id + ': ' + e.message); }
                 }
                 drip.day2 = new Date().toISOString();
@@ -1585,13 +1588,17 @@ async function runFollowUpSequence() {
                 const subject = 'Last reminder — don\'t miss your property tax savings';
                 const body = 'Hi ' + firstName + ',\n\nThis is our final reminder.' + savingsLine + '\n\nWe need your ' + (isAwaitingNotice ? 'Notice of Appraised Value' : 'signed authorization') + ' to proceed. If we don\'t hear back, we\'ll close your file.\n\n' + linkText + ': ' + link + '\n\nQuestions? Just reply.\n\n– Tyler, OverAssessed';
 
-                if (c.email && !c.email_unusable && !isExcludedEmail(c.email)) {
-                    const sg = require('@sendgrid/mail');
+                // Send via sendClientEmail — respects OA_CLIENT_EMAIL_ENABLED kill switch and tier guard
+                if (c.email && !c.email_unusable) {
                     try {
-                        await sg.send({ to: c.email, from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' }, replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' }, subject, html: body.replace(/\n/g, '<br>') });
-                        await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
-                    } catch (e) { console.log('[FollowUp-v2] Day 5 email failed ' + c.case_id); }
-                } else if (c.email && isExcludedEmail(c.email)) { console.log('[FollowUp-v2] Skipped excluded email: ' + c.email + ' (' + c.case_id + ')'); }
+                        const result = await sendClientEmail(c.email, subject, brandedEmailWrapper(subject, '', body.replace(/\n/g, '<br>')));
+                        if (result && result.success !== false) {
+                            await supabaseAdmin.from('communications').insert({ case_id: c.case_id, submission_id: c.id, direction: 'outbound', channel: 'email', recipient: c.email, subject, body, status: 'sent' });
+                        } else {
+                            console.log('[FollowUp-v2] Day 5 email blocked/queued for ' + c.case_id + ' — reason: ' + (result && result.reason || 'unknown'));
+                        }
+                    } catch (e) { console.log('[FollowUp-v2] Day 5 email failed ' + c.case_id + ': ' + e.message); }
+                }
                 drip.day5 = new Date().toISOString();
                 updated = true;
                 actions++;
@@ -1733,163 +1740,18 @@ async function runDripCheck() {
     }
 }
 
-// ── Contacted Lead Follow-Up System ──
-// Day 0: Results email sent (already happened)
-// Day 2: "Just checking — want me to move forward?"
-// Day 5: "Last call before protest deadlines approach"
-// Day 7: Mark as COLD
-// If customer replies → stop all automation
+// ── Contacted Lead Follow-Up System ── TOMBSTONED 2026-04-23 ──
+// REMOVED: savings-themed post-results drip (Day 1–7 emails/SMS)
+// REASON: bypassed OA_CLIENT_EMAIL_ENABLED kill switch; scheduler was already
+//         commented out; Tyler directive 2026-04-07 disabled all follow-ups.
+// DO NOT RESTORE without explicit Tyler approval and kill-switch audit.
+// DO NOT uncomment any scheduler for this function.
+// If post-results drip is needed in future, build a new function that:
+//   1. Routes through sendClientEmail (tier-gated, kill-switch-respecting)
+//   2. Uses canonical status strings (ARCHIVED, PENDING_TYLER_APPROVAL, etc.)
+//   3. Gets explicit Tyler sign-off before scheduler is added
 async function runContactedFollowUp() {
-    // ⛔ FOLLOW-UP AUTOMATION DISABLED — Tyler directive 2026-04-07
-    // No automated follow-ups without explicit approval
-    console.log('[FollowUp] DISABLED — manual control only');
-    return;
-    // --- ORIGINAL CODE BELOW (frozen) ---
-    console.log('[FollowUp] Running contacted lead follow-up check...');
-    try {
-        const submissions = await readAllSubmissions();
-        const now = Date.now();
-        let changed = false;
-
-        for (let i = 0; i < submissions.length; i++) {
-            const sub = submissions[i];
-            
-            // Only process Contacted leads
-            // Follow up ONLY on leads where results have been sent (post-approval)
-            if (!['Results Sent', 'Contacted'].includes(sub.status)) continue;
-            
-            // Skip if customer replied (stop automation)
-            if (sub.customerReplied) continue;
-            
-            // Skip if already cold
-            if (sub.followUpStage === 'cold') continue;
-            
-            // Skip if no email
-            if (!sub.email || sub.email.includes('benchmark@') || sub.email.includes('test@')) continue;
-            
-            // Calculate days since first contacted
-            const dripState = sub.dripState || sub.drip_state || {};
-            const contactedAt = dripState.firstContactedAt || sub.firstContactedAt || dripState.resultsDelivered || sub.stageUpdatedAt || sub.updatedAt;
-            if (!contactedAt) continue;
-            const daysSince = (now - new Date(contactedAt).getTime()) / (1000 * 60 * 60 * 24);
-            
-            const followUp = sub.contactedDrip || (dripState.contacted || {});
-            const savings = sub.estimatedSavings || 0;
-            const savingsStr = savings > 0 ? `$${savings.toLocaleString()}/year` : 'significant';
-
-            const signUrl = `${getBaseUrl()}/sign/${sub.caseId}`;
-
-            // Day 1: Quick check-in
-            if (daysSince >= 1 && !followUp.day1) {
-                console.log(`[FollowUp] Day 1 follow-up → ${sub.email} (${sub.caseId})`);
-                await sendClientEmail(sub.email, `Did you see your savings estimate? — ${savingsStr}`,
-                    brandedEmailWrapper('Quick Check-In', `Case ${sub.caseId}`, `
-                        <p>Hi ${sub.ownerName},</p>
-                        <p>Just a quick check-in — we sent your property tax analysis yesterday for <strong>${sub.propertyAddress}</strong>.</p>
-                        <p>Your estimated savings: <strong>${savingsStr}</strong></p>
-                        <p>If you want us to handle the protest, sign your authorization (takes 60 seconds):</p>
-                        <div style="text-align:center;margin:25px 0;">
-                            <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign Authorization →</a>
-                        </div>
-                        <p style="font-size:13px;color:#6b7280;">No upfront fees. We only get paid if we save you money.</p>
-                    `)
-                );
-                followUp.day1 = new Date().toISOString();
-                changed = true;
-            }
-
-            // Day 2: Personal follow-up
-            if (daysSince >= 2 && !followUp.day2) {
-                console.log(`[FollowUp] Day 2 follow-up → ${sub.email} (${sub.caseId})`);
-                await sendClientEmail(sub.email, `Quick follow-up — ${savingsStr} in savings waiting`,
-                    brandedEmailWrapper('Quick Follow-Up', `Case ${sub.caseId}`, `
-                        <p>Hi ${sub.ownerName},</p>
-                        <p>Just checking in — we sent your property tax analysis showing <strong>${savingsStr} in potential savings</strong> on <strong>${sub.propertyAddress}</strong>.</p>
-                        <p>Want us to move forward with your protest? We handle everything — filing, evidence, and the hearing.</p>
-                        <div style="text-align:center;margin:25px 0;">
-                            <a href="${signUrl}" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Yes, Move Forward →</a>
-                        </div>
-                        <p>Or simply reply YES to this email and we'll get started.</p>
-                        <p style="font-size:13px;color:#6b7280;">No upfront fees. We only get paid if we save you money.</p>
-                    `)
-                );
-                followUp.day2 = new Date().toISOString();
-                changed = true;
-            }
-
-            // Day 3: Urgency
-            if (daysSince >= 3 && !followUp.day3) {
-                console.log(`[FollowUp] Day 3 urgency → ${sub.email} (${sub.caseId})`);
-                await sendClientEmail(sub.email, `Deadline reminder — your ${savingsStr} protest window`,
-                    brandedEmailWrapper('Time-Sensitive Reminder', `Case ${sub.caseId}`, `
-                        <p>Hi ${sub.ownerName},</p>
-                        <p>Protest filing deadlines are coming up for <strong>${sub.propertyAddress}</strong>.</p>
-                        <div style="background:#fff3e0;border-left:4px solid #e67e22;padding:16px 20px;margin:20px 0;border-radius:4px;">
-                            <p style="font-weight:700;color:#e67e22;margin:0;">⏰ Your protest window is limited.</p>
-                            <p style="margin:8px 0 0;color:#4a4a68;">Once the deadline passes, you’ll pay the higher tax amount for another full year.</p>
-                        </div>
-                        <p>Your estimated savings: <strong>${savingsStr}</strong>. We handle everything at no upfront cost.</p>
-                        <div style="text-align:center;margin:25px 0;">
-                            <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">File My Protest →</a>
-                        </div>
-                    `)
-                );
-                sendTelegramAlert(`⚠️ Day 3 urgency sent\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n<b>Phone:</b> ${sub.phone || 'none'}`);
-                followUp.day3 = new Date().toISOString();
-                changed = true;
-            }
-
-            // Day 5: Final follow-up, then Cold
-            if (daysSince >= 5 && !followUp.day5) {
-                console.log(`[FollowUp] Day 5 final → ${sub.email} (${sub.caseId})`);
-                await sendClientEmail(sub.email, `Last chance — ${savingsStr} in tax savings`,
-                    brandedEmailWrapper('Final Notice', `Case ${sub.caseId}`, `
-                        <p>Hi ${sub.ownerName},</p>
-                        <p>This is our final follow-up regarding your property tax protest for <strong>${sub.propertyAddress}</strong>.</p>
-                        <p>We found <strong>${savingsStr} in potential savings</strong>, but we need your signed authorization to file.</p>
-                        <div style="text-align:center;margin:25px 0;">
-                            <a href="${signUrl}" style="background:linear-gradient(135deg,#e17055,#d63031);color:white;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">Sign & Save →</a>
-                        </div>
-                        <p>If you have questions or concerns, reply to this email — we’re happy to help.</p>
-                        <p style="font-size:13px;color:#6b7280;">If we don’t hear back, we’ll close your file. You can always reach out later.</p>
-                    `)
-                );
-                sendTelegramAlert(`❄️ Day 5 final follow-up sent\n\n<b>Lead:</b> ${sub.ownerName}\n<b>Savings:</b> ${savingsStr}\n<b>Property:</b> ${sub.propertyAddress}\n\nMoving to Cold if no reply.`);
-                submissions[i].followUpStage = 'cold';
-                submissions[i].status = 'Cold';
-                followUp.day5 = new Date().toISOString();
-                changed = true;
-            }
-
-            submissions[i].contactedDrip = followUp;
-        }
-
-        if (changed) {
-            // Persist to Supabase
-            if (isSupabaseEnabled()) {
-                try {
-                    for (const sub of submissions) {
-                        if (sub.contactedDrip || sub.followUpStage) {
-                            const updates = { updated_at: new Date().toISOString() };
-                            if (sub.contactedDrip) updates.drip_state = { ...(sub.dripState || {}), contacted: sub.contactedDrip };
-                            if (sub.status === 'Cold') updates.status = 'Cold';
-                            if (sub.followUpStage) updates.follow_up_note = `Stage: ${sub.followUpStage}`;
-                            await supabaseAdmin.from('submissions')
-                                .update(updates)
-                                .eq('id', sub.id);
-                        }
-                    }
-                    console.log('[FollowUp] Supabase updated');
-                } catch (err) {
-                    console.error('[FollowUp] Supabase write failed:', err.message);
-                }
-            }
-        } else {
-            console.log('[FollowUp] No follow-ups needed');
-        }
-    } catch (error) {
-        console.error('[FollowUp] Error:', error.message);
-    }
+    throw new Error('[runContactedFollowUp] TOMBSTONED — this function must not be called. See comment above.');
 }
 
 // ── Approval Gate System ──
@@ -1920,20 +1782,21 @@ async function runApprovalGate() {
             if (['Pending Approval', 'Approved', 'Results Sent', 'Form Signed', 'Filing Prepared',
                  'Protest Filed', 'Submitted', 'Hearing Scheduled', 'Won', 'Lost', 'Resolved', 'Cold'].includes(sub.status)) continue;
 
-            // Move to Pending Approval (NO email/SMS sent)
+            // Move to PENDING_TYLER_APPROVAL (canonical status) — NO email/SMS sent
+            // Updated 2026-04-23: was 'Pending Approval' (legacy) — now canonical only
             const now = new Date().toISOString();
             if (isSupabaseEnabled()) {
                 await supabaseAdmin.from('submissions').update({
-                    status: 'Pending Approval',
+                    status: 'PENDING_TYLER_APPROVAL',
                     updated_at: now
                 }).eq('id', sub.id);
             }
-            console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → Pending Approval (savings: $${savings.toLocaleString()}/yr)`);
+            console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → PENDING_TYLER_APPROVAL (savings: $${savings.toLocaleString()}/yr)`);
             moved++;
         }
 
         if (moved > 0) {
-            console.log(`[ApprovalGate] Moved ${moved} leads to Pending Approval`);
+            console.log(`[ApprovalGate] Moved ${moved} leads to PENDING_TYLER_APPROVAL`);
             sendTelegramAlert(`📋 <b>${moved} lead(s) ready for approval review</b>\n\nCheck the approval queue at ${getBaseUrl()}/admin to review savings and approve results delivery.`);
         } else {
             console.log('[ApprovalGate] No new leads to move');
@@ -6801,8 +6664,8 @@ app.post('/api/approve/:id', authenticateToken, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);
         if (!sub) return res.status(404).json({ error: 'Lead not found' });
-        if (sub.status !== 'Pending Approval') {
-            return res.status(400).json({ error: `Lead is in '${sub.status}', not Pending Approval` });
+        if (!['Pending Approval', 'PENDING_TYLER_APPROVAL'].includes(sub.status)) {
+            return res.status(400).json({ error: `Lead is in '${sub.status}', not Pending Approval/PENDING_TYLER_APPROVAL` });
         }
 
         // Mark as Approved first
@@ -6844,7 +6707,7 @@ app.post('/api/approve-batch', authenticateToken, async (req, res) => {
         for (const id of ids) {
             try {
                 const sub = await findSubmission(id);
-                if (!sub || sub.status !== 'Pending Approval') {
+                if (!sub || !['Pending Approval', 'PENDING_TYLER_APPROVAL'].includes(sub.status)) {
                     results.push({ id, success: false, reason: sub ? `status: ${sub.status}` : 'not found' });
                     continue;
                 }
@@ -10216,9 +10079,8 @@ app.listen(PORT, async () => {
         startOrchestrator();
     });
 
-    // Run drip check every hour (pre-sign reminders)
-    setInterval(runDripCheck, 60 * 60 * 1000);
-    setTimeout(runDripCheck, 30000);
+    // runDripCheck scheduler REMOVED 2026-04-23 — function is a no-op (dead code), schedulers wasted resources
+    // Do not re-add. runFollowUpSequence (every 4h) is the active drip engine.
     
     // Run approval gate every 2 hours (moves analyzed leads to Pending Approval — NO auto-send)
     setInterval(runApprovalGate, 2 * 60 * 60 * 1000);
@@ -10228,21 +10090,25 @@ app.listen(PORT, async () => {
     // setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
     // setTimeout(runContactedFollowUp, 90000);
 
-    // Run outcome monitor every 6 hours (checks county sites for hearing results)
-    setInterval(async () => {
-        try {
-            const result = await checkAllPendingOutcomes();
-            if (result.updated > 0) {
-                console.log(`[OutcomeMonitor] Updated ${result.updated} appeals`);
-            }
-        } catch (e) {
-            console.error('[OutcomeMonitor] Scheduled check error:', e.message);
-        }
-    }, 6 * 60 * 60 * 1000);
-    // First check 2 minutes after startup
-    setTimeout(async () => {
-        try { await checkAllPendingOutcomes(); } catch (e) { console.error('[OutcomeMonitor]', e.message); }
-    }, 120000);
+    // OutcomeMonitor DISABLED 2026-04-23:
+    // Reason: queries the 'appeals' table which has 0 rows. All active cases live in
+    //         'submissions'. Running every 6h was a guaranteed no-op burning Supabase
+    //         quota and scraping county sites unnecessarily.
+    // To re-enable:
+    //   1. Migrate active hearing data from submissions → appeals table
+    //   2. Confirm appeals table has rows with status 'hearing_scheduled'/'filed'
+    //   3. Wire outcome-monitor.js to use case_id join back to submissions for status updates
+    //   4. Un-comment the setInterval + setTimeout below and redeploy
+    //
+    // setInterval(async () => {
+    //     try {
+    //         const result = await checkAllPendingOutcomes();
+    //         if (result.updated > 0) console.log(`[OutcomeMonitor] Updated ${result.updated} appeals`);
+    //     } catch (e) { console.error('[OutcomeMonitor] Scheduled check error:', e.message); }
+    // }, 6 * 60 * 60 * 1000);
+    // setTimeout(async () => {
+    //     try { await checkAllPendingOutcomes(); } catch (e) { console.error('[OutcomeMonitor]', e.message); }
+    // }, 120000);
 }
 
 startServer();
