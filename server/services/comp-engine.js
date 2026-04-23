@@ -10,6 +10,17 @@ const { fetchPropertyData, getAdapter, detectCounty, normalizePropertyType } = r
 const { runEUAnalysis } = require('./eu-analysis');
 
 const tarrantData = require('./tarrant-data');
+const { getCountyData: getLocalParcelData } = require('./local-parcel-data');
+
+// ── DATA SOURCE PRIORITY (Tyler directive 2026-04-23) ────────────────────────
+// Tier 1: Local parcel bulk data (TaxNetUSA-sourced: Bexar, Denton, Tarrant + others)
+// Tier 2: County CAD scraper (BCAD, FBCAD, CCAD, etc.)
+// Tier 3: Rentcast — property BASELINE ONLY (NOT comps)
+// Tier 4: Synthetic comps = DISABLED (ALLOW_SYNTHETIC=false)
+//
+// Hard routing: Bexar / Denton / Tarrant MUST use local parcel data.
+// If local data unavailable → DATA_BLOCKED, NOT Rentcast comps, NOT synthetic.
+const TAXNETUSA_COUNTIES = new Set(['bexar', 'denton', 'tarrant']);
 
 // County-specific tax rates (also available via rentcast.getTaxRate)
 const COUNTY_TAX_RATES = {
@@ -190,6 +201,62 @@ async function findComparables(subject, caseData) {
             }
         } catch (err) {
             console.error(`[CompEngine] TAD data search failed: ${err.message}`);
+        }
+    }
+
+    // ─── TIER 1: LOCAL BULK DATA — BEXAR + DENTON (TaxNetUSA) ─────────────────
+    // Route Bexar and Denton to local parcel bulk data (same approach as Tarrant)
+    // Hard requirement: these counties MUST use local data, no fallback to Rentcast/synthetic
+    if (!usedRealData && TAXNETUSA_COUNTIES.has(county) && county !== 'tarrant') {
+        try {
+            const localData = getLocalParcelData(county);
+            if (!localData.isLoaded()) {
+                console.log(`[CompEngine] ⏳ Loading local parcel data for ${county}...`);
+                await localData.loadData();
+            }
+            if (localData.isLoaded() && localData.recordCount > 0) {
+                const subjectResult = subject.address && localData.findByAddress ? localData.findByAddress(subject.address) : null;
+                if (subjectResult) {
+                    if (!subject.sqft && subjectResult.sqft) subject.sqft = subjectResult.sqft;
+                    if (!subject.yearBuilt && subjectResult.yearBuilt) subject.yearBuilt = subjectResult.yearBuilt;
+                    if (!subject.assessedValue && subjectResult.assessedValue) subject.assessedValue = subjectResult.assessedValue;
+                    console.log(`[CompEngine] Found subject in ${county} local data: assessed $${subjectResult.assessedValue}`);
+                }
+                const localComps = localData.findComps ? localData.findComps(subject, { maxComps: 30, maxValueDiff: 0.40 }) : [];
+                if (localComps.length >= 5) {
+                    rawComps = localComps.map(c => ({ ...c, source: county + '-cad-local' }));
+                    usedRealData = true;
+                    console.log(`[CompEngine] ✅ ${county.toUpperCase()} local parcel data: ${rawComps.length} real comps`);
+                } else {
+                    // Hard block — TaxNetUSA county with no local comps, do not fall to Rentcast/synthetic
+                    console.warn(`[CompEngine] ⛔ ${county.toUpperCase()} is a TaxNetUSA county but local data returned ${localComps.length} comps — DATA_BLOCKED`);
+                    return {
+                        comps: [], totalCompsFound: 0, comps_generated: false, comp_engine_fallback: false,
+                        data_blocked: true, data_issue: 'TAXNET_SOURCE_REQUIRED',
+                        block_reason: `${county} requires TaxNetUSA local parcel comps. Local data returned ${localComps.length} (min 5). Rentcast/synthetic fallback disabled.`,
+                        comp_source: 'none', has_real_comps: false, recommendedValue: null, estimatedSavings: 0,
+                        verificationTag: 'DATA_BLOCKED', analyzedAt: new Date().toISOString()
+                    };
+                }
+            } else {
+                console.warn(`[CompEngine] ⛔ ${county.toUpperCase()} local parcel data not loaded — DATA_BLOCKED`);
+                return {
+                    comps: [], totalCompsFound: 0, comps_generated: false, comp_engine_fallback: false,
+                    data_blocked: true, data_issue: 'TAXNET_SOURCE_REQUIRED',
+                    block_reason: `${county} requires TaxNetUSA local parcel data. Data file not loaded on this instance.`,
+                    comp_source: 'none', has_real_comps: false, recommendedValue: null, estimatedSavings: 0,
+                    verificationTag: 'DATA_BLOCKED', analyzedAt: new Date().toISOString()
+                };
+            }
+        } catch (err) {
+            console.error(`[CompEngine] ${county} local parcel load error: ${err.message}`);
+            return {
+                comps: [], totalCompsFound: 0, comps_generated: false, comp_engine_fallback: false,
+                data_blocked: true, data_issue: 'TAXNET_SOURCE_REQUIRED',
+                block_reason: `${county} TaxNetUSA data load failed: ${err.message}`,
+                comp_source: 'none', has_real_comps: false, recommendedValue: null, estimatedSavings: 0,
+                verificationTag: 'DATA_BLOCKED', analyzedAt: new Date().toISOString()
+            };
         }
     }
 

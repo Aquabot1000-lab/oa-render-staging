@@ -116,6 +116,6 @@ Don't miss your window → overassessed.ai
 
 Join hundreds of Texas homeowners who are paying less — and keeping more.
 
-No win, no fee. Guaranteed.
+No win, no fee.
 
 Start saving → overassessed.ai

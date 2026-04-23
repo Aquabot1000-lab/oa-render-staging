@@ -1809,16 +1809,20 @@ async function runApprovalGate() {
             const hasMissingFields = Array.isArray(mf) ? mf.length > 0 : !!mf;
             if (hasMissingFields) { skipped++; continue; }
 
-            // ── GATE CONDITION 7: Real comps required — no synthetic ──
+            // ── GATE CONDITION 7: Real comps required — no synthetic, no Rentcast-only ──
             // ⛔ HARD BLOCK: synthetic comps never pass to approval (Tyler directive 2026-04-23)
+            // Allowed sources: TaxNetUSA/local parcel data, county CAD scraper
+            // Blocked sources: synthetic, synthetic-estimate, Rentcast-only comps, unknown
             const compSource = compData && compData.comp_source;
             const hasSyntheticFlag = compData && (compData.comps_generated === true || compData.comp_engine_fallback === true);
+            const dataBlocked = compData && compData.data_blocked === true;
             const allCompsReal = compData && compData.comps && compData.comps.length > 0
-                ? compData.comps.every(c => !c._synthetic && c.source !== 'synthetic-estimate' && c.source !== 'synthetic')
+                ? compData.comps.every(c => !c._synthetic && c.source !== 'synthetic-estimate' && c.source !== 'synthetic' && c.source !== 'rentcast-api' && c.source !== 'rentcast')
                 : false;
-            const realCompsConfirmed = compSource === 'real' || (!hasSyntheticFlag && allCompsReal);
+            const acceptedSources = ['real', 'taxnetusa', 'cad_scraper'];
+            const realCompsConfirmed = !dataBlocked && !hasSyntheticFlag && (acceptedSources.includes(compSource) || allCompsReal);
             if (!realCompsConfirmed) {
-                console.log(`[ApprovalGate] ⛔ ${sub.caseId || sub.case_id} BLOCKED Gate 7 — synthetic comps detected (comp_source: ${compSource || 'unknown'}, synthetic_flag: ${hasSyntheticFlag})`);
+                console.log(`[ApprovalGate] ⛔ ${sub.caseId || sub.case_id} BLOCKED Gate 7 — non-real comps (comp_source: ${compSource || 'unknown'}, synthetic_flag: ${hasSyntheticFlag}, data_blocked: ${dataBlocked})`);
                 skipped++; continue;
             }
 

@@ -249,4 +249,4 @@ OverAssessed LLC can provide aggressive, data-driven property tax protest servic
 
 *Prepared by OverAssessed LLC*  
 *tyler@overassessed.ai | overassessed.ai*  
-*"Real Experts. Real Results. Guaranteed."*
+*"Real Experts. Real Results."*

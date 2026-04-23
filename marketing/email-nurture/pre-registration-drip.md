@@ -57,7 +57,7 @@ All emails use this responsive wrapper. Replace `{{EMAIL_BODY}}` with each email
           {{EMAIL_BODY}}
         </div>
         <div class="footer">
-          <p><strong>Real Experts. Real Results. Guaranteed.</strong></p>
+          <p><strong>Real Experts. Real Results.</strong></p>
           <p>OverAssessed — Texas Property Tax Protest</p>
           <p><a href="{{UNSUBSCRIBE_URL}}">Unsubscribe</a> · <a href="https://overassessed.ai/privacy">Privacy Policy</a></p>
         </div>
@@ -145,7 +145,7 @@ View Your Dashboard: https://overassessed.ai/dashboard
 Questions? Just reply to this email.
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -219,7 +219,7 @@ THE FIX: File a protest. Over 50% of protests result in a reduction.
 See How We Save You Money: https://overassessed.ai/how-it-works
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -299,7 +299,7 @@ WHAT TO DO:
 Check Your Property Status: https://overassessed.ai/dashboard
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -374,7 +374,7 @@ Because you pre-registered, your property is already in our system. The moment n
 View Your Property: https://overassessed.ai/dashboard
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -470,6 +470,6 @@ REMEMBER: You pay nothing upfront. 25% of savings. No reduction = no charge.
 Deadline: May 15. Don't leave money on the table.
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

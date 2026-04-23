@@ -689,6 +689,26 @@ async function validateFileForFiling(caseId, filePath) {
 module.exports.lockFileForApproval = lockFileForApproval;
 module.exports.validateFileForFiling = validateFileForFiling;
 
+// ═══ PIPELINE ORDER ENFORCEMENT ═══
+// A case MUST have BOTH notice + signature before ANY comp work
+function validatePipelineOrder(caseData) {
+    const notice = !!(caseData.notice_file || caseData.notice_of_value || caseData.notice_url);
+    const signed = caseData.fee_agreement_signed === true || caseData.fee_agreement_signed === 'true';
+    
+    if (!notice && !signed) {
+        return { eligible: false, reason: 'BLOCKED: No notice received AND not signed', status: 'BLOCKED_NO_NOTICE_NO_SIGNATURE' };
+    }
+    if (!notice) {
+        return { eligible: false, reason: 'BLOCKED: No notice received', status: 'BLOCKED_NO_NOTICE' };
+    }
+    if (!signed) {
+        return { eligible: false, reason: 'BLOCKED: Customer has not signed', status: 'BLOCKED_NOT_SIGNED' };
+    }
+    return { eligible: true, reason: 'Notice + Signature confirmed', status: 'ELIGIBLE' };
+}
+
+module.exports.validatePipelineOrder = validatePipelineOrder;
+
 // ═══ HARD BLOCK: NO SYNTHETIC COMPS ═══
 // ONLY county appraisal district data allowed
 const ALLOWED_COMP_SOURCES = ['BCAD', 'FBCAD', 'KCAD', 'CCAD', 'HCAD', 'DCAD', 'TCAD', 'WCAD', 'county_verified'];

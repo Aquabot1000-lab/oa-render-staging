@@ -94,7 +94,7 @@
 
 <p>Thank you for trusting OverAssessed with your property taxes. We're here every year to make sure you pay only what's fair.</p>
 
-<p><strong>Real Experts. Real Results. Guaranteed.</strong></p>
+<p><strong>Real Experts. Real Results.</strong></p>
 
 <p>— The OverAssessed Team</p>
 ```
@@ -134,7 +134,7 @@ Enable: https://overassessed.ai/dashboard/annual-monitoring
 ---
 
 Thank you for trusting OverAssessed.
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 
 — The OverAssessed Team
 Unsubscribe: {{UNSUBSCRIBE_URL}}

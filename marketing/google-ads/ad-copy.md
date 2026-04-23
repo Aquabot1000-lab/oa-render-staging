@@ -103,7 +103,7 @@
 10. Protest Your Taxes Free
 11. Backed by Data & AI
 12. Smart Tax Protest Service
-13. Your Savings Guaranteed
+13. Save on Property Taxes
 14. Lower Taxes. Zero Risk.
 15. Get Started Free Today
 

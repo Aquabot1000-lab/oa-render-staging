@@ -104,7 +104,7 @@ Drop a ✅ or ❌ in the comments.
 
 "OverAssessed saved me $2,100 on my property taxes this year. The process was completely hands-off for me."
 
-Real experts. Real results. Guaranteed.
+Real experts. Real results.
 
 Start saving → link in bio
 

@@ -106,7 +106,7 @@ Upload Documents: https://overassessed.ai/dashboard/documents
 Don't have documents? That's fine — we'll build a strong case with public records and market data.
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -201,7 +201,7 @@ We'll notify you when your evidence packet is ready.
 Check Your Status: https://overassessed.ai/dashboard
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -292,7 +292,7 @@ View Your Evidence Packet: https://overassessed.ai/dashboard/evidence
 NEXT: We'll file your protest and schedule the hearing.
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -363,6 +363,6 @@ DO YOU NEED TO ATTEND? Nope. We handle everything.
 Track Your Protest: https://overassessed.ai/dashboard
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

@@ -356,3 +356,64 @@ DB verification on 2026-04-23 (`SELECT * FROM pre_registrations WHERE resolved_a
 2. Never persisted `resolved_address` due to the same `.catch()` bug documented in FIX-008 — meaning they were in the broken window and geocoder results were computed but never written to DB.
 
 OI-002 has been reframed in OPEN-ISSUES.md to reflect the actual current DB state: 6 NEEDS_REVIEW records created during the FIX-008 broken window, all with `resolved_address = NULL`, all awaiting customer address replies.
+
+---
+
+## FIX-009 — NO_SYNTHETIC_COMPS hard block + TaxNetUSA routing
+
+**Logged:** 2026-04-23
+**Closes:** OI-010 (in progress), OI-011 (in progress)
+**Commits:** `17316bc`, `ec795b6` (freeze lift prereq)
+
+### Root cause
+
+Two orthogonal problems compounded:
+
+1. **Synthetic comp fallback was silent.** `services/comp-engine.js` generated up to 15 synthetic comps via `generateSyntheticComps(subject, n)` whenever a county scraper returned < 15 real comps. Subject assessed values were used as synthetic-comp base — meaning savings calculations were self-referential math on fake data. 23 active cases had been processed this way, including OA-0005 (already at `SIGNED_READY_TO_FILE`).
+
+2. **Orchestrator MVP calc used sale prices, not assessed.** `orchAnalyzeLead()` in `server/server.js:~10376` fetched Rentcast AVM comps and computed `savings = (assessed - avg(salePrice)) * taxRate`. For new construction where `salePrice > assessed`, savings always = 0 (e.g. OA-0010 $648K assessed vs $574K–$775K sale comps → $0). For older homes where `salePrice < assessed` it under-reports (OA-0013 got $572 vs correct $971).
+
+### Code fix
+
+**`server/services/comp-engine.js`**
+- Added `ALLOW_SYNTHETIC = false` constant (line 33)
+- Added `TAXNETUSA_COUNTIES = new Set(['bexar', 'denton', 'tarrant'])` for hard-routed counties
+- Import `getCountyData as getLocalParcelData` from `./local-parcel-data`
+- Synthetic fallback block (line ~213): when `ALLOW_SYNTHETIC=false`, returns `{ data_blocked: true, data_issue: 'SYNTHETIC_COMPS_BLOCK', comps: [], verificationTag: 'DATA_UNAVAILABLE' }` instead of generating fakes
+- New Tier-1 block for Bexar/Denton (Tarrant already had its own): loads local parcel data, returns `data_issue: 'TAXNET_SOURCE_REQUIRED'` if unavailable or < 5 comps (no Rentcast/CAD/synthetic fallback for these counties)
+- Result object now includes: `comp_source`, `comps_generated`, `comp_engine_fallback`, `has_real_comps`, `data_sources` metadata
+
+**`server/services/evidence-generator.js`**
+- Top of `generateEvidencePacket()`: throws `SYNTHETIC_COMPS_BLOCK` error if `compResults.comp_source === 'synthetic'` OR `comps_generated === true` OR `data_blocked === true` OR any comp has `_synthetic: true`
+
+**`server/server.js`**
+- `runApprovalGate()` Gate 7 added (tightened 2026-04-23): accepts only `comp_source IN ('real', 'taxnetusa', 'cad_scraper')`. Rejects `'rentcast'`, `'rentcast-api'`, `'synthetic'`, `'synthetic-estimate'`, `'none'`, `'unknown'`. Also blocks when `data_blocked=true` or `comps_generated=true`.
+
+### Data fix
+
+- OA-0013: `status=NEEDS_REVIEW`, `analysis_status=DATA_INVALID`, `confidence_level=INVALID`, `needs_manual_review=true`. Activity log `synthetic_comps_blocked` written.
+- OA-0010: same.
+- 21 other cases identified with synthetic comps — flagged in audit, not yet moved (awaits Tyler direction). Full list: OA-0079, OA-0083, OA-0024, OA-0045, OA-0056, OA-0025, OA-0076, OA-0015, OA-0016, OA-0069, OA-0084, OA-0027, OA-0026, OA-0066, OA-0018, OA-0021, OA-0042, OA-0074, OA-0023, OA-0033, **OA-0005 (SIGNED_READY_TO_FILE — highest risk)**.
+
+### Automation fix
+
+- Orchestrator `orchAnalyzeLead()` still active but now produces results filtered by Gate 7 at approval time (synthetic/sale-price-based savings no longer promote to `PENDING_TYLER_APPROVAL`). OI-010 remains open for the underlying orch refactor (use `findComparables` or stored `property_data` instead of Rentcast AVM).
+- `orchStageTransition()` remains FROZEN (Tyler directive 2026-04-23 — status transitions still blocked).
+
+### Persistence fix
+
+- Commit `17316bc` pushed to `overassessed-ai` + `oa-render-staging` remotes. Render deploys automatically on push. Freeze-lift commit `ec795b6` already verified live on `analysis-worker-70`.
+
+### Verification
+
+- Node syntax check: `comp-engine.js`, `evidence-generator.js`, `server.js` all PASS
+- OA-0013 + OA-0010 both in `NEEDS_REVIEW/DATA_INVALID/INVALID` state, confirmed via direct Supabase query
+- 23-case audit complete, list in activity_log under `synthetic_comps_blocked`
+- Render deploy verification pending (commit just pushed)
+
+### SYSTEM-RULES.md updates
+
+- RULE 9 added: NO SYNTHETIC COMPS (hard block with detection flags + enforcement points)
+- RULE 10 added: COUNTY DATA SOURCE ROUTING (4-tier priority, TaxNetUSA hard requirement for Bexar/Denton/Tarrant)
+
+### STATUS: ✅ CODE + DATA + DOCS COMPLETE, 🔄 Render deploy in flight, ⏳ 21 other synthetic-comp cases await cleanup direction

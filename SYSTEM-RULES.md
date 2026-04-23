@@ -119,3 +119,68 @@ Do not say "fixed," "done," or "saved" unless all 6 sections are complete and lo
 - Every fix logged in `FIX-LOG.md` with date, root cause, files changed, verification
 - Open issues tracked in `OPEN-ISSUES.md` — removed only when all 6 fix layers complete
 - No item removed from OPEN-ISSUES.md without corresponding FIX-LOG.md entry
+
+---
+
+## RULE 9 — NO SYNTHETIC COMPS (HARD BLOCK)
+
+**Added 2026-04-23 per Tyler directive. Enforced by `ALLOW_SYNTHETIC = false` in `server/services/comp-engine.js`.**
+
+Synthetic / engine-generated comparable properties MAY NOT be used for any of:
+
+- Savings calculation
+- Approval gate promotion
+- Evidence / filing package generation
+- Actual filing with a CAD
+- Customer-facing result delivery (email, SMS, portal)
+
+**Detection flags** (any truthy → hard block):
+- `compResults.comp_source === 'synthetic'`
+- `compResults.comps_generated === true`
+- `compResults.comp_engine_fallback === true`
+- `compResults.data_blocked === true`
+- Any individual comp with `_synthetic: true` or `source: 'synthetic-estimate' | 'synthetic'`
+
+**Enforcement points:**
+1. `comp-engine.js findComparables()` — returns `{ data_blocked: true, data_issue: 'SYNTHETIC_COMPS_BLOCK', comps: [] }` instead of generating fakes
+2. `evidence-generator.js generateEvidencePacket()` — throws `SYNTHETIC_COMPS_BLOCK` error
+3. `server.js runApprovalGate()` Gate 7 — rejects cases with non-real comp_source
+4. Affected cases get `analysis_status='DATA_INVALID'`, `confidence_level='INVALID'`, `status='NEEDS_REVIEW'`, activity_log `action='synthetic_comps_blocked'`
+
+**Override:** `ALLOW_SYNTHETIC` flag in `comp-engine.js` — only flip for local dev, never in production.
+
+---
+
+## RULE 10 — COUNTY DATA SOURCE ROUTING
+
+**Added 2026-04-23 per Tyler directive. Enforced by `TAXNETUSA_COUNTIES` set in `server/services/comp-engine.js`.**
+
+**Global priority order:**
+
+| Tier | Source | Use for |
+|---|---|---|
+| 1 | TaxNetUSA / local parcel bulk data (`data/<county>/parcels-compact.jsonl.gz`) | Supported TX counties: **Bexar, Denton, Tarrant** |
+| 2 | County CAD scraper (BCAD, FBCAD, CCAD, WCAD, MCAD, HUNT, KCAD) | All other supported counties |
+| 3 | Rentcast | Property **baseline** only (assessed value lookup); **NEVER** for comps |
+| 4 | Synthetic | **DISABLED** — see RULE 9 |
+
+**TaxNetUSA-required counties (Bexar / Denton / Tarrant):**
+- MUST use local parcel data for both `property_data` and comps
+- If local data unavailable OR returns < 5 comps → hard block: `analysis_status = DATA_BLOCKED`, `data_issue = 'TAXNET_SOURCE_REQUIRED'`, `filing_ready = false`
+- No Rentcast comp fallback
+- No CAD scraper fallback (local data is the authoritative source for these counties)
+- No synthetic fallback
+
+**Accepted `comp_source` values for approval gate (RULE 9 Gate 7):**
+- `'real'` — generic real comps
+- `'taxnetusa'` — local parcel bulk data
+- `'cad_scraper'` — county CAD scrape
+- Any individual-comp `source` matching `<county>-cad-local` or `<CAD code>` (e.g. `'bexar-cad-local'`, `'BCAD'`, `'tarrant-cad'`)
+
+**Rejected `comp_source` values:**
+- `'synthetic'`, `'synthetic-estimate'`, `'rentcast'`, `'rentcast-api'`, `'unknown'`, `'none'`
+
+**Activity log actions:**
+- `taxnet_routing_applied` — TaxNetUSA source used
+- `data_blocked_taxnet_failure` — TaxNetUSA data unavailable for required county
+- `synthetic_comps_blocked` — RULE 9 block triggered

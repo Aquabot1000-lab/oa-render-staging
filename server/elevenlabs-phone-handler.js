@@ -35,7 +35,7 @@ ABOUT OVERASSESSED:
 - How it works: Give us your property address → we run a free analysis → if you're overpaying, we file the protest and handle everything → you save money
 - Pricing: 25% of tax savings. No upfront cost. You only pay if we actually save you money.
 - Timeline: TX protest season is mid-April through August. TX deadline is May 15. GA deadline is 45 days after assessment notice (April-June).
-- Georgia special: If you win an appeal, your value is FROZEN for 3 years. That's 3 years of guaranteed savings from one appeal.
+- Georgia special: If you win an appeal, your value is FROZEN for 3 years. That's 3 years of locked-in savings from one appeal.
 - Homestead exemptions: We file those too, included free with our service
 - Website: overassessed.ai (Georgia: overassessed.ai/georgia)
 - Owner: Tyler Worthey personally reviews every case

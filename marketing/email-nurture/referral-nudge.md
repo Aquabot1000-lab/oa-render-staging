@@ -72,7 +72,7 @@ Your referral link: {{REFERRAL_LINK}}
 Think about neighbors, friends, and family who own property in Texas.
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -147,7 +147,7 @@ EASY WAYS TO SHARE:
 Your referral link: {{REFERRAL_LINK}}
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```
 
@@ -210,6 +210,6 @@ You earn $50 for every friend who signs up. No limit.
 Your referral link: {{REFERRAL_LINK}}
 
 — The OverAssessed Team
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 Unsubscribe: {{UNSUBSCRIBE_URL}}
 ```

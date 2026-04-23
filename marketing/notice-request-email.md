@@ -31,7 +31,7 @@ Questions? Reply to this email or call us at (888) 282-9165.
 
 Best,
 **OverAssessed LLC**
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 tyler@overassessed.ai | overassessed.ai
 
 ---

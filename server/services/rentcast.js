@@ -226,9 +226,16 @@ async function runRentCastAnalysis(address, propertyDataFallback = null) {
 }
 
 // ── Comps-Only ────────────────────────────────────────────
+const EXCLUDED_PROPERTY_TYPES = ['Manufactured', 'Mobile Home', 'Mobile', 'Manufactured Home', 'Modular'];
+
 async function getComps(address) {
     const avmData = await getAVM(address);
-    return (avmData.comparables || []).map(c => ({
+    return (avmData.comparables || [])
+        .filter(c => {
+            const pt = c.propertyType || '';
+            return !EXCLUDED_PROPERTY_TYPES.some(ex => pt.toLowerCase().includes(ex.toLowerCase()));
+        })
+        .map(c => ({
         address: c.formattedAddress || c.address || 'N/A',
         price: c.price || c.lastSalePrice || null,
         sqft: c.squareFootage || null,

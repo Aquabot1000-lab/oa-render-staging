@@ -269,7 +269,7 @@ we literally make $0
 
 That's how confident we are.
 
-Real Experts. Real Results. Guaranteed. 💪
+Real Experts. Real Results. 💪
 ```
 
 **Caption:** We only win when you win. That's the deal. Free analysis → overassessed.ai/washington

@@ -359,7 +359,7 @@ Headlines:
 5. No Upfront Cost, Ever
 6. 85% Success Rate
 7. Real Experts. Real Results.
-8. Lowest Fee Guaranteed
+8. Lowest Fee - 25% of Savings
 9. San Antonio Tax Protest Experts
 10. Pay Only If We Save You Money
 11. Stop Overpaying Property Taxes
@@ -372,7 +372,7 @@ Descriptions:
 1. OverAssessed — Texas property tax protest experts. 25% fee, lowest in the market. Free analysis, no upfront cost. Get started today.
 2. Official OverAssessed website. We protest your property taxes for just 25% of savings. Average homeowner saves $1,500-3,000/year.
 3. Stop overpaying property taxes. OverAssessed handles your protest from start to finish. No savings, no fee. 85% success rate.
-4. Real experts, real results, guaranteed. OverAssessed is Texas's lowest-fee property tax protest service. Free analysis — start now.
+4. Real experts, real results. OverAssessed is Texas's lowest-fee property tax protest service. Free analysis — start now.
 
 **Negative Keywords (Campaign 4):**
 - O'Connor

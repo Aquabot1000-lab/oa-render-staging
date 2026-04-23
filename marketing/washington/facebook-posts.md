@@ -13,7 +13,7 @@ We analyze your property, build your case, and handle the entire appeal process.
 
 ✅ No upfront cost
 ✅ Only 25% of what we save you
-✅ No savings = no charge. Guaranteed.
+✅ No savings = no charge.
 
 Get your free analysis → overassessed.ai/washington
 
@@ -48,7 +48,7 @@ How OverAssessed works for Washington homeowners:
 
 The whole process takes less than 2 minutes to start. We handle the rest.
 
-Real experts. Real results. Guaranteed.
+Real experts. Real results.
 
 Start here → overassessed.ai/washington
 
@@ -201,7 +201,7 @@ There is literally no downside.
 
 Why wouldn't you check? → overassessed.ai/washington
 
-#NoRisk #GuaranteedSavings #WashingtonPropertyTax #PropertyTaxAppeal #OverAssessed #FreeAnalysis #SeattleHomeowners
+#NoRisk #PropertyTaxSavings #WashingtonPropertyTax #PropertyTaxAppeal #OverAssessed #FreeAnalysis #SeattleHomeowners
 
 ---
 
@@ -251,7 +251,7 @@ We use data-driven analysis with real comparable sales to find out if you're ove
 
 No upfront cost. No risk. No catch.
 
-Real Experts. Real Results. Guaranteed.
+Real Experts. Real Results.
 
 Start saving → overassessed.ai/washington
 

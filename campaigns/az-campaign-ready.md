@@ -61,7 +61,7 @@ Keywords:
 **Headlines (15):**
 1. Arizona Property Tax Too High?
 2. Lower Your AZ Property Taxes
-3. No Win, No Fee — Guaranteed
+3. No Win, No Fee
 4. Save Thousands on Property Tax
 5. Free Property Tax Analysis
 6. AZ Property Tax Experts
@@ -101,7 +101,7 @@ Keywords:
 
 **Descriptions (4):**
 1. Your Arizona property may be overassessed. Our team files your appeal at no cost — you only pay a success fee when we reduce your taxes. Start your free analysis now.
-2. Property taxes going up? We specialize in Arizona property tax appeals for Maricopa, Pima, Coconino, and more. Free analysis, expert service, guaranteed results.
+2. Property taxes going up? We specialize in Arizona property tax appeals for Maricopa, Pima, Coconino, and more. Free analysis, expert service, data-driven results.
 3. Join thousands of Arizona homeowners paying less in property taxes. Our experts handle everything — you pay nothing unless we lower your bill.
 4. Don't accept an unfair property tax assessment. Our Arizona specialists appeal on your behalf. No upfront fees, no risk. Get started in 2 minutes.
 
@@ -121,7 +121,7 @@ Keywords:
 - Expert Tax Analysts
 - All AZ Counties
 - Free Instant Estimate
-- Results Guaranteed
+- Data-Driven Results
 
 ### Structured Snippets:
 - Counties: Maricopa, Pima, Coconino, Yavapai, Pinal, Mohave
