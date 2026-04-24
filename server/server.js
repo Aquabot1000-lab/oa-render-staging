@@ -62,6 +62,7 @@ const filingsRouter = require('./routes/filings');
 const stripeRouter = require('./routes/stripe');
 const coinbaseRouter = require('./routes/coinbase');
 const emailNurtureRouter = require('./routes/email-nurture');
+const emailInboundRouter = require('./routes/email-inbound');
 const uriCommissionsRouter = require('./routes/uri-commissions');
 const pipelineRouter = require('./routes/pipeline');
 const esignRouter = require('./routes/esign');
@@ -3172,8 +3173,12 @@ if (isSupabaseEnabled()) {
     // Coinbase Commerce Bitcoin payment routes (all public - webhook needs raw body)
     app.use('/api/coinbase', coinbaseRouter);
     app.use('/api/email', emailNurtureRouter);
+    // Inbound email webhook (SendGrid Inbound Parse — no auth, public)
+    app.use('/api/email/inbound', emailInboundRouter);
+    // Expose sendTelegramAlert for use in sub-routers
+    app.locals.sendTelegramAlert = sendTelegramAlert;
     // /sign and /api/esign already mounted before static middleware (see top of file)
-    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email, /sign');
+    console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email, /api/email/inbound, /sign');
 }
 
 // ==================== AGREEMENT SIGNING + FILING GATE ====================
@@ -3867,6 +3872,57 @@ app.get('/api/health', (req, res) => {
 });
 
 // SMS Metrics & Status
+// ==================== UNHANDLED MESSAGES QUEUE ====================
+// Public (no auth) read-only queue of every inbound message with handled=false.
+// Dashboards / automation can poll this; mark items handled via POST below.
+app.get('/api/unhandled-messages', async (req, res) => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('communications')
+            .select('id, case_id, submission_id, direction, channel, recipient, subject, body, status, handled, created_at, metadata')
+            .in('direction', ['inbound','incoming'])
+            .eq('handled', false)
+            .order('created_at', { ascending: false })
+            .limit(200);
+        if (error) return res.status(500).json({ error: error.message });
+
+        // Enrich with case owner lookups
+        const caseIds = [...new Set(data.map(r => r.case_id).filter(Boolean))];
+        let caseMap = {};
+        if (caseIds.length > 0) {
+            const { data: cases } = await supabaseAdmin.from('submissions')
+                .select('case_id, owner_name, phone, email, status')
+                .in('case_id', caseIds);
+            (cases || []).forEach(c => { caseMap[c.case_id] = c; });
+        }
+        const enriched = data.map(m => ({ ...m, case: caseMap[m.case_id] || null }));
+        res.json({
+            count: enriched.length,
+            by_channel: {
+                sms:   enriched.filter(m => m.channel === 'sms').length,
+                email: enriched.filter(m => m.channel === 'email').length,
+            },
+            messages: enriched
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Mark a message as handled (idempotent)
+app.post('/api/unhandled-messages/:id/handle', async (req, res) => {
+    const { id } = req.params;
+    const { handled_by = 'manual', note } = req.body || {};
+    const { error } = await supabaseAdmin.from('communications').update({
+        handled: true,
+        handled_at: new Date().toISOString(),
+        handled_by,
+        metadata: note ? { handled_note: note } : undefined
+    }).eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, id, handled: true });
+});
+
 app.get('/api/sms-status', (req, res) => {
     const successRate = smsMetrics.attempts > 0 
         ? ((smsMetrics.successes / smsMetrics.attempts) * 100).toFixed(1) + '%' 
@@ -7246,6 +7302,40 @@ app.post('/api/inbound-reply', async (req, res) => {
         };
         emailStore.unshift(storedEmail);
         if (emailStore.length > 100) emailStore.length = 100;
+
+        // === PERSIST TO DB (communications table) ===
+        try {
+            const senderEmail = emailClean;
+            const { data: matchedCases } = await supabaseAdmin.from('submissions')
+                .select('id, case_id, owner_name').ilike('email', senderEmail)
+                .is('deleted_at', null).limit(1);
+            const mc = matchedCases && matchedCases.length > 0 ? matchedCases[0] : null;
+            const isOptOut = /^\s*(unsubscribe|stop|opt.?out|remove me)\s*$/i.test(textBody.trim());
+            if (isOptOut && mc) {
+                await supabaseAdmin.from('submissions').update({
+                    email_unusable: true,
+                    email_unusable_reason: `OPT_OUT — replied stop/unsubscribe on ${new Date().toISOString().slice(0,10)}`,
+                    updated_at: new Date().toISOString()
+                }).eq('case_id', mc.case_id);
+            }
+            await supabaseAdmin.from('communications').insert({
+                case_id:       mc?.case_id || null,
+                submission_id: mc?.id || null,
+                direction:     'inbound',
+                channel:       'email',
+                recipient:     senderEmail,
+                subject:       (subject || '').substring(0, 255),
+                body:          (textBody || '').substring(0, 4000),
+                status:        'received',
+                handled:       false,
+                metadata: { from: fromEmail, opt_out: isOptOut, attachments: 0 },
+                created_at: new Date().toISOString()
+            });
+            storedEmail.case_id = mc?.case_id || null;
+            console.log(`[InboundReply] Saved to communications — case: ${mc?.case_id || 'UNKNOWN'}, handled: false`);
+        } catch (dbErr) {
+            console.error('[InboundReply] communications insert failed:', dbErr.message);
+        }
         
         // ── Check 1: Creator reply? ──
         const creator = creatorEmailMap.get(emailClean);
@@ -8588,16 +8678,48 @@ app.post('/twiml/sms-incoming', async (req, res) => {
             );
         }
         
-        // Log all inbound messages (even text-only)
-        if (!numMedia || numMedia === 0) {
-            const caseInfo = matchedCase ? `Case: ${caseId} (${customerName})` : 'No case match';
-            await sendTelegramAlert(
-                `📱 <b>INBOUND SMS</b>\n\n` +
-                `<b>From:</b> ${from}\n` +
-                `<b>${caseInfo}</b>\n` +
-                `<b>Message:</b> ${body.substring(0, 500)}`
-            );
+        // === INBOUND SMS — PERSIST TO DB (always, SMS + MMS) ===
+        // Check STOP opt-out first — mark sms_unusable if not already done
+        const isStopCmd = /^\s*(stop|stopall|unsubscribe|cancel|end|quit)\s*$/i.test(body.trim());
+        if (isStopCmd && matchedCase) {
+            await supabaseAdmin.from('submissions').update({
+                sms_unusable: true,
+                sms_unusable_reason: `TCPA_OPT_OUT — customer texted STOP on ${new Date().toISOString().slice(0,10)}`,
+                updated_at: new Date().toISOString()
+            }).eq('case_id', caseId);
+            console.log(`[Inbound SMS] STOP received — marked sms_unusable for ${caseId}`);
         }
+
+        // Insert into communications table
+        try {
+            const commRecord = {
+                case_id: caseId === 'UNKNOWN' ? null : caseId,
+                submission_id: matchedCase?.id || null,
+                direction: 'inbound',
+                channel: 'sms',
+                recipient: from,
+                body: body || (numMedia > 0 ? `[MMS: ${numMedia} attachment(s)]` : ''),
+                status: 'received',
+                twilio_sid: req.body?.MessageSid || req.body?.SmsSid || null,
+                handled: false,
+                created_at: new Date().toISOString()
+            };
+            const { error: commErr } = await supabaseAdmin.from('communications').insert(commRecord);
+            if (commErr) console.error('[Inbound SMS] communications insert failed:', commErr.message);
+            else console.log(`[Inbound SMS] Saved to communications — case: ${caseId}, handled: false`);
+        } catch (commEx) {
+            console.error('[Inbound SMS] communications insert exception:', commEx.message);
+        }
+
+        // Telegram alert (kept as backup notification)
+        const caseInfo = matchedCase ? `Case: ${caseId} (${customerName})` : 'No case match';
+        await sendTelegramAlert(
+            `📱 <b>INBOUND SMS</b>\n\n` +
+            `<b>From:</b> ${from}\n` +
+            `<b>${caseInfo}</b>\n` +
+            `<b>Message:</b> ${body.substring(0, 500)}` +
+            (isStopCmd ? `\n\n⚠️ <b>STOP received — SMS blocked for ${caseId}</b>` : '')
+        );
         
     } catch (err) {
         console.error('[Inbound SMS] Unhandled error:', err.message);

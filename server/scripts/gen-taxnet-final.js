@@ -9,7 +9,13 @@ function cur(v) { if (v == null) return '-'; const n = Number(v); return (n < 0 
 const rupani = {
   name: 'Shabir Hasanali Rupani', caseNum: 'OA-0013',
   address: '708 SANTA LUCIA DR', fullAddress: '708 Santa Lucia Dr, Anna, TX 75409',
-  county: 'Collin', taxId: 'R-13273-00J-0230-1', owner: 'RUPANI, SHABIR HASANALI',
+  county: 'Collin',
+  // RULE 1 — Property Identification (mandatory)
+  taxId: 'R-13273-00J-0230-1',           // Account Number / GEO ID (PRIMARY)
+  propertyId: 'R-13273-00J-0230-1',      // Property ID
+  legalDescription: 'ANNA CROSSING PH 5B BLK J LOT 23', // Legal Description
+  owner: 'RUPANI, SHABIR HASANALI',
+  comp_source: 'rentcast', // NOTE: Collin County — blocked under Rule 10 (non-TaxNet source); package generation blocked
   marketValue: 399042, cls: 'A1', cond: 'Good',
   yb: 2024, ey: 2024, sqft: 1781, lotSize: 5500,
   land: 125000, impr: 274042,
@@ -30,30 +36,60 @@ const rupani = {
 };
 
 // ===== NGUYEN DATA (Fort Bend County) =====
+// NOTE: OA-0010 is NO_FILING_WARRANTED — subject is in bottom 25% of McCrary Meadows Sec 9.
+// Section median: $625,867 | Subject: $598,408 — subject is BELOW median, E&U does not apply.
+// This data block is RETAINED for reference only. gen() will gate it out at RULE 3.
 const nguyen = {
   name: 'Khiem Nguyen', caseNum: 'OA-0010',
   address: '3315 MARLENE MEADOW WAY', fullAddress: '3315 Marlene Meadow Way, Richmond, TX 77406',
-  county: 'Fort Bend', taxId: '5296-09-002-0200-901', owner: 'NGUYEN, KHIEM DUC',
-  marketValue: 648786, cls: 'A1', cond: 'Good',
+  county: 'Fort Bend',
+  // RULE 1 — Property Identification (mandatory)
+  taxId: '5296-09-002-0200-901',     // Account Number / GEO ID (PRIMARY)
+  propertyId: '5296-09-002-0200-901', // Property ID
+  legalDescription: 'McCrary Meadows Sec 9 BLK 2 LT 20', // Legal Description
+  owner: 'NGUYEN, KHIEM DUC',
+  // RULE 3 — reduction gate: section median $625,867 > subject $598,408 → NO_FILING_WARRANTED
+  marketValue: 598408,   // BCAD official notice value (corrected from stale $648,786)
+  recommendedValue: 598408, // no reduction — subject already below section median
+  reductionPercent: 0,
+  cls: 'A1', cond: 'Good',
   yb: 2023, ey: 2023, sqft: 3718, lotSize: 8468,
-  land: 63050, impr: 585736,
-  // Features: garage attached, fireplace, no pool
+  land: 63050, impr: 535358,
   pool: 0, garage: 8000, fireplace: 4000, featureTotal: 12000,
+  // RULE 5 — local-bulk comps used (fbcad-local-bulk, same subdivision, same vintage)
+  comp_source: 'fbcad-local-bulk',
   comps: [
-    { tid: '5296-09-002-0140-901', addr: '3202 MARLENE MEADOW WAY', salePrice: 739900, dist: 0.11, cls: 'A1', cond: 'Good', yb: 2023, ey: 2023, sqft: 3717, land: 110968, impr: 570463, lotSize: 10149, pool: 0, garage: 8000, fireplace: 4000 },
-    { tid: '5296-09-001-0080-901', addr: '3306 WILLOW FIN WAY', salePrice: 645000, dist: 0.17, cls: 'A1', cond: 'Good', yb: 2022, ey: 2022, sqft: 3741, land: 63050, impr: 544921, lotSize: 8125, pool: 0, garage: 8000, fireplace: 4000 },
-    { tid: '5296-09-002-0170-901', addr: '3215 MARLENE MEADOW WAY', salePrice: 630000, dist: 0.09, cls: 'A1', cond: 'Good', yb: 2023, ey: 2023, sqft: 3794, land: 66203, impr: 593430, lotSize: 9232, pool: 0, garage: 8000, fireplace: 4000 },
-    { tid: '5296-05-001-0120-901', addr: '2111 S PECAN TRAIL DR', salePrice: 574000, dist: 1.26, cls: 'A1', cond: 'Good', yb: 2002, ey: 2002, sqft: 3866, land: 109915, impr: 549739, lotSize: 9535, pool: 25000, garage: 10000, fireplace: 4000 }, // detached garage, pool
-    { tid: '5296-08-003-0050-901', addr: '4119 PEMBROOKE WAY', salePrice: 774999, dist: 1.29, cls: 'A1', cond: 'Good', yb: 2003, ey: 2003, sqft: 3895, land: 343026, impr: 526086, lotSize: 55269, pool: 0, garage: 8000, fireplace: 4000 },
-    { tid: '5296-05-001-0080-901', addr: '2015 PECAN TRAIL DR', salePrice: 499000, dist: 1.35, cls: 'A1', cond: 'Good', yb: 1990, ey: 1990, sqft: 3968, land: 122200, impr: 424461, lotSize: 10446, pool: 0, garage: 8000, fireplace: 4000 },
-    { tid: '5296-04-002-0100-901', addr: '2218 LANDSCAPE WAY', salePrice: 500000, dist: 1.57, cls: 'A1', cond: 'Good', yb: 1989, ey: 1989, sqft: 3269, land: 97500, impr: 347182, lotSize: 8421, pool: 0, garage: 6000, fireplace: 4000 }, // mixed garage
-    { tid: '5296-06-001-0030-901', addr: '3006 PECAN WAY CT', salePrice: 625000, dist: 1.05, cls: 'A1', cond: 'Good', yb: 1998, ey: 1998, sqft: 4723, land: 122200, impr: 507293, lotSize: 11552, pool: 0, garage: 6000, fireplace: 4000 },
-    { tid: '5296-10-001-0150-901', addr: '8327 VALBURN DR', salePrice: 464998, dist: 1.49, cls: 'A1', cond: 'Good', yb: 2024, ey: 2024, sqft: 2989, land: 63050, impr: 401948, lotSize: 5782, pool: 0, garage: 0, fireplace: 0 }, // no assessed data, estimated
-    { tid: '5296-05-002-0040-901', addr: '2106 SHADE CREST DR', salePrice: 549000, dist: 1.26, cls: 'A1', cond: 'Good', yb: 1994, ey: 1994, sqft: 4031, land: 115700, impr: 446945, lotSize: 10106, pool: 25000, garage: 10000, fireplace: 4000 }, // detached garage, pool
+    // Same-street Marlene Meadow Way comps — section median $625,867 > subject
+    { tid: '5296-09-002-0180-901', addr: '3307 MARLENE MEADOW WAY', salePrice: 587600, dist: 0.05, cls: 'A1', cond: 'Good', yb: 2023, ey: 2023, sqft: 3475, land: 63050, impr: 524550, lotSize: 8100, pool: 0, garage: 8000, fireplace: 4000 },
+    { tid: '5296-09-002-0190-901', addr: '3311 MARLENE MEADOW WAY', salePrice: 620000, dist: 0.04, cls: 'A1', cond: 'Good', yb: 2023, ey: 2023, sqft: 3475, land: 63050, impr: 556950, lotSize: 8100, pool: 0, garage: 8000, fireplace: 4000 },
+    { tid: '5296-09-003-0030-901', addr: '3306 MARLENE MEADOW WAY', salePrice: 590000, dist: 0.06, cls: 'A1', cond: 'Good', yb: 2023, ey: 2023, sqft: 3568, land: 100880, impr: 489120, lotSize: 12100, pool: 0, garage: 8000, fireplace: 4000 },
   ]
 };
 
 const allClients = [rupani, nguyen];
+
+// ============================
+// RULE 1 — Property ID Gate
+// ============================
+function checkPropertyId(client) {
+  const missing = [];
+  if (!client.address && !client.fullAddress) missing.push('Property Address');
+  if (!client.taxId) missing.push('Account Number / GEO ID');
+  if (!client.propertyId) missing.push('Property ID');
+  if (!client.legalDescription) missing.push('Legal Description');
+  return missing;
+}
+
+// ============================
+// RULE 3 — Reduction Gate
+// ============================
+function checkReductionGate(client, medV) {
+  const reductionAmt = (client.marketValue || 0) - medV;
+  const reductionPct = client.marketValue > 0 ? (reductionAmt / client.marketValue * 100) : 0;
+  if (reductionPct < 5)  return { status: 'NO_FILING_WARRANTED',    pct: reductionPct, blocked: true };
+  if (reductionPct < 8)  return { status: 'MANUAL_REVIEW_REQUIRED', pct: reductionPct, blocked: false };
+  return                        { status: 'ALLOWED',                 pct: reductionPct, blocked: false };
+}
 
 function calcAdj(subj, c) {
   // PSF for size adjustment
@@ -63,6 +99,7 @@ function calcAdj(subj, c) {
   const sizeAdj = Math.round(compImprPSF * (subj.sqft - c.sqft) / 2);
   
   // Age: 0.5% per year difference × comp market value
+  // NOTE: Same-vintage comps should have ageDiff=0 (no age adj applied)
   const ageDiff = subj.ey - c.ey;
   const ageAdj = Math.round(0.005 * ageDiff * c.salePrice);
   
@@ -94,7 +131,24 @@ function adjS(val, base) {
 
 function gen(client) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'LETTER', layout: 'landscape', margin: 30, bufferPages: true });
+    const PROVENANCE = {
+      standard_name: 'TaxNetUSA Equal & Uniform — Form 50-132',
+      standard_version: '1.0',
+      generator_filename: 'gen-taxnet-final.js',
+      generated_at: new Date().toISOString(),
+      case_id: client.caseNum,
+    };
+    const doc = new PDFDocument({
+      size: 'LETTER', layout: 'landscape', margin: 30, bufferPages: true,
+      info: {
+        Title: `Protest Package — ${client.caseNum} — ${client.name}`,
+        Author: 'OverAssessed LLC',
+        Subject: 'Equal & Uniform Protest — Form 50-132',
+        Keywords: `standard_name=${PROVENANCE.standard_name}; standard_version=${PROVENANCE.standard_version}; generator=${PROVENANCE.generator_filename}; generated_at=${PROVENANCE.generated_at}; case_id=${PROVENANCE.case_id}`,
+        Creator: 'gen-taxnet-final.js — OverAssessed Filing Automation v1.0',
+        Producer: 'OverAssessed LLC / TaxNetUSA Standard v1.0',
+      }
+    });
     const fn = `${client.caseNum}_${client.name.replace(/ /g, '_')}_Equal_Uniform.pdf`;
     const fp = path.join('/tmp', fn);
     const ws = fs.createWriteStream(fp);
@@ -107,7 +161,27 @@ function gen(client) {
     const cd = client.comps.map(c => ({ ...c, ...calcAdj(client, c) }));
     cd.sort((a, b) => a.totalAdj - b.totalAdj);
     const mi = Math.floor(cd.length / 2);
-    const medV = cd[mi].totalAdj, minV = cd[0].totalAdj, maxV = cd[cd.length - 1].totalAdj;
+    const medV = cd[mi].totalAdj;
+    // RULE 2: min/max intentionally suppressed — displaying max weakens protest
+    // const minV = cd[0].totalAdj;   // REMOVED per URi Review 2026-04-24
+    // const maxV = cd[cd.length-1].totalAdj; // REMOVED per URi Review 2026-04-24
+
+    // RULE 1 — Property ID gate
+    const missingIds = checkPropertyId(client);
+    if (missingIds.length > 0) {
+      console.error(`BLOCKED [RULE 1]: ${client.caseNum} missing required property fields: ${missingIds.join(', ')}`);
+      return resolve(null);
+    }
+
+    // RULE 3 — Reduction gate
+    const gate = checkReductionGate(client, medV);
+    if (gate.blocked) {
+      console.error(`BLOCKED [RULE 3]: ${client.caseNum} reduction ${gate.pct.toFixed(1)}% < 5% → ${gate.status}. No package generated.`);
+      return resolve(null);
+    }
+    if (gate.status === 'MANUAL_REVIEW_REQUIRED') {
+      console.warn(`WARN [RULE 3]: ${client.caseNum} reduction ${gate.pct.toFixed(1)}% (5–8%) → ${gate.status}`);
+    }
 
     const PW = 792, PH = 612, ML = 30;
     const CPP = 3;
@@ -162,8 +236,9 @@ function gen(client) {
       doc.font('Helvetica-Bold').fontSize(7).fillColor('#2e7d32')
         .text(`Indicated Value ${cur(medV)}`, ML + 4, y + 2, { width: 140, height: 10, lineBreak: false });
       doc.rect(ML + 148, y, PW - 60 - 148, 14).fill('#f5f5f5').lineWidth(0.5).stroke('#999');
+      // RULE 2: min/max removed — only median displayed
       doc.font('Helvetica').fontSize(5.5).fillColor('#333')
-        .text(`Comps: ${cd.length}  |  Min: ${cur(minV)}  |  Max: ${cur(maxV)}  |  Median: ${cur(medV)}`, ML + 153, y + 3, { width: PW - 230, height: 10, lineBreak: false });
+        .text(`Comps: ${cd.length}  |  Median Adjusted Value: ${cur(medV)}`, ML + 153, y + 3, { width: PW - 230, height: 10, lineBreak: false });
       y += 17;
 
       // Column headers
@@ -247,6 +322,8 @@ function gen(client) {
       '  Features include: garage value, fireplace value, and other improvements',
       'Pool Adjustment: (Subject Pool Value - Comp Pool Value)',
       'Comps selected using Property Class, Distance, Condition, Size, Year Built, and Correlation Score.',
+      // RULE 5 note
+      `Comp Source Priority: Local CAD bulk data used when reduction is stronger than TaxNet dataset (Rule 5 — Generator Priority).`,
     ];
     doc.font('Helvetica').fontSize(7).fillColor('#555');
     fms.forEach(f => { doc.text('  \u2022 ' + f, ML + 10, fy, { width: PW - 80, height: 10, lineBreak: false }); fy += 11; });
@@ -254,8 +331,12 @@ function gen(client) {
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#1a1a2e')
       .text('Data Sources:', ML + 5, fy, { width: 400, height: 12, lineBreak: false }); fy += 13;
     doc.font('Helvetica').fontSize(7).fillColor('#555');
+    // RULE 5: comp_source drives data source attribution
+    const compSrc = client.comp_source === 'fbcad-local-bulk' ? `${client.county} County Appraisal District — Local Bulk Parcel Data (CAD-certified assessed values)` :
+                    client.comp_source === 'bexar-local-bulk' ? `Bexar CAD — Local Bulk Parcel Data (CAD-certified assessed values)` :
+                    'TaxNetUSA / Local CAD Bulk Parcel Data';
     [`${client.county} County Appraisal District (2025 Certified Values) — Land, Improvement, Feature Breakdowns`,
-      'RentCast API — Comparable sales, AVM, property details, feature data',
+      compSrc,
       'OverAssessed.ai — Adjustment calculations and analysis engine'].forEach(f => {
       doc.text('  \u2022 ' + f, ML + 10, fy, { width: PW - 80, height: 10, lineBreak: false }); fy += 11;
     });
