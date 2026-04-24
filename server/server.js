@@ -68,6 +68,12 @@ const pipelineRouter = require('./routes/pipeline');
 const esignRouter = require('./routes/esign');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
+// Control layer — message classification and case routing
+const { classifyMessage } = require('./services/message-classifier');
+const { routeCaseAction } = require('./services/case-action-router');
+const { runDailyTaskLoop } = require('./services/daily-task-loop');
+const dashboardRouter = require('./routes/dashboard');
+
 // Twilio setup
 let twilioClient = null;
 if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
@@ -3175,6 +3181,8 @@ if (isSupabaseEnabled()) {
     app.use('/api/email', emailNurtureRouter);
     // Inbound email webhook (SendGrid Inbound Parse — no auth, public)
     app.use('/api/email/inbound', emailInboundRouter);
+    // Dashboard API (internal use)
+    app.use('/api/dashboard', dashboardRouter);
     // Expose sendTelegramAlert for use in sub-routers
     app.locals.sendTelegramAlert = sendTelegramAlert;
     // /sign and /api/esign already mounted before static middleware (see top of file)
@@ -7333,10 +7341,21 @@ app.post('/api/inbound-reply', async (req, res) => {
             });
             storedEmail.case_id = mc?.case_id || null;
             console.log(`[InboundReply] Saved to communications — case: ${mc?.case_id || 'UNKNOWN'}, handled: false`);
+
+            // ── CONTROL LAYER: Classify and route customer messages ──
+            if (mc?.case_id && !isOptOut) {
+                const classification = classifyMessage(textBody, subject);
+                console.log(`[InboundReply] Classification: ${classification.classification} (${classification.confidence}) — Keywords: [${classification.keywords_matched.join(', ')}]`);
+
+                const routeResult = await routeCaseAction(mc.case_id, classification.classification, supabaseAdmin);
+                if (routeResult.updated) {
+                    console.log(`[InboundReply] Case routed: ${routeResult.next_action} | Follow-up: ${routeResult.next_follow_up_at}`);
+                }
+            }
         } catch (dbErr) {
             console.error('[InboundReply] communications insert failed:', dbErr.message);
         }
-        
+
         // ── Check 1: Creator reply? ──
         const creator = creatorEmailMap.get(emailClean);
         if (creator) {
@@ -8707,6 +8726,17 @@ app.post('/twiml/sms-incoming', async (req, res) => {
             const { error: commErr } = await supabaseAdmin.from('communications').insert(commRecord);
             if (commErr) console.error('[Inbound SMS] communications insert failed:', commErr.message);
             else console.log(`[Inbound SMS] Saved to communications — case: ${caseId}, handled: false`);
+
+            // ── CONTROL LAYER: Classify and route customer SMS messages ──
+            if (matchedCase && !isStopCmd) {
+                const classification = classifyMessage(body || `[MMS: ${numMedia} attachment(s)]`, '');
+                console.log(`[Inbound SMS] Classification: ${classification.classification} (${classification.confidence}) — Keywords: [${classification.keywords_matched.join(', ')}]`);
+
+                const routeResult = await routeCaseAction(caseId, classification.classification, supabaseAdmin);
+                if (routeResult.updated) {
+                    console.log(`[Inbound SMS] Case routed: ${routeResult.next_action} | Follow-up: ${routeResult.next_follow_up_at}`);
+                }
+            }
         } catch (commEx) {
             console.error('[Inbound SMS] communications insert exception:', commEx.message);
         }
@@ -10241,6 +10271,7 @@ app.listen(PORT, async () => {
         console.log(`🔄 Drip sequence: checking every hour`);
         console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? 'Enabled (auto-invoice)' : 'Disabled'}`);
         console.log(`🔍 Outcome monitor: checking every 6 hours`);
+        console.log(`📋 Daily task digest: 8:00 AM CDT daily`);
 
         // Initialize Stripe initiation fee product
         if (process.env.STRIPE_SECRET_KEY && stripeRouter.initializeInitiationFeeProduct) {
@@ -10250,7 +10281,51 @@ app.listen(PORT, async () => {
 
         // ── ORCHESTRATOR (inline background worker) ──
         startOrchestrator();
+
+        // ── DAILY TASK LOOP (8:00 AM CDT) ──
+        scheduleDailyTaskLoop();
     });
+
+    // Daily task digest scheduler — runs at 8:00 AM CDT (1:00 PM UTC, 2:00 PM UTC during DST)
+    function scheduleDailyTaskLoop() {
+        function getNextRunTime() {
+            const now = new Date();
+            const targetHourCDT = 8; // 8 AM CDT
+            const CDT_OFFSET = -5; // CDT is UTC-5
+            const targetHourUTC = targetHourCDT - CDT_OFFSET; // 13:00 UTC (1 PM)
+
+            let next = new Date();
+            next.setUTCHours(targetHourUTC, 0, 0, 0);
+
+            // If we've passed today's run, schedule for tomorrow
+            if (next <= now) {
+                next.setUTCDate(next.getUTCDate() + 1);
+            }
+
+            return next;
+        }
+
+        async function runTask() {
+            try {
+                console.log('[DailyTaskLoop] Running scheduled digest...');
+                const result = await runDailyTaskLoop(supabaseAdmin, sendTelegramAlert);
+                console.log(`[DailyTaskLoop] Complete: ${result.cases_reviewed} cases reviewed, digest sent: ${result.digest_sent}`);
+            } catch (err) {
+                console.error('[DailyTaskLoop] Scheduled run error:', err);
+            }
+            // Schedule next run
+            const next = getNextRunTime();
+            const delay = next.getTime() - Date.now();
+            console.log(`[DailyTaskLoop] Next run scheduled for ${next.toISOString()} (in ${Math.round(delay / 1000 / 60 / 60)} hours)`);
+            setTimeout(runTask, delay);
+        }
+
+        // Schedule first run
+        const next = getNextRunTime();
+        const delay = next.getTime() - Date.now();
+        console.log(`[DailyTaskLoop] First run scheduled for ${next.toISOString()} (in ${Math.round(delay / 1000 / 60 / 60)} hours)`);
+        setTimeout(runTask, delay);
+    }
 
     // runDripCheck scheduler REMOVED 2026-04-23 — function is a no-op (dead code), schedulers wasted resources
     // Do not re-add. runFollowUpSequence (every 4h) is the active drip engine.
