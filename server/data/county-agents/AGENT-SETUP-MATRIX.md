@@ -27,7 +27,7 @@ Other states: agent registration rules vary — see notes.
 | **Bowie** | 1 | 🔴 NOT REGISTERED | Unknown | https://www.bowiecad.org | Site not rendering — call to verify |
 | **Montgomery** | 1 | ⚠️ UNCONFIRMED | Portal | https://www.mcad-tx.org | Montgomery CAD portal |
 | **Comal** | 1 | ⚠️ UNCONFIRMED | Portal | https://www.comalcad.org | Comal CAD portal |
-| **Hunt** | 1 | 🔴 NOT REGISTERED | **Email** | agents@hunt-cad.org | **Confirmed 2026-04-27** — portal not yet live; submit 50-162 by email |
+| **Hunt** | 1 | 🟡 PENDING_CONFIRMATION (reply sent) | **Email** | agents@hunt-cad.org | **Email-only path confirmed 2026-04-27.** Portal not yet live (no timeline). Mailing address + portal-timeline question sent via SendGrid 17:14 CDT (msg id 1MmspcgHSMaydtWBfm4qQw). Readiness service: `server/services/hunt-county-readiness.js`. |
 | **Kaufman** | 1 | 🔴 NOT REGISTERED | Portal | https://esearch.kaufman-cad.org | BIS search portal — agent portal status unknown; check directly |
 | **Medina** | 1 | ⚠️ UNCONFIRMED | Portal | https://www.medinaappraisal.org | Medina CAD |
 
@@ -68,7 +68,11 @@ Other states: agent registration rules vary — see notes.
 
 | Priority | Action |
 |---|---|
-| 🔴 **URGENT — TX, May 15 deadline** | Hunt ✅ email confirmed. Galveston, Nueces, Johnson, El Paso, McLennan, Bowie — register NOW |
+| 🔴 **URGENT — TX, May 15 deadline** | Hunt 🟡 pending CAD confirmation. Galveston, Nueces, Johnson, El Paso, McLennan, Bowie — register NOW |
+
+## Email Filing Workflow
+Counties confirmed as **email-only** (no portal):
+- **Hunt** — agents@hunt-cad.org — method: email — agent_registered: pending_confirmation
 | 🟡 **CONFIRM — TX portals** | Bexar, Tarrant, Harris, Dallas, Travis, Williamson, Collin, Denton, Fort Bend — verify accounts are active/credentialed |
 | 🟢 **WA — runway to July 1** | Research Spokane, Yakima, Stevens, Ferry — confirm petition process |
 | ℹ️ **GA/OH** | Deadlines likely passed for 2026 — verify case status |

@@ -182,6 +182,31 @@ router.post('/:token/submit', express.json(), async (req, res) => {
             signed_pdf_url: signedPdfUrl,
             case_id: signData.case_id
         });
+
+        // AUTO-PACKAGE / AUTO-FILE: trigger after successful signature (non-blocking)
+        setImmediate(async () => {
+            try {
+                // === HUNT COUNTY GUARD (Tyler directive 2026-04-27) ===
+                // Hunt County: PACKAGE ONLY, never auto-send. Tyler must review before submission.
+                const county = (subData?.county || '').toLowerCase();
+                if (county === 'hunt') {
+                    const { autoPackageOnSignature } = require('../services/hunt-county-readiness');
+                    console.log(`[esign] 📦 Hunt County — packaging only (no auto-send) for ${signData.case_id}`);
+                    const pkg = await autoPackageOnSignature(supabaseAdmin, signData.case_id);
+                    console.log(`[esign] 📦 Hunt package result:`, JSON.stringify(pkg));
+                    return;
+                }
+
+                // Default path: auto-file via email runner (other counties)
+                const { fileByEmail } = require('../filing-automation/runners/email-runner');
+                console.log(`[esign] 🚀 Auto-filing ${signData.case_id} after signature...`);
+                const result = await fileByEmail(signData.case_id, { dryRun: false, submitMode: true });
+                console.log(`[esign] 📬 Auto-file result for ${signData.case_id}:`, JSON.stringify(result));
+            } catch (autoFileErr) {
+                console.error(`[esign] ❌ Auto-file FAILED for ${signData.case_id}:`, autoFileErr.message);
+            }
+        });
+
     } catch (err) {
         console.error(`[esign] ❌ Submit route error: ${err.message}`);
         res.status(500).json({ error: err.message });
