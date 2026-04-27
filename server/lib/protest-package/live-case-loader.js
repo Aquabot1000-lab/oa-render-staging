@@ -40,6 +40,27 @@ function condLabel(code){
 // use 0.0 when same subdivision since they sit in the same block group.
 function approxDistanceWithinSubdivision(_subjAddr, _compAddr){ return 0.0; }
 
+// Hard guard: cases marked analysis_stale_pending_recomp must NOT build a package
+// until a fresh comp re-pull is done. Tyler directive 2026-04-27 (OA-0027 incident).
+async function assertAnalysisFresh(caseId) {
+  // Only run when supabase is configured — sample/test runs don't hit DB
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  const { createClient } = require('@supabase/supabase-js');
+  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data } = await sb.from('submissions')
+    .select('analysis_status, analysis_tier, savings_deprecated')
+    .eq('case_id', caseId).single();
+  if (!data) return;
+  if (data.analysis_status === 'analysis_stale_pending_recomp' || data.analysis_tier === 'STALE' || data.savings_deprecated) {
+    const err = new Error(
+      'BLOCKED — case ' + caseId + ' is flagged analysis_stale_pending_recomp. ' +
+      'Run a fresh comp re-pull and clear the stale flag before rebuilding the package.'
+    );
+    err.code = 'ANALYSIS_STALE';
+    throw err;
+  }
+}
+
 function loadCase(caseId) {
   const dataRoot = path.join(__dirname, '..', '..', 'data');
   // Manifest of where each case's enrichment lives + county metadata
@@ -220,4 +241,4 @@ function loadCase(caseId) {
   return ctx;
 }
 
-module.exports = { loadCase };
+module.exports = { loadCase, assertAnalysisFresh };
