@@ -1,19 +1,21 @@
 # OverAssessed — Hard Rules (do not violate)
 
-## Email From-Address Rule (2026-04-27, Tyler explicit)
-**NEVER use `aquabot1000@icloud.com` or any aqua-personal address** for:
-- OA customer correspondence
-- County/CAD correspondence
-- Any OverAssessed business email
+## Email From-Address Rule (Tyler 2026-04-27)
 
-OverAssessed emails go from OverAssessed addresses only:
-- tyler@overassessed.ai (Tyler personal)
-- info@overassessed.ai (general business)
-- agents@overassessed.ai (if/when created)
+**ALL OverAssessed business email MUST go from `@overassessed.ai` addresses via SendGrid.**
 
-If OA SMTP credentials are not configured: **draft only, do not send**. Ship via Tyler's Outlook.
+✅ Correct:
+- SendGrid API with `from: 'tyler@overassessed.ai'` or `from: 'info@overassessed.ai'` or `from: 'notifications@overassessed.ai'`
+- Domain `overassessed.ai` is DKIM/SPF authenticated in SendGrid → can send from any subaddress
+
+❌ NEVER use:
+- `aquabot1000@icloud.com` for any OA customer/county/business email
+- Any aqua-personal address for OA work
+- Himalaya iCloud account for OA outbound
+
+If sending business email: use the SendGrid `@sendgrid/mail` client. Reply-To always Tyler-branded.
 
 ## Violated 2026-04-27 17:09 CDT
-Sent reply to agents@hunt-cad.org from aquabot1000@icloud.com. 
-Cleanup: Tyler will send corrective from his Outlook.
-Root cause: I rationalized "in-thread continuity" over identity hygiene. Wrong call.
+First Hunt CAD reply sent from aquabot1000@icloud.com via himalaya. WRONG.
+Corrective sent 17:14 CDT from tyler@overassessed.ai via SendGrid. CORRECT.
+Lesson: Default to SendGrid+OA domain for any outbound. If the path requires aqua@ address, STOP and ask.
