@@ -232,19 +232,133 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                     }
                     fs.unlink(tmpPath, ()=>{});
 
-                    // 2. Verify card on file
-                    const { data: sub2 } = await supabaseAdmin.from('submissions').select('stripe_customer_id,payment_status').eq('case_id', signData.case_id).single();
+                    // 2. Log signature verification
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: signData.case_id, actor: 'aquabot', action: 'aoa_signed_verified',
+                        details: { signature_length: (signature_data || '').length, signed_at: signedAt, county: 'Fort Bend' },
+                        created_at: new Date().toISOString()
+                    });
+
+                    // 3. Verify card on file → IMMEDIATE payment-flow action (Tyler 18:25 CDT)
+                    const { data: sub2 } = await supabaseAdmin.from('submissions').select('stripe_customer_id,payment_status,email,owner_name').eq('case_id', signData.case_id).single();
                     const cardReady = sub2?.stripe_customer_id && sub2?.payment_status === 'card_authorized';
                     console.log(`[esign] 💳 Card gate for ${signData.case_id}: ${cardReady ? 'READY' : 'MISSING'}`);
 
-                    // 3. Log and stage for Tyler review
+                    if (cardReady) {
+                        // Card already on file — send confirmation email immediately (one continuous flow)
+                        try {
+                            const sgMail = require('@sendgrid/mail');
+                            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+                            const pms = await stripe.paymentMethods.list({ customer: sub2.stripe_customer_id, type: 'card' });
+                            const card = pms.data[0]?.card || {};
+                            const last4 = card.last4 || '****';
+                            const brand = card.brand ? card.brand.charAt(0).toUpperCase() + card.brand.slice(1) : 'Card';
+                            const firstName = (sub2.owner_name || 'there').split(' ')[0];
+                            const sgRes = await sgMail.send({
+                                to: sub2.email,
+                                from: { email: 'notifications@overassessed.ai', name: 'OverAssessed' },
+                                replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                                subject: `Authorization signed — we'll take it from here, ${firstName}`,
+                                html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                                    <h2 style="color:#6c5ce7;">✅ Signed — your protest is moving</h2>
+                                    <p>Hi ${firstName},</p>
+                                    <p>Thanks for signing your authorization. We have your <strong>${brand} ending in ${last4}</strong> on file.</p>
+                                    <p>Per our agreement, you'll only be billed <strong>20% of any tax savings we win for you</strong>. No reduction = no charge.</p>
+                                    <p>Next: we'll file your protest with Fort Bend CAD before the May 15 deadline and represent you through the hearing. We'll keep you posted.</p>
+                                    <p>— Tyler<br>OverAssessed</p>
+                                </div>`
+                            });
+                            await supabaseAdmin.from('activity_log').insert({
+                                case_id: signData.case_id, actor: 'aquabot', action: 'payment_request_sent',
+                                details: {
+                                    method: 'card_on_file_confirmation',
+                                    stripe_customer_id: sub2.stripe_customer_id,
+                                    card_brand: brand, card_last4: last4,
+                                    sg_message_id: sgRes[0].headers['x-message-id'],
+                                    sent_to: sub2.email,
+                                    payment_method_collected: true,
+                                    note: 'Card was already on file pre-signature; sent confirmation email — no recapture needed'
+                                }, created_at: new Date().toISOString()
+                            });
+                            await supabaseAdmin.from('communications').insert({
+                                case_id: signData.case_id, direction: 'outbound', channel: 'email',
+                                recipient: sub2.email, subject: 'Authorization signed — confirmation',
+                                body: `Card on file confirmation: ${brand} ...${last4}. 20% contingency agreement.`,
+                                status: 'sent', handled: true,
+                                metadata: { source: 'post-signature-payment-confirmation', sg_message_id: sgRes[0].headers['x-message-id'] },
+                                created_at: new Date().toISOString()
+                            });
+                            console.log(`[esign] 💳 Payment confirmation email sent to ${sub2.email}`);
+                        } catch (payErr) {
+                            console.error(`[esign] ❌ Payment confirmation email failed:`, payErr.message);
+                            await supabaseAdmin.from('activity_log').insert({
+                                case_id: signData.case_id, actor: 'aquabot', action: 'payment_request_failed',
+                                details: { error: payErr.message, stripe_customer_id: sub2?.stripe_customer_id },
+                                created_at: new Date().toISOString()
+                            });
+                        }
+                    } else {
+                        // No card on file — send SetupIntent link
+                        try {
+                            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+                            const sgMail = require('@sendgrid/mail');
+                            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                            // Find or create stripe customer
+                            let custId = sub2?.stripe_customer_id;
+                            if (!custId) {
+                                const list = await stripe.customers.list({ email: (sub2.email || '').toLowerCase(), limit: 1 });
+                                if (list.data.length > 0) custId = list.data[0].id;
+                                else {
+                                    const created = await stripe.customers.create({ email: sub2.email, name: sub2.owner_name, metadata: { case_id: signData.case_id, source: 'post-signature' } });
+                                    custId = created.id;
+                                }
+                                await supabaseAdmin.from('submissions').update({ stripe_customer_id: custId }).eq('case_id', signData.case_id);
+                            }
+                            const si = await stripe.setupIntents.create({
+                                customer: custId, payment_method_types: ['card'],
+                                metadata: { case_id: signData.case_id, source: 'post-signature' }
+                            });
+                            const baseUrl = process.env.BASE_URL || 'https://overassessed.ai';
+                            const payUrl = `${baseUrl}/payment-setup?si=${si.client_secret}&case=${signData.case_id}`;
+                            const firstName = (sub2.owner_name || 'there').split(' ')[0];
+                            const sgRes = await sgMail.send({
+                                to: sub2.email,
+                                from: { email: 'notifications@overassessed.ai', name: 'OverAssessed' },
+                                replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                                subject: `Last step — add a card to lock in your protest`,
+                                html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                                    <h2 style="color:#6c5ce7;">✅ Signature received</h2>
+                                    <p>Hi ${firstName},</p>
+                                    <p>One quick last step: add a payment method so we can charge our 20% contingency only if we win you a reduction.</p>
+                                    <p style="text-align:center;margin:28px 0;"><a href="${payUrl}" style="background:#6c5ce7;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">Add Card</a></p>
+                                    <p style="color:#666;font-size:13px;">No charge today. We only bill if we win.</p>
+                                    <p>— Tyler<br>OverAssessed</p>
+                                </div>`
+                            });
+                            await supabaseAdmin.from('activity_log').insert({
+                                case_id: signData.case_id, actor: 'aquabot', action: 'payment_request_sent',
+                                details: {
+                                    method: 'setup_intent_link',
+                                    setup_intent_id: si.id, stripe_customer_id: custId,
+                                    sg_message_id: sgRes[0].headers['x-message-id'],
+                                    sent_to: sub2.email, payment_method_collected: false
+                                }, created_at: new Date().toISOString()
+                            });
+                            console.log(`[esign] 💳 SetupIntent link sent to ${sub2.email}`);
+                        } catch (siErr) {
+                            console.error(`[esign] ❌ SetupIntent send failed:`, siErr.message);
+                        }
+                    }
+
+                    // 4. Log final state for Tyler review
                     await supabaseAdmin.from('activity_log').insert({
                         case_id: signData.case_id, actor: 'aquabot', action: 'post_signature_package_staged',
                         details: {
                             county: 'Fort Bend', form_50_162_generated: !upErr,
-                            card_ready: cardReady, stripe_customer_id: sub2?.stripe_customer_id,
+                            payment_method_collected: !!cardReady,
                             requires_tyler_review: true, auto_file: false,
-                            next_step: cardReady ? 'READY_FOR_TYLER_REVIEW — awaiting Tyler approval to build protest package and file' : 'BLOCKED_PAYMENT — card not on file'
+                            next_step: cardReady ? 'READY_FOR_TYLER_REVIEW — awaiting Tyler approval to file' : 'BLOCKED_PAYMENT — awaiting card capture'
                         }, created_at: new Date().toISOString()
                     });
                     return;
