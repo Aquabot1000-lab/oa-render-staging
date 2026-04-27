@@ -259,7 +259,17 @@ async function reconcileAll(supabase, { dryRun = false, verbose = false } = {}) 
     console.log(`[state-engine] Wrote ${writes.length / 2} state updates to DB`);
   }
 
-  return results;
+  // Also expose as `transitions` with normalized field names for downstream consumers
+  const transitions = results.map(r => ({
+    case_id:    r.case_id,
+    owner_name: r.owner,
+    county:     r.county,
+    from:       r.oldStatus,
+    to:         r.newStatus,
+    reason:     r.reason,
+    changed:    r.changed,
+  }));
+  return { results, transitions };
 }
 
 module.exports = { computeState, reconcileAll };

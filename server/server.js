@@ -5149,6 +5149,28 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
         const correctedName = validation.corrected.ownerName || ownerName;
         const correctedAddress = validation.corrected.propertyAddress || propertyAddress;
 
+        // === INTAKE FILTER — TX-only enforcement ===
+        {
+            const { applyIntakeFilter } = require('./lib/state-engine/intake-filter');
+            const filterResult = applyIntakeFilter({
+                street: correctedAddress, city: req.body.city, state: req.body.state,
+                zip: req.body.zip || req.body.zipCode, county: req.body.county,
+                owner_name: correctedName, email: correctedEmail, phone: correctedPhone,
+            });
+            if (!filterResult.ok && filterResult.decision === 'OUT_OF_TX') {
+                console.log(`[Intake] OUT_OF_TX blocked: ${filterResult.reason}`);
+                // Still record the lead but flag it
+                // (actual rejection of service is handled by state engine; we don't lose the contact)
+                req._intakeDecision = 'OUT_OF_TX';
+                req._intakeReason   = filterResult.reason;
+            } else if (!filterResult.ok && filterResult.decision === 'NEEDS_REVIEW') {
+                req._intakeDecision = 'NEEDS_REVIEW';
+                req._intakeReason   = filterResult.reason;
+            } else {
+                req._intakeDecision = filterResult.decision || 'ACCEPT';
+            }
+        }
+
         // Auto-detect county from address if not provided
         let resolvedCounty = county || null;
         if (!resolvedCounty && correctedAddress) {

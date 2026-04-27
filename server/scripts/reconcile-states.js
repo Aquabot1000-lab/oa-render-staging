@@ -21,7 +21,7 @@ const SUMMARY = process.argv.includes('--summary');
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   console.log(`[reconcile] mode: ${COMMIT ? 'COMMIT' : 'DRY-RUN'}`);
 
-  const results = await reconcileAll(sb, { dryRun: !COMMIT, verbose: false });
+  const { results } = await reconcileAll(sb, { dryRun: !COMMIT, verbose: false });
 
   // Summary
   const byState = {};
