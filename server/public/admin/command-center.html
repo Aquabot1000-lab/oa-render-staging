@@ -126,7 +126,7 @@
         <div class="section">
             <h2>Revenue-Ready Leads</h2>
             <div id="oa-ready-cards"></div>
-            <div class="table-wrap"><table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Signed</th><th>Paid</th></tr></thead><tbody></tbody></table></div>
+            <div class="table-wrap"><table id="oa-ready"><thead><tr><th>Case</th><th>Name</th><th>County</th><th>Savings</th><th>Fee (25%)</th><th>Fee Agr.</th><th>50-162 AOA</th><th>Paid</th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="section">
             <h2>Ready to Contact</h2>
@@ -404,6 +404,14 @@ async function loadOA(){
             const isPaid=l.initiation_paid||l.initiation_fee_paid;
             const isSigned=l.fee_agreement_signed;
             const legacy=l.agreement_type==='legacy_terms';
+            // AOA / 50-162 real signature check — uses server-enriched fields, never raw agent_form_signed
+            const aoaReal   = l.aoa_signed_real   === true;
+            const aoaLegacy = l.aoa_legacy_flag   === true;
+            const aoaBadge  = aoaReal
+              ? badge('SIGNED ✓','g')
+              : aoaLegacy
+                ? `<span title="agent_form_signed=true but no valid esign token (>1KB) + PDF" style="background:#b94a08;color:#fff;font-size:10px;padding:2px 5px;border-radius:3px;font-weight:700;">⚠ LEGACY FLAG</span>`
+              : badge('unsigned','k');
             rBody.innerHTML+=`<tr>
                 <td>${l.case_id||'?'}</td>
                 <td>${(l.owner_name||'?').substring(0,25)}</td>
@@ -411,6 +419,7 @@ async function loadOA(){
                 <td class="money">${money(s)}/yr</td>
                 <td class="money">${money(s*0.25)}</td>
                 <td>${isSigned?badge('SIGNED','g'):badge('unsigned','k')}</td>
+                <td>${aoaBadge}</td>
                 <td>${legacy?badge('LEGACY','p'):isPaid?badge('PAID','g'):badge('UNPAID','o')}</td>
             </tr>`;
         });

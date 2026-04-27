@@ -22,3 +22,6 @@ server/data/dallas/parcels-compact.jsonl.gz
 server/data/*/parcels-compact.jsonl
 server/data/
 marketing/tiktok-videos/
+
+# Auth state — never commit live tokens
+server/password-resets.json

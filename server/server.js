@@ -456,6 +456,7 @@ const TX_SUBMISSIONS_FILE = path.join(TX_DIR, 'submissions.json');
 const GA_SUBMISSIONS_FILE = path.join(GA_DIR, 'submissions.json');
 const LEGACY_SUBMISSIONS_FILE = path.join(__dirname, 'submissions.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
+const PASSWORD_RESETS_FILE = path.join(__dirname, 'password-resets.json');
 const COUNTER_FILE = path.join(__dirname, 'counter.json');
 
 // Helper: build Supabase .or() filter that handles both UUID ids and case_id strings
@@ -802,12 +803,14 @@ async function initializeDataFiles() {
             }
         }
     } catch { /* no legacy file, fine */ }
-    // Ensure admin + Uri accounts exist on boot (preserve existing users)
+    // Ensure Tyler admin account exists on boot (preserve existing users)
+    // NOTE: Uri's password is NO LONGER reset on boot — he manages his own credential
+    // via the magic-link reset flow. Tyler's reset stays intentional per current ops.
     {
         let users = await readJsonFile(USERS_FILE);
         if (!Array.isArray(users)) users = [];
 
-        // Admin account — always reset password to known value
+        // Admin account — always reset password to known value (Tyler-only)
         const adminHash = await bcrypt.hash('OverAssessed!2026', 10);
         const adminIdx = users.findIndex(u => u.email === 'tyler@overassessed.ai');
         if (adminIdx >= 0) {
@@ -817,19 +820,8 @@ async function initializeDataFiles() {
             users.push({ id: uuidv4(), email: 'tyler@overassessed.ai', password: adminHash, name: 'Tyler Worthey', role: 'admin', createdAt: new Date().toISOString() });
         }
 
-        // Uri agent account — create if missing, reset password if exists
-        const uriHash = await bcrypt.hash('OA-Uri-2026!', 10);
-        const uriIdx = users.findIndex(u => u.email === 'uri@overassessed.ai');
-        if (uriIdx >= 0) {
-            users[uriIdx].password = uriHash;
-            users[uriIdx].role = 'agent';
-            users[uriIdx].name = 'Uri Uriah';
-        } else {
-            users.push({ id: uuidv4(), email: 'uri@overassessed.ai', password: uriHash, name: 'Uri Uriah', role: 'agent', createdAt: new Date().toISOString() });
-        }
-
         await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-        console.log('[Init] Users synced — tyler@overassessed.ai (admin) + uri@overassessed.ai (agent)');
+        console.log('[Init] Tyler admin synced — tyler@overassessed.ai (admin)');
     }
     await fs.mkdir(noticesDir, { recursive: true });
 }
@@ -3555,8 +3547,40 @@ app.get('/api/admin/leads', authenticateToken, async (req, res) => {
             .select('*')
             .is('deleted_at', null)
             .order('case_id');
+
+        // ── Signature integrity: pull esign_tokens + case_documents ──
+        // NEVER trust agent_form_signed boolean alone — verify real payload
+        const { data: allTokens } = await supabaseAdmin
+            .from('esign_tokens')
+            .select('case_id, signed_at, signature_data, status');
+        const { data: allDocs } = await supabaseAdmin
+            .from('case_documents')
+            .select('case_id, file_type');
+        // Build lookup maps
+        const tokenMap = {};
+        for (const t of allTokens || []) {
+            if (!tokenMap[t.case_id]) tokenMap[t.case_id] = [];
+            tokenMap[t.case_id].push(t);
+        }
+        const docMap = {};
+        for (const d of allDocs || []) {
+            if (!docMap[d.case_id]) docMap[d.case_id] = [];
+            docMap[d.case_id].push(d);
+        }
+
         // Enrich each lead with county timeline + classification
         (leads || []).forEach(l => {
+            // ── AOA / 50-162 signature reality check ──
+            const tokens = tokenMap[l.case_id] || [];
+            const docs   = docMap[l.case_id]   || [];
+            const validTokens = tokens.filter(t => t.signed_at && (t.signature_data || '').length > 1000);
+            const hasSignedPdf = docs.some(d => d.file_type === 'signed_50_162');
+            const realAoaSigned = validTokens.length > 0 && hasSignedPdf;
+            const legacyFlagOnly = l.agent_form_signed && !realAoaSigned;
+            l.aoa_signed_real    = realAoaSigned;    // true only if token + payload + PDF all present
+            l.aoa_legacy_flag    = legacyFlagOnly;   // true = CRM flag set but no real evidence
+            l.aoa_token_signed   = validTokens.length > 0;  // token has real sig payload
+            l.aoa_pdf_exists     = hasSignedPdf;     // signed_50_162 PDF in case_documents
             if (!l.missing_data_reason && l.status === 'Blocked - Bad Data') l.missing_data_reason = 'NEEDS_INTERNAL_DATA';
             if (!l.missing_fields) l.missing_fields = [];
             if (!l.missing_notes) l.missing_notes = [];
@@ -4226,6 +4250,26 @@ app.post('/api/auth/login', async (req, res) => {
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
+        // If user must change password on first login, return a setup token instead of a normal session
+        if (user.must_change_password === true) {
+            const setupToken = require('crypto').randomBytes(32).toString('hex');
+            const resets = await readJsonFile(PASSWORD_RESETS_FILE);
+            const arr = Array.isArray(resets) ? resets : [];
+            arr.push({
+                token: setupToken, user_id: user.id, email: user.email,
+                created_at: new Date().toISOString(),
+                expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hr
+                used_at: null, kind: 'forced_change'
+            });
+            await writeJsonFile(PASSWORD_RESETS_FILE, arr);
+            return res.status(200).json({
+                must_change_password: true,
+                setup_token: setupToken,
+                redirect: `/auth/setup?token=${setupToken}`,
+                message: 'You must set a new password before continuing.'
+            });
+        }
+
         const secret = process.env.JWT_SECRET || 'overassessed-secret-key-2026';
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '24h' });
         res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
@@ -4233,6 +4277,92 @@ app.post('/api/auth/login', async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
+});
+
+// ==================== PASSWORD RESET / MAGIC LINK ====================
+// Internal: admin-only endpoint to issue a setup link for a user (used by ops)
+app.post('/api/auth/issue-setup-link', authenticateToken, async (req, res) => {
+    try {
+        if (req.user?.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+        const { email, ttl_hours } = req.body;
+        if (!email) return res.status(400).json({ error: 'email required' });
+        const users = await readJsonFile(USERS_FILE);
+        const user = users.find(u => u.email === email);
+        if (!user) return res.status(404).json({ error: 'user not found' });
+        const token = require('crypto').randomBytes(32).toString('hex');
+        const ttl = Math.max(1, Math.min(168, parseInt(ttl_hours) || 48));
+        const expiresAt = new Date(Date.now() + ttl * 3600 * 1000).toISOString();
+        const resets = await readJsonFile(PASSWORD_RESETS_FILE);
+        const arr = Array.isArray(resets) ? resets : [];
+        arr.push({
+            token, user_id: user.id, email,
+            created_at: new Date().toISOString(),
+            expires_at: expiresAt,
+            used_at: null, kind: 'admin_issued'
+        });
+        await writeJsonFile(PASSWORD_RESETS_FILE, arr);
+        const base = process.env.PUBLIC_URL || 'https://overassessed.ai';
+        const url = `${base}/auth/setup?token=${token}`;
+        return res.json({ ok: true, url, expires_at: expiresAt });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Public: validate a setup token and let user set their password
+app.get('/auth/setup', async (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html><html><head><title>OverAssessed — Set Your Password</title>
+<style>body{font-family:system-ui;background:#0d1117;color:#c9d1d9;margin:0;padding:40px;display:flex;justify-content:center}.card{max-width:440px;width:100%;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:32px}h1{margin:0 0 8px;font-size:22px}p{color:#8b949e;font-size:13px}label{display:block;margin:16px 0 6px;font-size:12px;font-weight:600}input{width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;font-size:14px;box-sizing:border-box}button{margin-top:18px;width:100%;padding:10px;background:#238636;color:#fff;border:0;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px}.err{background:#3a1313;border:1px solid #f85149;color:#ffa198;padding:10px;border-radius:6px;margin-top:12px;font-size:13px;display:none}.ok{background:#0f3a1f;border:1px solid #2ea043;color:#aff5b4;padding:10px;border-radius:6px;margin-top:12px;font-size:13px;display:none}</style></head>
+<body><div class="card"><h1>Set Your Password</h1><p>Choose a strong password (12+ chars, mix of upper/lower/numbers/symbols).</p>
+<label>New Password</label><input type="password" id="pw" minlength="12" autocomplete="new-password"/>
+<label>Confirm</label><input type="password" id="pw2" minlength="12" autocomplete="new-password"/>
+<button onclick="submit()">Set Password &amp; Sign In</button>
+<div class="err" id="err"></div><div class="ok" id="ok"></div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+async function submit(){
+  const pw=document.getElementById('pw').value, pw2=document.getElementById('pw2').value;
+  const err=document.getElementById('err'), ok=document.getElementById('ok');
+  err.style.display='none'; ok.style.display='none';
+  if(pw.length<12){err.textContent='Password must be 12+ characters.';err.style.display='block';return;}
+  if(pw!==pw2){err.textContent='Passwords do not match.';err.style.display='block';return;}
+  if(!/[A-Z]/.test(pw)||!/[a-z]/.test(pw)||!/[0-9]/.test(pw)||!/[^A-Za-z0-9]/.test(pw)){err.textContent='Password must include upper, lower, number, and symbol.';err.style.display='block';return;}
+  const r=await fetch('/api/auth/complete-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:pw})});
+  const j=await r.json();
+  if(!r.ok){err.textContent=j.error||'Failed';err.style.display='block';return;}
+  ok.textContent='✓ Password set. Redirecting to login…';ok.style.display='block';
+  setTimeout(()=>{window.location='/admin'},1200);
+}
+</script></div></body></html>`);
+});
+
+// Public: complete the setup (consume token, set password, clear must_change_password)
+app.post('/api/auth/complete-setup', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) return res.status(400).json({ error: 'token and password required' });
+        if (password.length < 12) return res.status(400).json({ error: 'password must be 12+ chars' });
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+            return res.status(400).json({ error: 'password must include upper, lower, number, and symbol' });
+        }
+        const resets = await readJsonFile(PASSWORD_RESETS_FILE);
+        const arr = Array.isArray(resets) ? resets : [];
+        const r = arr.find(x => x.token === token);
+        if (!r) return res.status(404).json({ error: 'invalid token' });
+        if (r.used_at) return res.status(410).json({ error: 'token already used' });
+        if (new Date(r.expires_at) < new Date()) return res.status(410).json({ error: 'token expired' });
+        const users = await readJsonFile(USERS_FILE);
+        const idx = users.findIndex(u => u.id === r.user_id);
+        if (idx < 0) return res.status(404).json({ error: 'user not found' });
+        users[idx].password = await bcrypt.hash(password, 10);
+        users[idx].must_change_password = false;
+        users[idx].password_changed_at = new Date().toISOString();
+        await writeJsonFile(USERS_FILE, users);
+        r.used_at = new Date().toISOString();
+        await writeJsonFile(PASSWORD_RESETS_FILE, arr);
+        console.log(`[auth] password set via setup token for ${users[idx].email}`);
+        return res.json({ ok: true, message: 'Password set. Sign in to continue.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ==================== CLIENT PORTAL AUTH ====================
