@@ -1,21 +1,25 @@
 /**
  * sign-form-50-162.js
  * Generates a final signed Form 50-162 PDF by:
- * 1. Running the Python generator to pre-fill fields for a customer
+ * 1. Pre-filling form fields via the JS generator (pdf-lib, no Python)
  * 2. Overlaying the captured signature image + date onto Step 6 (page 2)
  * 3. Uploading to Supabase Storage
  * 4. Inserting a record in case_documents
+ *
+ * NOTE: Previously called Python (`form-50-162-generator.py` + pypdf).
+ * That dependency does not exist on the Render Node runtime, which caused
+ * silent post-signing PDF failures (signed_at set but no signed_50_162 doc).
+ * Ported to pure JS using pdf-lib (already in package.json) — see
+ * `form-50-162-generator.js`.
  */
 
 'use strict';
 
-const { execSync, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const { PDFDocument } = require('pdf-lib');
+const { generatePrefilledForm } = require('./form-50-162-generator');
 
-const GENERATOR_SCRIPT = path.join(__dirname, 'form-50-162-generator.py');
 const TEMPLATE_PATH = path.join(__dirname, '../../templates/form-50-162-agent-appointment.pdf');
 const OUTPUT_DIR = path.join(__dirname, '../../generated-forms');
 
@@ -60,36 +64,27 @@ function parseAddressParts(address) {
 }
 
 /**
- * Step 1: Generate pre-filled PDF using Python script
+ * Step 1: Generate pre-filled PDF using the JS generator (no Python).
+ * Returns the absolute path to the unsigned pre-filled PDF on disk.
  */
-function generatePrefilledPDF(caseData) {
+async function generatePrefilledPDF(caseData) {
     const { street, cityStateZip } = parseAddressParts(caseData.property_address);
-    const county = (caseData.county || '').toLowerCase();
-    const adName = COUNTY_TO_AD[county] || `${caseData.county || ''} Appraisal District`;
+    const phoneFormatted = (caseData.phone || '')
+        .replace(/\D/g, '')
+        .replace(/^1/, '')
+        .replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
 
-    const caseJson = JSON.stringify({
+    return generatePrefilledForm({
         case_id: caseData.case_id,
         owner_name: caseData.owner_name || '',
-        phone: (caseData.phone || '').replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'),
+        phone: phoneFormatted,
         property_address: street || caseData.property_address || '',
         owner_address: street || caseData.property_address || '',
         owner_city_state_zip: cityStateZip || '',
         county: caseData.county || '',
         account_number: caseData.account_number || '',
         legal_description: caseData.legal_description || ''
-    });
-
-    const result = spawnSync('python3', [GENERATOR_SCRIPT, caseJson, JSON.stringify(AGENT_INFO)], {
-        encoding: 'utf8', timeout: 30000
-    });
-
-    if (result.status !== 0) {
-        throw new Error(`PDF generator failed: ${result.stderr || result.stdout}`);
-    }
-
-    const outputLine = (result.stdout || '').trim().split('\n').find(l => l.startsWith('Generated:'));
-    if (!outputLine) throw new Error(`Generator did not return output path. stdout: ${result.stdout}`);
-    return outputLine.replace('Generated: ', '').trim();
+    }, AGENT_INFO);
 }
 
 /**
@@ -219,17 +214,17 @@ async function generateAndStoreSigned(supabase, { caseId, ownerName, propertyAdd
     console.log(`[sign-form]   template: ${TEMPLATE_PATH}`);
     console.log(`[sign-form]   template exists: ${fs.existsSync(TEMPLATE_PATH)}`);
     console.log(`[sign-form]   output dir: ${OUTPUT_DIR}`);
-    console.log(`[sign-form]   generator script: ${GENERATOR_SCRIPT}`);
-    console.log(`[sign-form]   generator exists: ${fs.existsSync(GENERATOR_SCRIPT)}`);
+    console.log(`[sign-form]   generator: pdf-lib (JS, no Python)`);
     console.log(`[sign-form]   signature data length: ${signatureDataUrl ? signatureDataUrl.length : 0}`);
 
-    // 1. Generate pre-filled PDF
+    // 1. Generate pre-filled PDF (pure JS)
     let prefilledPath;
     try {
-        prefilledPath = generatePrefilledPDF(caseData);
+        prefilledPath = await generatePrefilledPDF(caseData);
         console.log(`[sign-form] ✅ Step 1 — Pre-filled PDF: ${prefilledPath}`);
     } catch (err) {
         console.error(`[sign-form] ❌ Step 1 FAILED — Pre-fill PDF generation: ${err.message}`);
+        console.error(`[sign-form]    Stack: ${err.stack}`);
         throw err;
     }
 
