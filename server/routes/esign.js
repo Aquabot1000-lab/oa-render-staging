@@ -197,6 +197,59 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                     return;
                 }
 
+                // === FORT BEND (OA-0010) GUARD (Tyler directive 2026-04-27) ===
+                // Fort Bend: Generate 50-162 + verify card on file, then hold for Tyler approval.
+                // Do NOT auto-file. Do NOT proceed to filing until payment method secured.
+                if (county === 'fort bend') {
+                    console.log(`[esign] 📦 Fort Bend — package-only after signature for ${signData.case_id}`);
+
+                    // 1. Generate Form 50-162 PDF
+                    const { generatePrefilledForm } = require('../services/form-50-162-generator');
+                    const { createClient } = require('@supabase/supabase-js');
+                    const fs = require('fs'), path = require('path'), os = require('os');
+                    const tmpPath = path.join(os.tmpdir(), `${signData.case_id}-50162-${Date.now()}.pdf`);
+                    const agentInfo = {
+                        company: 'OverAssessed, LLC', address: '6002 Camp Bullis, Suite 208',
+                        city: 'San Antonio', state: 'TX', zip: '78257',
+                        phone: '(888) 282-9165', email: 'info@overassessed.ai'
+                    };
+                    await generatePrefilledForm(subData, agentInfo, tmpPath);
+                    const buf = fs.readFileSync(tmpPath);
+                    const storagePath = `forms/${signData.case_id}/2026-50162-${Date.now()}.pdf`;
+                    const { error: upErr } = await supabaseAdmin.storage.from('documents').upload(storagePath, buf, { contentType: 'application/pdf', upsert: true });
+                    if (!upErr) {
+                        const { data: { publicUrl } } = supabaseAdmin.storage.from('documents').getPublicUrl(storagePath);
+                        await supabaseAdmin.from('case_documents').insert({
+                            case_id: signData.case_id,
+                            file_name: `2026-Form-50-162-${(subData?.owner_name||'').replace(/\s+/g,'-')}.pdf`,
+                            file_url: publicUrl, file_type: 'signed_50_162',
+                            uploaded_by: 'aquabot-auto-package',
+                            notes: 'Auto-generated post-AOA-signature. Fort Bend. Awaiting Tyler approval before filing.'
+                        });
+                        console.log(`[esign] ✅ Fort Bend 50-162 stored: ${publicUrl}`);
+                    } else {
+                        console.error(`[esign] ❌ 50-162 upload failed: ${upErr.message}`);
+                    }
+                    fs.unlink(tmpPath, ()=>{});
+
+                    // 2. Verify card on file
+                    const { data: sub2 } = await supabaseAdmin.from('submissions').select('stripe_customer_id,payment_status').eq('case_id', signData.case_id).single();
+                    const cardReady = sub2?.stripe_customer_id && sub2?.payment_status === 'card_authorized';
+                    console.log(`[esign] 💳 Card gate for ${signData.case_id}: ${cardReady ? 'READY' : 'MISSING'}`);
+
+                    // 3. Log and stage for Tyler review
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: signData.case_id, actor: 'aquabot', action: 'post_signature_package_staged',
+                        details: {
+                            county: 'Fort Bend', form_50_162_generated: !upErr,
+                            card_ready: cardReady, stripe_customer_id: sub2?.stripe_customer_id,
+                            requires_tyler_review: true, auto_file: false,
+                            next_step: cardReady ? 'READY_FOR_TYLER_REVIEW — awaiting Tyler approval to build protest package and file' : 'BLOCKED_PAYMENT — card not on file'
+                        }, created_at: new Date().toISOString()
+                    });
+                    return;
+                }
+
                 // Default path: auto-file via email runner (other counties)
                 const { fileByEmail } = require('../filing-automation/runners/email-runner');
                 console.log(`[esign] 🚀 Auto-filing ${signData.case_id} after signature...`);
