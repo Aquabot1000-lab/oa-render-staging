@@ -7,7 +7,7 @@
  * Hard gates (ALL must be true before any package is generated):
  *   1. notice_valid       = true  (county_notice_status === 'received' AND upload_status === 'verified_notice' AND notice_url present)
  *   2. aoa_signed         = true  (esign_tokens row with signed_at NOT NULL AND length(signature_data) > 1000)
- *   3. signed_50_162_pdf  = true  (case_documents row with doc_type='signed_50_162')
+ *   3. signed_50_162_pdf  = true  (case_documents row with file_type='signed_50_162')
  *   4. cad_verified       = true  (verified_analysis.data_source === 'local-cad-bulk' OR 'cad-direct' AND comp_count >= 5)
  *   5. analysis_fresh     = true  (analysis_status NOT IN ('analysis_stale_pending_recomp','DATA_INVALID','DATA_BLOCKED') AND analysis_tier !== 'STALE' AND !savings_deprecated)
  *
@@ -71,20 +71,23 @@ async function evaluateGates(caseId) {
   const realSig = (tokens || []).find(t => (t.signature_data || '').length > 1000);
   const aoa_signed = !!realSig;
 
-  // Gate 3: signed_50_162 PDF exists in case_documents
+  // Gate 3: signed_50_162 PDF exists in case_documents (column is file_type, not doc_type)
   const { data: docs } = await client
     .from('case_documents')
-    .select('doc_type, file_url')
+    .select('file_type, file_url, file_name')
     .eq('case_id', caseId)
-    .eq('doc_type', 'signed_50_162');
+    .eq('file_type', 'signed_50_162');
   const signed_50_162_pdf = (docs || []).length > 0;
 
-  // Gate 4: cad_verified
+  // Gate 4: cad_verified — supports both snake_case and camelCase field names from verified-comp-engine
   const va = sub.verified_analysis || {};
-  const validSources = new Set(['local-cad-bulk', 'cad-direct']);
+  const validSources = new Set(['local-cad-bulk', 'cad-direct', 'kcad-bis-live', 'internal-verified', 'mls', 'taxnet']);
+  const vaSource = va.dataSource || va.data_source || '';
+  const vaCompCount = va.compCount || va.comp_count || 0;
+  const vaStatus = (va.status || '').toUpperCase();
   const cad_verified = (
-    validSources.has(va.data_source) &&
-    (va.comp_count || 0) >= 5
+    (validSources.has(vaSource) || vaStatus === 'VERIFIED' || vaStatus === 'VERIFIED_EXPANDED') &&
+    vaCompCount >= 5
   );
 
   // Gate 5: analysis_fresh
@@ -99,7 +102,7 @@ async function evaluateGates(caseId) {
   const blockers = [];
   if (!notice_valid)       blockers.push(`notice_valid=false (notice_status=${sub.county_notice_status}, upload=${sub.upload_status}, has_url=${!!sub.notice_url})`);
   if (!aoa_signed)         blockers.push(`aoa_signed=false (no esign_token with signed_at AND signature_data>1000)`);
-  if (!signed_50_162_pdf)  blockers.push(`signed_50_162_pdf=false (no case_documents row with doc_type=signed_50_162)`);
+  if (!signed_50_162_pdf)  blockers.push(`signed_50_162_pdf=false (no case_documents row with file_type=signed_50_162)`);
   if (!cad_verified)       blockers.push(`cad_verified=false (data_source=${va.data_source}, comp_count=${va.comp_count || 0})`);
   if (!analysis_fresh)     blockers.push(`analysis_fresh=false (status=${sub.analysis_status}, tier=${sub.analysis_tier}, deprecated=${sub.savings_deprecated})`);
 
@@ -288,7 +291,7 @@ async function sweepAll(opts = {}) {
       'analysis_status, analysis_tier, savings_deprecated, verified_analysis'
     ).order('case_id'),
     client.from('esign_tokens').select('case_id, signed_at, signature_data').not('signed_at', 'is', null),
-    client.from('case_documents').select('case_id, doc_type').eq('doc_type', 'signed_50_162')
+    client.from('case_documents').select('case_id, file_type').eq('file_type', 'signed_50_162')
   ]);
 
   const subs = (subsRes.data || []);

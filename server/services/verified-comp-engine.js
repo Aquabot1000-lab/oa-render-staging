@@ -99,9 +99,14 @@ function applyStrictFilters(comps, assessedValue, subject, passLabel) {
             const compType = (c.propertyType || '').toUpperCase();
             const normalize = (t) => {
                 if (/SINGLE|SFR|A1|RESIDENCE/.test(t)) return 'SFR';
+                // BIS/KCAD/BCAD county codes: R = Residential, RS = Residential-Single
+                if (/^R$|^RS$|^RES$/.test(t)) return 'SFR';
                 if (/TOWN|ATTACH/.test(t)) return 'TOWNHOME';
                 if (/CONDO|UNIT/.test(t)) return 'CONDO';
                 if (/MULTI|DUPLEX|TRIPLEX|QUAD/.test(t)) return 'MULTI';
+                // Commercial codes — exclude explicitly
+                if (/^C$|^COMM|^B$|^BUS/.test(t)) return 'COMMERCIAL';
+                if (/^A$|^AGRICULTURAL|^FARM|^RANCH/.test(t)) return 'AGRICULTURAL';
                 return t;
             };
             if (normalize(subjectPropType) !== normalize(compType)) {

@@ -199,11 +199,9 @@ function renderEUGrid(doc, subject, comps, allAdj, finalValue) {
         doc.font('Helvetica').fontSize(6.5)
             .text(
                 'Number of Comps: ' + comps.length +
-                ' , Minimum Adjusted Value: ' + fmt(minVal) +
-                ' , Maximum Adjusted Value: ' + fmt(maxVal) +
                 ' . Appraised Value: ' + fmt(noticedVal) +
                 ' → Recommended Value: ' + fmt(recommendedVal) +
-                ' (' + noticeToRecPct + '% reduction)',
+                ' (' + noticeToRecPct + '% reduction)',  // Max/Median removed per Tyler directive
                 ML, MT + 54, { width: contentW, lineBreak: false });
 
         // Divider
@@ -218,8 +216,7 @@ function renderEUGrid(doc, subject, comps, allAdj, finalValue) {
         doc.text('SUBJECT', ML + LABEL_W, y + 3, { ...o, width: COL_W - 2 });
         for (let c = 0; c < pageComps.length; c++) {
             const num = pgOffset + c + 1;
-            const label = allAdj[pgOffset + c] && allAdj[pgOffset + c].adjustedValue === medianVal
-                ? 'MEDIAN COMP' : 'COMP ' + num;
+            const label = 'COMP ' + num;  // No MEDIAN label per Tyler directive
             doc.text(label, ML + LABEL_W + COL_W * (c + 1), y + 3, { ...o, width: COL_W - 2 });
         }
         doc.fillColor('#000');
@@ -425,8 +422,7 @@ function renderEvidence(doc, caseData, subject, comps, allAdj, stats, finalValue
     const medPsf = compPsfs.sort((a,b)=>a-b)[Math.floor(compPsfs.length/2)];
     
     doc.text('Subject $/SF: $' + subPsf + ' (appraised $' + subject.assessedValue.toLocaleString() + ' / ' + subject.sqft + ' SF)');
-    doc.text('Comp Average $/SF: $' + avgPsf + '  |  Comp Median $/SF: $' + medPsf);
-    doc.text('Subject is $' + (subPsf - avgPsf) + '/SF ABOVE comparable average');
+    doc.text('Comp $/SF Range: $' + Math.min(...compPsfs).toLocaleString() + ' – $' + Math.max(...compPsfs).toLocaleString() + '  (Subject: $' + subPsf + '/SF)');  // No Avg/Median per Tyler directive
     doc.moveDown(0.5);
     
     // Comp ranking
@@ -483,9 +479,9 @@ function renderEvidence(doc, caseData, subject, comps, allAdj, stats, finalValue
         doc.text('3. MARKET POSITION: The subject\'s size (' + (subject.sqft || 0).toLocaleString() + ' SF), age (' + (builtYear || 'N/A') + '), and improvement value align with the comparable properties selected. The district appraisal is inconsistent with the market evidence presented.', { width: 500 });
     }
     doc.moveDown(0.2);
-    doc.text('4. COMPARABLE EVIDENCE: The ' + comps.length + ' comparable properties selected reflect similar size, age, condition, and location characteristics. After adjustments, the indicated value range is $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + ', with a median of $' + stats.median.toLocaleString() + '.', { width: 500 });
+    doc.text('4. COMPARABLE EVIDENCE: The ' + comps.length + ' comparable properties selected reflect similar size, age, condition, and location characteristics. After adjustments, the indicated value range is $' + stats.min.toLocaleString() + ' – $' + stats.max.toLocaleString() + '.', { width: 500 });  // No median per Tyler directive
     doc.moveDown(0.2);
-    doc.text('5. UNEQUAL APPRAISAL (§41.41(a)(2)): After adjusting for size, age, condition, and land, the subject should be valued at approximately $' + recVal.toLocaleString() + ' — our recommended value, supported by ' + comps.length + ' adjusted comparable properties with a median of $' + stats.median.toLocaleString() + '.', { width: 500 });
+    doc.text('5. UNEQUAL APPRAISAL (§41.41(a)(2)): After adjusting for size, age, condition, and land, the subject should be valued at approximately $' + recVal.toLocaleString() + ' — our recommended value, supported by ' + comps.length + ' adjusted comparable properties.', { width: 500 });  // No median per Tyler directive
     doc.moveDown(0.5);
 
     // ── County-specific narrative blocks (Bexar acreage only) ──
