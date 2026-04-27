@@ -1,3 +1,4 @@
+/* DEPRECATED — DO NOT USE FOR FILING. See PROTEST-PACKAGE-STANDARD.md. Approved: gen-taxnet-final.js / gen-taxnet-pdf.js */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
@@ -175,16 +176,13 @@ async function build() {
          .text('Tax ID: ' + property.accountId, ML, MT + 43, { lineBreak: false })
          .text('Owner: ' + property.ownerName, ML + 220, MT + 43, { lineBreak: false });
 
-      // Indicated Value — median, no max
+      // Recommended Value (= Owner Opinion = locked anchor) — Tyler directive 2026-04-27
+      // No Max/Median exposed in the grid header.
+      const _recVal = property.opinionOfValue;
       doc.font('Helvetica-Bold').fontSize(10)
-         .text('Indicated Value ' + fmt(medianVal), ML, MT + 57, { lineBreak: false });
+         .text('Recommended Value: ' + fmt(_recVal), ML, MT + 57, { lineBreak: false });
       doc.font('Helvetica').fontSize(8)
-         .text(
-           'Number of Comps: ' + comps.length +
-           ' , Minimum Adjusted Value: ' + fmt(minVal) +
-           ' , Median Value: ' + fmt(medianVal),
-           ML, MT + 70, { width: contentW, lineBreak: false }
-         );
+         .text('Number of Comps: ' + comps.length, ML, MT + 70, { width: contentW, lineBreak: false });
 
       // Separator
       doc.moveTo(ML, MT + 82).lineTo(ML + contentW, MT + 82).lineWidth(0.5).stroke('#ccc');
@@ -283,7 +281,7 @@ async function build() {
     doc.moveDown(0.3);
     doc.fontSize(8).font('Helvetica');
     doc.text('Subject $/SF: $' + subPsf2 + ' (appraised ' + fmt(property.assessedValue) + ' / ' + property.sqft + ' SF)');
-    doc.text('Comp Average $/SF: $' + avgPsf + '  |  Comp Median $/SF: $' + medPsf);
+    doc.text('Comp Average $/SF: $' + avgPsf);
     doc.text('Subject is $' + (subPsf2 - avgPsf) + '/SF ABOVE comparable average');
     doc.moveDown(0.5);
 
