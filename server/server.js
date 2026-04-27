@@ -71,6 +71,7 @@ const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 // Control layer — message classification and case routing
 const { classifyMessage } = require('./services/message-classifier');
 const { routeCaseAction } = require('./services/case-action-router');
+const { autoRespond: autoRespondInbound } = require('./services/inbound-auto-responder');
 const { runDailyTaskLoop } = require('./services/daily-task-loop');
 const dashboardRouter = require('./routes/dashboard');
 
@@ -6483,26 +6484,16 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        // === DOCUMENT CLASSIFICATION (2026-04-14) ===
+        // === DOCUMENT CLASSIFICATION — notice-intake-guard (2026-04-27) ===
+        // Guard runs AFTER storage so it has the local file path for OCR/vision.
+        // We defer guard execution until after upload; set placeholders now.
         const filename = (req.file.originalname || '').toLowerCase();
-        const classifyDocument = (fname) => {
-            // Known non-notice patterns
-            const nonNotice = ['1098', 'mortgage', 'insurance', 'hoa', 'deed', 'title', 'survey', 'inspection', 'appraisal report', 'closing'];
-            // Known notice patterns
-            const noticePatterns = ['notice', 'appraised', 'appraisal', 'cad', 'protest', 'assessed', 'tax statement', 'property tax'];
-            
-            const fnLower = fname.toLowerCase();
-            if (noticePatterns.some(p => fnLower.includes(p))) return 'notice';
-            if (nonNotice.some(p => fnLower.includes(p))) return 'other_document';
-            // PDF/image with no keyword — tentatively accept but flag
-            return 'unclassified';
-        };
-        
-        const docType = req.body.docType || classifyDocument(filename);
-        const isNotice = docType === 'notice' || docType === 'unclassified'; // accept unclassified as possible notice
-        const isKnownWrong = docType === 'other_document';
-        
-        console.log(`[Upload] File: ${filename} | Classified: ${docType} | IsNotice: ${isNotice}`);
+        const localFilePath = req.file.path; // multer writes to disk
+        // placeholders — will be overwritten after storage upload + guard
+        let isNotice = true;
+        let isKnownWrong = false;
+        let guardResult = null;
+        console.log(`[Upload] File: ${filename} | size: ${req.file.size} | guard pending`);
 
         // Upload to Supabase Storage — REQUIRED, no local fallback
         const sub0 = await findSubmission(req.params.id);
@@ -6521,6 +6512,23 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             console.error(`[Storage] ❌ Supabase upload FAILED for ${uploadCaseIdForStorage}: ${storageErr.message}`);
             console.error(`[Storage] Stack: ${storageErr.stack}`);
             return res.status(500).json({ error: 'STORAGE_FAILED', detail: storageErr.message });
+        }
+
+        // === RUN INTAKE GUARD (OCR + vision) after file is on disk ===
+        try {
+            const { classifyUpload } = require('./lib/state-engine/notice-intake-guard');
+            guardResult = await classifyUpload({
+                localPath:    localFilePath,
+                originalName: req.file.originalname,
+                mimeType:     req.file.mimetype,
+                caseId:       uploadCaseIdForStorage,
+            });
+            isKnownWrong = guardResult.result === 'WRONG_DOCUMENT';
+            isNotice     = guardResult.result === 'NOTICE_VALID' || guardResult.result === 'INDETERMINATE';
+            console.log(`[Guard] ${uploadCaseIdForStorage}: ${guardResult.result} (${guardResult.confidence}) — ${guardResult.reason} [vision:${guardResult.visionUsed}]`);
+        } catch (guardErr) {
+            console.error('[Guard] error — defaulting to accept:', guardErr.message);
+            guardResult = { result: 'INDETERMINATE', reason: 'guard-error: ' + guardErr.message, confidence: 'low', uploadStatus: 'uploaded', visionUsed: false };
         }
 
         const pinMatch = req.file.originalname.match(/(\d{6,})/);
@@ -6608,7 +6616,8 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
         if (isSupabaseEnabled()) {
             await supabaseAdmin.from('submissions').update({
                 last_activity_at: new Date().toISOString(),
-                upload_status: filePath.startsWith('http') ? 'uploaded' : 'local-only',
+                upload_status: (guardResult && guardResult.uploadStatus) || (filePath.startsWith('http') ? 'uploaded' : 'local-only'),
+                notice_guard_result: guardResult ? JSON.stringify({ result: guardResult.result, reason: guardResult.reason, confidence: guardResult.confidence, visionUsed: guardResult.visionUsed }) : null,
             }).eq('case_id', uploadCaseId);
             // Recompute next_action after successful upload
             const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', uploadCaseId).single();
@@ -7373,6 +7382,20 @@ app.post('/api/inbound-reply', async (req, res) => {
                 if (routeResult.updated) {
                     console.log(`[InboundReply] Case routed: ${routeResult.next_action} | Follow-up: ${routeResult.next_follow_up_at}`);
                 }
+
+                // Auto-respond on the same channel (gated by OA_INBOUND_AUTOREPLY_LIVE)
+                try {
+                    const arResult = await autoRespondInbound({
+                        classification: classification.classification,
+                        caseId: mc.case_id,
+                        channel: 'email',
+                        supabaseAdmin,
+                        sendTelegramAlert,
+                    });
+                    console.log(`[InboundReply] Auto-responder:`, JSON.stringify(arResult));
+                } catch (arErr) {
+                    console.error('[InboundReply] Auto-responder error:', arErr.message);
+                }
             }
         } catch (dbErr) {
             console.error('[InboundReply] communications insert failed:', dbErr.message);
@@ -7863,14 +7886,32 @@ app.post('/api/quick-upload/:caseId', uploadNotice.single('notice'), async (req,
             return res.status(500).json({ error: 'STORAGE_FAILED', detail: storageErr.message });
         }
 
+        // === RUN INTAKE GUARD ===
+        let quickGuard = null;
+        let quickWrong = false;
+        try {
+            const { classifyUpload } = require('./lib/state-engine/notice-intake-guard');
+            quickGuard = await classifyUpload({
+                localPath:    req.file.path,
+                originalName: req.file.originalname,
+                mimeType:     req.file.mimetype,
+                caseId,
+            });
+            quickWrong = quickGuard.result === 'WRONG_DOCUMENT';
+            console.log(`[Guard/Quick] ${caseId}: ${quickGuard.result} (${quickGuard.confidence}) — ${quickGuard.reason}`);
+        } catch (guardErr) {
+            console.error('[Guard/Quick] error — defaulting to accept:', guardErr.message);
+            quickGuard = { result: 'INDETERMINATE', reason: 'guard-error', confidence: 'low', uploadStatus: 'uploaded', visionUsed: false };
+        }
+
         // Update submission
         await updateSubmissionInPlace(caseId, (submissions, idx) => {
             submissions[idx].noticeOfValue = filePath;
             submissions[idx].noticeUrl = filePath;
             submissions[idx].notice_url = filePath;
-            submissions[idx].uploadStatus = 'uploaded';
-            submissions[idx].upload_status = 'uploaded';
-            submissions[idx].status = 'NOTICE_RECEIVED';
+            submissions[idx].uploadStatus = quickWrong ? 'wrong_document' : (quickGuard?.uploadStatus || 'uploaded');
+            submissions[idx].upload_status = quickWrong ? 'wrong_document' : (quickGuard?.uploadStatus || 'uploaded');
+            submissions[idx].status = quickWrong ? 'WRONG_DOCUMENT' : 'NOTICE_RECEIVED';
             submissions[idx].updatedAt = new Date().toISOString();
         });
 
@@ -8757,6 +8798,20 @@ app.post('/twiml/sms-incoming', async (req, res) => {
                 const routeResult = await routeCaseAction(caseId, classification.classification, supabaseAdmin);
                 if (routeResult.updated) {
                     console.log(`[Inbound SMS] Case routed: ${routeResult.next_action} | Follow-up: ${routeResult.next_follow_up_at}`);
+                }
+
+                // Auto-respond on the same channel (gated by OA_INBOUND_AUTOREPLY_LIVE)
+                try {
+                    const arResult = await autoRespondInbound({
+                        classification: classification.classification,
+                        caseId,
+                        channel: 'sms',
+                        supabaseAdmin,
+                        sendTelegramAlert,
+                    });
+                    console.log(`[Inbound SMS] Auto-responder:`, JSON.stringify(arResult));
+                } catch (arErr) {
+                    console.error('[Inbound SMS] Auto-responder error:', arErr.message);
                 }
             }
         } catch (commEx) {
