@@ -2,6 +2,11 @@
  * Meta Lead Ads Webhook Handler
  * GET  /api/meta-leadgen — verification challenge
  * POST /api/meta-leadgen — leadgen event → forward to /api/intake
+ *
+ * Lead data strategy (in priority order):
+ *   1. Fetch from Graph API if META_USER_ACCESS_TOKEN has leads_retrieval scope
+ *   2. Fall back to field_data embedded in the webhook payload (if present)
+ *   3. Log and ACK — Meta retries, so we never return non-200
  */
 
 const express = require('express');
@@ -30,33 +35,62 @@ router.get('/', (req, res) => {
 
 // ── POST: incoming leadgen event ──────────────────────────────────────────
 router.post('/', express.json(), async (req, res) => {
+  // Always ACK immediately — Meta requires 200 within 20s or it retries
+  res.sendStatus(200);
+
   try {
     console.log('[MetaLeadgen] Webhook received:', JSON.stringify(req.body));
 
     const entry = (req.body.entry || [])[0];
-    const change = (entry && entry.changes || [])[0];
+    const change = ((entry && entry.changes) || [])[0];
 
     if (!change || change.field !== 'leadgen') {
-      return res.sendStatus(200); // not a lead event — ack and ignore
+      console.log('[MetaLeadgen] Not a leadgen event, ignoring');
+      return;
     }
 
-    const leadId = change.value && change.value.leadgen_id;
+    const changeValue = change.value || {};
+    const leadId = changeValue.leadgen_id;
+
     if (!leadId) {
       console.warn('[MetaLeadgen] No leadgen_id in payload');
-      return res.sendStatus(200);
+      return;
     }
 
-    console.log('[MetaLeadgen] Fetching lead data for id:', leadId);
+    console.log('[MetaLeadgen] Processing lead ID:', leadId);
 
-    // Fetch full lead from Graph API
-    const leadData = await fetchLead(leadId);
-    console.log('[MetaLeadgen] Lead data fetched:', JSON.stringify(leadData));
+    // Strategy 1: fetch full lead from Graph API
+    let fields = {};
+    try {
+      const leadData = await fetchLead(leadId);
+      if (leadData && !leadData.error && leadData.field_data) {
+        console.log('[MetaLeadgen] Lead fetched from Graph API');
+        (leadData.field_data || []).forEach(function(f) {
+          fields[f.name] = (f.values || [])[0] || '';
+        });
+      } else if (leadData && leadData.error) {
+        console.warn('[MetaLeadgen] Graph API error:', leadData.error.message);
+      }
+    } catch (fetchErr) {
+      console.warn('[MetaLeadgen] Graph API fetch failed:', fetchErr.message);
+    }
 
-    // Map fields
-    const fields = {};
-    (leadData.field_data || []).forEach(function(f) {
-      fields[f.name] = (f.values || [])[0] || '';
-    });
+    // Strategy 2: use field_data embedded in webhook payload (test tool sends this)
+    if (!fields['full_name'] && !fields['email'] && !fields['phone_number']) {
+      const embeddedFields = changeValue.field_data || [];
+      if (embeddedFields.length > 0) {
+        console.log('[MetaLeadgen] Using embedded field_data from payload');
+        embeddedFields.forEach(function(f) {
+          fields[f.name] = (f.values || [])[0] || '';
+        });
+      }
+    }
+
+    // If still no data, log and bail — Meta will retry
+    if (!fields['email'] && !fields['full_name'] && !fields['phone_number']) {
+      console.warn('[MetaLeadgen] No lead field data available for lead ID:', leadId);
+      return;
+    }
 
     const payload = {
       ownerName:       fields['full_name'] || fields['name'] || '',
@@ -74,14 +108,11 @@ router.post('/', express.json(), async (req, res) => {
 
     console.log('[MetaLeadgen] Forwarding to /api/intake:', JSON.stringify(payload));
 
-    // POST internally to /api/intake
     const intakeResult = await postIntake(payload);
     console.log('[MetaLeadgen] /api/intake response:', intakeResult.status, intakeResult.body);
 
-    return res.sendStatus(200);
   } catch (err) {
-    console.error('[MetaLeadgen] Error:', err.message);
-    return res.sendStatus(200); // always ack to Meta
+    console.error('[MetaLeadgen] Unhandled error:', err.message);
   }
 });
 
@@ -89,7 +120,9 @@ router.post('/', express.json(), async (req, res) => {
 
 function fetchLead(leadId) {
   return new Promise(function(resolve, reject) {
-    const url = 'https://graph.facebook.com/v19.0/' + leadId + '?fields=field_data,created_time,ad_id,form_id&access_token=' + encodeURIComponent(META_USER_TOKEN);
+    const url = 'https://graph.facebook.com/v19.0/' + leadId +
+      '?fields=field_data,created_time,ad_id,form_id&access_token=' +
+      encodeURIComponent(META_USER_TOKEN);
     https.get(url, function(apiRes) {
       let data = '';
       apiRes.on('data', function(chunk) { data += chunk; });
