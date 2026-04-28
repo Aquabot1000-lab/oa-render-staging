@@ -39,3 +39,11 @@ services:
         sync: false
       - key: LAZY_PARCEL_LOAD
         value: "true"
+      - key: META_LEADGEN_VERIFY_TOKEN
+        value: "1d799cc91378a584b453f946d584030c"
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_USER_ACCESS_TOKEN
+        sync: false
