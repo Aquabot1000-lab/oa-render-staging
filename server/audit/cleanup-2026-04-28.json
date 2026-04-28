@@ -1,0 +1,230 @@
+{
+  "startedAt": "2026-04-28T00:50:29.693Z",
+  "mode": "APPLY",
+  "filesChanged": [],
+  "dbRowsCorrected": [
+    {
+      "table": "submissions",
+      "case_id": "OA-0025",
+      "action": "agent_form_signed=true→false"
+    },
+    {
+      "table": "submissions",
+      "case_id": "OA-0018",
+      "action": "agent_form_signed=true→false"
+    },
+    {
+      "table": "submissions",
+      "case_id": "OA-0028",
+      "action": "agent_form_signed=true→false"
+    }
+  ],
+  "needsTylerDecision": [
+    {
+      "topic": "missing_phones",
+      "count": 19,
+      "note": "Cases with no phone — need data entry or customer outreach (no auto-msg)."
+    },
+    {
+      "topic": "invalid_phones",
+      "count": 2
+    },
+    {
+      "topic": "duplicate_email_rows",
+      "count": 1,
+      "note": "Same email across multiple submissions — verify dedupe."
+    }
+  ],
+  "customerMessagesSent": 0,
+  "filingsSubmitted": 0,
+  "sections": {
+    "statusAudit": {
+      "totalActive": 76,
+      "driftCount": 0,
+      "drifts": []
+    },
+    "legacySignatureFlags": {
+      "count": 4,
+      "cases": [
+        {
+          "case_id": "OA-0025",
+          "sig_data_max": 0,
+          "has_50162": false,
+          "archived": false,
+          "dnc": false
+        },
+        {
+          "case_id": "OA-0018",
+          "sig_data_max": 0,
+          "has_50162": false,
+          "archived": false,
+          "dnc": false
+        },
+        {
+          "case_id": "OA-0026",
+          "sig_data_max": 0,
+          "has_50162": false,
+          "archived": false,
+          "dnc": true
+        },
+        {
+          "case_id": "OA-0028",
+          "sig_data_max": 0,
+          "has_50162": false,
+          "archived": false,
+          "dnc": false
+        }
+      ]
+    },
+    "packageInventory": {
+      "totalDocs": 29,
+      "staleCount": 0,
+      "stale": []
+    },
+    "contactHygiene": {
+      "totalActive": 76,
+      "missingPhone": [
+        {
+          "case_id": "OA-0010",
+          "owner_name": "Khiem Nguyen",
+          "email": "ngheo1128@gmail.com"
+        },
+        {
+          "case_id": "OA-0011",
+          "owner_name": "Olivia Chang",
+          "email": "kamiryusaga@hotmail.com"
+        },
+        {
+          "case_id": "OA-0047",
+          "owner_name": "Lynwood Sheffield",
+          "email": "lynwoodsheffield@yahoo.com"
+        },
+        {
+          "case_id": "OA-0048",
+          "owner_name": "Shane Conner",
+          "email": "shanecon1@msn.com"
+        },
+        {
+          "case_id": "OA-0049",
+          "owner_name": "LJD Dove",
+          "email": "ljddove@yahoo.com"
+        },
+        {
+          "case_id": "OA-0051",
+          "owner_name": "B Crise",
+          "email": "bcrise@hotmail.com"
+        },
+        {
+          "case_id": "OA-0052",
+          "owner_name": "C Sue Plemmons",
+          "email": "csueplemmons@hotmai.com"
+        },
+        {
+          "case_id": "OA-0054",
+          "owner_name": "Manton",
+          "email": "mantonta@yahoo.com"
+        },
+        {
+          "case_id": "OA-0056",
+          "owner_name": "Bluemoon Danzer",
+          "email": "bluemoondanzer@gmail.com"
+        },
+        {
+          "case_id": "OA-0057",
+          "owner_name": "Berube LP",
+          "email": "berubelp@gmail.com"
+        },
+        {
+          "case_id": "OA-0058",
+          "owner_name": "Tracy NZF",
+          "email": "tracynzf@gmail.com"
+        },
+        {
+          "case_id": "OA-0059",
+          "owner_name": "Rushabh Bhansali",
+          "email": "bhansalirushabh@gmail.com"
+        },
+        {
+          "case_id": "OA-0060",
+          "owner_name": "Natalie Mitchell",
+          "email": "reneemitchell66@gmail.com"
+        },
+        {
+          "case_id": "OA-0062",
+          "owner_name": "D Melod",
+          "email": "dmelod57@gmail.com"
+        },
+        {
+          "case_id": "OA-0068",
+          "owner_name": "Steven",
+          "email": "steven747@gmail.com"
+        },
+        {
+          "case_id": "OA-0069",
+          "owner_name": "Wild CCD",
+          "email": "wildccd@gmail.com"
+        },
+        {
+          "case_id": "OA-0075",
+          "owner_name": "Papillon Anselmo",
+          "email": "papillon_anselmo@hotmail.com"
+        },
+        {
+          "case_id": "OA-TEST-1776437933647",
+          "owner_name": "TEST LEAD - AUTO DELETE",
+          "email": "test-autodelete@overassessed.ai"
+        },
+        {
+          "case_id": "OA-TEST-TYLER",
+          "owner_name": "Tyler Worthey",
+          "email": "tyler@wortheyaquatics.com"
+        }
+      ],
+      "invalidPhone": [
+        {
+          "case_id": "OA-0007",
+          "owner_name": "Matthew Bickley",
+          "phone": "unknown"
+        },
+        {
+          "case_id": "OA-0033",
+          "owner_name": "Jay Harbeson",
+          "phone": "INVALID"
+        }
+      ],
+      "internalEmail": [
+        {
+          "case_id": "OA-0005",
+          "owner_name": "RAFAH REAL ESTATE LLC SERIES I",
+          "email": "benchmark@overassessed.ai"
+        },
+        {
+          "case_id": "OA-0066",
+          "owner_name": "Uri Uriah",
+          "email": "uri@uriahrealestate.com"
+        },
+        {
+          "case_id": "OA-TEST-1776437933647",
+          "owner_name": "TEST LEAD - AUTO DELETE",
+          "email": "test-autodelete@overassessed.ai"
+        }
+      ],
+      "duplicateEmails": [
+        {
+          "email": "olblackcat@aol.com",
+          "cases": [
+            {
+              "case_id": "OA-0024",
+              "owner_name": "Marilynn Reeves"
+            },
+            {
+              "case_id": "OA-0083",
+              "owner_name": "Marilynn Reeves"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "endedAt": "2026-04-28T00:50:31.730Z"
+}
