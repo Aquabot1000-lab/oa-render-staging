@@ -74,6 +74,7 @@ const { routeCaseAction } = require('./services/case-action-router');
 const { autoRespond: autoRespondInbound } = require('./services/inbound-auto-responder');
 const { runDailyTaskLoop } = require('./services/daily-task-loop');
 const dashboardRouter = require('./routes/dashboard');
+const metaLeadgenRouter = require('./routes/meta-leadgen-webhook');
 
 // Twilio setup
 let twilioClient = null;
@@ -429,6 +430,7 @@ app.post('/api/estimate', async (req, res) => {
 // Mount /sign BEFORE static files so /sign/:token/* routes correctly
 app.use('/sign', esignRouter);
 app.use('/api/esign', esignRouter);
+app.use('/api/meta-leadgen', metaLeadgenRouter);
 
 // Explicit GET interceptors for sign sub-paths — must be BEFORE express.static
 // express.static can match /sign/:token/pdf-url before the router for GET requests
