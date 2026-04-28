@@ -259,28 +259,52 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                                 to: sub2.email,
                                 from: { email: 'notifications@overassessed.ai', name: 'OverAssessed' },
                                 replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
-                                subject: `Authorization signed — we'll take it from here, ${firstName}`,
+                                subject: `Authorization signed — payment method confirmed`,
                                 html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
                                     <h2 style="color:#6c5ce7;">✅ Signed — your protest is moving</h2>
                                     <p>Hi ${firstName},</p>
-                                    <p>Thanks for signing your authorization. We have your <strong>${brand} ending in ${last4}</strong> on file.</p>
-                                    <p>Per our agreement, you'll only be billed <strong>20% of any tax savings we win for you</strong>. No reduction = no charge.</p>
+                                    <p>Thanks for signing your authorization.</p>
+                                    <p><strong>Card on file:</strong> ${brand} ending in <strong>${last4}</strong></p>
+                                    <p>We will use this card for the agreed <strong>20% contingency fee upon a successful reduction</strong>. If we don't win you a reduction, you owe nothing.</p>
                                     <p>Next: we'll file your protest with Fort Bend CAD before the May 15 deadline and represent you through the hearing. We'll keep you posted.</p>
                                     <p>— Tyler<br>OverAssessed</p>
                                 </div>`
                             });
-                            await supabaseAdmin.from('activity_log').insert({
-                                case_id: signData.case_id, actor: 'aquabot', action: 'payment_request_sent',
-                                details: {
-                                    method: 'card_on_file_confirmation',
-                                    stripe_customer_id: sub2.stripe_customer_id,
-                                    card_brand: brand, card_last4: last4,
-                                    sg_message_id: sgRes[0].headers['x-message-id'],
-                                    sent_to: sub2.email,
-                                    payment_method_collected: true,
-                                    note: 'Card was already on file pre-signature; sent confirmation email — no recapture needed'
-                                }, created_at: new Date().toISOString()
-                            });
+                            const sgMsgId = sgRes[0].headers['x-message-id'];
+                            // Tyler-mandated logs (2026-04-27 19:08 CDT)
+                            await supabaseAdmin.from('activity_log').insert([
+                                {
+                                    case_id: signData.case_id, actor: 'aquabot', action: 'payment_method_confirmed',
+                                    details: {
+                                        stripe_customer_id: sub2.stripe_customer_id,
+                                        card_brand: brand, card_last4: last4,
+                                        confirmation_email_sg_id: sgMsgId,
+                                        sent_to: sub2.email,
+                                        payment_method_collected: true
+                                    }, created_at: new Date().toISOString()
+                                },
+                                {
+                                    case_id: signData.case_id, actor: 'aquabot', action: 'contingency_authorization_reaffirmed',
+                                    details: {
+                                        terms: '20% of successful reduction, no charge if no reduction',
+                                        method: 'email_to_customer_post_signature',
+                                        card_brand: brand, card_last4: last4,
+                                        sg_message_id: sgMsgId
+                                    }, created_at: new Date().toISOString()
+                                },
+                                {
+                                    case_id: signData.case_id, actor: 'aquabot', action: 'payment_request_sent',
+                                    details: {
+                                        method: 'card_on_file_confirmation',
+                                        stripe_customer_id: sub2.stripe_customer_id,
+                                        card_brand: brand, card_last4: last4,
+                                        sg_message_id: sgMsgId,
+                                        sent_to: sub2.email,
+                                        payment_method_collected: true,
+                                        note: 'Card already on file; sent confirmation email — no recapture'
+                                    }, created_at: new Date().toISOString()
+                                }
+                            ]);
                             await supabaseAdmin.from('communications').insert({
                                 case_id: signData.case_id, direction: 'outbound', channel: 'email',
                                 recipient: sub2.email, subject: 'Authorization signed — confirmation',
