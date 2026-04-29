@@ -16,6 +16,9 @@ const http = require('http');
 
 const VERIFY_TOKEN = process.env.META_LEADGEN_VERIFY_TOKEN || '';
 const META_USER_TOKEN = process.env.META_USER_ACCESS_TOKEN || '';
+const META_APP_ID = process.env.META_APP_ID || '801704245709189';
+const META_APP_SECRET = process.env.META_APP_SECRET || '';
+const META_PAGE_ID = process.env.META_PAGE_ID || '1151563568032801';
 
 // ── GET: Meta webhook verification handshake ──────────────────────────────
 router.get('/', (req, res) => {
@@ -118,20 +121,51 @@ router.post('/', express.json(), async (req, res) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function fetchLead(leadId) {
+// Get best available token: user token → page token from app credentials
+async function getBestToken() {
+  // If user token is set and not obviously expired, try it first
+  if (META_USER_TOKEN && META_USER_TOKEN.length > 20) {
+    return META_USER_TOKEN;
+  }
+  // Fall back: derive page token from app credentials (non-expiring)
+  if (META_APP_SECRET) {
+    try {
+      const appToken = await fetchJson(
+        `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&grant_type=client_credentials`
+      );
+      if (appToken.access_token) {
+        // Exchange for page token
+        const pages = await fetchJson(
+          `https://graph.facebook.com/v19.0/${META_PAGE_ID}?fields=access_token&access_token=${appToken.access_token}`
+        );
+        if (pages.access_token) {
+          console.log('[MetaLeadgen] Using page-derived token');
+          return pages.access_token;
+        }
+      }
+    } catch (e) {
+      console.warn('[MetaLeadgen] Page token derivation failed:', e.message);
+    }
+  }
+  return META_USER_TOKEN;
+}
+
+function fetchJson(url) {
   return new Promise(function(resolve, reject) {
-    const url = 'https://graph.facebook.com/v19.0/' + leadId +
-      '?fields=field_data,created_time,ad_id,form_id&access_token=' +
-      encodeURIComponent(META_USER_TOKEN);
-    https.get(url, function(apiRes) {
+    https.get(url, function(res) {
       let data = '';
-      apiRes.on('data', function(chunk) { data += chunk; });
-      apiRes.on('end', function() {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(e); }
-      });
+      res.on('data', function(chunk) { data += chunk; });
+      res.on('end', function() { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
     }).on('error', reject);
   });
+}
+
+async function fetchLead(leadId) {
+  const token = await getBestToken();
+  const url = 'https://graph.facebook.com/v19.0/' + leadId +
+    '?fields=field_data,created_time,ad_id,form_id&access_token=' +
+    encodeURIComponent(token);
+  return fetchJson(url);
 }
 
 function postIntake(payload) {
