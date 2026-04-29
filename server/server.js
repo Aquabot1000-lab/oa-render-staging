@@ -10543,6 +10543,56 @@ app.listen(PORT, async () => {
     setInterval(runApprovalGate, 2 * 60 * 60 * 1000);
     setTimeout(runApprovalGate, 45000); // 45s after startup
 
+    // ── Meta token auto-refresh (weekly) ─────────────────────────────────
+    // Exchanges META_USER_ACCESS_TOKEN for a fresh 60-day token every 7 days.
+    // Writes the new token back to Render env vars so it survives redeploys.
+    async function refreshMetaToken() {
+        const token = process.env.META_USER_ACCESS_TOKEN;
+        const appId = process.env.META_APP_ID || '801704245709189';
+        const appSecret = process.env.META_APP_SECRET || '';
+        const renderKey = process.env.RENDER_API_KEY || '';
+        const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d7a4ar2a214c73bhu6lg';
+        if (!token || !appSecret) {
+            console.log('[MetaTokenRefresh] Skipped — META_USER_ACCESS_TOKEN or META_APP_SECRET not set');
+            return;
+        }
+        try {
+            const https = require('https');
+            const refreshUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${encodeURIComponent(token)}`;
+            const result = await new Promise((resolve, reject) => {
+                https.get(refreshUrl, res => {
+                    let data = '';
+                    res.on('data', c => data += c);
+                    res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
+                }).on('error', reject);
+            });
+            if (result.access_token) {
+                process.env.META_USER_ACCESS_TOKEN = result.access_token;
+                console.log('[MetaTokenRefresh] Token refreshed successfully. Expires in:', result.expires_in, 'seconds');
+                // Write back to Render so it persists across redeploys
+                if (renderKey) {
+                    const https2 = require('https');
+                    const body = JSON.stringify({ value: result.access_token });
+                    const req = https2.request({
+                        hostname: 'api.render.com',
+                        path: `/v1/services/${serviceId}/env-vars/META_USER_ACCESS_TOKEN`,
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${renderKey}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+                    }, res => { console.log('[MetaTokenRefresh] Render env updated, status:', res.statusCode); });
+                    req.on('error', e => console.warn('[MetaTokenRefresh] Render update failed:', e.message));
+                    req.write(body); req.end();
+                }
+            } else {
+                console.warn('[MetaTokenRefresh] Refresh failed:', JSON.stringify(result).slice(0, 100));
+            }
+        } catch (err) {
+            console.error('[MetaTokenRefresh] Error:', err.message);
+        }
+    }
+    // Run weekly (every 7 days), first run after 60s
+    setInterval(refreshMetaToken, 7 * 24 * 60 * 60 * 1000);
+    setTimeout(refreshMetaToken, 60 * 1000);
+
     // Legacy contacted follow-up DISABLED — replaced by FollowUp-v2 engine
     // setInterval(runContactedFollowUp, 4 * 60 * 60 * 1000);
     // setTimeout(runContactedFollowUp, 90000);

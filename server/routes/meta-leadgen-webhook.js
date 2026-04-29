@@ -121,10 +121,23 @@ router.post('/', express.json(), async (req, res) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+// Validate token is not obviously expired via a quick debug_token check
+async function isTokenValid(token) {
+  if (!token || token.length < 20) return false;
+  try {
+    const result = await fetchJson(
+      `https://graph.facebook.com/v19.0/debug_token?input_token=${encodeURIComponent(token)}&access_token=${META_APP_ID}|${META_APP_SECRET}`
+    );
+    return result.data && result.data.is_valid === true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Get best available token: user token → page token from app credentials
 async function getBestToken() {
-  // If user token is set and not obviously expired, try it first
-  if (META_USER_TOKEN && META_USER_TOKEN.length > 20) {
+  // Check if user token is actually valid (not just set)
+  if (META_USER_TOKEN && await isTokenValid(META_USER_TOKEN)) {
     return META_USER_TOKEN;
   }
   // Fall back: derive page token from app credentials (non-expiring)
