@@ -4239,31 +4239,86 @@ app.get('/api/tad-search', authenticateToken, (req, res) => {
     res.json({ results, count: results.length });
 });
 
-// Auth
+// ==================== AUTH — Supabase-backed (migrated 2026-04-29) ====================
+// All admin/staff user records live in auth_users (Supabase).
+// All setup/reset tokens live in auth_setup_tokens (Supabase).
+// users.json is kept as a read-only boot fallback only — never written at runtime.
+// password-resets.json is no longer used.
+
+async function sbGetUser(email) {
+    // Primary: Supabase auth_users. Fallback: users.json (read-only, boot-safety only).
+    try {
+        const { data, error } = await supabase
+            .from('auth_users')
+            .select('*')
+            .ilike('email', email)
+            .limit(1)
+            .single();
+        if (!error && data) {
+            // Normalize field name: Supabase column is password_hash; code expects .password
+            return { ...data, password: data.password_hash };
+        }
+    } catch (_) {}
+    // Fallback: flat file
+    try {
+        const users = await readJsonFile(USERS_FILE);
+        return users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+    } catch (_) { return null; }
+}
+
+async function sbUpdatePassword(userId, passwordHash) {
+    const { error } = await supabase
+        .from('auth_users')
+        .update({ password_hash: passwordHash, must_change_password: false, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    if (error) throw new Error('sbUpdatePassword: ' + error.message);
+}
+
+async function sbCreateSetupToken(userId, email, kind, issuedBy, ttlHours) {
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + ttlHours * 3600 * 1000).toISOString();
+    const { error } = await supabase.from('auth_setup_tokens').insert({
+        token, user_id: userId, email, kind,
+        issued_by: issuedBy || null,
+        expires_at: expiresAt,
+    });
+    if (error) throw new Error('sbCreateSetupToken: ' + error.message);
+    return { token, expires_at: expiresAt };
+}
+
+async function sbConsumeSetupToken(token) {
+    // Returns token row if valid and unused; throws otherwise.
+    const { data, error } = await supabase
+        .from('auth_setup_tokens')
+        .select('*')
+        .eq('token', token)
+        .is('used_at', null)
+        .limit(1)
+        .single();
+    if (error || !data) throw Object.assign(new Error('invalid token'), { status: 404 });
+    if (new Date(data.expires_at) < new Date()) throw Object.assign(new Error('token expired'), { status: 410 });
+    // Mark used
+    await supabase.from('auth_setup_tokens').update({ used_at: new Date().toISOString() }).eq('token', token);
+    return data;
+}
+
+// Auth — login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-        const users = await readJsonFile(USERS_FILE);
-        const user = users.find(u => u.email === email);
+        const user = await sbGetUser(email);
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-        // If user must change password on first login, return a setup token instead of a normal session
+        // If user must change password on first login, issue a Supabase-backed setup token
         if (user.must_change_password === true) {
-            const setupToken = require('crypto').randomBytes(32).toString('hex');
-            const resets = await readJsonFile(PASSWORD_RESETS_FILE);
-            const arr = Array.isArray(resets) ? resets : [];
-            arr.push({
-                token: setupToken, user_id: user.id, email: user.email,
-                created_at: new Date().toISOString(),
-                expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hr
-                used_at: null, kind: 'forced_change'
-            });
-            await writeJsonFile(PASSWORD_RESETS_FILE, arr);
+            const { token: setupToken, expires_at } = await sbCreateSetupToken(
+                user.id, user.email, 'forced_change', 'system', 1
+            );
             return res.status(200).json({
                 must_change_password: true,
                 setup_token: setupToken,
@@ -4281,31 +4336,23 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// ==================== PASSWORD RESET / MAGIC LINK ====================
-// Internal: admin-only endpoint to issue a setup link for a user (used by ops)
+// ==================== PASSWORD RESET / MAGIC LINK (Supabase-backed) ====================
+// Internal: admin-only endpoint to issue a setup link for a user
 app.post('/api/auth/issue-setup-link', authenticateToken, async (req, res) => {
     try {
         if (req.user?.role !== 'admin') return res.status(403).json({ error: 'admin only' });
         const { email, ttl_hours } = req.body;
         if (!email) return res.status(400).json({ error: 'email required' });
-        const users = await readJsonFile(USERS_FILE);
-        const user = users.find(u => u.email === email);
+        const user = await sbGetUser(email);
         if (!user) return res.status(404).json({ error: 'user not found' });
-        const token = require('crypto').randomBytes(32).toString('hex');
         const ttl = Math.max(1, Math.min(168, parseInt(ttl_hours) || 48));
-        const expiresAt = new Date(Date.now() + ttl * 3600 * 1000).toISOString();
-        const resets = await readJsonFile(PASSWORD_RESETS_FILE);
-        const arr = Array.isArray(resets) ? resets : [];
-        arr.push({
-            token, user_id: user.id, email,
-            created_at: new Date().toISOString(),
-            expires_at: expiresAt,
-            used_at: null, kind: 'admin_issued'
-        });
-        await writeJsonFile(PASSWORD_RESETS_FILE, arr);
+        const { token, expires_at } = await sbCreateSetupToken(
+            user.id, email, 'admin_issued', req.user.email, ttl
+        );
         const base = process.env.PUBLIC_URL || 'https://overassessed.ai';
         const url = `${base}/auth/setup?token=${token}`;
-        return res.json({ ok: true, url, expires_at: expiresAt });
+        console.log(`[auth] setup link issued for ${email} by ${req.user.email} (expires ${expires_at})`);
+        return res.json({ ok: true, url, expires_at });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -4338,7 +4385,7 @@ async function submit(){
 </script></div></body></html>`);
 });
 
-// Public: complete the setup (consume token, set password, clear must_change_password)
+// Public: complete the setup (consume Supabase token, write password_hash to Supabase auth_users)
 app.post('/api/auth/complete-setup', async (req, res) => {
     try {
         const { token, password } = req.body;
@@ -4347,22 +4394,15 @@ app.post('/api/auth/complete-setup', async (req, res) => {
         if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
             return res.status(400).json({ error: 'password must include upper, lower, number, and symbol' });
         }
-        const resets = await readJsonFile(PASSWORD_RESETS_FILE);
-        const arr = Array.isArray(resets) ? resets : [];
-        const r = arr.find(x => x.token === token);
-        if (!r) return res.status(404).json({ error: 'invalid token' });
-        if (r.used_at) return res.status(410).json({ error: 'token already used' });
-        if (new Date(r.expires_at) < new Date()) return res.status(410).json({ error: 'token expired' });
-        const users = await readJsonFile(USERS_FILE);
-        const idx = users.findIndex(u => u.id === r.user_id);
-        if (idx < 0) return res.status(404).json({ error: 'user not found' });
-        users[idx].password = await bcrypt.hash(password, 10);
-        users[idx].must_change_password = false;
-        users[idx].password_changed_at = new Date().toISOString();
-        await writeJsonFile(USERS_FILE, users);
-        r.used_at = new Date().toISOString();
-        await writeJsonFile(PASSWORD_RESETS_FILE, arr);
-        console.log(`[auth] password set via setup token for ${users[idx].email}`);
+        let tokenRow;
+        try {
+            tokenRow = await sbConsumeSetupToken(token);
+        } catch (e) {
+            return res.status(e.status || 400).json({ error: e.message });
+        }
+        const hash = await bcrypt.hash(password, 10);
+        await sbUpdatePassword(tokenRow.user_id, hash);
+        console.log(`[auth] password set via setup token for ${tokenRow.email}`);
         return res.json({ ok: true, message: 'Password set. Sign in to continue.' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
