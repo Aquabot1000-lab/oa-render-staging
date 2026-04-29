@@ -127,6 +127,25 @@ router.post('/', express.json(), async (req, res) => {
       })
     };
 
+    if (incompleteFlag) {
+      // Incomplete records bypass intake validation — write direct to Supabase
+      console.log('[MetaLeadgen] Writing fallback record directly to Supabase, flag:', incompleteFlag);
+      const saved = await saveIncompleteToSupabase({
+        leadgen_id: leadId,
+        page_id:    changeValue.page_id || '',
+        form_id:    changeValue.form_id || '',
+        raw_payload: JSON.stringify(changeValue),
+        source:     incompleteFlag,
+        created_at: new Date().toISOString()
+      });
+      if (saved.error) {
+        console.error('[MetaLeadgen] Supabase fallback write failed:', JSON.stringify(saved.error));
+      } else {
+        console.log('[MetaLeadgen] Fallback record saved, id:', saved.id);
+      }
+      return;
+    }
+
     console.log('[MetaLeadgen] Forwarding to /api/intake:', JSON.stringify(payload));
 
     const intakeResult = await postIntake(payload);
@@ -197,6 +216,79 @@ async function fetchLead(leadId) {
     '?fields=field_data,created_time,ad_id,form_id&access_token=' +
     encodeURIComponent(token);
   return fetchJson(url);
+}
+
+// Write incomplete/missing field_data leads directly to Supabase
+// Uses a dedicated meta_lead_fallbacks table (or submissions with stub values if table missing)
+async function saveIncompleteToSupabase(data) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[MetaLeadgen] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — cannot save fallback');
+    return { error: 'missing supabase config' };
+  }
+  try {
+    // Try meta_lead_fallbacks first; fall back to submissions with stub values
+    const fallbackBody = JSON.stringify([data]);
+    const r1 = await new Promise((resolve, reject) => {
+      const url = new URL(supabaseUrl + '/rest/v1/meta_lead_fallbacks');
+      const opts = {
+        hostname: url.hostname, path: url.pathname + url.search,
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey,
+          'Content-Type': 'application/json', 'Prefer': 'return=representation',
+          'Content-Length': Buffer.byteLength(fallbackBody)
+        }
+      };
+      const req = https.request(opts, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => resolve({ status: res.statusCode, body: d }));
+      });
+      req.on('error', reject); req.write(fallbackBody); req.end();
+    });
+    if (r1.status < 300) {
+      const rows = JSON.parse(r1.body);
+      return { id: (rows[0] || {}).id || 'saved' };
+    }
+    // meta_lead_fallbacks table may not exist — fall back to submissions with stubs
+    console.warn('[MetaLeadgen] meta_lead_fallbacks table unavailable (', r1.status, '), writing to submissions');
+    // Generate a stub case_id for tracking
+    const stubEmail = `incomplete-${data.leadgen_id}@meta-fallback.overassessed.ai`;
+    const submBody = JSON.stringify([{
+      owner_name:       'Meta Lead (incomplete)',
+      email:            stubEmail,
+      phone:            '0000000000',
+      property_address: '',
+      source:           data.source || 'INCOMPLETE_META',
+      notes:            'Raw payload: ' + data.raw_payload,
+      created_at:       data.created_at
+    }]);
+    const r2 = await new Promise((resolve, reject) => {
+      const url = new URL(supabaseUrl + '/rest/v1/submissions');
+      const opts = {
+        hostname: url.hostname, path: url.pathname + url.search,
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey,
+          'Content-Type': 'application/json', 'Prefer': 'return=representation',
+          'Content-Length': Buffer.byteLength(submBody)
+        }
+      };
+      const req = https.request(opts, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => resolve({ status: res.statusCode, body: d }));
+      });
+      req.on('error', reject); req.write(submBody); req.end();
+    });
+    if (r2.status < 300) {
+      const rows = JSON.parse(r2.body);
+      return { id: (rows[0] || {}).id || 'saved' };
+    }
+    return { error: 'submissions write failed: ' + r2.status + ' ' + r2.body.slice(0, 100) };
+  } catch (err) {
+    return { error: err.message };
+  }
 }
 
 function postIntake(payload) {
