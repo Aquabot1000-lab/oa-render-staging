@@ -4248,7 +4248,7 @@ app.get('/api/tad-search', authenticateToken, (req, res) => {
 async function sbGetUser(email) {
     // Primary: Supabase auth_users. Fallback: users.json (read-only, boot-safety only).
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('auth_users')
             .select('*')
             .ilike('email', email)
@@ -4267,7 +4267,7 @@ async function sbGetUser(email) {
 }
 
 async function sbUpdatePassword(userId, passwordHash) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('auth_users')
         .update({ password_hash: passwordHash, must_change_password: false, updated_at: new Date().toISOString() })
         .eq('id', userId);
@@ -4277,7 +4277,7 @@ async function sbUpdatePassword(userId, passwordHash) {
 async function sbCreateSetupToken(userId, email, kind, issuedBy, ttlHours) {
     const token = require('crypto').randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + ttlHours * 3600 * 1000).toISOString();
-    const { error } = await supabase.from('auth_setup_tokens').insert({
+    const { error } = await supabaseAdmin.from('auth_setup_tokens').insert({
         token, user_id: userId, email, kind,
         issued_by: issuedBy || null,
         expires_at: expiresAt,
@@ -4288,7 +4288,7 @@ async function sbCreateSetupToken(userId, email, kind, issuedBy, ttlHours) {
 
 async function sbConsumeSetupToken(token) {
     // Returns token row if valid and unused; throws otherwise.
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('auth_setup_tokens')
         .select('*')
         .eq('token', token)
@@ -4298,7 +4298,7 @@ async function sbConsumeSetupToken(token) {
     if (error || !data) throw Object.assign(new Error('invalid token'), { status: 404 });
     if (new Date(data.expires_at) < new Date()) throw Object.assign(new Error('token expired'), { status: 410 });
     // Mark used
-    await supabase.from('auth_setup_tokens').update({ used_at: new Date().toISOString() }).eq('token', token);
+    await supabaseAdmin.from('auth_setup_tokens').update({ used_at: new Date().toISOString() }).eq('token', token);
     return data;
 }
 
