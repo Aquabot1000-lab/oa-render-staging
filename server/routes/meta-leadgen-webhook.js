@@ -89,23 +89,41 @@ router.post('/', express.json(), async (req, res) => {
       }
     }
 
-    // If still no data, log and bail — Meta will retry
-    if (!fields['email'] && !fields['full_name'] && !fields['phone_number']) {
-      console.warn('[MetaLeadgen] No lead field data available for lead ID:', leadId);
-      return;
+    // Determine if field_data is complete, partial, or missing
+    const hasName    = !!(fields['full_name'] || fields['name']);
+    const hasEmail   = !!fields['email'];
+    const hasPhone   = !!(fields['phone_number'] || fields['phone']);
+    const hasAddress = !!(fields['street_address'] || fields['address']);
+    const isComplete = hasName && hasEmail && hasPhone;
+    const isMissing  = !hasName && !hasEmail && !hasPhone;
+
+    if (isMissing) {
+      // Hard fallback: no field data at all — still create an INCOMPLETE record so no lead is lost
+      console.warn('[MetaLeadgen] INCOMPLETE_META: No field data for lead ID:', leadId, '— creating fallback record');
+      console.warn('[MetaLeadgen] Full payload:', JSON.stringify(changeValue));
+    } else if (!isComplete) {
+      console.warn('[MetaLeadgen] PARTIAL_META: Incomplete fields for lead ID:', leadId,
+        '| name:', hasName, 'email:', hasEmail, 'phone:', hasPhone, 'address:', hasAddress);
+    } else {
+      console.log('[MetaLeadgen] Complete field_data received for lead ID:', leadId);
     }
 
+    // Always build a record — incomplete fields get placeholder values so nothing is lost
+    const incompleteFlag = isMissing ? 'INCOMPLETE_META' : (!isComplete ? 'PARTIAL_META' : null);
+
     const payload = {
-      ownerName:       fields['full_name'] || fields['name'] || '',
-      email:           fields['email'] || '',
-      phone:           fields['phone_number'] || fields['phone'] || '',
+      ownerName:       fields['full_name'] || fields['name'] || (incompleteFlag ? 'Meta Lead (incomplete)' : ''),
+      email:           fields['email'] || (incompleteFlag ? `meta-fallback-${leadId}@overassessed-recover.com` : ''),
+      phone:           fields['phone_number'] || fields['phone'] || (incompleteFlag ? '0000000000' : ''),
       propertyAddress: fields['street_address'] || fields['address'] || '',
       propertyType:    'residential',
-      source:          'meta_lead_ad',
+      source:          incompleteFlag ? incompleteFlag : 'meta_lead_ad',
       utm_data: JSON.stringify({
-        utm_source:   'facebook',
-        utm_medium:   'paid',
-        utm_campaign: 'tx-property-tax-protest'
+        utm_source:    'facebook',
+        utm_medium:    'paid',
+        utm_campaign:  'tx-property-tax-protest',
+        leadgen_id:    leadId,
+        incomplete:    incompleteFlag || false
       })
     };
 
