@@ -3,6 +3,7 @@ const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 const crypto = require('crypto');
 const { generateAndStoreSigned } = require('../services/sign-form-50-162');
+const { generateAndStoreSignedWA } = require('../services/sign-wa-package');
 
 // Generate signing token for a case
 router.post('/generate', async (req, res) => {
@@ -54,15 +55,28 @@ router.get('/:token', async (req, res) => {
         if (error || !signData) return res.status(404).send(signingPage('not_found'));
         if (new Date(signData.expires_at) < new Date()) return res.status(410).send(signingPage('expired'));
 
+        // Fetch submission early so we can branch on state
+        let sub = null;
+        if (signData.case_id) {
+            const { data: subData } = await supabaseAdmin
+                .from('submissions')
+                .select('owner_name, property_address, county, state, estimated_savings, assessed_value, property_data')
+                .eq('case_id', signData.case_id)
+                .maybeSingle();
+            sub = subData;
+        }
+
         if (signData.status === 'signed') {
             // Fetch signed PDF URL in the async route (not inside signingPage)
             let signedPdfUrl = null;
             try {
+                // Try state-specific signed doc first, fall back to TX type
+                const fileType = sub?.state === 'WA' ? 'signed_wa_package' : 'signed_50_162';
                 const { data: doc } = await supabaseAdmin
                     .from('case_documents')
                     .select('file_url')
                     .eq('case_id', signData.case_id)
-                    .eq('file_type', 'signed_50_162')
+                    .eq('file_type', fileType)
                     .order('uploaded_at', { ascending: false })
                     .limit(1)
                     .single();
@@ -70,18 +84,7 @@ router.get('/:token', async (req, res) => {
             } catch (docErr) {
                 console.error('[esign] Failed to fetch signed PDF URL for already_signed page:', docErr.message);
             }
-            return res.status(200).send(signingPage('already_signed', signData, null, signedPdfUrl));
-        }
-
-        // Fetch submission separately
-        let sub = null;
-        if (signData.case_id) {
-            const { data: subData } = await supabaseAdmin
-                .from('submissions')
-                .select('owner_name, property_address, county, state, estimated_savings, assessed_value')
-                .eq('case_id', signData.case_id)
-                .maybeSingle();
-            sub = subData;
+            return res.status(200).send(signingPage('already_signed', signData, sub, signedPdfUrl));
         }
 
         res.send(signingPage('ready', signData, sub));
@@ -95,7 +98,7 @@ router.post('/:token/submit', express.json(), async (req, res) => {
     if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
     try {
         const { token } = req.params;
-        const { signature_data, signer_role } = req.body;
+        const { signature_data, signer_role, typed_name, authorized } = req.body;
 
         if (!signature_data) return res.status(400).json({ error: 'Signature required' });
 
@@ -126,36 +129,152 @@ router.post('/:token/submit', express.json(), async (req, res) => {
 
         const signedAt = new Date().toISOString();
 
-        // Update submission record
-        const { data: subData, error: subErr } = await supabaseAdmin
+        // Look up state BEFORE updating, so we can branch correctly. We need extra
+        // columns for the WA path (parcel via property_data, owner_opinion, etc.).
+        const { data: preSub } = await supabaseAdmin
             .from('submissions')
-            .update({
+            .select('owner_name, property_address, county, state, phone, email, assessed_value, property_data, filing_data, analysis_report')
+            .eq('case_id', signData.case_id)
+            .maybeSingle();
+        const isWA = (preSub?.state || '').toUpperCase() === 'WA';
+
+        // Update submission record (status differs by state)
+        const subUpdate = isWA
+            ? {
+                fee_agreement_signed: true,
+                fee_agreement_signed_at: signedAt,
+                agent_form_signed: true,
+                filing_status: 'READY_TO_FILE_WA',
+                signature_data: signature_data,
+                signature: {
+                    fullName: typed_name || signData.signer_name || preSub?.owner_name || null,
+                    signedAt,
+                    ipAddress: req.ip,
+                    authorized: authorized !== false,
+                    documentsSigned: ['wa_form_64_0075', 'wa_loa']
+                }
+              }
+            : {
                 fee_agreement_signed: true,
                 fee_agreement_signed_at: signedAt,
                 status: 'SIGNED_READY_TO_FILE'
-            })
+              };
+
+        const { data: subData, error: subErr } = await supabaseAdmin
+            .from('submissions')
+            .update(subUpdate)
             .eq('case_id', signData.case_id)
-            .select('owner_name, property_address, county, phone')
+            .select('owner_name, property_address, county, state, phone, email, property_data, assessed_value')
             .single();
 
         if (subErr) console.error('[esign] Failed to update submission:', subErr.message);
 
         // Generate signed PDF — REQUIRED, blocking, no silent failures
-        console.log(`[esign] ▶ Starting PDF generation for case ${signData.case_id}`);
+        console.log(`[esign] ▶ Starting PDF generation for case ${signData.case_id} (state=${preSub?.state || 'TX'})`);
         let signedPdfUrl = null;
+        let signedHash = null;
+        let signedStoragePath = null;
 
         try {
-            const stored = await generateAndStoreSigned(supabaseAdmin, {
-                caseId: signData.case_id,
-                ownerName: subData?.owner_name || signData.signer_name,
-                propertyAddress: subData?.property_address || '',
-                county: subData?.county || '',
-                phone: subData?.phone || '',
-                signatureDataUrl: signature_data,
-                signedAt
-            });
-            signedPdfUrl = stored.publicUrl;
-            console.log(`[esign] ✅ Signed PDF stored: ${signedPdfUrl}`);
+            if (isWA) {
+                // ===== WA path =====
+                const pData = subData?.property_data || preSub?.property_data || {};
+                const parcel = pData.parcel_number || pData.parcel || pData.account_number
+                    || preSub?.filing_data?.parcel_number || '';
+                const ownerOpinion = pData.owner_opinion || pData.opinion_of_value
+                    || preSub?.analysis_report?.owner_opinion
+                    || preSub?.filing_data?.owner_opinion
+                    || 0;
+                const stored = await generateAndStoreSignedWA(supabaseAdmin, {
+                    caseId: signData.case_id,
+                    ownerName: subData?.owner_name || signData.signer_name,
+                    propertyAddress: subData?.property_address || '',
+                    county: subData?.county || '',
+                    parcel,
+                    ownerOpinion,
+                    email: subData?.email || preSub?.email || '',
+                    phone: subData?.phone || '',
+                    assessmentYear: pData.assessment_year || new Date().getFullYear(),
+                    taxPayableYear: pData.tax_payable_year,
+                    assessorTotal: parseInt(String(subData?.assessed_value || '0').replace(/[^\d]/g, ''), 10) || pData.assessor_total || 0,
+                    assessorLand: pData.assessor_land || 0,
+                    assessorImprovements: pData.assessor_improvements || 0,
+                    ownerLand: pData.owner_land || 0,
+                    ownerImprovements: pData.owner_improvements,
+                    compMedian: pData.comp_median || 0,
+                    compMin: pData.comp_min || 0,
+                    compMax: pData.comp_max || 0,
+                    compCount: pData.comp_count || 0,
+                    signatureDataUrl: signature_data,
+                    signedAt
+                });
+                signedPdfUrl = stored.publicUrl;
+                signedHash = stored.hash;
+                signedStoragePath = stored.storagePath;
+                console.log(`[esign] ✅ Signed WA package stored: ${signedPdfUrl} (sha256=${signedHash})`);
+
+                // Activity log entry — WA path
+                try {
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: signData.case_id,
+                        actor: 'aquabot',
+                        action: 'wa_signature_captured',
+                        details: {
+                            token_prefix: token.slice(0, 8) + '...',
+                            signed_pdf_url: signedPdfUrl,
+                            storage_path: signedStoragePath,
+                            sha256: signedHash,
+                            documents: ['wa_form_64_0075', 'wa_loa'],
+                            signed_at: signedAt
+                        },
+                        created_at: new Date().toISOString()
+                    });
+                } catch (alErr) {
+                    console.error('[esign] activity_log insert failed:', alErr.message);
+                }
+
+                // Email Tyler — WA wording, NO Form 50-162 reference
+                try {
+                    if (process.env.SENDGRID_API_KEY) {
+                        const sgMail = require('@sendgrid/mail');
+                        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                        const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
+                        const county = subData?.county || '';
+                        await sgMail.send({
+                            to: 'tyler@overassessed.ai',
+                            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                            subject: `✅ WA Protest signed — ${signData.case_id} (${ownerName})`,
+                            html: `<div style="font-family:sans-serif;max-width:640px;margin:0 auto;padding:24px;">
+                                <h2 style="color:#6c5ce7;">✅ WA Petition Signed</h2>
+                                <p><strong>Case:</strong> ${signData.case_id}</p>
+                                <p><strong>Owner:</strong> ${ownerName}</p>
+                                <p><strong>County:</strong> ${county} County, WA</p>
+                                <p><strong>Documents signed:</strong> WA DOR Form 64-0075 (Taxpayer Petition) + Letter of Authorization</p>
+                                <p><strong>Signed at:</strong> ${signedAt}</p>
+                                <p><strong>SHA-256:</strong> <code>${signedHash}</code></p>
+                                <p><a href="${signedPdfUrl}" style="background:#6c5ce7;color:white;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;">📄 View Signed Package</a></p>
+                                <p>filing_status set to <code>READY_TO_FILE_WA</code>. Awaiting your approval before submission to the ${county} County BOE.</p>
+                                <p style="color:#888;font-size:12px;">— OverAssessed automation</p>
+                            </div>`
+                        });
+                    }
+                } catch (mailErr) {
+                    console.error('[esign] Tyler notification email failed:', mailErr.message);
+                }
+            } else {
+                // ===== TX/GA path (UNCHANGED) =====
+                const stored = await generateAndStoreSigned(supabaseAdmin, {
+                    caseId: signData.case_id,
+                    ownerName: subData?.owner_name || signData.signer_name,
+                    propertyAddress: subData?.property_address || '',
+                    county: subData?.county || '',
+                    phone: subData?.phone || '',
+                    signatureDataUrl: signature_data,
+                    signedAt
+                });
+                signedPdfUrl = stored.publicUrl;
+                console.log(`[esign] ✅ Signed PDF stored: ${signedPdfUrl}`);
+            }
         } catch (pdfErr) {
             console.error(`[esign] ❌ PDF generation FAILED for case ${signData.case_id}`);
             console.error(`[esign] Error: ${pdfErr.message}`);
@@ -186,6 +305,23 @@ router.post('/:token/submit', express.json(), async (req, res) => {
         // AUTO-PACKAGE / AUTO-FILE: trigger after successful signature (non-blocking)
         setImmediate(async () => {
             try {
+                // === WA GUARD (state-aware) ===
+                // WA cases use a separate filing pipeline (DOR Form 64-0075 → County BOE).
+                // No auto-file. Tyler will manually approve and submit.
+                if (isWA) {
+                    console.log(`[esign] 📝 WA case ${signData.case_id} — signed package staged. No auto-file. filing_status=READY_TO_FILE_WA.`);
+                    try {
+                        await supabaseAdmin.from('activity_log').insert({
+                            case_id: signData.case_id, actor: 'aquabot', action: 'wa_post_signature_staged',
+                            details: {
+                                requires_tyler_review: true, auto_file: false,
+                                next_step: 'READY_FOR_TYLER_REVIEW — awaiting Tyler approval to file WA petition'
+                            }, created_at: new Date().toISOString()
+                        });
+                    } catch (e) { console.error('[esign] WA staged log failed:', e.message); }
+                    return;
+                }
+
                 // === HUNT COUNTY GUARD (Tyler directive 2026-04-27) ===
                 // Hunt County: PACKAGE ONLY, never auto-send. Tyler must review before submission.
                 const county = (subData?.county || '').toLowerCase();
@@ -474,7 +610,221 @@ function signingPage(state, signData = null, sub = null, signedPdfUrl = null) {
     const ownerName = sub ? sub.owner_name : (signData && signData.signer_name ? signData.signer_name : 'Property Owner');
     const address = sub ? sub.property_address : '';
     const caseId = signData ? signData.case_id || '' : '';
+    const stateCode = (sub && sub.state ? sub.state : '').toUpperCase();
 
+    // ====== WA-specific UI ======
+    if (stateCode === 'WA') {
+        const county = (sub && sub.county) ? sub.county : '';
+        const pData = (sub && sub.property_data) ? sub.property_data : {};
+        const parcel = pData.parcel_number || pData.parcel || pData.account_number || '';
+        const ownerOpinion = pData.owner_opinion || pData.opinion_of_value || '';
+        const ownerOpinionFmt = ownerOpinion
+            ? '$' + parseInt(String(ownerOpinion).replace(/[^\d]/g, ''), 10).toLocaleString('en-US')
+            : 'See attached petition';
+        const assessmentYear = pData.assessment_year || new Date().getFullYear();
+        const agentName = 'OverAssessed, LLC';
+        const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OverAssessed — Sign Your Property Tax Protest</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 640px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #333; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h1 { color: #6c5ce7; text-align: center; margin: 0 0 4px; font-size: 24px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 4px; }
+        h2 { color: #333; font-size: 18px; margin: 0 0 16px; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-weight: 600; color: #555; font-size: 13px; margin-bottom: 4px; }
+        .field .value { padding: 10px 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; }
+        .checklist { list-style: none; padding: 0; margin: 0; }
+        .checklist li { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li::before { content: "☑️ "; }
+        .docs { display: grid; gap: 10px; }
+        .doc-row { padding: 10px 12px; background: #f0eeff; border-left: 3px solid #6c5ce7; border-radius: 4px; font-size: 14px; }
+        .doc-row strong { color: #6c5ce7; }
+        .sig-pad { border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; cursor: crosshair; touch-action: none; width: 100%; height: 150px; }
+        .sig-pad.active { border-color: #6c5ce7; }
+        .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        .btn-primary { background: #6c5ce7; color: white; }
+        .btn-primary:hover { background: #5a4bd1; }
+        .btn-primary:disabled { background: #b8b0e0; cursor: not-allowed; }
+        .btn-secondary { background: #e9ecef; color: #333; }
+        .btn-secondary:hover { background: #dee2e6; }
+        .input-text { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; }
+        .input-text:focus { outline: none; border-color: #6c5ce7; box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+        .auth-row { display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; margin-top: 12px; }
+        .auth-row input[type="checkbox"] { width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px; accent-color: #6c5ce7; }
+        .auth-row label { font-size: 13px; line-height: 1.5; color: #5d4037; }
+        .success { background: #d4edda; padding: 24px; border-radius: 12px; text-align: center; display: none; }
+        .success h2 { color: #155724; }
+        .legal { font-size: 11px; color: #999; text-align: center; margin-top: 16px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+    <div id="formView">
+        <div class="card">
+            <h1>Sign Your Property Tax Protest</h1>
+            <p class="subtitle">Washington State</p>
+            <p class="subtitle" style="font-weight:600;color:#6c5ce7;">Petition to the ${county} County Board of Equalization</p>
+        </div>
+
+        <div class="card">
+            <h2>📄 What You're Signing</h2>
+            <div class="docs">
+                <div class="doc-row"><strong>1. WA DOR Form 64-0075</strong> — Taxpayer Petition to the County Board of Equalization for Review of Real Property Valuation Determination.</div>
+                <div class="doc-row"><strong>2. Letter of Authorization (LOA)</strong> — Appoints ${agentName} as your authorized agent to represent you in this appeal.</div>
+            </div>
+            <p style="font-size:13px;color:#666;margin-top:12px;">One signature applies to both documents.</p>
+        </div>
+
+        <div class="card">
+            <h2>📋 Key Facts</h2>
+            <div class="field"><label>Property Owner</label><div class="value">${ownerName}</div></div>
+            <div class="field"><label>Property Address</label><div class="value">${address || 'See attached petition'}</div></div>
+            <div class="field"><label>Parcel Number</label><div class="value">${parcel || 'See attached petition'}</div></div>
+            <div class="field"><label>County</label><div class="value">${county} County, Washington</div></div>
+            <div class="field"><label>Assessment Year</label><div class="value">${assessmentYear}</div></div>
+            <div class="field"><label>Owner Opinion of Value</label><div class="value">${ownerOpinionFmt}</div></div>
+            <div class="field"><label>Authorized Agent</label><div class="value">${agentName}</div></div>
+            <div class="field"><label>Case Reference</label><div class="value">${caseId}</div></div>
+        </div>
+
+        <div class="card">
+            <h2>✍️ Sign Below</h2>
+            <div class="field">
+                <label for="typedName">Type your full legal name</label>
+                <input id="typedName" class="input-text" type="text" placeholder="e.g. ${ownerName}" value="${ownerName.replace(/"/g, '&quot;')}" autocomplete="name">
+            </div>
+            <p style="font-size:13px;color:#666;margin:12px 0 6px;">Draw your signature below using your finger or mouse. This same signature will appear on both documents:</p>
+            <canvas id="sigCanvas" class="sig-pad"></canvas>
+            <button class="btn btn-secondary" onclick="clearSig()" style="margin-top:8px;">Clear Signature</button>
+
+            <div class="auth-row">
+                <input type="checkbox" id="authCheck">
+                <label for="authCheck">I authorize ${agentName} to represent me before the ${county} County Board of Equalization for the ${assessmentYear} assessment year, and I confirm the facts above are accurate to the best of my knowledge.</label>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitSignature()" id="submitBtn">
+            Sign &amp; Submit Petition
+        </button>
+
+        <p class="legal">
+            By signing, you authorize ${agentName} as your agent for property tax matters in Washington State. Your signature applies to WA DOR Form 64-0075 and the Letter of Authorization. This is a legally binding electronic signature under the Washington Uniform Electronic Transactions Act (RCW 1.80).
+            <br><br>Today's date: ${todayStr}
+        </p>
+    </div>
+
+    <div class="success" id="successView">
+        <h2>✅ Successfully Signed!</h2>
+        <p>Your petition (Form 64-0075) and Letter of Authorization have been signed and submitted to ${agentName}.</p>
+        <p>We'll review your file and submit your protest to the ${county} County Board of Equalization. We'll keep you posted on the hearing date.</p>
+        <div id="pdfLinks" style="margin-top:20px;"></div>
+        <p style="color:#666;font-size:14px;margin-top:16px;">A confirmation will be sent to your email. You may close this page.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sigCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let hasSig = false;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * 2;
+            canvas.height = rect.height * 2;
+            ctx.scale(2, 2);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            drawing = true; hasSig = true;
+            canvas.classList.add('active');
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            e.preventDefault();
+        });
+        canvas.addEventListener('pointermove', (e) => {
+            if (!drawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            e.preventDefault();
+        });
+        canvas.addEventListener('pointerup', () => { drawing = false; canvas.classList.remove('active'); });
+        canvas.addEventListener('pointerleave', () => { drawing = false; canvas.classList.remove('active'); });
+
+        function clearSig() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSig = false;
+        }
+
+        async function submitSignature() {
+            if (!hasSig) { alert('Please draw your signature first.'); return; }
+            const typedName = document.getElementById('typedName').value.trim();
+            if (!typedName) { alert('Please type your full legal name.'); return; }
+            if (!document.getElementById('authCheck').checked) { alert('Please confirm the authorization checkbox.'); return; }
+
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'Submitting...';
+            btn.disabled = true;
+
+            const sigData = canvas.toDataURL('image/png');
+            try {
+                const resp = await fetch(window.location.pathname + '/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        signature_data: sigData,
+                        signer_role: 'property_owner',
+                        typed_name: typedName,
+                        authorized: true
+                    })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    document.getElementById('formView').style.display = 'none';
+                    document.getElementById('successView').style.display = 'block';
+                    if (result.signed_pdf_url) {
+                        document.getElementById('pdfLinks').innerHTML =
+                            '<a href="' + result.signed_pdf_url + '" target="_blank" style="display:inline-block;background:#6c5ce7;color:white;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;margin-right:10px;">📄 View Signed Package</a>' +
+                            '<a href="' + result.signed_pdf_url + '" download style="display:inline-block;background:#e9ecef;color:#333;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;">⬇️ Download PDF</a>';
+                    }
+                } else {
+                    alert('Error: ' + (result.detail || result.error || 'Submission failed. Please try again.'));
+                    btn.textContent = 'Sign & Submit Petition';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert('Network error. Please check your connection and try again.');
+                btn.textContent = 'Sign & Submit Petition';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>`;
+    }
+
+    // ====== Default (TX/GA) UI — UNCHANGED ======
     return `<!DOCTYPE html>
 <html>
 <head>
