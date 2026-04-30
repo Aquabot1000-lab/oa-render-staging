@@ -261,6 +261,26 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                 } catch (mailErr) {
                     console.error('[esign] Tyler notification email failed:', mailErr.message);
                 }
+
+                // Real-time Telegram alert to Tyler — fires the moment WA petition is signed
+                try {
+                    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+                    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+                    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+                        const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
+                        const county = subData?.county || '';
+                        const text = `\u2705 <b>WA Petition Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${ownerName}\n<b>County:</b> ${county} County, WA\n<b>Documents:</b> Form 64-0075 + LOA\n<b>Signed at:</b> ${signedAt}\n\nfiling_status \u2192 <code>READY_TO_FILE_WA</code>\nAwaiting your approval before BOE submission.`;
+                        const tgUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                        const fetchFn = (typeof fetch !== 'undefined') ? fetch : require('node-fetch');
+                        await fetchFn(tgUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
+                        });
+                    }
+                } catch (tgErr) {
+                    console.error('[esign] Tyler Telegram alert failed:', tgErr.message);
+                }
             } else {
                 // ===== TX/GA path (UNCHANGED) =====
                 const stored = await generateAndStoreSigned(supabaseAdmin, {

@@ -1637,6 +1637,21 @@ setInterval(runFollowUpSequence, 4 * 60 * 60 * 1000);
 // Initial run 60 seconds after server start
 setTimeout(runFollowUpSequence, 60 * 1000);
 
+// ===== WA FOLLOW-UP REMINDER CADENCE (24h / 48h / 72h) =====
+const { runWAFollowUp } = require('./services/wa-followup');
+const _waFollowUpDeps = () => ({
+    supabase: isSupabaseEnabled() ? supabaseAdmin : null,
+    sendClientEmail,
+    sendClientSMS,
+    sendNotificationEmail,
+    sendTelegramAlert,
+    brandedEmailWrapper,
+});
+// Run every 30 minutes
+setInterval(() => runWAFollowUp(_waFollowUpDeps()), 30 * 60 * 1000);
+// Initial run 90 seconds after server start (after FollowUp-v2 initial run)
+setTimeout(() => runWAFollowUp(_waFollowUpDeps()), 90 * 1000);
+
 // ===== LEGACY DRIP (FROZEN — replaced by FollowUp-v2) =====
 async function runDripCheck() {
     console.log('[Drip] DISABLED — replaced by FollowUp-v2');
