@@ -4,6 +4,7 @@ const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
 const crypto = require('crypto');
 const { generateAndStoreSigned } = require('../services/sign-form-50-162');
 const { generateAndStoreSignedWA } = require('../services/sign-wa-package');
+const _team = require('../services/internal-team');
 
 // Generate signing token for a case
 router.post('/generate', async (req, res) => {
@@ -233,53 +234,35 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                     console.error('[esign] activity_log insert failed:', alErr.message);
                 }
 
-                // Email Tyler — WA wording, NO Form 50-162 reference
+                // Unified team alert — Email + Telegram to Tyler + Uri via internal-team.js
                 try {
+                    const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
+                    const county = subData?.county || '';
+                    const alertHtml = `<div style="font-family:sans-serif;max-width:640px;margin:0 auto;padding:24px;">
+                        <h2 style="color:#6c5ce7;">✅ WA Petition Signed</h2>
+                        <p><strong>Case:</strong> ${signData.case_id}</p>
+                        <p><strong>Owner:</strong> ${ownerName}</p>
+                        <p><strong>County:</strong> ${county} County, WA</p>
+                        <p><strong>Documents signed:</strong> WA DOR Form 64-0075 (Taxpayer Petition) + Letter of Authorization</p>
+                        <p><strong>Signed at:</strong> ${signedAt}</p>
+                        <p><strong>SHA-256:</strong> <code>${signedHash}</code></p>
+                        <p><a href="${signedPdfUrl}" style="background:#6c5ce7;color:white;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;">📄 View Signed Package</a></p>
+                        <p>filing_status set to <code>READY_TO_FILE_WA</code>. Awaiting approval before submission to ${county} County BOE.</p>
+                        <p style="color:#888;font-size:12px;">— OverAssessed automation</p>
+                    </div>`;
+                    const alertTg = `✅ <b>WA Petition Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${ownerName}\n<b>County:</b> ${county} County, WA\n<b>Documents:</b> Form 64-0075 + LOA\n<b>Signed at:</b> ${signedAt}\n\nfiling_status → <code>READY_TO_FILE_WA</code>\nAwaiting approval before BOE submission.`;
                     if (process.env.SENDGRID_API_KEY) {
                         const sgMail = require('@sendgrid/mail');
                         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-                        const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
-                        const county = subData?.county || '';
-                        await sgMail.send({
-                            to: 'tyler@overassessed.ai',
-                            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                        await _team.notifyEmail(sgMail, {
                             subject: `✅ WA Protest signed — ${signData.case_id} (${ownerName})`,
-                            html: `<div style="font-family:sans-serif;max-width:640px;margin:0 auto;padding:24px;">
-                                <h2 style="color:#6c5ce7;">✅ WA Petition Signed</h2>
-                                <p><strong>Case:</strong> ${signData.case_id}</p>
-                                <p><strong>Owner:</strong> ${ownerName}</p>
-                                <p><strong>County:</strong> ${county} County, WA</p>
-                                <p><strong>Documents signed:</strong> WA DOR Form 64-0075 (Taxpayer Petition) + Letter of Authorization</p>
-                                <p><strong>Signed at:</strong> ${signedAt}</p>
-                                <p><strong>SHA-256:</strong> <code>${signedHash}</code></p>
-                                <p><a href="${signedPdfUrl}" style="background:#6c5ce7;color:white;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;">📄 View Signed Package</a></p>
-                                <p>filing_status set to <code>READY_TO_FILE_WA</code>. Awaiting your approval before submission to the ${county} County BOE.</p>
-                                <p style="color:#888;font-size:12px;">— OverAssessed automation</p>
-                            </div>`
+                            html: alertHtml
                         });
                     }
-                } catch (mailErr) {
-                    console.error('[esign] Tyler notification email failed:', mailErr.message);
-                }
-
-                // Real-time Telegram alert to Tyler — fires the moment WA petition is signed
-                try {
-                    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-                    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-                    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-                        const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
-                        const county = subData?.county || '';
-                        const text = `\u2705 <b>WA Petition Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${ownerName}\n<b>County:</b> ${county} County, WA\n<b>Documents:</b> Form 64-0075 + LOA\n<b>Signed at:</b> ${signedAt}\n\nfiling_status \u2192 <code>READY_TO_FILE_WA</code>\nAwaiting your approval before BOE submission.`;
-                        const tgUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-                        const fetchFn = (typeof fetch !== 'undefined') ? fetch : require('node-fetch');
-                        await fetchFn(tgUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
-                        });
-                    }
-                } catch (tgErr) {
-                    console.error('[esign] Tyler Telegram alert failed:', tgErr.message);
+                    await _team.notifyTelegram(alertTg);
+                    console.log('[esign] Team notified (email + Telegram): WA petition signed', signData.case_id);
+                } catch (alertErr) {
+                    console.error('[esign] Team notification failed:', alertErr.message);
                 }
             } else {
                 // ===== TX/GA path (UNCHANGED) =====
@@ -542,6 +525,23 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                         }, created_at: new Date().toISOString()
                     });
                     return;
+                }
+
+                // Notify internal team on TX/GA signature (unified fan-out)
+                try {
+                    const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
+                    const sigCounty = subData?.county || '';
+                    if (process.env.SENDGRID_API_KEY) {
+                        const sgMail = require('@sendgrid/mail');
+                        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                        await _team.notifyEmail(sgMail, {
+                            subject: `✅ Protest Signed — ${signData.case_id} (${ownerName}, ${sigCounty} County)`,
+                            html: `<div style="font-family:sans-serif;max-width:600px;padding:20px;"><h3>✅ TX/GA Petition Signed</h3><p><b>Case:</b> ${signData.case_id}</p><p><b>Owner:</b> ${ownerName}</p><p><b>County:</b> ${sigCounty}</p><p><b>Signed at:</b> ${signedAt}</p><p>Auto-filing in progress.</p></div>`
+                        });
+                    }
+                    await _team.notifyTelegram(`✅ <b>TX/GA Protest Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${subData?.owner_name || signData.signer_name}\n<b>County:</b> ${subData?.county || '?'}\n<b>Signed at:</b> ${signedAt}\n🚀 Auto-filing in progress...`);
+                } catch (teamAlertErr) {
+                    console.error('[esign] Team sign alert failed:', teamAlertErr.message);
                 }
 
                 // Default path: auto-file via email runner (other counties)

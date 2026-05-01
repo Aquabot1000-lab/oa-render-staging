@@ -24,17 +24,24 @@
 'use strict';
 
 const SIGN_BASE_URL = process.env.BASE_URL || 'https://overassessed.ai';
+const _team = require('./internal-team');
 
 async function runWAFollowUp(deps = {}) {
     const {
         supabase,                  // supabase admin client
         sendClientEmail,           // (to, subject, html) => Promise
         sendClientSMS,             // (phone, body, opts) => Promise
-        sendNotificationEmail,     // (subject, html) => Promise (Tyler email)
-        sendTelegramAlert,         // (text) => Promise (Tyler Telegram)
         brandedEmailWrapper,       // (heading, sub, body) => html string
         log = (...a) => console.log('[WA-FollowUp]', ...a),
     } = deps;
+
+    // Use internal-team for all internal alerts (Tyler + Uri)
+    const getTeamEmailClient = () => {
+        if (!process.env.SENDGRID_API_KEY) return null;
+        const sg = require('@sendgrid/mail');
+        sg.setApiKey(process.env.SENDGRID_API_KEY);
+        return sg;
+    };
 
     if (!supabase) {
         log('No supabase client provided, skipping');
@@ -161,13 +168,13 @@ async function runWAFollowUp(deps = {}) {
                 const phone = c.phone || 'no phone on file';
                 const escMsg = `\u26a0\ufe0f WA signing escalation \u2014 ${c.case_id}\nOwner: ${ownerName}\nCounty: ${county}\nPhone: ${phone}\nEmail: ${recipientEmail}\nSign URL: ${signUrl}\n\n72h passed since signing link sent. No signature yet. Manual outreach recommended (call once SMS campaign is approved).`;
                 try {
-                    if (sendTelegramAlert) {
-                        await sendTelegramAlert(`\u26a0\ufe0f <b>WA Signing Escalation</b>\n\n<b>Case:</b> ${c.case_id}\n<b>Owner:</b> ${ownerName}\n<b>County:</b> ${county}\n<b>Phone:</b> ${phone}\n<b>Email:</b> ${recipientEmail}\n\n72h since signing link sent. No signature.\n<b>Action:</b> Manual outreach (call once SMS approved).\n\n<a href="${signUrl}">Sign URL</a>`);
-                    }
-                    if (sendNotificationEmail) {
-                        await sendNotificationEmail(
-                            `\u26a0\ufe0f WA 72h Escalation \u2014 ${c.case_id} ${ownerName}`,
-                            `<div style="font-family:sans-serif;max-width:600px;">
+                    // Fan out to Tyler + Uri via internal-team.js
+                    await _team.notifyTelegram(`\u26a0\ufe0f <b>WA Signing Escalation</b>\n\n<b>Case:</b> ${c.case_id}\n<b>Owner:</b> ${ownerName}\n<b>County:</b> ${county}\n<b>Phone:</b> ${phone}\n<b>Email:</b> ${recipientEmail}\n\n72h since signing link sent. No signature.\n<b>Action:</b> Manual outreach (call once SMS approved).\n\n<a href="${signUrl}">Sign URL</a>`);
+                    const sg72 = getTeamEmailClient();
+                    if (sg72) {
+                        await _team.notifyEmail(sg72, {
+                            subject: `\u26a0\ufe0f WA 72h Escalation \u2014 ${c.case_id} ${ownerName}`,
+                            html: `<div style="font-family:sans-serif;max-width:600px;">
                                 <h3 style="color:#d63031;">WA Signing Escalation \u2014 72h</h3>
                                 <p><strong>Case:</strong> ${c.case_id}</p>
                                 <p><strong>Owner:</strong> ${ownerName}</p>
@@ -178,9 +185,9 @@ async function runWAFollowUp(deps = {}) {
                                 <p><strong>Action recommended:</strong> manual outreach (call once SMS campaign approved).</p>
                                 <p><a href="${signUrl}">${signUrl}</a></p>
                             </div>`
-                        );
+                        });
                     }
-                    log('72h escalation alerted', c.case_id);
+                    log('72h escalation alerted (Tyler + Uri)', c.case_id);
                 } catch (e) {
                     log('72h alert failed', c.case_id, ':', e.message);
                 }

@@ -1115,28 +1115,49 @@ async function sendCustomerSMS(to, message, opts = {}) {
     return { success: true, method: 'sms', sid: result.sid };
 }
 
-// Internal/Tyler notification SMS (direct from number, no fallback needed — Telegram is primary)
+// ============================================================================
+// UNIFIED INTERNAL NOTIFICATIONS (Tyler directive 2026-04-30 20:59 CDT)
+// All sendNotificationSMS / sendTelegramAlert / sendNotificationEmail calls
+// fan out to BOTH Tyler and Uri via services/internal-team.js.
+// ============================================================================
+const _team = require('./services/internal-team');
+
+// Telegram bot token still kept here for any direct fallback uses
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8546685923:AAGxRV6_YwimsyLvaORNhZTNu-1JM9PtdDs';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8568734697'; // Tyler default — kept for legacy
+if (!process.env.TELEGRAM_BOT_TOKEN) process.env.TELEGRAM_BOT_TOKEN = TELEGRAM_BOT_TOKEN;
+
+// Internal team SMS — fans out to Tyler + Uri (formerly only Tyler via NOTIFY_PHONE)
 async function sendNotificationSMS(message) {
-    const result = await sendSMS(process.env.NOTIFY_PHONE, message);
-    logSmsAttempt(process.env.NOTIFY_PHONE, result.success, result.errorCode, null, 'tyler_notification');
+    try {
+        const out = await _team.notifySms(twilioClient, message);
+        if (out.results) {
+            out.results.forEach(r => {
+                logSmsAttempt(r.to, !r.error, r.code || null, null, 'team_notification');
+            });
+        }
+        return out;
+    } catch (err) {
+        console.error('[NotifySMS] team fan-out failed:', err.message);
+        return { ok: false, error: err.message };
+    }
 }
 
-// Telegram real-time alert
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8546685923:AAGxRV6_YwimsyLvaORNhZTNu-1JM9PtdDs';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8568734697';
-
+// Internal team Telegram alert — fans out to Tyler + Uri (Uri only if URI_TELEGRAM_CHAT_ID set)
 async function sendTelegramAlert(text) {
     try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
-        });
-        if (!resp.ok) console.error('[Telegram] Alert failed:', resp.status, await resp.text());
-        else console.log('[Telegram] Alert sent');
+        const out = await _team.notifyTelegram(text, { html: true });
+        if (out.skipped) console.log('[Telegram] skipped:', out.reason);
+        else if (out.results) {
+            out.results.forEach(r => {
+                if (r.ok) console.log('[Telegram] sent to ' + r.name);
+                else console.error('[Telegram] failed for ' + r.name + ':', r.error);
+            });
+        }
+        return out;
     } catch (err) {
-        console.error('[Telegram] Alert error:', err.message);
+        console.error('[Telegram] fan-out error:', err.message);
+        return { ok: false, error: err.message };
     }
 }
 
@@ -1188,22 +1209,44 @@ async function sendClientSMS(phone, message, opts = {}) {
 async function sendNotificationEmail(subject, html, toEmail) {
     // ── KILL SWITCH CHECK ── Tyler directive 2026-04-03, hardened 2026-04-09
     if (OA_EMAIL_KILLED) {
-        console.log(`[EMAIL BLOCKED] Kill switch ON. Would have sent: "${subject}" to ${toEmail || 'notify'}`);
-        return; // Silent return — no error, no send
+        console.log(`[EMAIL BLOCKED] Kill switch ON. Would have sent: "${subject}" to ${toEmail || 'team'}`);
+        return;
     }
-    // HARD RULE: SendGrid only. No fallbacks. No silent failures.
     if (!process.env.SENDGRID_API_KEY) {
         const err = 'SENDGRID_API_KEY missing — email BLOCKED (no fallback allowed)';
         console.error(`[EMAIL HARD FAIL] ${err}`);
         logComm({ event: 'hard_fail', channel: 'email', to: toEmail, subject, error: err });
         throw new Error(err);
     }
-    const to = toEmail || process.env.NOTIFY_EMAIL;
-    if (!to) {
-        const err = 'No recipient — email BLOCKED';
-        console.error(`[EMAIL HARD FAIL] ${err}`);
-        throw new Error(err);
+
+    // === TEAM FAN-OUT MODE ===
+    // When no specific recipient is given OR the recipient is Tyler's address,
+    // fan out to the entire internal team (Tyler + Uri + future members) via internal-team.js.
+    // (Tyler directive 2026-04-30 20:59 CDT)
+    const tylerEmail = 'tyler@overassessed.ai';
+    const isTeamFanOut = !toEmail || toEmail.toLowerCase() === tylerEmail.toLowerCase();
+    if (isTeamFanOut) {
+        try {
+            const out = await _team.notifyEmail(sgMail, { subject, html });
+            if (out.skipped) console.log('[EMAIL TEAM] skipped:', out.reason);
+            else if (out.ok) {
+                console.log('[EMAIL TEAM OK] Sent to ' + (out.recipients || []).join(', '));
+                logComm({ event: 'sent', channel: 'email', to: (out.recipients||[]).join(','), subject });
+            } else {
+                console.error('[EMAIL TEAM HARD FAIL]', out.error);
+                logComm({ event: 'hard_fail', channel: 'email', to: (out.recipients||[]).join(','), subject, error: out.error });
+                throw new Error(out.error || 'team notifyEmail failed');
+            }
+            return;
+        } catch (err) {
+            console.error('[EMAIL TEAM HARD FAIL]', err.message);
+            logComm({ event: 'hard_fail', channel: 'email', to: 'team', subject, error: err.message });
+            throw err;
+        }
     }
+
+    // === CUSTOMER / SPECIFIC-RECIPIENT MODE === (UNCHANGED behavior)
+    const to = toEmail;
     try {
         const msg = {
             to,
@@ -1213,20 +1256,17 @@ async function sendNotificationEmail(subject, html, toEmail) {
             html,
             trackingSettings: { clickTracking: { enable: true }, openTracking: { enable: true } }
         };
-        // BCC Tyler on all outbound customer emails (skip if TO is already Tyler)
-        const tylerEmail = 'tyler@overassessed.ai';
-        if (to && to.toLowerCase() !== tylerEmail.toLowerCase()) {
-            msg.bcc = [{ email: tylerEmail }];
-        }
+        // BCC the team on all outbound customer emails (Tyler + Uri)
+        const teamBcc = _team.emails().filter(e => e.toLowerCase() !== to.toLowerCase());
+        if (teamBcc.length) msg.bcc = teamBcc.map(email => ({ email }));
         await sgMail.send(msg);
-        console.log(`[EMAIL OK] Sent to ${to}${msg.bcc ? ' (BCC: Tyler)' : ''}`);
+        console.log(`[EMAIL OK] Sent to ${to}${msg.bcc ? ' (BCC: ' + teamBcc.join(',') + ')' : ''}`);
         logComm({ event: 'sent', channel: 'email', to, subject });
     } catch (error) {
-        // HARD FAIL — no retry, no fallback, no silent swallow
         const errMsg = `SendGrid FAILED: ${error.message}`;
         console.error(`[EMAIL HARD FAIL] ${errMsg} | to=${to} | subject=${subject}`);
         logComm({ event: 'hard_fail', channel: 'email', to, subject, error: errMsg });
-        throw new Error(errMsg); // Propagate up so caller knows send failed
+        throw new Error(errMsg);
     }
 }
 
@@ -4885,13 +4925,15 @@ app.post('/api/simple-lead', async (req, res) => {
                 
                 // 3. Notify Tyler (assignee)
                 try {
+                    const _teamCC = _team.emails().filter(e => e.toLowerCase() !== 'tyler@overassessed.ai').map(email => ({ email }));
                     await sgMail.send({
                         to: 'tyler@overassessed.ai',
+                        ...(_teamCC.length ? { bcc: _teamCC } : {}),
                         from: { email: 'notifications@overassessed.ai', name: 'OverAssessed CRM' },
                         subject: `🎯 New Lead: ${caseNum} — ${state || 'Unknown'} | ${property_address.substring(0, 40)}`,
                         html: `<h3>New /simple Lead</h3><p><b>Case:</b> ${caseNum}</p><p><b>Email:</b> ${email}</p><p><b>Property:</b> ${property_address}</p><p><b>State:</b> ${state || '—'}</p><p><b>County:</b> ${county || '—'}</p><p><b>Assigned to:</b> ${assignee}</p><p>Auto-acknowledgment email sent to lead ✅</p>`
                     });
-                    console.log(`[SIMPLE LEAD] ✅ Notification sent to Tyler`);
+                    console.log(`[SIMPLE LEAD] ✅ Notification sent to Tyler + team`);
                 } catch (notifyErr) {
                     console.error(`[SIMPLE LEAD] ❌ Notification failed:`, notifyErr.message);
                 }
@@ -7719,8 +7761,10 @@ app.post('/api/inbound-reply', async (req, res) => {
         try {
             const htmlBody = req.body.html || '';
             const fullBody = htmlBody || textBody;
+            const _teamFwdBcc = _team.emails().filter(e => e.toLowerCase() !== 'tyler@overassessed.ai').map(email => ({ email }));
             await sgMail.send({
                 to: 'tyler@overassessed.ai',
+                ...(_teamFwdBcc.length ? { bcc: _teamFwdBcc } : {}),
                 from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OA Inbound' },
                 replyTo: { email: emailClean, name: fromEmail.replace(/<.*>/, '').trim() || emailClean },
                 subject: `Fwd: ${subject}`,
@@ -9393,8 +9437,10 @@ async function sendCallSummary(callSid, state) {
                 return `<p><strong style="color:${color}">${speaker}:</strong> ${m.content}</p>`;
             }).join('');
             
+            const _teamCallBcc = _team.emails().filter(e => e.toLowerCase() !== 'tyler@overassessed.ai').map(email => ({ email }));
             await sgMail.send({
                 to: 'tyler@overassessed.ai',
+                ...(_teamCallBcc.length ? { bcc: _teamCallBcc } : {}),
                 from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
                 subject: `📞 AI Call from ${callerNumber} - ${callTime}`,
                 html: `
@@ -9470,13 +9516,15 @@ async function sendVoicemailEmail(from, recordingUrl, transcription) {
     `;
     
     try {
+        const _teamVmBcc = _team.emails().filter(e => e.toLowerCase() !== 'tyler@overassessed.ai').map(email => ({ email }));
         await sgMail.send({
             to: 'tyler@overassessed.ai',
+            ...(_teamVmBcc.length ? { bcc: _teamVmBcc } : {}),
             from: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai',
             subject,
             html
         });
-        console.log(`📧 Voicemail email sent for call from ${from}`);
+        console.log(`📧 Voicemail email sent for call from ${from} + team`);
     } catch (err) {
         console.error('Voicemail email error:', err.message);
     }
