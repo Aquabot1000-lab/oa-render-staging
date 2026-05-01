@@ -48,6 +48,7 @@ const { createClient } = require('@supabase/supabase-js');
 // ---------- event → status map ----------
 
 const EVENT_MAP = {
+  // ----- existing automation events -----
   aoa_request_sent:      { status: 'AOA_REQUEST_SENT',           outreach: true,  category: 'outreach' },
   esign_completed:       { status: 'SIGNED_READY_TO_FILE',       outreach: false, category: 'milestone', sets: { aoa_signed: true, fee_agreement_signed: true, fee_agreement_signed_at: 'NOW' } },
   notice_uploaded_valid: { status: 'NOTICE_RECEIVED',            outreach: false, category: 'milestone', sets: { notice_received: true } },
@@ -55,6 +56,20 @@ const EVENT_MAP = {
   package_built:         { status: 'READY_PENDING_NOV',          outreach: false, category: 'milestone' }, // status overridden if payload.has_valid_notice
   filed:                 { status: 'FILED',                       outreach: false, category: 'milestone', sets: { filing_ready: true } },
   lost_contact:          { status: 'LOST_CONTACT',                outreach: false, category: 'block' },
+  // ----- CRM Operator Mode Phase 1 events (Tyler msg 28321) -----
+  approve_for_filing:    { status: 'READY_TO_FILE',               outreach: false, category: 'decision', sets: { filing_ready: true } },
+  deny_no_opportunity:   { status: 'NO_OPPORTUNITY',              outreach: false, category: 'decision', lock: true },
+  hold:                  { status: null,                          outreach: false, category: 'decision', lock: true },  // status unchanged; just locks
+  unhold:                { status: null,                          outreach: false, category: 'decision', sets: { manual_status_lock: false } },
+  lock:                  { status: null,                          outreach: false, category: 'decision', lock: true },
+  unlock:                { status: null,                          outreach: false, category: 'decision', sets: { manual_status_lock: false } },
+  note_added:            { status: null,                          outreach: false, category: 'note' },
+  comps_rerun:           { status: null,                          outreach: false, category: 'system' },
+  comps_completed:       { status: null,                          outreach: false, category: 'system' }, // payload.metrics + payload.comp_results expected
+  comps_data_blocked:    { status: null,                          outreach: false, category: 'system', sets: { analysis_status: 'DATA_BLOCKED' } },
+  package_rebuilt:       { status: null,                          outreach: false, category: 'system' },
+  message_sent:          { status: null,                          outreach: true,  category: 'outreach' },
+  status_override:       { status: null,                          outreach: false, category: 'decision' }, // payload.target_status required; tyler-only enforced at route
 };
 
 // Statuses that NEVER allow downgrade (terminal/protected). Manual lock can still apply.
@@ -263,6 +278,10 @@ async function updateCaseState(caseId, event, payload = {}) {
   if (event === 'package_built') {
     targetStatus = payload.has_valid_notice ? 'READY_TO_FILE' : 'READY_PENDING_NOV';
   }
+  // For status_override, the target status comes from payload.target_status
+  if (event === 'status_override' && payload.target_status) {
+    targetStatus = payload.target_status;
+  }
   if (payload.extra_status) {
     targetStatus = payload.extra_status;
     warnings.push(`extra_status override used: ${payload.extra_status}`);
@@ -288,7 +307,10 @@ async function updateCaseState(caseId, event, payload = {}) {
   if (cols.has('last_activity_at')) patch.last_activity_at = NOW;
   if (def.outreach && cols.has('last_outreach_at')) patch.last_outreach_at = NOW;
 
-  if (willChangeStatus) {
+  // Only write status if the event actually has a target status (events like
+  // comps_completed, note_added, hold, etc. carry status:null in EVENT_MAP and
+  // must not nuke the existing status to NULL).
+  if (willChangeStatus && targetStatus) {
     patch.status = targetStatus;
   }
 
@@ -328,17 +350,38 @@ async function updateCaseState(caseId, event, payload = {}) {
   if (cols.has('filing_ready'))    patch.filing_ready = flags.filing_ready;
   result.flags = flags;
 
-  // 5. Metrics recompute
+  // 5. Metrics handling — three modes:
+  //    a) comps_completed  : caller passes payload.comp_results; we compute fresh metrics
+  //    b) comps_data_blocked: clear all metric fields (no defensible numbers)
+  //    c) every other event: recompute from row.comp_results unless payload.skip_metrics
   let metrics = null;
-  if (!payload.skip_metrics) {
-    metrics = computeMetrics(row);
-    // Only write metrics when comps are present and produced a real result.
-    // Never overwrite a valid existing figure with null.
-    if (metrics.comps_count > 0 && metrics.estimated_savings != null) {
-      patch.estimated_savings = metrics.estimated_savings;
+  if (event === 'comps_data_blocked') {
+    if (cols.has('estimated_reduction_value')) patch.estimated_reduction_value = null;
+    if (cols.has('estimated_tax_savings'))     patch.estimated_tax_savings     = null;
+    if (cols.has('estimated_revenue'))         patch.estimated_revenue         = null;
+    if (cols.has('comp_low_anchor_value'))     patch.comp_low_anchor_value     = null;
+    if (cols.has('settlement_estimate_value')) patch.settlement_estimate_value = null;
+    patch.estimated_savings = null;  // legacy
+    if (payload.comp_results !== undefined) patch.comp_results = payload.comp_results;
+  } else if (!payload.skip_metrics) {
+    // For comps_completed the caller can pass fresh comp_results to write alongside metrics.
+    if (event === 'comps_completed' && payload.comp_results !== undefined) {
+      patch.comp_results = payload.comp_results;
+      // computeMetrics reads from row, so merge the new comps in for this calculation
+      metrics = computeMetrics({ ...row, comp_results: payload.comp_results });
+    } else {
+      metrics = computeMetrics(row);
     }
-    if (cols.has('estimated_revenue') && metrics.comps_count > 0 && metrics.estimated_revenue != null) {
-      patch.estimated_revenue = metrics.estimated_revenue;
+    // Only write metrics when comps produced a defensible reduction.
+    // Never overwrite a valid existing figure with null.
+    if (metrics.comps_count > 0 && metrics.estimated_tax_savings != null) {
+      if (cols.has('estimated_reduction_value')) patch.estimated_reduction_value = metrics.estimated_reduction_value;
+      if (cols.has('estimated_tax_savings'))     patch.estimated_tax_savings     = metrics.estimated_tax_savings;
+      if (cols.has('estimated_revenue'))         patch.estimated_revenue         = metrics.estimated_revenue;
+      if (cols.has('estimated_tax_rate'))        patch.estimated_tax_rate        = metrics.estimated_tax_rate;
+      if (cols.has('comp_low_anchor_value'))     patch.comp_low_anchor_value     = metrics.comp_low_anchor_value;
+      if (cols.has('settlement_estimate_value')) patch.settlement_estimate_value = metrics.settlement_estimate_value;
+      patch.estimated_savings = metrics.estimated_tax_savings;  // legacy mirror
     }
   }
   result.metrics = metrics;
@@ -358,11 +401,22 @@ async function updateCaseState(caseId, event, payload = {}) {
 
   result.applied_status = patch.status || row.status;
 
-  // 7. Activity log — ALWAYS, even if locked (audit trail)
+  // 7. Activity log — ALWAYS, even if locked (audit trail).
+  // Migration 007 added event/before/after columns; we now write structured
+  // snapshots in addition to legacy action/details for backward compat.
+  const beforeSnap = {};
+  const afterSnap  = {};
+  for (const k of Object.keys(patch)) {
+    beforeSnap[k] = row[k] === undefined ? null : row[k];
+    afterSnap[k]  = patch[k];
+  }
   const logRow = {
     case_id: caseId,
     actor: payload.actor || 'system',
     action: `state.${event}`,
+    event,                      // canonical event name (Phase 0.5)
+    before: beforeSnap,         // pre-mutation snapshot of patched fields
+    after:  afterSnap,          // post-mutation snapshot of patched fields
     details: {
       event,
       prior_status: result.prior_status,

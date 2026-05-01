@@ -9,6 +9,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 const fs = require('fs');
+const { updateCaseState } = require('./state-controller');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -301,12 +302,18 @@ async function runAutoFiling() {
             const pkg = await generatePackage(c, comps);
             console.log('[AutoFiler] ' + c.case_id + ' package generated: ' + pkg.filename);
 
-            // 4. Update DB → filed
+            // 4. Update DB → package built, needs approval
+            try {
+                await updateCaseState(c.case_id, 'package_built', { actor: 'system:auto-filing' });
+                await updateCaseState(c.case_id, 'approve_for_filing', { actor: 'system:auto-filing' });
+            } catch (stateErr) {
+                console.error('[AutoFiler] ' + c.case_id + ' state update failed:', stateErr.message);
+                results.push({ case_id: c.case_id, filed: false, issue: 'State update failed: ' + stateErr.message });
+                continue;
+            }
             const { error: updateErr } = await supabase
                 .from('submissions')
                 .update({
-                    status: 'Ready to File',
-                    filing_status: 'package_ready',
                     filing_approval_status: 'needs_approval',
                     filing_format: 'taxnet_standard',
                     updated_at: new Date().toISOString()
@@ -496,8 +503,8 @@ async function recordFilingConfirmation(caseId, confirmation) {
     if (!number) {
         // ERROR: no confirmation number
         console.error('[FILING] ❌ ' + caseId + ' — NO CONFIRMATION NUMBER CAPTURED');
+        await updateCaseState(caseId, 'status_override', { target_status: 'FILING_ERROR', actor: 'system:auto-filing' });
         await supabase.from('submissions').update({
-            filing_status: 'filing_error',
             filing_method: method || 'unknown',
             updated_at: new Date().toISOString()
         }).eq('case_id', caseId);
@@ -517,12 +524,11 @@ async function recordFilingConfirmation(caseId, confirmation) {
     }
     
     // Success: store everything
+    await updateCaseState(caseId, 'filed', { actor: 'system:auto-filing' });
     const { error } = await supabase.from('submissions').update({
         filing_confirmation_number: number,
         filed_at: new Date().toISOString(),
         filing_method: method,
-        filing_status: 'filed',
-        status: 'Filed',
         updated_at: new Date().toISOString()
     }).eq('case_id', caseId);
     
@@ -598,10 +604,7 @@ async function verifyFilingComplete(caseId) {
     
     if (!allPass) {
         // Block — set to pending verification
-        await supabase.from('submissions').update({
-            filing_status: 'filing_pending_verification',
-            updated_at: new Date().toISOString()
-        }).eq('case_id', caseId);
+        await updateCaseState(caseId, 'status_override', { target_status: 'FILING_PENDING_VERIFICATION', actor: 'system:auto-filing' });
         
         console.log('[FILING] ⚠️ ' + caseId + ' blocked from Filed — missing: ' + 
             Object.entries(checks).filter(([,v]) => !v).map(([k]) => k).join(', '));
@@ -674,9 +677,9 @@ async function validateFileForFiling(caseId, filePath) {
     if (meta.hash !== currentHash) {
         // File was regenerated — block filing, require new approval
         console.error('[FILE FREEZE] ❌ ' + caseId + ' file hash mismatch! Regeneration detected.');
+        await updateCaseState(caseId, 'approve_for_filing', { actor: 'system:auto-filing' });
         await supabase.from('submissions').update({
             filing_approval_status: 'needs_approval',
-            filing_status: 'ready_to_file',
             updated_at: new Date().toISOString()
         }).eq('case_id', caseId);
         

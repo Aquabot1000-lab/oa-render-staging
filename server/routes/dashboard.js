@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
+const { readTaxSavings } = require('../lib/metric-shim'); // Phase 0.5 — canonical metric reads
 
 /**
  * GET /api/dashboard/daily
@@ -19,7 +20,7 @@ router.get('/daily', async (req, res) => {
         // Pull all cases that need attention
         const { data: cases, error } = await supabaseAdmin
             .from('submissions')
-            .select('case_id, owner_name, next_action, next_follow_up_at, estimated_savings, filing_ready, status')
+            .select('case_id, owner_name, next_action, next_follow_up_at, estimated_savings, estimated_tax_savings, estimated_revenue, estimated_reduction_value, filing_ready, status')
             .lte('next_follow_up_at', now.toISOString())
             .neq('do_not_contact', true)
             .is('deleted_at', null)
@@ -51,7 +52,7 @@ router.get('/daily', async (req, res) => {
                 prioritized.urgent.push(c);
             } else if (['NEEDS_REVIEW', 'DOCUMENT_RECEIVED'].includes(c.status)) {
                 prioritized.docs.push(c);
-            } else if (c.estimated_savings && c.estimated_savings > 5000) {
+            } else if (readTaxSavings(c) > 5000) {
                 prioritized.highValue.push(c);
             } else {
                 prioritized.other.push(c);
@@ -88,7 +89,7 @@ router.get('/queue', async (req, res) => {
         // Get all active cases
         const { data: allCases, error } = await supabaseAdmin
             .from('submissions')
-            .select('case_id, owner_name, status, next_action, next_follow_up_at, last_contact_at, filing_ready, filing_submitted, estimated_savings')
+            .select('case_id, owner_name, status, next_action, next_follow_up_at, last_contact_at, filing_ready, filing_submitted, estimated_savings, estimated_tax_savings, estimated_revenue, estimated_reduction_value')
             .is('deleted_at', null)
             .neq('filing_submitted', true);
 

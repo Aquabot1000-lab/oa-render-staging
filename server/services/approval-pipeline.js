@@ -29,6 +29,7 @@
 const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+const { updateCaseState } = require('./state-controller');
 
 const FILING_DIR = path.join(__dirname, '..', 'filing-packages');
 if (!fs.existsSync(FILING_DIR)) fs.mkdirSync(FILING_DIR, { recursive: true });
@@ -175,12 +176,8 @@ async function maybeBuildForReview(caseId, opts = {}) {
 
   const pdfPath = buildOut?.pdfPath || path.join(FILING_DIR, `${caseId}-Filing-Package.pdf`);
 
-  // Mark case as READY_FOR_TYLER_REVIEW
-  await client.from('submissions').update({
-    filing_status: 'READY_FOR_TYLER_REVIEW',
-    status: 'READY_FOR_TYLER_REVIEW',
-    last_activity_at: new Date().toISOString()
-  }).eq('case_id', caseId);
+  // Mark case as PENDING_TYLER_APPROVAL (= READY_FOR_TYLER_REVIEW in canonical terms)
+  await updateCaseState(caseId, 'status_override', { target_status: 'PENDING_TYLER_APPROVAL', actor: 'system:approval-pipeline' });
 
   // Email internal team ONLY (Tyler + Uri — no customer)
   let emailStatus = null;

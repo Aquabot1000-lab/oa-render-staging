@@ -1094,10 +1094,12 @@ router.post('/send', async (req, res) => {
         const baseUrl = process.env.BASE_URL || 'https://overassessed.ai';
         const sign_url = `${baseUrl}/sign/${token}`;
 
-        await supabaseAdmin.from('submissions').update({
-            status: 'Awaiting Signature',
-            last_activity_at: new Date().toISOString()
-        }).eq('case_id', case_id);
+        // Phase 0.5: status routed through controller (Tyler msg 28321)
+        await updateCaseState(case_id, 'aoa_request_sent', {
+            actor: 'system:esign-link',
+            reason: 'Sign URL generated for AOA',
+            details: { token_prefix: token.slice(0, 8) },
+        });
 
         await supabaseAdmin.from('activity_log').insert({
             case_id, actor: 'tyler', action: 'esign_sent',

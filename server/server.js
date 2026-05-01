@@ -29,6 +29,9 @@ const { updateAnalysis, getAnalysisHistory } = require('./lib/analysis-version')
 // Property Deduplication — ONE active case per property
 const { findDuplicate, mergeIntoExisting } = require('./lib/property-dedup');
 
+// State Controller — SINGLE SOURCE OF TRUTH for case state mutations
+const { updateCaseState } = require('./services/state-controller');
+
 // Real Comp Engine (no synthetic data)
 const { fetchRealComps, fetchRealCompsBatch } = require('./services/real-comp-engine');
 
@@ -1898,10 +1901,7 @@ async function runApprovalGate() {
             // All seven gates passed — promote to PENDING_TYLER_APPROVAL
             const now = new Date().toISOString();
             if (isSupabaseEnabled()) {
-                await supabaseAdmin.from('submissions').update({
-                    status: 'PENDING_TYLER_APPROVAL',
-                    updated_at: now
-                }).eq('id', sub.id);
+                await updateCaseState(sub.caseId || sub.case_id, 'status_override', { target_status: 'PENDING_TYLER_APPROVAL', actor: 'system:approval-gate' });
             }
             console.log(`[ApprovalGate] ${sub.caseId} ${sub.ownerName} → PENDING_TYLER_APPROVAL (savings: $${savings.toLocaleString()}/yr, comps: ${compCount})`);
             moved++;
@@ -1946,8 +1946,8 @@ async function sendApprovedResults(sub) {
     const updatedDrip = { ...drip, resultsDelivered: now, approvedAt: drip.approvedAt || now, firstContactedAt: drip.firstContactedAt || now };
 
     if (isSupabaseEnabled()) {
+        await updateCaseState(sub.caseId || sub.case_id, 'status_override', { target_status: 'RESULTS_SENT', actor: 'system:approval-gate' });
         await supabaseAdmin.from('submissions').update({
-            status: 'Results Sent',
             drip_state: updatedDrip,
             last_contact_at: now,
             updated_at: now
@@ -2029,15 +2029,17 @@ if (isSupabaseEnabled()) {
     app.post('/api/case-view/change-status', authenticateToken, async (req, res) => {
         try {
             const { case_id, old_status, new_status } = req.body;
-            // Update status
-            await supabaseAdmin.from('submissions').update({ status: new_status, last_activity_at: new Date().toISOString() }).eq('case_id', case_id);
-            // Log activity
-            await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'tyler', action: 'status_change', details: { from: old_status, to: new_status, source: 'case-page' } });
+            if (!case_id || !new_status) return res.status(400).json({ error: 'case_id and new_status required' });
+            const result = await updateCaseState(case_id, 'status_override', {
+                actor: req.user?.username || 'tyler',
+                target_status: new_status,
+                reason: `Manual status change from ${old_status || '?'} to ${new_status}`,
+                details: { from: old_status, to: new_status, source: 'case-page' },
+            });
             // VIP alert: notify Tyler on status changes for VIP cases
             const { data: vipCheck } = await supabaseAdmin.from('submissions').select('vip, vip_reason, owner_name').eq('case_id', case_id).single();
             if (vipCheck?.vip) {
                 console.log(`[VIP ALERT] ${case_id} (${vipCheck.owner_name}) status: ${old_status} → ${new_status} [${vipCheck.vip_reason}]`);
-                // Activity log the VIP alert for audit trail
                 await supabaseAdmin.from('activity_log').insert({
                     case_id, actor: 'system', action: 'vip_status_alert',
                     details: { from: old_status, to: new_status, vip_reason: vipCheck.vip_reason, owner: vipCheck.owner_name }
@@ -2056,7 +2058,7 @@ if (isSupabaseEnabled()) {
                     follow_up_reason: fp.reason
                 }).eq('case_id', case_id);
             }
-            res.json({ ok: true });
+            res.json({ ok: true, ...result });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -2971,10 +2973,7 @@ if (isSupabaseEnabled()) {
                 if (!tokenErr) {
                     signingLink = `${process.env.BASE_URL || 'https://overassessed.ai'}/sign/${esignToken}`;
                     // Set case status to Awaiting Signature
-                    await supabaseAdmin.from('submissions').update({
-                        status: 'Awaiting Signature',
-                        last_activity_at: new Date().toISOString()
-                    }).eq('case_id', case_id);
+                    await updateCaseState(case_id, 'aoa_request_sent', { actor: 'system:signing-link' });
                 }
             } catch (tokenGenErr) {
                 console.error('[Action:SendSigning] Token gen failed (non-blocking):', tokenGenErr.message);
@@ -3054,9 +3053,8 @@ if (isSupabaseEnabled()) {
             const firstName = (owner_name || '').split(' ')[0] || 'there';
 
             // Update case status + filing fields + touch case
+            await updateCaseState(case_id, 'filed', { actor: 'tyler' });
             const attempts = await touchCase(supabaseAdmin, case_id, {
-                status: 'Filed',
-                filing_status: 'filed',
                 filing_date: filing_date || new Date().toISOString().split('T')[0],
                 filing_confirmation: confirmation_number || null
             });
@@ -3429,8 +3427,8 @@ app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
         if (!lead) return res.status(404).json({ error: 'Lead not found' });
         
         if (action === 'approve') {
+            await updateCaseState(lead.case_id, 'approve_for_filing', { actor: 'tyler' });
             await supabaseAdmin.from('submissions').update({
-                status: 'Approved',
                 filing_approved: true,
                 filing_approved_at: new Date().toISOString(),
                 filing_approved_by: req.user?.email || 'tyler',
@@ -3440,8 +3438,9 @@ app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
             res.json({ success: true, status: 'Approved', lead_name: lead.owner_name });
         } else if (action === 'reject') {
             const { reason } = req.body;
+            // 'Needs Revision' has no direct event map entry; use deny_no_opportunity
+            await updateCaseState(lead.case_id, 'deny_no_opportunity', { actor: 'tyler', reason: reason || 'Sent back for revision' });
             await supabaseAdmin.from('submissions').update({
-                status: 'Needs Revision',
                 filing_approved: false,
                 review_reason: reason || 'Sent back for revision',
                 updated_at: new Date().toISOString()
@@ -4952,8 +4951,8 @@ app.post('/api/simple-lead', async (req, res) => {
                 
                 // 5. Update status to Contacted
                 try {
+                    await updateCaseState(caseNum, 'aoa_request_sent', { actor: 'system:simple-form' });
                     await supabaseAdmin.from('submissions').update({
-                        status: 'Contacted',
                         drip_state: { status: 'contacted', firstContactedAt: new Date().toISOString(), channel: 'email', assignee },
                         updated_at: new Date().toISOString()
                     }).eq('id', leadId);
@@ -5013,8 +5012,8 @@ app.post('/api/simple-lead', async (req, res) => {
                                 const reduction = compResults?.reduction || Math.round(assessedValue * 0.08);
                                 const recommendedValue = compResults?.recommendedValue || (assessedValue - reduction);
                                 
+                                await updateCaseState(caseNum, 'comps_completed', { actor: 'system:simple-analysis', comp_results: compResults });
                                 await supabaseAdmin.from('submissions').update({
-                                    status: 'Analyzed',
                                     drip_state: {
                                         status: 'analyzed',
                                         firstContactedAt: new Date().toISOString(),
@@ -5051,8 +5050,8 @@ app.post('/api/simple-lead', async (req, res) => {
                                 // PARTIAL: 1-4 comps — NOT complete, needs fallback
                                 console.log(`[SimpleAnalysis] ${caseNum}: PARTIAL — only ${compsFound} comps. Minimum is ${MIN_COMPS_REQUIRED}.`);
                                 
+                                await updateCaseState(caseNum, 'comps_completed', { actor: 'system:simple-analysis', comp_results: compResults });
                                 await supabaseAdmin.from('submissions').update({
-                                    status: 'Partial Analysis',
                                     drip_state: {
                                         status: 'partial-analysis',
                                         firstContactedAt: new Date().toISOString(),
@@ -5085,8 +5084,8 @@ app.post('/api/simple-lead', async (req, res) => {
                                 // ZERO COMPS with real data — mark for manual review
                                 console.log(`[SimpleAnalysis] ${caseNum}: 0 comps found despite real data. Manual review needed.`);
                                 
+                                await updateCaseState(caseNum, 'status_override', { target_status: 'NEEDS_DATA', actor: 'system:simple-analysis' });
                                 await supabaseAdmin.from('submissions').update({
-                                    status: 'Needs Data',
                                     drip_state: {
                                         status: 'needs-docs',
                                         firstContactedAt: new Date().toISOString(),
@@ -5115,8 +5114,8 @@ app.post('/api/simple-lead', async (req, res) => {
                             
                         } else {
                             // No real assessed value — needs notice
+                            await updateCaseState(caseNum, 'status_override', { target_status: 'NEEDS_DATA', actor: 'system:simple-analysis' });
                             await supabaseAdmin.from('submissions').update({
-                                status: 'Needs Data',
                                 drip_state: {
                                     status: 'needs-docs',
                                     firstContactedAt: new Date().toISOString(),
@@ -5654,7 +5653,8 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
                         if (qaResult.passed && comps.length >= 3 && sav > 0) autoStage = 'Filing Prepared';
                         else if (qaResult.passed && sav <= 0) autoStage = 'No Case';
                         else if (comps.length < 3) autoStage = 'Needs Analysis';
-                        await supabaseAdmin.from('submissions').update({ qa_status: qaResult.passed ? 'passed' : 'failed', qa_result: qaResult, qa_run_at: new Date().toISOString(), status: autoStage }).eq('id', submission.id);
+                        await updateCaseState(caseId, 'status_override', { target_status: autoStage, actor: 'crm-worker' });
+                        await supabaseAdmin.from('submissions').update({ qa_status: qaResult.passed ? 'passed' : 'failed', qa_result: qaResult, qa_run_at: new Date().toISOString() }).eq('id', submission.id);
                         console.log(`[AutoAnalysis] Real comp engine: ${comps.length} comps, $${sav}/yr, stage=${autoStage} for ${caseId}`);
                     }
                 } catch (realErr) { console.error(`[AutoAnalysis] Real comp engine failed for ${caseId}:`, realErr.message); }
@@ -6076,18 +6076,31 @@ async function runFullAnalysis(caseId) {
         submissions[idx].updatedAt = new Date().toISOString();
         await saveProgress();
         
-        // Update Supabase with preliminary results
+        // Update Supabase with preliminary results.
+        //
+        // PHASE 0.5 LOCKDOWN (Tyler msg 28321):
+        //   - status / estimated_savings / canonical metrics are NEVER written here.
+        //     They are owned by services/state-controller.js.
+        //   - We emit a `comps_completed` event so the controller can compute and
+        //     persist the Tyler-spec metric bundle from the new comp_results.
+        //   - Preliminary scratch fields (analysis_report, analysis_status, notes,
+        //     needs_manual_review) remain a direct write — they're non-canonical
+        //     UI hints, not state.
         try {
             await supabaseAdmin.from('submissions').update({
-                status: 'Preliminary Analysis',
                 analysis_status: 'Preliminary',
-                comp_results: prelimComps,
                 analysis_report: prelimReport,
-                estimated_savings: prelimReport.estimatedSavingsRange?.high || 0,
                 needs_manual_review: true,
                 updated_at: new Date().toISOString(),
                 notes: `[${new Date().toISOString().split('T')[0]}] Preliminary analysis: ${compCount} comps found. Median comp value: $${medianCompValue?.toLocaleString() || 'N/A'}. Awaiting Notice of Appraised Value for precise estimate.`
             }).eq('case_id', sub.caseId);
+            // Canonical state + metrics through controller
+            const { updateCaseState } = require('./services/state-controller');
+            await updateCaseState(sub.caseId, 'comps_completed', {
+                actor: 'system:preliminary-analysis',
+                comp_results: prelimComps,
+                reason: `Preliminary: ${compCount} comps`,
+            });
         } catch (dbErr) {
             console.warn(`[Analysis] Supabase update failed for ${sub.caseId}:`, dbErr.message);
         }
@@ -7125,8 +7138,8 @@ app.post('/api/approve/:id', authenticateToken, async (req, res) => {
         drip.approvedAt = now;
         drip.approvedBy = req.body.approvedBy || 'admin';
         if (isSupabaseEnabled()) {
+            await updateCaseState(sub.caseId || sub.case_id, 'approve_for_filing', { actor: 'tyler' });
             await supabaseAdmin.from('submissions').update({
-                status: 'Approved',
                 drip_state: drip,
                 updated_at: now
             }).eq('id', sub.id);
@@ -7168,8 +7181,8 @@ app.post('/api/approve-batch', authenticateToken, async (req, res) => {
                 drip.approvedAt = now;
                 drip.approvedBy = req.body.approvedBy || 'admin';
                 if (isSupabaseEnabled()) {
+                    await updateCaseState(sub.caseId || sub.case_id, 'approve_for_filing', { actor: 'tyler' });
                     await supabaseAdmin.from('submissions').update({
-                        status: 'Approved',
                         drip_state: drip,
                         updated_at: now
                     }).eq('id', sub.id);
@@ -7210,8 +7223,8 @@ app.post('/api/reject/:id', authenticateToken, async (req, res) => {
         drip.rejectedReason = reason || 'Manual rejection';
 
         if (isSupabaseEnabled()) {
+            await updateCaseState(sub.caseId || sub.case_id, 'deny_no_opportunity', { actor: 'tyler', reason: reason || 'Manual rejection' });
             await supabaseAdmin.from('submissions').update({
-                status: targetStatus,
                 drip_state: drip,
                 updated_at: now
             }).eq('id', sub.id);
@@ -7805,9 +7818,9 @@ app.post('/api/inbound-reply', async (req, res) => {
                 // If notice received → mark as HOT priority
                 if (replyClass === 'A') {
                     for (const sub of data) {
+                        await updateCaseState(sub.case_id, 'notice_uploaded_valid', { actor: 'system:inbound-email' });
                         await supabaseAdmin.from('submissions')
                             .update({ 
-                                status: 'Notice Received',
                                 updated_at: new Date().toISOString(),
                                 follow_up_note: `Notice received via email at ${new Date().toISOString()}. PRIORITY ANALYSIS TRIGGERED.`
                             })
@@ -9027,12 +9040,12 @@ app.post('/twiml/sms-incoming', async (req, res) => {
                         }
                     });
                     // Provisional DB write — pipeline will immediately correct status if invalid
+                    await updateCaseState(caseId, 'notice_uploaded_valid', { actor: 'system:sms' });
                     const { error: updateErr } = await supabaseAdmin
                         .from('submissions')
                         .update({
                             notice_of_value: storagePath,
                             notice_url: noticeUrl,
-                            status: 'NOTICE_RECEIVED',
                             notes: `Notice received via SMS on ${new Date().toISOString().split('T')[0]}. File: ${storagePath} (pending validation)`
                         })
                         .eq('case_id', caseId);
@@ -10184,11 +10197,15 @@ app.post('/api/stripe/pipeline-webhook', async (req, res) => {
             const session = event.data?.object;
             const leadId = session?.metadata?.lead_id;
             if (leadId) {
+                const { data: _pmtRow } = await supabaseAdmin.from('submissions').select('case_id').eq('id', leadId).single();
+                const _pmtCaseId = _pmtRow?.case_id;
+                if (_pmtCaseId) {
+                    await updateCaseState(_pmtCaseId, 'status_override', { target_status: 'PAYMENT_RECEIVED', actor: 'system:stripe' });
+                }
                 await supabaseAdmin.from('submissions').update({
                     initiation_paid: true,
                     initiation_paid_at: new Date().toISOString(),
                     payment_status: 'paid',
-                    status: 'Payment Received',
                     updated_at: new Date().toISOString()
                 }).eq('id', leadId);
                 console.log(`[Pipeline] Payment received for lead ${leadId}`);
@@ -11129,26 +11146,32 @@ async function orchAnalyzeLead(payload) {
     // ── DATA_BLOCKED branch: no real comps available ────────────────────────────────────────
     if (compResult.data_blocked) {
         console.log(`[ORCH:ANALYZE] ${lead.case_id} — DATA_BLOCKED (${compResult.data_issue}). Not promoting.`);
+        // PHASE 0.5: route metric-clear + comp_results + analysis_status flip through controller (Tyler msg 28321).
         await supabaseAdmin.from('submissions').update({
-            analysis_status: 'DATA_BLOCKED',
-            estimated_savings: null,  // ⛔ clear stale savings — blocked analysis must not show old savings
-            comp_results: {
-                ...storedCR,
-                data_blocked: true,
-                data_issue: compResult.data_issue,
-                filing_ready: false,
-                savings_valid: false,  // explicit flag — savings field is stale/invalid
-                block_reason: compResult.block_reason || compResult.data_issue
-            },
             qa_status: 'failed',
             qa_run_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-            // ⛔ status NOT written here
+            // ⛔ status, metrics, analysis_status, comp_results NOT written here — controller owns them
         }).eq('id', lead_id);
-        await supabaseAdmin.from('activity_log').insert({
-            case_id: lead.case_id, actor: 'orch',
-            action: compResult.data_issue === 'TAXNET_SOURCE_REQUIRED' ? 'data_blocked_taxnet_failure' : 'synthetic_comps_blocked',
-            details: { data_issue: compResult.data_issue, block_reason: compResult.block_reason, rule: 'RULE_9_RULE_10' }
+        const { updateCaseState } = require('./services/state-controller');
+        const blockedCompResults = {
+            ...storedCR,
+            data_blocked: true,
+            data_issue: compResult.data_issue,
+            filing_ready: false,
+            savings_valid: false,
+            block_reason: compResult.block_reason || compResult.data_issue
+        };
+        await updateCaseState(lead.case_id, 'comps_data_blocked', {
+            actor: 'orch',
+            reason: compResult.block_reason || compResult.data_issue || 'data_blocked',
+            comp_results: blockedCompResults,
+            details: {
+                data_issue: compResult.data_issue,
+                block_reason: compResult.block_reason,
+                rule: 'RULE_9_RULE_10',
+                action_label: compResult.data_issue === 'TAXNET_SOURCE_REQUIRED' ? 'data_blocked_taxnet_failure' : 'synthetic_comps_blocked',
+            },
         });
         return { case_id: lead.case_id, blocked: true, data_issue: compResult.data_issue };
     }
@@ -11369,7 +11392,8 @@ async function orchStageTransition(payload) {
         }
     }
     
-    await supabaseAdmin.from('submissions').update({ status: target_stage, updated_at: new Date().toISOString() }).eq('id', lead_id);
+    await updateCaseState(lead.case_id, 'status_override', { target_status: target_stage, actor: 'crm-worker' });
+    await supabaseAdmin.from('submissions').update({ updated_at: new Date().toISOString() }).eq('id', lead_id);
     console.log(`[CRM-WORKER] ${lead.case_id} → ${target_stage}`);
     return { case_id: lead.case_id, previous: lead.status, current: target_stage, blocked: false };
 }
@@ -11628,11 +11652,10 @@ app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
         try {
             const { case_id } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
+            await updateCaseState(case_id, 'filed', { actor: 'tyler' });
             const { data, error } = await supabaseAdmin.from('submissions')
                 .update({
                     filing_approval_status: 'approved',
-                    status: 'Filed',
-                    filing_status: 'filed',
                     updated_at: new Date().toISOString()
                 })
                 .eq('case_id', case_id)

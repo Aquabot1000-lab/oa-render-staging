@@ -3,6 +3,7 @@
  * Hardened case_documents writer with retry, verification, activity log, and Telegram alert.
  */
 const https = require('https');
+const { updateCaseState } = require('./state-controller');
 
 async function verifiyUrl(url, retries = 3) {
     for (let i = 0; i < retries; i++) {
@@ -59,9 +60,7 @@ async function safeCaseDocWrite(supabaseAdmin, docRow, { sendTelegramAlert, case
     // Both attempts failed — flag case and alert
     const errMsg = `DOCUMENT_ERROR on ${docRow.case_id}: ${lastErr.message}`;
 
-    await supabaseAdmin.from('submissions')
-        .update({ status: 'DOCUMENT_ERROR', updated_at: new Date().toISOString() })
-        .eq('case_id', docRow.case_id)
+    await updateCaseState(docRow.case_id, 'status_override', { target_status: 'DOCUMENT_ERROR', actor: 'system:safe-doc-write' })
         .catch(() => {});
 
     await supabaseAdmin.from('activity_log').insert({
