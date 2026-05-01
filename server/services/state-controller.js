@@ -117,10 +117,18 @@ function getTaxRateForCounty(county) {
 }
 
 function extractCompValues(comps) {
+  // OverAssessed comp shapes observed in prod:
+  //   { adjValue, ... }          ← CAD-engine adjusted comp (primary)
+  //   { _mv, marketValue, ... }  ← rentcast/CAD raw market value
+  //   { adjustedValue, ... }     ← legacy/rare
+  //   { adjustedSalePrice, ... } ← sale-based
+  // Prefer adjValue (already adjusted for size/age), fallback to marketValue/_mv.
   return (comps || [])
     .map(c => Number(
-      c.adjustedValue || c.adjusted_value || c.adjustedSalePrice || c.adjusted_sale_price ||
-      c.marketValue   || c._mv             || c.market_value
+      c.adjValue       || c.adj_value       ||
+      c.adjustedValue  || c.adjusted_value  ||
+      c.adjustedSalePrice || c.adjusted_sale_price ||
+      c.marketValue    || c._mv             || c.market_value
     ))
     .filter(n => Number.isFinite(n) && n > 1000);
 }
@@ -151,7 +159,9 @@ function computeMetrics(row) {
     basis:                     'no_comps',
   };
 
-  const assessed = Number(row.assessed_value || row.property_data?.assessedValue || 0);
+  // Some legacy rows store assessed_value as '$3,142,260' string. Strip $ and commas before Number().
+  const _rawAssessed = row.assessed_value ?? row.property_data?.assessedValue ?? 0;
+  const assessed = Number(typeof _rawAssessed === 'string' ? _rawAssessed.replace(/[$,\s]/g, '') : _rawAssessed);
   if (!assessed || assessed < 1000) {
     out.basis = 'no_assessed_value';
     return out;
@@ -181,8 +191,11 @@ function computeMetrics(row) {
     return out;
   }
 
-  const county = row.county || row.property_data?.county || null;
-  out.estimated_tax_rate        = getTaxRateForCounty(county);
+  // Use comp_results.tax_rate if available (already county-specific),
+  // else look up by county name from submission or property_data.
+  const crTaxRate = typeof row.comp_results?.tax_rate === 'number' ? row.comp_results.tax_rate : null;
+  const county = row.county || row.property_data?.county || row.comp_results?.county || null;
+  out.estimated_tax_rate        = crTaxRate || getTaxRateForCounty(county);
   out.estimated_reduction_value = Math.round(reduction);
   out.estimated_tax_savings     = Math.round(reduction * out.estimated_tax_rate);
   out.estimated_revenue         = Math.round(out.estimated_tax_savings * FEE_RATE);
@@ -410,13 +423,17 @@ async function rebuildAllMetrics(opts = {}) {
         const filing_ready    = !!(row.filing_status === 'FILED' || row.status === 'FILED' || row.filing_ready);
 
         const patch = {};
-        // Only update savings/revenue if comps exist and produced a result.
-        // Do NOT overwrite comp-engine-generated numbers when comps returned nothing new.
-        if (metrics.comps_count > 0 && metrics.estimated_savings != null && metrics.estimated_savings !== row.estimated_savings) {
-          patch.estimated_savings = metrics.estimated_savings;
-        }
-        if (cols.has('estimated_revenue') && metrics.comps_count > 0 && metrics.estimated_revenue != null && metrics.estimated_revenue !== row.estimated_revenue) {
-          patch.estimated_revenue = metrics.estimated_revenue;
+        // Tyler-spec metric bundle (msg 28217/28231) — lowest-comp anchor.
+        // Only write when comps exist AND produced a defensible reduction.
+        if (metrics.comps_count > 0 && metrics.estimated_tax_savings != null) {
+          if (cols.has('estimated_reduction_value')) patch.estimated_reduction_value = metrics.estimated_reduction_value;
+          if (cols.has('estimated_tax_savings'))     patch.estimated_tax_savings     = metrics.estimated_tax_savings;
+          if (cols.has('estimated_revenue'))         patch.estimated_revenue         = metrics.estimated_revenue;
+          if (cols.has('estimated_tax_rate'))        patch.estimated_tax_rate        = metrics.estimated_tax_rate;
+          if (cols.has('comp_low_anchor_value'))     patch.comp_low_anchor_value     = metrics.comp_low_anchor_value;
+          if (cols.has('settlement_estimate_value')) patch.settlement_estimate_value = metrics.settlement_estimate_value;
+          // Keep legacy estimated_savings in sync → set to estimated_tax_savings for backward compat
+          patch.estimated_savings = metrics.estimated_tax_savings;
         }
         if (cols.has('aoa_signed'))      patch.aoa_signed = aoa_signed;
         if (cols.has('notice_received')) patch.notice_received = notice_received;
