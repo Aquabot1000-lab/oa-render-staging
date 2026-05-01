@@ -117,8 +117,11 @@ async function notifySms(twilioClient, body, fromNumber) {
 
 /* ------------------------- TELEGRAM ------------------------- */
 
+// Default bot token (Tyler's WortheyAquaBot). Used if env not set.
+const DEFAULT_TG_BOT_TOKEN = '8546685923:AAGxRV6_YwimsyLvaORNhZTNu-1JM9PtdDs';
+
 async function notifyTelegram(text, opts = {}) {
-  const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const TOKEN = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_TG_BOT_TOKEN;
   if (!TOKEN) return { skipped: true, reason: 'no TELEGRAM_BOT_TOKEN' };
 
   const chats = telegramChats();
