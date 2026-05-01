@@ -74,10 +74,15 @@
         .detail-grid .form-group{margin-bottom:0}
         .detail-grid input{padding:14px}
 
-        .form-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;margin-bottom:16px}
-        .form-row .form-group{margin-bottom:0}
-        .form-row select{width:100%;padding:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:1rem;font-family:inherit;background:rgba(255,255,255,0.05);color:var(--text);transition:all 0.2s;outline:none;cursor:pointer}
+        /* Address row: City 60% / State 15% / ZIP 25% — stacks on mobile */
+        .form-row{display:grid;grid-template-columns:60fr 15fr 25fr;gap:12px;margin-bottom:16px}
+        .form-row .form-group{margin-bottom:0;min-width:0}
+        .form-row input,.form-row select{width:100%;min-width:0}
+        .form-row select{padding:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:1rem;font-family:inherit;background:rgba(255,255,255,0.05);color:var(--text);transition:all 0.2s;outline:none;cursor:pointer}
         .form-row select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,92,231,0.15)}
+        @media (max-width:520px){
+            .form-row{grid-template-columns:1fr;gap:14px}
+        }
         
         .skip-link{display:inline-block;margin-top:12px;font-size:0.85rem;color:var(--text-dim);cursor:pointer;text-decoration:underline}
         .skip-link:hover{color:var(--text)}
