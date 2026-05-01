@@ -73,6 +73,8 @@ const { classifyMessage } = require('./services/message-classifier');
 const { routeCaseAction } = require('./services/case-action-router');
 const { autoRespond: autoRespondInbound } = require('./services/inbound-auto-responder');
 const { runDailyTaskLoop } = require('./services/daily-task-loop');
+// ── Notice upload validation pipeline (Tyler msg 28178, 2026-05-01) ──────────
+const { processNoticeUpload } = require('./services/notice-upload-pipeline');
 const dashboardRouter = require('./routes/dashboard');
 const metaLeadgenRouter = require('./routes/meta-leadgen-webhook');
 
@@ -6868,6 +6870,46 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             `<p>Client ${sub.ownerName} uploaded their Notice of Appraised Value for case ${sub.caseId}.</p>`
         );
 
+        // ── NOTICE VALIDATION PIPELINE (Tyler msg 28178) ───────────────────────────
+        // Fire-and-forget: validate the uploaded file, quarantine if invalid, extract fields if valid.
+        // Does NOT block the HTTP response — runs async in background.
+        if (isSupabaseEnabled()) {
+            const _noticeStoragePath = filePath.replace(/^.*\/documents\//, '') ||
+                `notices/${uploadCaseId}/${req.file.originalname}`;
+            setImmediate(async () => {
+                try {
+                    const pipelineResult = await processNoticeUpload({
+                        caseId: uploadCaseId,
+                        storagePath: _noticeStoragePath,
+                        supabaseClient: supabaseAdmin,
+                        sgMail,
+                        team: _team,
+                    });
+                    console.log(`[notice-pipeline] ${uploadCaseId} HTTP-upload result: ${pipelineResult.result} | next: ${pipelineResult.next_step}`);
+                    if (pipelineResult.result === 'PASS') {
+                        // Trigger package finalize (auto-prestage generic builder if signed)
+                        try {
+                            const { triggerAutoBuild } = require('./services/auto-prestage-trigger');
+                            triggerAutoBuild(uploadCaseId, { state: sub0?.state || 'TX' });
+                        } catch (_e) { /* non-blocking */ }
+                    }
+                    // Update Telegram alert with real validation outcome
+                    const emoji = pipelineResult.result === 'PASS' ? '✅' : '❌';
+                    const ex = pipelineResult.extracted || {};
+                    await sendTelegramAlert(
+                        `📄 <b>Notice Validation: ${pipelineResult.result}</b> ${emoji}\n\n` +
+                        `<b>Case:</b> ${uploadCaseId}\n` +
+                        `<b>Confidence:</b> ${pipelineResult.confidence}\n` +
+                        `<b>Reason:</b> ${pipelineResult.reason}\n` +
+                        (pipelineResult.result === 'PASS' ? `<b>Assessed:</b> $${(ex.assessed_value||0).toLocaleString()}\n<b>Mailing date:</b> ${ex.mailing_date||'?'}\n<b>Account:</b> ${ex.account_id||'?'}` : '') +
+                        `\n\n<a href="https://overassessed.ai/admin">Open CRM</a>`
+                    );
+                } catch (_pipeErr) {
+                    console.error(`[notice-pipeline] ${uploadCaseId} HTTP-upload pipeline error:`, _pipeErr.message);
+                }
+            });
+        }
+
         // ── AUTO-FILE TRIGGER: If case is signed + has notice → prepare filing ──
         const canAutoFile = ['Signed', 'Form Signed'].includes(sub.status) && filePath;
         if (canAutoFile) {
@@ -8932,17 +8974,42 @@ app.post('/twiml/sms-incoming', async (req, res) => {
                         .createSignedUrl(storagePath, 7 * 24 * 3600);
                     const noticeUrl = longSignedData?.signedUrl || null;
                     
-                    // Update case: store notice path, URL, and tag as NOTICE_RECEIVED
+                    // ── NOTICE VALIDATION PIPELINE (Tyler msg 28178) ────────────────────
+                    // Stage the file temporarily so pipeline can fetch it, then validate.
+                    // Note the storagePath is already inside the documents bucket, e.g.
+                    // notices/OA-0022/notice.jpg — pipeline will fetch via public URL.
+                    const _mmsStoragePath = storagePath; // already relative: notices/<caseId>/<file>
+                    setImmediate(async () => {
+                        try {
+                            const pipelineResult = await processNoticeUpload({
+                                caseId,
+                                storagePath: _mmsStoragePath,
+                                supabaseClient: supabaseAdmin,
+                                sgMail,
+                                team: _team,
+                            });
+                            console.log(`[notice-pipeline] ${caseId} MMS result: ${pipelineResult.result}`);
+                            if (pipelineResult.result === 'PASS') {
+                                try {
+                                    const { triggerAutoBuild } = require('./services/auto-prestage-trigger');
+                                    triggerAutoBuild(caseId, { state: 'TX' });
+                                } catch (_e) { /* non-blocking */ }
+                            }
+                        } catch (_e) {
+                            console.error(`[notice-pipeline] ${caseId} MMS pipeline error:`, _e.message);
+                        }
+                    });
+                    // Provisional DB write — pipeline will immediately correct status if invalid
                     const { error: updateErr } = await supabaseAdmin
                         .from('submissions')
                         .update({
                             notice_of_value: storagePath,
                             notice_url: noticeUrl,
                             status: 'NOTICE_RECEIVED',
-                            notes: `Notice received via SMS on ${new Date().toISOString().split('T')[0]}. File: ${storagePath}`
+                            notes: `Notice received via SMS on ${new Date().toISOString().split('T')[0]}. File: ${storagePath} (pending validation)`
                         })
                         .eq('case_id', caseId);
-                    
+
                     if (updateErr) {
                         console.error(`[Inbound MMS] Case update failed:`, updateErr.message);
                     }
