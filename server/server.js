@@ -432,6 +432,10 @@ app.use('/sign', esignRouter);
 app.use('/api/esign', esignRouter);
 app.use('/api/meta-leadgen', metaLeadgenRouter);
 
+// Telegram bot webhook — team commands (Uri + Tyler)
+const telegramWebhookRouter = require('./routes/telegram-webhook');
+app.use('/webhooks/telegram', telegramWebhookRouter);
+
 // Explicit GET interceptors for sign sub-paths — must be BEFORE express.static
 // express.static can match /sign/:token/pdf-url before the router for GET requests
 app.get('/sign/:token/pdf-url', (req, res, next) => {
@@ -2147,6 +2151,7 @@ if (isSupabaseEnabled()) {
             const { data, error } = await supabaseAdmin.from('submissions')
                 .select('case_id,owner_name,status,state,county,estimated_savings,savings_min,savings_max,next_action,next_action_priority,follow_up_priority,follow_up_score,follow_up_reason,confidence_level,last_activity_at,last_contact_at,fee_agreement_signed,initiation_paid,upload_status,contact_attempts,analysis_version')
                 .not('status', 'eq', 'Archived')
+                .or('suppressed.is.null,suppressed.eq.false')
                 .order('next_action_priority', { ascending: false });
             if (error) throw error;
 
@@ -2418,6 +2423,7 @@ if (isSupabaseEnabled()) {
                 .select('case_id,owner_name,status,estimated_savings,follow_up_priority,follow_up_score,follow_up_reason,next_action,next_follow_up_at,last_contact_at,contact_attempts')
                 .not('status', 'eq', 'Archived')
                 .not('follow_up_priority', 'eq', 'NONE')
+                .or('suppressed.is.null,suppressed.eq.false')
                 .order('follow_up_score', { ascending: false });
             if (error) throw error;
             res.json(data || []);
@@ -3233,8 +3239,9 @@ if (isSupabaseEnabled()) {
     app.use('/api/email/inbound', emailInboundRouter);
     // Dashboard API (internal use)
     app.use('/api/dashboard', dashboardRouter);
-    // Expose sendTelegramAlert for use in sub-routers
+    // Expose shared helpers for use in sub-routers
     app.locals.sendTelegramAlert = sendTelegramAlert;
+    app.locals.supabaseAdmin = supabaseAdmin;
     // /sign and /api/esign already mounted before static middleware (see top of file)
     console.log('✅ Public routes mounted: /api/exemptions, /api/referrals, /api/stripe, /api/coinbase, /api/email, /api/email/inbound, /sign');
 }
@@ -7317,6 +7324,7 @@ app.get('/api/submissions/follow-ups-due', authenticateToken, async (req, res) =
                 .select('*')
                 .is('deleted_at', null)
                 .not('follow_up_date', 'is', null)
+                .or('suppressed.is.null,suppressed.eq.false')
                 .lte('follow_up_date', today)
                 .order('follow_up_date', { ascending: true });
             if (error) throw error;
