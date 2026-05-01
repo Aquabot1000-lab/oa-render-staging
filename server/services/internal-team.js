@@ -97,13 +97,14 @@ async function notifySms(twilioClient, body, fromNumber) {
   const list = phones();
   if (!list.length) return { skipped: true, reason: 'no team sms recipients' };
 
+  // INTERNAL alerts must use the direct TWILIO_PHONE_NUMBER (the only 10DLC-registered
+  // sender). The Messaging Service routes to an unregistered fallback number that gets
+  // 30034-rejected. Customer-facing SMS uses the messaging service via sendSMS() in server.js.
+  // Override path: pass `fromNumber` explicitly to use messaging service if needed.
   const from = fromNumber || process.env.TWILIO_PHONE_NUMBER;
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-  if (!from && !messagingServiceSid) return { skipped: true, reason: 'no twilio from/messaging service' };
+  if (!from) return { skipped: true, reason: 'no TWILIO_PHONE_NUMBER for internal SMS' };
 
-  const baseParams = messagingServiceSid
-    ? { messagingServiceSid }
-    : { from };
+  const baseParams = { from };
 
   const results = await Promise.all(
     list.map(to =>
