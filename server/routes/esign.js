@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin, isSupabaseEnabled } = require('../lib/supabase');
+// State controller: single source of truth for status transitions (Tyler msg 28194)
+const { updateCaseState } = require('../services/state-controller');
 const crypto = require('crypto');
 const { generateAndStoreSigned } = require('../services/sign-form-50-162');
 const { generateAndStoreSignedWA } = require('../services/sign-wa-package');
@@ -158,7 +160,7 @@ router.post('/:token/submit', express.json(), async (req, res) => {
             : {
                 fee_agreement_signed: true,
                 fee_agreement_signed_at: signedAt,
-                status: 'SIGNED_READY_TO_FILE'
+                // Status set via state-controller below — do NOT also set it here
               };
 
         const { data: subData, error: subErr } = await supabaseAdmin
@@ -169,6 +171,22 @@ router.post('/:token/submit', express.json(), async (req, res) => {
             .single();
 
         if (subErr) console.error('[esign] Failed to update submission:', subErr.message);
+
+        // State transition via controller (single source of truth)
+        const _isTX = preSub?.state !== 'WA';
+        if (_isTX) {
+          try {
+            await updateCaseState(signData.case_id, 'esign_completed', {
+              actor: 'esign-webhook',
+              reason: 'Customer signed fee agreement via DocuSign/HelloSign',
+              details: { signed_at: signedAt },
+              force: false, // respect any existing lock
+              _sb: supabaseAdmin,
+            });
+          } catch (_scErr) {
+            console.error('[esign] state-controller esign_completed failed:', _scErr.message);
+          }
+        }
 
         // Generate signed PDF — REQUIRED, blocking, no silent failures
         console.log(`[esign] ▶ Starting PDF generation for case ${signData.case_id} (state=${preSub?.state || 'TX'})`);
@@ -277,6 +295,17 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                 });
                 signedPdfUrl = stored.publicUrl;
                 console.log(`[esign] ✅ Signed PDF stored: ${signedPdfUrl}`);
+
+                // ── AUTO-TRIGGER: build READY-PENDING-NOV protest package ──
+                // Tyler msg 28154 (2026-05-01): when status=SIGNED → auto-build pkg.
+                // Fire-and-forget — does NOT block the e-sign HTTP response.
+                try {
+                    const { triggerAutoBuild } = require('../services/auto-prestage-trigger');
+                    triggerAutoBuild(signData.case_id, { state: subData?.state || 'TX' });
+                    console.log(`[esign] ▶ Auto-prestage triggered for ${signData.case_id}`);
+                } catch (autoErr) {
+                    console.warn(`[esign] auto-prestage trigger error (non-blocking): ${autoErr.message}`);
+                }
             }
         } catch (pdfErr) {
             console.error(`[esign] ❌ PDF generation FAILED for case ${signData.case_id}`);

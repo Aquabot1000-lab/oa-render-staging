@@ -44,6 +44,8 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
+// State controller: all status mutations go here (Tyler msg 28194)
+const { updateCaseState } = require('./state-controller');
 
 const REQUIRED_FIELDS = ['assessed_value', 'mailing_date_or_protest_deadline', 'cad_name'];
 const VISION_MODEL = 'claude-sonnet-4-5-20250929';
@@ -227,8 +229,8 @@ async function processNoticeUpload(opts) {
     const ex = visionResult.extracted;
     const noticeUrl = fullUrl;
 
-    // Get current property_data to merge
-    const { data: cur } = await sb.from('submissions').select('property_data,filing_package_meta').eq('case_id', caseId).single();
+    // Get current property_data + meta to merge notice-specific fields
+    const { data: cur } = await sb.from('submissions').select('property_data,filing_package_meta,assessed_value').eq('case_id', caseId).single();
     const newPropData = {
       ...(cur?.property_data || {}),
       ...(ex.assessed_value && { assessedValue: ex.assessed_value }),
@@ -244,7 +246,6 @@ async function processNoticeUpload(opts) {
       noticeValidatedAt: NOW,
       noticeValidationVisionResult: visionResult.result,
     };
-
     const newMeta = {
       ...(cur?.filing_package_meta || {}),
       notice_validated: {
@@ -258,8 +259,9 @@ async function processNoticeUpload(opts) {
       blockers: ((cur?.filing_package_meta?.blockers) || []).filter(b => b !== 'MISSING_VALID_NOTICE_OF_APPRAISED_VALUE' && b !== 'MISSING_VALID_NOTICE'),
     };
 
+    // Domain-specific fields (notice_url, property_data, filing_package_meta) — written directly
+    // because state-controller handles status/flags/metrics/activity_log only.
     await sb.from('submissions').update({
-      status: 'NOTICE_RECEIVED',
       notice_url: noticeUrl,
       notice_of_value: storagePath,
       upload_status: 'verified_notice',
@@ -267,20 +269,19 @@ async function processNoticeUpload(opts) {
       customer_notice_confirmed_at: NOW,
       property_data: newPropData,
       filing_package_meta: newMeta,
-      assessed_value: ex.assessed_value || cur?.property_data?.assessedValue,
+      ...(ex.assessed_value && { assessed_value: ex.assessed_value }),
     }).eq('case_id', caseId);
-    actions.push('db.update(status=NOTICE_RECEIVED + extracted fields)');
+    actions.push('db.update(notice_url + property_data + meta)');
 
-    await sb.from('activity_log').insert({
-      case_id: caseId, actor: 'aquabot', action: 'notice_validated',
-      details: {
-        validator: 'notice-upload-pipeline',
-        vision_confidence: visionResult.confidence,
-        extracted: ex,
-        storage_path: storagePath,
-      },
+    // Status transition via state-controller (single source of truth)
+    const scResult = await updateCaseState(caseId, 'notice_uploaded_valid', {
+      actor: 'notice-upload-pipeline',
+      reason: `Vision-validated NOV: ${visionResult.reason}`,
+      details: { vision_confidence: visionResult.confidence, extracted: ex, storage_path: storagePath },
+      force: true, // override any prior block lock so valid notice always promotes
+      _sb: sb,
     });
-    actions.push('activity_log(notice_validated)');
+    actions.push(`state-controller(notice_uploaded_valid) → ${scResult.applied_status} | log=${scResult.activity_log_id}`);
 
     console.log(`[notice-pipeline] ${caseId} PASS — assessed=$${ex.assessed_value?.toLocaleString()} | mailing=${ex.mailing_date} | account=${ex.account_id}`);
     return {
@@ -334,21 +335,27 @@ async function processNoticeUpload(opts) {
     [`${visionResult.doc_subtype || 'misfiled'}_evidence_url`]: evidenceUrl,
   };
 
+  // Domain-specific fields (quarantine meta, notice cleared) — written directly
   await sb.from('submissions').update({
-    status: 'BLOCKED_MISSING_VALID_NOTICE',
     notice_url: null,
     notice_file: null,
     notice_of_value: null,
     upload_status: 'invalid_notice_uploaded',
     customer_notice_status: 'INVALID_DOCUMENT',
-    manual_status_lock: true,
-    status_lock_reason: `Customer-uploaded notice failed validation: ${reason}`,
-    status_locked_at: NOW,
-    status_locked_by: 'notice-upload-pipeline',
     filing_package_meta: newMeta,
     property_data: newPropData,
   }).eq('case_id', caseId);
-  actions.push('db.update(status=BLOCKED_MISSING_VALID_NOTICE)');
+  actions.push('db.update(notice_url cleared + quarantine meta)');
+
+  // Status transition + lock via state-controller (single source of truth)
+  const scResult = await updateCaseState(caseId, 'notice_invalid', {
+    actor: 'notice-upload-pipeline',
+    reason: `Uploaded file rejected: ${reason}`,
+    lock_reason: `Customer-uploaded notice failed validation: ${reason}`,
+    details: { vision_doc_subtype: visionResult.doc_subtype, missing_fields: fields.missing, moved_to: evidencePath },
+    _sb: sb,
+  });
+  actions.push(`state-controller(notice_invalid) → ${scResult.applied_status} | log=${scResult.activity_log_id}`);
 
   // Send clarification email if SG client provided + customer has email
   let emailMsgId = null;
@@ -393,6 +400,8 @@ OverAssessed`;
     actions.push(sgMail ? 'email.skipped(no customer email on file)' : 'email.skipped(no sgMail client)');
   }
 
+  // Supplemental activity log entry for quarantine details (state-controller already wrote
+  // state.notice_invalid entry; this adds the domain-specific quarantine + email detail)
   await sb.from('activity_log').insert({
     case_id: caseId, actor: 'aquabot', action: 'invalid_notice_quarantined',
     details: {
