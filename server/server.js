@@ -6947,12 +6947,27 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
         // Exclude: Archived, Deleted, No Case, and BM-* benchmark cases
         if (!isSupabaseEnabled()) return res.status(503).json({ error: 'Database not configured' });
 
-        // Get all active, non-benchmark submissions
-        const { data: rows, error } = await supabaseAdmin
+        // Get all active, non-benchmark submissions.
+        // Tyler-spec metric fields (msg 28217/28231) are pulled OPPORTUNISTICALLY — if migration 006
+        // hasn't applied yet the column-not-found error triggers a fallback select. Once migration
+        // runs and rebuildAllMetrics() backfills the fields, dashboard switches to the new numbers.
+        const NEW_METRIC_COLS = 'estimated_tax_savings,estimated_revenue,estimated_reduction_value,estimated_tax_rate,comp_low_anchor_value,settlement_estimate_value,';
+        const BASE_SELECT = 'case_id,status,estimated_savings,fee_rate,fee_agreement_signed,initiation_paid,notice_url,notice_of_value,upload_status,filing_status,analysis_tier,do_not_contact';
+        let { data: rows, error } = await supabaseAdmin
             .from('submissions')
-            .select('case_id,status,estimated_savings,fee_rate,fee_agreement_signed,initiation_paid,notice_url,notice_of_value,upload_status,filing_status')
-            .not('status', 'in', '("Archived","Deleted","No Case")')
-            .not('case_id', 'like', 'BM-%');
+            .select(NEW_METRIC_COLS + BASE_SELECT)
+            .not('status', 'in', '("Archived","Deleted","No Case","NO_OPPORTUNITY","LOST_CONTACT")')
+            .not('case_id', 'like', 'BM-%')
+            .is('do_not_contact', null);
+        if (error && /does not exist/i.test(error.message || '')) {
+            console.warn('[pipeline-stats] new metric columns not yet present — falling back to legacy select');
+            ({ data: rows, error } = await supabaseAdmin
+                .from('submissions')
+                .select(BASE_SELECT)
+                .not('status', 'in', '("Archived","Deleted","No Case","NO_OPPORTUNITY","LOST_CONTACT")')
+                .not('case_id', 'like', 'BM-%')
+                .is('do_not_contact', null));
+        }
         if (error) throw error;
         const subs = rows || [];
 
@@ -6987,17 +7002,29 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
             s.upload_status !== 'wrong_document'
         ).length;
 
-        // Savings + Revenue: split by analysis tier
+        // Savings + Revenue: Tyler-spec metric fields (msg 28217/28231)
+        // Primary: estimated_tax_savings (annual customer tax $) + estimated_revenue (our fee)
+        // Fallback: if new fields not yet populated (pre-migration), use estimated_savings as proxy.
+        let totalEstimatedSavings = 0, totalEstimatedRevenue = 0;
         let prelimSavings = 0, verifiedSavings = 0;
+        let prelimRevenue = 0, verifiedRevenue = 0;
         subs.forEach(s => {
-            const sav = parseFloat(s.estimated_savings) || 0;
-            if (s.analysis_tier === 'VERIFIED') verifiedSavings += sav;
-            else prelimSavings += sav;
+            // Use new field if present, else fall back to legacy (which may be stale)
+            const sav = parseFloat(s.estimated_tax_savings ?? s.estimated_savings) || 0;
+            const rev = parseFloat(s.estimated_revenue) || Math.round(sav * 0.25);
+            totalEstimatedSavings += sav;
+            totalEstimatedRevenue += rev;
+            if (s.analysis_tier === 'VERIFIED') {
+                verifiedSavings += sav;
+                verifiedRevenue += rev;
+            } else {
+                prelimSavings += sav;
+                prelimRevenue += rev;
+            }
         });
-        const totalEstimatedSavings = prelimSavings + verifiedSavings;
-        const totalFees = Math.round(totalEstimatedSavings * 0.25);
-        const verifiedFees = Math.round(verifiedSavings * 0.25);
-        const prelimFees = Math.round(prelimSavings * 0.25);
+        const totalFees = Math.round(totalEstimatedRevenue);
+        const verifiedFees = Math.round(verifiedRevenue);
+        const prelimFees = Math.round(prelimRevenue);
 
         res.json({
             pipeline,
