@@ -169,19 +169,29 @@ const CO_COUNTIES = [
 ];
 
 function detectState(source, county, explicitState, address) {
-    // ── FIXED 2026-04-09: Address-based detection ALWAYS runs first ──
-    // Old bug: Hidden form field hardcoded TX, overriding address-detected state
-    // Now: address wins over explicitState when they conflict
+    // ── FIXED 2026-05-01: Defer to address-parser.js as source of truth ──
+    // Old bug: regex substring matches caused false positives:
+    //   - "Denver Ave, Houston TX" → CO (matched "denver" in street name)
+    //   - "Aurora, TX" → CO (Aurora exists in both TX and CO; we matched CO blindly)
+    //   - "Boulder Creek Pkwy, Austin TX" → CO (matched "boulder" in street)
+    // Old bug also failed for many real TX cities (Colleyville, Plano, Frisco, etc.)
+    //   not in the regex, falling through to use a hardcoded explicit state from
+    //   landing-page forms (e.g. /lp/denver-county.html sends state=CO regardless
+    //   of typed address). Result: TX leads got parked as out-of-service.
+    //
+    // Fix: parseAddress() does proper trailing-state detection (with comma OR ZIP
+    // OR trailing abbreviation), recognizes all major TX/GA/WA/AZ/CO/OH cities, and
+    // uses ZIP→state mapping. Use it.
 
-    // 1. Detect from address (MOST RELIABLE — actual property location)
     let addressState = null;
     if (address) {
-        const a = address.toLowerCase();
-        if (/, ga\b/i.test(a) || /\bgeorgia\b/i.test(a) || /\b(atlanta|fulton|dekalb|gwinnett|cobb)\b/i.test(a)) addressState = 'GA';
-        else if (/, wa\b/i.test(a) || /\bwashington(?!.*dc)\b/i.test(a) || /\b(seattle|king county|snohomish|pierce|spokane|bremerton|kettle falls|bellingham)\b/i.test(a)) addressState = 'WA';
-        else if (/, az\b/i.test(a) || /\barizona\b/i.test(a) || /\b(phoenix|scottsdale|mesa|tempe|chandler|maricopa)\b/i.test(a)) addressState = 'AZ';
-        else if (/, co\b/i.test(a) || /\bcolorado\b/i.test(a) || /\b(denver|boulder|colorado springs|aurora|fort collins|aspen)\b/i.test(a)) addressState = 'CO';
-        else if (/, tx\b/i.test(a) || /\btexas\b/i.test(a) || /\b(san antonio|houston|dallas|austin|fort worth|el paso)\b/i.test(a)) addressState = 'TX';
+        try {
+            const { parseAddress } = require('./address-parser');
+            const parsed = parseAddress(address);
+            if (parsed && parsed.state) addressState = parsed.state;
+        } catch (e) {
+            console.log('[DetectState] parser error (non-fatal):', e.message);
+        }
     }
 
     if (addressState) {
