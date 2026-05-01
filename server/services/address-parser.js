@@ -101,6 +101,19 @@ const TX_CITY_COUNTY = {
     'santa fe': 'Galveston',
     'friendswood': 'Galveston',
     'denton': 'Denton',
+    'ponder': 'Denton',
+    'aubrey': 'Denton',
+    'argyle': 'Denton',
+    'sanger': 'Denton',
+    'krum': 'Denton',
+    'pilot point': 'Denton',
+    'justin': 'Denton',
+    'roanoke': 'Denton',
+    'corinth': 'Denton',
+    'highland village': 'Denton',
+    'lake dallas': 'Denton',
+    'little elm': 'Denton',
+    'the colony': 'Denton',
     'irving': 'Dallas',
     'garland': 'Dallas',
     'mesquite': 'Dallas',
@@ -308,6 +321,33 @@ function parseAddress(address, hints = {}) {
         const fullNameMatch = addr.match(statePattern);
         if (fullNameMatch) {
             state = STATE_MAP[fullNameMatch[1].toUpperCase()] || null;
+        }
+    }
+
+    // Pattern 4: Trailing state abbreviation with no comma and no ZIP
+    // (e.g., "331 chestnut ln ponder tx", "123 Main St Tacoma WA")
+    // Requires the address to have at least 3 words before the state abbr
+    // to avoid false positives like "Bella Vista IL" being a street name.
+    if (!state) {
+        const trailingAbbrMatch = addr.match(/\b([A-Za-z]{2})\s*$/);
+        if (trailingAbbrMatch) {
+            const s = trailingAbbrMatch[1].toUpperCase();
+            // Only accept if it's a known 2-letter state abbreviation AND there are
+            // enough words before it (i.e. it's not the entire input).
+            const wordsBefore = addr.slice(0, addr.length - trailingAbbrMatch[0].length).trim().split(/\s+/).length;
+            if (STATE_MAP[s] && STATE_MAP[s].length === 2 && wordsBefore >= 3) {
+                state = STATE_MAP[s];
+            }
+        }
+    }
+
+    // Pattern 5: Full state name at the END with no ZIP (e.g., "331 chestnut ln ponder texas")
+    if (!state) {
+        const stateNames = Object.keys(STATE_MAP).filter(k => k.length > 2);
+        const trailingNamePattern = new RegExp('\\b(' + stateNames.join('|') + ')\\s*$', 'i');
+        const trailingNameMatch = addr.match(trailingNamePattern);
+        if (trailingNameMatch) {
+            state = STATE_MAP[trailingNameMatch[1].toUpperCase()] || null;
         }
     }
 
