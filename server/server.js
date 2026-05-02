@@ -2142,6 +2142,88 @@ if (isSupabaseEnabled()) {
         }
     });
 
+    // ══ PHASE 4 NOTES CRUD (2026-05-01) ═════════════════════════════════════
+    // All mutations go through state-controller (note_added event).
+    // Direct insert into case_notes happens in the /api/case-view/event handler
+    // after updateCaseState() returns, so activity_log is always written first.
+    //
+    // GET    /api/case-view/notes/:caseId         — list active notes
+    // PUT    /api/case-view/notes/:noteId         — edit text/type (auth)
+    // DELETE /api/case-view/notes/:noteId         — soft delete (auth)
+
+    app.get('/api/case-view/notes/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('case_notes')
+                .select('id,case_id,note_type,text,actor,created_at,updated_at,edit_count')
+                .eq('case_id', req.params.caseId)
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false })
+                .limit(100);
+            if (error) throw error;
+            res.json(data || []);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    app.put('/api/case-view/notes/:noteId', authenticateToken, async (req, res) => {
+        try {
+            const { text, note_type } = req.body;
+            if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
+            const NOTE_TYPES = new Set(['call', 'decision', 'issue', 'general']);
+            if (note_type && !NOTE_TYPES.has(note_type)) return res.status(400).json({ error: 'invalid note_type' });
+
+            // Fetch note first to get case_id for activity_log
+            const { data: existing, error: fetchErr } = await supabaseAdmin
+                .from('case_notes').select('*').eq('id', req.params.noteId).is('deleted_at', null).single();
+            if (fetchErr || !existing) return res.status(404).json({ error: 'Note not found' });
+
+            const actor = req.user?.email || req.user?.username || 'system';
+            // Write activity_log first via state-controller
+            await updateCaseState(existing.case_id, 'note_added', {
+                actor,
+                text: `[edited] ${text.trim()}`,
+                note_type: note_type || existing.note_type,
+                note_id: existing.id,
+                note_action: 'edit',
+            }).catch(e => console.warn('[notes/put] activity_log warn:', e.message));
+
+            const { data, error } = await supabaseAdmin
+                .from('case_notes')
+                .update({ text: text.trim(), note_type: note_type || existing.note_type })
+                .eq('id', req.params.noteId)
+                .is('deleted_at', null)
+                .select('id,case_id,note_type,text,actor,created_at,updated_at,edit_count')
+                .single();
+            if (error) throw error;
+            res.json({ ok: true, note: data });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    app.delete('/api/case-view/notes/:noteId', authenticateToken, async (req, res) => {
+        try {
+            const { data: existing, error: fetchErr } = await supabaseAdmin
+                .from('case_notes').select('*').eq('id', req.params.noteId).is('deleted_at', null).single();
+            if (fetchErr || !existing) return res.status(404).json({ error: 'Note not found' });
+
+            const actor = req.user?.email || req.user?.username || 'system';
+            // Write activity_log first
+            await updateCaseState(existing.case_id, 'note_added', {
+                actor,
+                text: `[deleted note] ${existing.text.slice(0, 80)}`,
+                note_type: existing.note_type,
+                note_id: existing.id,
+                note_action: 'delete',
+            }).catch(e => console.warn('[notes/delete] activity_log warn:', e.message));
+
+            const { error } = await supabaseAdmin
+                .from('case_notes')
+                .update({ deleted_at: new Date().toISOString(), deleted_by: actor })
+                .eq('id', req.params.noteId);
+            if (error) throw error;
+            res.json({ ok: true });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     // GET /api/case-view/tasks/:caseId
     app.get('/api/case-view/tasks/:caseId', authenticateToken, async (req, res) => {
         try {
@@ -2188,6 +2270,20 @@ if (isSupabaseEnabled()) {
                 actor,
                 actor_role: role,
             });
+
+            // Phase 4: if note_added, persist to case_notes (via Supabase, no direct write bypass)
+            if (event === 'note_added' && payload?.text) {
+                try {
+                    await supabaseAdmin.from('case_notes').insert({
+                        case_id,
+                        note_type: payload.note_type || 'general',
+                        text: payload.text,
+                        actor,
+                    });
+                } catch (noteErr) {
+                    console.warn('[case-event] case_notes insert failed (non-fatal):', noteErr.message);
+                }
+            }
 
             // Recompute next_action + follow-up priority from new state
             try {

@@ -514,6 +514,14 @@
                 </div>
             </div>
 
+            <!-- Notes (Phase 4) -->
+            <div class="card" id="notesCard">
+                <div class="card-header"><h3>📝 Notes</h3><span class="badge" id="notesCount">0</span></div>
+                <div class="card-body" id="notesBody">
+                    <div class="empty-state">No notes yet — use the fast-note bar above</div>
+                </div>
+            </div>
+
             <!-- Tasks -->
             <div class="card">
                 <div class="card-header"><h3>✅ Tasks</h3><span class="badge" id="taskCount">0</span></div>
@@ -1286,6 +1294,7 @@
                 renderTimeline(activities, comms);
             }
             renderTasks(tasks);
+            loadNotes();
             updateActionBarState();
         }
 
@@ -2020,7 +2029,84 @@
             if (r) {
                 document.getElementById('fastNoteText').value = '';
                 showToast('✓ Note saved (' + type + ')', 'success');
+                // refresh notes panel + timeline
+                loadNotes();
+                try { const u = await apiGet(`timeline-unified/${caseId}`); if (u && u.entries) renderUnifiedTimeline(u.entries); } catch (_) {}
             }
+        }
+
+        // ═══ PHASE 4 NOTES PANEL ══════════════════════════════════════════════════
+        const NOTE_TYPE_BADGES = {
+            call:     { icon: '📞', label: 'Call',     color: '#3b82f6' },
+            decision: { icon: '⚖️', label: 'Decision', color: '#a855f7' },
+            issue:    { icon: '⚠️', label: 'Issue',    color: '#f59e0b' },
+            general:  { icon: '📝', label: 'General',  color: '#64748b' },
+        };
+
+        async function loadNotes() {
+            try {
+                const notes = await apiGet(`notes/${caseId}`);
+                renderNotes(Array.isArray(notes) ? notes : []);
+            } catch (e) { console.warn('[notes] load failed:', e); }
+        }
+
+        function renderNotes(notes) {
+            const body = document.getElementById('notesBody');
+            const cnt = document.getElementById('notesCount');
+            if (cnt) cnt.textContent = notes.length;
+            if (!notes.length) { body.innerHTML = '<div class="empty-state">No notes yet — use the fast-note bar above</div>'; return; }
+            body.innerHTML = notes.map(n => {
+                const b = NOTE_TYPE_BADGES[n.note_type] || NOTE_TYPE_BADGES.general;
+                const editedTag = n.edit_count > 0 ? `<span style="font-size:10px;color:#94a3b8;margin-left:6px;">(edited ×${n.edit_count})</span>` : '';
+                const escText = (n.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                return `
+                    <div class="note-item" data-id="${n.id}" style="padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;gap:10px;align-items:flex-start;">
+                        <div style="font-size:18px;">${b.icon}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                                <span style="font-size:10px;background:${b.color}33;color:${b.color};padding:1px 6px;border-radius:4px;text-transform:uppercase;font-weight:600;">${b.label}</span>
+                                <span style="font-size:11px;color:#94a3b8;">${formatActor(n.actor)}</span>
+                                <span style="font-size:11px;color:#64748b;">· ${fmtDateTime(n.created_at)}</span>
+                                ${editedTag}
+                            </div>
+                            <div class="note-text" style="font-size:13px;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;">${escText}</div>
+                        </div>
+                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                            <button class="btn-icon" onclick="editNote('${n.id}')" title="Edit" style="background:transparent;border:1px solid #334155;color:#94a3b8;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px;">✏️</button>
+                            <button class="btn-icon" onclick="deleteNote('${n.id}')" title="Delete" style="background:transparent;border:1px solid #334155;color:#ef4444;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px;">🗑</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function editNote(noteId) {
+            const item = document.querySelector(`.note-item[data-id="${noteId}"]`);
+            if (!item) return;
+            const textEl = item.querySelector('.note-text');
+            const oldText = textEl.textContent;
+            const newText = prompt('Edit note:', oldText);
+            if (newText === null || newText.trim() === '' || newText.trim() === oldText) return;
+            try {
+                const res = await AuthClient.fetchAuthed(`/api/case-view/notes/${noteId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ text: newText.trim() }),
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                showToast('✓ Note updated', 'success');
+                loadNotes();
+                try { const u = await apiGet(`timeline-unified/${caseId}`); if (u && u.entries) renderUnifiedTimeline(u.entries); } catch (_) {}
+            } catch (e) { showToast('Edit failed: ' + e.message, 'error'); }
+        }
+
+        async function deleteNote(noteId) {
+            if (!confirm('Delete this note? (Soft delete — it will still appear in timeline history.)')) return;
+            try {
+                const res = await AuthClient.fetchAuthed(`/api/case-view/notes/${noteId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                showToast('✓ Note deleted', 'success');
+                loadNotes();
+                try { const u = await apiGet(`timeline-unified/${caseId}`); if (u && u.entries) renderUnifiedTimeline(u.entries); } catch (_) {}
+            } catch (e) { showToast('Delete failed: ' + e.message, 'error'); }
         }
         // Keyboard shortcuts: Ctrl+/ focus, Enter save, Esc clear
         document.addEventListener('keydown', (e) => {
