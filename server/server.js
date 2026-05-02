@@ -1573,7 +1573,7 @@ async function runFollowUpSequence() {
         const now = Date.now();
         // Get all active cases that have been contacted at least once
         const { data: cases } = await supabaseAdmin.from('submissions')
-            .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact, fee_agreement_signed, signature')
+            .select('id, case_id, owner_name, email, phone, status, estimated_savings, contact_attempts, last_activity_at, drip_state, automation_excluded, manual_only, email_unusable, sms_unusable, preferred_contact, aoa_signed, fee_agreement_signed, signature')
             .is('deleted_at', null)
             .gt('contact_attempts', 0)
             // CANONICAL status exclusions — updated 2026-04-23 (legacy strings removed)
@@ -1584,9 +1584,12 @@ async function runFollowUpSequence() {
             // Skip excluded cases
             if (c.automation_excluded || c.manual_only) continue;
 
-            // SIGNING GUARD — skip cases that are already signed
-            if (c.fee_agreement_signed || c.signature) {
-                console.log('[FollowUp-v2] Skipped ' + c.case_id + ' — already signed');
+            // SIGNING GUARD — skip cases that are already signed (Tyler msg 28792, 2026-05-02 — hardened)
+            // Hard block: aoa_signed OR fee_agreement_signed OR signature = true
+            // Root cause of OA-0013 Apr 26 duplicate: this guard didn't check aoa_signed,
+            // so cases with aoa_signed=true could still receive follow-up sign prompts.
+            if (c.aoa_signed || c.fee_agreement_signed || c.signature) {
+                console.log('[FollowUp-v2] Skipped ' + c.case_id + ' — already signed (aoa=' + !!c.aoa_signed + ', fee=' + !!c.fee_agreement_signed + ', sig=' + !!c.signature + ')');
                 continue;
             }
 
@@ -3230,12 +3233,29 @@ if (isSupabaseEnabled()) {
             const { case_id, channel, phone, email, owner_name, estimated_savings } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
 
-            // SIGNING GUARD — check if already signed
+            // SIGNING GUARD — check if already signed (Tyler msg 28792, 2026-05-02 — hardened)
+            // Hard block: aoa_signed OR fee_agreement_signed OR signature = true
+            // Root cause of OA-0013 Apr 26 duplicate: this guard only checked fee_agreement_signed
+            // and signature, missing aoa_signed. Now checks all 3 + logs every block to activity_log.
             const { data: signCheck } = await supabaseAdmin.from('submissions')
-                .select('fee_agreement_signed, fee_agreement_signed_at, signature')
+                .select('aoa_signed, fee_agreement_signed, fee_agreement_signed_at, signature')
                 .eq('case_id', case_id).single();
-            if (signCheck && (signCheck.fee_agreement_signed || signCheck.signature)) {
-                console.log(`[Action:SendSigning] ⛔ BLOCKED — ${case_id} already signed (at: ${signCheck.fee_agreement_signed_at || 'unknown'})`);
+            if (signCheck && (signCheck.aoa_signed || signCheck.fee_agreement_signed || signCheck.signature)) {
+                console.log(`[Action:SendSigning] ⛔ BLOCKED — ${case_id} already signed (aoa=${signCheck.aoa_signed}, fee=${signCheck.fee_agreement_signed}, at=${signCheck.fee_agreement_signed_at || 'unknown'})`);
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id,
+                    actor: 'system:signing-guard',
+                    action: 'sign_prompt_blocked',
+                    details: {
+                        reason: 'aoa_signed OR fee_agreement_signed OR signature = true — duplicate send prevented',
+                        endpoint: 'POST /api/case-view/action/send-signing',
+                        attempted_recipient: email,
+                        aoa_signed: signCheck.aoa_signed,
+                        fee_agreement_signed: signCheck.fee_agreement_signed,
+                        signature: !!signCheck.signature,
+                    },
+                    created_at: new Date().toISOString(),
+                }).catch(() => {});
                 return res.status(409).json({ error: 'already_signed', message: 'Customer has already signed. Move to filing stage.', signed_at: signCheck.fee_agreement_signed_at });
             }
 

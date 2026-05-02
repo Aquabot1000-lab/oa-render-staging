@@ -1082,6 +1082,46 @@ router.post('/send', async (req, res) => {
         const { case_id, email, phone, owner_name } = req.body;
         if (!case_id || !email) return res.status(400).json({ error: 'case_id and email required' });
 
+        // ── DUPLICATE-SIGNATURE GUARD (Tyler msg 28792, 2026-05-02) ──────────
+        // Hard block: if customer has already signed (either AOA or fee agreement),
+        // do NOT create another token, do NOT email. Log a prevention event so
+        // we have an audit trail of every blocked attempt.
+        // Root cause of OA-0013 Apr 26 duplicate: this endpoint had no pre-flight check.
+        try {
+            const { data: existingSub } = await supabaseAdmin
+                .from('submissions')
+                .select('aoa_signed, fee_agreement_signed')
+                .eq('case_id', case_id)
+                .single();
+
+            if (existingSub && (existingSub.aoa_signed === true || existingSub.fee_agreement_signed === true)) {
+                console.warn(`[esign/send] BLOCKED duplicate sign request for ${case_id} — already signed (aoa=${existingSub.aoa_signed}, fee=${existingSub.fee_agreement_signed})`);
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id,
+                    actor: 'system:esign-guard',
+                    action: 'sign_prompt_blocked',
+                    details: {
+                        reason: 'aoa_signed OR fee_agreement_signed = true — duplicate send prevented',
+                        endpoint: 'POST /api/esign/send',
+                        attempted_recipient: email,
+                        aoa_signed: existingSub.aoa_signed,
+                        fee_agreement_signed: existingSub.fee_agreement_signed,
+                    },
+                    created_at: new Date().toISOString(),
+                }).catch(() => {});
+                return res.status(409).json({
+                    error: 'Customer has already signed their authorization. Duplicate signing email blocked.',
+                    already_signed: true,
+                    case_id,
+                });
+            }
+        } catch (guardErr) {
+            console.error(`[esign/send] guard pre-flight check failed for ${case_id}:`, guardErr.message);
+            // Fail-closed: if we can't verify signed state, block to be safe
+            return res.status(503).json({ error: 'Signature pre-flight check failed; refusing to send to avoid duplicate prompts.' });
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         const token = crypto.randomBytes(32).toString('hex');
         const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
