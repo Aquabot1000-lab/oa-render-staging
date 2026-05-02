@@ -288,8 +288,19 @@ async function updateCaseState(caseId, event, payload = {}) {
   }
 
   // 3. Lock + protection checks
-  const isLocked = !!row.manual_status_lock && !payload.force;
-  const isProtected = PROTECTED_STATUSES.has(row.status) && row.status !== targetStatus && !payload.force;
+  // PHASE 7 ROLE GATE (Tyler msg 28364): payload.force is admin-only.
+  //   Operator/system callers cannot bypass locks or PROTECTED_STATUSES.
+  //   Routes that need force=true MUST come from a requireAdmin-guarded endpoint
+  //   AND set payload.actor_role='admin' explicitly. The controller drops force
+  //   silently otherwise (still logs the attempt to warnings).
+  const callerRole = payload.actor_role || (payload.actor === 'tyler' ? 'admin' : null);
+  const forceRequested = !!payload.force;
+  const forceAllowed   = forceRequested && callerRole === 'admin';
+  if (forceRequested && !forceAllowed) {
+    warnings.push(`force=true ignored — caller actor='${payload.actor || '(none)'}' role='${callerRole || '(unknown)'}' is not admin`);
+  }
+  const isLocked    = !!row.manual_status_lock && !forceAllowed;
+  const isProtected = PROTECTED_STATUSES.has(row.status) && row.status !== targetStatus && !forceAllowed;
 
   let willChangeStatus = !payload.skip_status_update;
   if (willChangeStatus && (isLocked || isProtected)) {

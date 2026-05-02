@@ -279,6 +279,7 @@ async function processNoticeUpload(opts) {
       reason: `Vision-validated NOV: ${visionResult.reason}`,
       details: { vision_confidence: visionResult.confidence, extracted: ex, storage_path: storagePath },
       force: true, // override any prior block lock so valid notice always promotes
+      actor_role: 'admin', // system pipeline runs with admin privilege (Phase 7)
       _sb: sb,
     });
     actions.push(`state-controller(notice_uploaded_valid) → ${scResult.applied_status} | log=${scResult.activity_log_id}`);

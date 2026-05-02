@@ -1976,10 +1976,11 @@ function authenticateToken(req, res, next) {
         next();
     });
 }
-function requireAdmin(req, res, next) {
-    if (req.user && req.user.role === 'admin') return next();
-    return res.status(403).json({ error: 'Admin access required' });
-}
+// Phase 7 — role control (Tyler msg 28364). Use lib/auth-roles helpers.
+const { requireAdmin, requireOperator, requirePermission, canPerform, ROLES } =
+  require('./lib/auth-roles');
+// Legacy local requireAdmin kept as alias — same semantics, now backed by auth-roles.
+// (other code paths in this file expect a function named requireAdmin to exist)
 
 // ==================== SUPABASE DB ROUTES (new - /api/db/*) ====================
 // These run alongside existing file-based routes. Existing routes are untouched.
@@ -2025,13 +2026,13 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    // POST /api/case-view/change-status
-    app.post('/api/case-view/change-status', authenticateToken, async (req, res) => {
+    // POST /api/case-view/change-status — admin-only manual status override (Phase 7)
+    app.post('/api/case-view/change-status', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { case_id, old_status, new_status } = req.body;
             if (!case_id || !new_status) return res.status(400).json({ error: 'case_id and new_status required' });
             const result = await updateCaseState(case_id, 'status_override', {
-                actor: req.user?.username || 'tyler',
+                actor: req.user?.email || req.user?.username || 'admin',
                 target_status: new_status,
                 reason: `Manual status change from ${old_status || '?'} to ${new_status}`,
                 details: { from: old_status, to: new_status, source: 'case-page' },
@@ -2096,7 +2097,7 @@ if (isSupabaseEnabled()) {
     });
 
     // DELETE /api/case-documents/:id — remove a document
-    app.delete('/api/case-documents/:id', authenticateToken, async (req, res) => {
+    app.delete('/api/case-documents/:id', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { error } = await supabaseAdmin.from('case_documents').delete().eq('id', req.params.id);
             if (error) return res.status(500).json({ error: error.message });
@@ -2500,7 +2501,7 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
     // POST /api/case-view/approve-package — approve or reject filing package
-    app.post('/api/case-view/approve-package', authenticateToken, async (req, res) => {
+    app.post('/api/case-view/approve-package', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { case_id, action, reason } = req.body;
             if (!case_id || !action) return res.status(400).json({ error: 'case_id and action required' });
@@ -3023,7 +3024,7 @@ if (isSupabaseEnabled()) {
     });
 
     // 6. POST /api/case-view/action/mark-filed — mark protest as filed
-    app.post('/api/case-view/action/mark-filed', authenticateToken, async (req, res) => {
+    app.post('/api/case-view/action/mark-filed', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { case_id, filing_date, confirmation_number, notes, notify_customer, phone, email, owner_name, county } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
@@ -3418,7 +3419,7 @@ function canFile(lead) {
 }
 
 // POST /api/admin/approve-filing — Tyler approves a lead for filing
-app.post('/api/admin/approve-filing', authenticateToken, async (req, res) => {
+app.post('/api/admin/approve-filing', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { lead_id, action } = req.body; // action: 'approve' or 'reject'
         if (!lead_id || !action) return res.status(400).json({ error: 'lead_id and action required' });
@@ -3534,7 +3535,7 @@ app.get('/api/admin/pending-messages', authenticateToken, async (req, res) => {
 });
 
 // POST /api/admin/approve-message — approve or reject a queued message
-app.post('/api/admin/approve-message', authenticateToken, async (req, res) => {
+app.post('/api/admin/approve-message', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { message_id, action, reason } = req.body;
         if (!message_id || !action) return res.status(400).json({ error: 'message_id and action required' });
@@ -3687,7 +3688,7 @@ app.get('/api/admin/queue', authenticateToken, async (req, res) => {
 
 // ==================== OUTCOME MONITOR ROUTES ====================
 // POST /api/admin/check-outcomes - manually trigger outcome check for all pending appeals
-app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
+app.post('/api/admin/check-outcomes', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const result = await checkAllPendingOutcomes();
         res.json({ success: true, ...result });
@@ -3698,7 +3699,7 @@ app.post('/api/admin/check-outcomes', authenticateToken, async (req, res) => {
 
 // ==================== CONFIRM SAVINGS & AUTO-BILL ====================
 // POST /api/admin/confirm-savings - confirm savings, auto-charge or send invoice
-app.post('/api/admin/confirm-savings', authenticateToken, async (req, res) => {
+app.post('/api/admin/confirm-savings', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { submissionId, verifiedSavings, feeRate, forceInvoice } = req.body;
         if (!submissionId || !verifiedSavings || !feeRate) {
@@ -4401,7 +4402,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 // ==================== PASSWORD RESET / MAGIC LINK (Supabase-backed) ====================
 // Internal: admin-only endpoint to issue a setup link for a user
-app.post('/api/auth/issue-setup-link', authenticateToken, async (req, res) => {
+app.post('/api/auth/issue-setup-link', authenticateToken, requireAdmin, async (req, res) => {
     try {
         if (req.user?.role !== 'admin') return res.status(403).json({ error: 'admin only' });
         const { email, ttl_hours } = req.body;
@@ -6652,7 +6653,7 @@ app.get('/api/cases/:id/evidence-packet', (req, res, next) => {
 });
 
 // POST prepare filing package
-app.post('/api/cases/:id/prepare-filing', authenticateToken, async (req, res) => {
+app.post('/api/cases/:id/prepare-filing', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);
         if (!sub) return res.status(404).json({ error: 'Case not found' });
@@ -6689,7 +6690,7 @@ app.get('/api/cases/:id/filing-package', (req, res, next) => {
 });
 
 // POST bulk analyze
-app.post('/api/cases/bulk-analyze', authenticateToken, async (req, res) => {
+app.post('/api/cases/bulk-analyze', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const submissions = await readAllSubmissions();
         const newCases = submissions.filter(s => s.status === 'New' || s.analysisStatus === 'Not Started');
@@ -6711,7 +6712,7 @@ app.post('/api/cases/bulk-analyze', authenticateToken, async (req, res) => {
 });
 
 // Legacy bulk analyze alias
-app.post('/api/analyze-bulk', authenticateToken, async (req, res) => {
+app.post('/api/analyze-bulk', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { ids } = req.body;
         if (!ids || !ids.length) return res.status(400).json({ error: 'No IDs provided' });
@@ -7124,7 +7125,7 @@ app.get('/api/approval-queue', authenticateToken, async (req, res) => {
 });
 
 // POST /api/approve/:id — approve a lead and send results
-app.post('/api/approve/:id', authenticateToken, async (req, res) => {
+app.post('/api/approve/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);
         if (!sub) return res.status(404).json({ error: 'Lead not found' });
@@ -7160,7 +7161,7 @@ app.post('/api/approve/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/approve-batch — approve multiple leads at once
-app.post('/api/approve-batch', authenticateToken, async (req, res) => {
+app.post('/api/approve-batch', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { ids } = req.body;
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -7210,7 +7211,7 @@ app.post('/api/approve-batch', authenticateToken, async (req, res) => {
 });
 
 // POST /api/reject/:id — reject a lead (set back to Analysis Complete or close)
-app.post('/api/reject/:id', authenticateToken, async (req, res) => {
+app.post('/api/reject/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const sub = await findSubmission(req.params.id);
         if (!sub) return res.status(404).json({ error: 'Lead not found' });
@@ -7490,7 +7491,7 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
 
 // ==================== SOFT DELETE ENDPOINTS ====================
 // DELETE /api/submissions/:id - soft delete (set deleted_at)
-app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
+app.delete('/api/submissions/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
             const { data, error } = await supabaseAdmin
@@ -7510,7 +7511,7 @@ app.delete('/api/submissions/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/submissions/:id/restore - restore soft-deleted record
-app.post('/api/submissions/:id/restore', authenticateToken, async (req, res) => {
+app.post('/api/submissions/:id/restore', authenticateToken, requireAdmin, async (req, res) => {
     try {
         if (isSupabaseEnabled()) {
             const { data, error } = await supabaseAdmin
@@ -9184,7 +9185,7 @@ app.post('/twiml/sms-incoming', async (req, res) => {
 // ONLY for explicitly approved case IDs — does NOT check OA_EMAIL_KILLED
 const APPROVED_SMS_CASES = ['OA-0010', 'OA-0013', 'OA-0017', 'OA-0022'];
 
-app.post('/api/admin/send-notice-sms', authenticateToken, async (req, res) => {
+app.post('/api/admin/send-notice-sms', authenticateToken, requireAdmin, async (req, res) => {
     const { caseId } = req.body;
     
     if (!caseId) return res.status(400).json({ error: 'caseId required' });
@@ -9715,7 +9716,7 @@ const PIPELINE_RULES = {
 };
 
 // Pipeline: validate stage transition
-app.post('/api/pipeline/validate', authenticateToken, async (req, res) => {
+app.post('/api/pipeline/validate', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { lead_id, target_stage } = req.body;
         if (!lead_id || !target_stage) return res.status(400).json({ error: 'lead_id and target_stage required' });
@@ -11648,7 +11649,7 @@ app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
     });
 
     // POST /api/filing/approve — Tyler approves a case for filing
-    app.post('/api/filing/approve', authenticateToken, async (req, res) => {
+    app.post('/api/filing/approve', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { case_id } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
@@ -11669,7 +11670,7 @@ app.get('/api/admin/review-queue', authenticateToken, async (req, res) => {
     });
 
     // POST /api/filing/reject — Tyler rejects a filing
-    app.post('/api/filing/reject', authenticateToken, async (req, res) => {
+    app.post('/api/filing/reject', authenticateToken, requireAdmin, async (req, res) => {
         try {
             const { case_id, reason } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
