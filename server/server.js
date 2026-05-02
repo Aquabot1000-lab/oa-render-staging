@@ -3265,37 +3265,14 @@ if (isSupabaseEnabled()) {
             // ---- Guard 1: invalid case ----
             if (!signCheck) {
                 console.log(`[Action:SendSigning] ⛔ BLOCKED — case ${case_id} not found in submissions`);
-                await supabaseAdmin.from('activity_log').insert({
-                    case_id,
-                    actor: 'system:signing-guard',
-                    action: 'sign_request_invalid_case',
-                    details: {
-                        endpoint: 'POST /api/case-view/action/send-signing',
-                        case_id,
-                        attempted_recipient: email,
-                    },
-                    created_at: new Date().toISOString(),
-                }).catch(() => {});
+                try { await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'system:signing-guard', action: 'sign_request_invalid_case', details: { endpoint: 'POST /api/case-view/action/send-signing', case_id, attempted_recipient: email }, created_at: new Date().toISOString() }); } catch (_) {}
                 return res.status(404).json({ error: 'case_not_found', message: 'Case not found', case_id });
             }
 
             // ---- Guard 2: already signed ----
             if (signCheck.aoa_signed || signCheck.fee_agreement_signed || signCheck.signature) {
                 console.log(`[Action:SendSigning] ⛔ BLOCKED — ${case_id} already signed (aoa=${signCheck.aoa_signed}, fee=${signCheck.fee_agreement_signed}, at=${signCheck.fee_agreement_signed_at || 'unknown'})`);
-                await supabaseAdmin.from('activity_log').insert({
-                    case_id,
-                    actor: 'system:signing-guard',
-                    action: 'sign_prompt_blocked',
-                    details: {
-                        reason: 'aoa_signed OR fee_agreement_signed OR signature = true — duplicate send prevented',
-                        endpoint: 'POST /api/case-view/action/send-signing',
-                        attempted_recipient: email,
-                        aoa_signed: signCheck.aoa_signed,
-                        fee_agreement_signed: signCheck.fee_agreement_signed,
-                        signature: !!signCheck.signature,
-                    },
-                    created_at: new Date().toISOString(),
-                }).catch(() => {});
+                try { await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'system:signing-guard', action: 'sign_prompt_blocked', details: { reason: 'aoa_signed OR fee_agreement_signed OR signature = true — duplicate send prevented', endpoint: 'POST /api/case-view/action/send-signing', attempted_recipient: email, aoa_signed: signCheck.aoa_signed, fee_agreement_signed: signCheck.fee_agreement_signed, signature: !!signCheck.signature }, created_at: new Date().toISOString() }); } catch (_) {}
                 return res.status(409).json({ error: 'already_signed', message: 'Customer has already signed. Move to filing stage.', signed_at: signCheck.fee_agreement_signed_at });
             }
 

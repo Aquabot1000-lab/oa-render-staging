@@ -1109,41 +1109,15 @@ router.post('/send', async (req, res) => {
         // ---- Guard 1: invalid case ----
         if (!existingSub) {
             console.warn(`[esign/send] BLOCKED — case ${case_id} not found in submissions`);
-            await supabaseAdmin.from('activity_log').insert({
-                case_id,
-                actor: 'system:esign-guard',
-                action: 'sign_request_invalid_case',
-                details: {
-                    endpoint: 'POST /api/esign/send',
-                    case_id,
-                    attempted_recipient: email,
-                },
-                created_at: new Date().toISOString(),
-            }).catch(() => {});
+            try { await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'system:esign-guard', action: 'sign_request_invalid_case', details: { endpoint: 'POST /api/esign/send', case_id, attempted_recipient: email }, created_at: new Date().toISOString() }); } catch (_) {}
             return res.status(404).json({ error: 'Case not found', case_id });
         }
 
         // ---- Guard 2: already signed ----
         if (existingSub.aoa_signed === true || existingSub.fee_agreement_signed === true) {
             console.warn(`[esign/send] BLOCKED duplicate sign request for ${case_id} — already signed (aoa=${existingSub.aoa_signed}, fee=${existingSub.fee_agreement_signed})`);
-            await supabaseAdmin.from('activity_log').insert({
-                case_id,
-                actor: 'system:esign-guard',
-                action: 'sign_prompt_blocked',
-                details: {
-                    reason: 'aoa_signed OR fee_agreement_signed = true — duplicate send prevented',
-                    endpoint: 'POST /api/esign/send',
-                    attempted_recipient: email,
-                    aoa_signed: existingSub.aoa_signed,
-                    fee_agreement_signed: existingSub.fee_agreement_signed,
-                },
-                created_at: new Date().toISOString(),
-            }).catch(() => {});
-            return res.status(409).json({
-                error: 'Customer has already signed their authorization. Duplicate signing email blocked.',
-                already_signed: true,
-                case_id,
-            });
+            try { await supabaseAdmin.from('activity_log').insert({ case_id, actor: 'system:esign-guard', action: 'sign_prompt_blocked', details: { reason: 'aoa_signed OR fee_agreement_signed = true — duplicate send prevented', endpoint: 'POST /api/esign/send', attempted_recipient: email, aoa_signed: existingSub.aoa_signed, fee_agreement_signed: existingSub.fee_agreement_signed }, created_at: new Date().toISOString() }); } catch (_) {}
+            return res.status(409).json({ error: 'Customer has already signed their authorization. Duplicate signing email blocked.', already_signed: true, case_id });
         }
         // ─────────────────────────────────────────────────────────────────────
 
