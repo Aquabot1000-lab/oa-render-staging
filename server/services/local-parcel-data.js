@@ -36,8 +36,16 @@ class LocalParcelData {
     isLoaded() { return this.loaded; }
 
     async loadData() {
-        if (process.env.SKIP_BULK_DATA === 'true') {
-            console.log(`[${this.countyName}] Skipping bulk data load (SKIP_BULK_DATA=true)`);
+        // P0 (2026-05-01): on memory-constrained hosts, skip bulk load entirely.
+        // SKIP_BULK_DATA=true → hard skip (no comp lookup at all)
+        // LAZY_PARCEL_LOAD=true → was supposed to skip too but only initAllCounties
+        //                          honored it. On Render Starter (512MB), loading
+        //                          even one mid-size county (Bexar/Tarrant/Dallas)
+        //                          triggers OOM SIGABRT. Treat LAZY same as SKIP
+        //                          for now until comp engine moves to Supabase.
+        if (process.env.SKIP_BULK_DATA === 'true' || process.env.LAZY_PARCEL_LOAD === 'true') {
+            const flag = process.env.SKIP_BULK_DATA === 'true' ? 'SKIP_BULK_DATA' : 'LAZY_PARCEL_LOAD';
+            console.log(`[${this.countyName}] Skipping bulk data load (${flag}=true) — comp lookups will fall back to remote sources`);
             this.loaded = true;
             return;
         }
