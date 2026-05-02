@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Pipeline Board — OverAssessed</title>
+  <title>Pipeline Board - OverAssessed</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after { box-sizing: border-box; }
@@ -347,12 +347,78 @@
     .focus-card .fcta.cta-good    { background: var(--good); }
     .focus-card .fcta.cta-warn    { background: var(--warn); color: #1a1410; }
     .focus-card .fcta.cta-muted   { background: var(--panel); color: var(--text); border: 1px solid var(--border-2); }
+    .focus-card .fcta:disabled,
+    .focus-card .fcta[disabled]   { opacity: 0.45; cursor: not-allowed; transform: none; pointer-events: none; }
+    .focus-card .fcta-hidden      { display: none; }
     .focus-empty {
       padding: 20px;
       text-align: center;
       color: var(--text-mute);
       font-style: italic;
     }
+
+    /* ── Phase 7: Confirm modal ─────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--panel);
+      border: 1px solid var(--border-2);
+      border-radius: 12px;
+      padding: 24px;
+      width: min(420px, 90vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-box h3 { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+    .modal-box p  { margin: 0 0 16px; color: var(--text-dim); font-size: 14px; line-height: 1.5; }
+    .modal-box .case-pill {
+      display: inline-block;
+      background: var(--panel-2); border: 1px solid var(--border-2);
+      border-radius: 6px; padding: 4px 10px;
+      font-family: ui-monospace, monospace; font-size: 12px;
+      color: var(--text-dim); margin-bottom: 14px;
+    }
+    .modal-box textarea {
+      width: 100%; background: var(--bg-2); border: 1px solid var(--border-2);
+      border-radius: 6px; color: var(--text); padding: 8px 10px;
+      font-family: inherit; font-size: 13px; resize: vertical; min-height: 60px;
+      margin-bottom: 16px; box-sizing: border-box;
+    }
+    .modal-box textarea:focus { outline: none; border-color: var(--accent); }
+    .modal-box .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-box .modal-actions button {
+      padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none;
+    }
+    .modal-btn-cancel { background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--border-2) !important; }
+    .modal-btn-cancel:hover { color: var(--text); }
+    .modal-btn-confirm        { background: var(--accent); color: #0b0d12; }
+    .modal-btn-confirm.good   { background: var(--good); }
+    .modal-btn-confirm.danger { background: var(--bad); color: #fff; }
+
+    /* ── Phase 7: Toast ─────────────────────────────────── */
+    .toast-rack {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 600;
+    }
+    .toast {
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      animation: slideIn 0.2s ease;
+      cursor: pointer;
+    }
+    .toast-ok    { background: var(--good-bg); border: 1px solid var(--good); color: var(--good); }
+    .toast-error { background: var(--bad-bg);  border: 1px solid var(--bad);  color: var(--bad);  }
+    .toast-info  { background: var(--info-bg); border: 1px solid var(--info); color: var(--info); }
+    @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 
     /* ── Loading / Error ────────────────────────────── */
     .state-overlay {
@@ -406,8 +472,23 @@
 
   <div class="state-overlay" id="loading">
     <div class="spinner"></div>
-    <div style="color:var(--text-dim);font-size:13px;">Loading pipeline…</div>
+    <div style="color:var(--text-dim);font-size:13px;">Loading pipeline...</div>
   </div>
+
+  <!-- Phase 7: Confirm modal & toast rack -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <h3 id="cmTitle"></h3>
+      <div id="cmCasePill" class="case-pill"></div>
+      <p id="cmMsg"></p>
+      <textarea id="cmReason" placeholder="Reason (optional)" rows="2"></textarea>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" id="cmCancel">Cancel</button>
+        <button class="modal-btn-confirm" id="cmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast-rack" id="toastRack"></div>
 
   <script src="/lib/auth-client.js"></script>
   <script>
@@ -416,15 +497,50 @@
     const currentUser = AuthClient.requireAuth();
     if (!currentUser) { /* redirected */ }
 
+    // ── helpers ──────────────────────────────────────────
+    function isAdmin() { return (currentUser && currentUser.role) === 'admin'; }
+
+    function showToast(msg, type = 'info', ms = 4000) {
+      const rack = document.getElementById('toastRack');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      t.onclick = () => t.remove();
+      rack.appendChild(t);
+      setTimeout(() => t.remove(), ms);
+    }
+
+    // Returns Promise<{ ok: bool, reason: string }>
+    function confirmAction(opts = {}) {
+      return new Promise(resolve => {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('cmTitle').textContent    = opts.title   || 'Confirm';
+        document.getElementById('cmMsg').textContent      = opts.message || 'Are you sure?';
+        const pill = document.getElementById('cmCasePill');
+        pill.textContent = opts.caseId || '';
+        pill.style.display = opts.caseId ? '' : 'none';
+        const reasonEl = document.getElementById('cmReason');
+        reasonEl.value = '';
+        reasonEl.style.display = opts.askReason !== false ? '' : 'none';
+        const okBtn = document.getElementById('cmOk');
+        okBtn.textContent = opts.confirmLabel || 'Confirm';
+        okBtn.className = 'modal-btn-confirm' + (opts.danger ? ' danger' : opts.good ? ' good' : '');
+        modal.classList.add('open');
+        const cleanup = (val) => { modal.classList.remove('open'); resolve(val); };
+        okBtn.onclick   = () => cleanup({ ok: true,  reason: reasonEl.value.trim() });
+        document.getElementById('cmCancel').onclick = () => cleanup({ ok: false });
+      });
+    }
+
     const fmtMoney = (n) => {
-      if (n == null || isNaN(Number(n)) || Number(n) === 0) return '—';
+      if (n == null || isNaN(Number(n)) || Number(n) === 0) return '-';
       const v = Number(n);
       if (v >= 1000) return '$' + Math.round(v).toLocaleString();
       return '$' + v.toFixed(0);
     };
 
     const fmtTime = (iso) => {
-      if (!iso) return '—';
+      if (!iso) return '-';
       const d = new Date(iso);
       const now = new Date();
       const diffMs = now - d;
@@ -446,7 +562,7 @@
       const sav = card.estimated_tax_savings;
       const naIcon = card.next_action_icon || '👉';
       const naText = card.next_action || 'No next action';
-      const status = card.status || '—';
+      const status = card.status || '-';
       const locked = card.flags && card.flags.manual_status_lock;
       const vip = card.flags && card.flags.vip;
       const hv = card.high_value === true;
@@ -490,26 +606,119 @@
         </a>`;
     }
 
-    // ── Phase 6: Today's Focus card ───────────────────────
-    function ctaToneClass(action) {
-      switch (action) {
-        case 'send_aoa':        return 'cta-warn';   // amber: action expected today
-        case 'request_nov':     return 'cta-warn';
-        case 'approve_filing':  return 'cta-good';   // green: ship it
-        case 'review_case':     return '';
-        default:                return 'cta-muted';
+    // ── Phase 7: Today's Focus — action engine ────────────
+    //
+    // Role matrix:
+    //   approve_filing  → admin only  (mutates state via controller)
+    //   send_aoa        → admin+operator  (deep-link to case page)
+    //   request_nov     → admin+operator  (deep-link to case page)
+    //   review_case     → all           (navigation)
+    //
+    // Approve Filing fires POST /api/case-view/event {event:'approve_for_filing'}
+    // after a confirmation modal. All others navigate to /case?id=X&action=<cta>
+    // so the tested case-page flows handle the actual customer communication.
+
+    const CTA_META = {
+      send_aoa:       { label: 'Send AOA',       tone: 'cta-warn', adminOnly: false, mutation: false },
+      request_nov:    { label: 'Request NOV',    tone: 'cta-warn', adminOnly: false, mutation: false },
+      approve_filing: { label: 'Approve Filing', tone: 'cta-good', adminOnly: true,  mutation: true  },
+      review_case:    { label: 'Review Case',    tone: 'cta-muted',adminOnly: false, mutation: false },
+    };
+
+    // Send a controller event with auth; returns {ok, ...result} or throws.
+    async function postCaseEvent(caseId, event, payload = {}) {
+      const r = await AuthClient.fetchAuthed('/api/case-view/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_id: caseId, event, payload }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw Object.assign(new Error(body.error || 'HTTP ' + r.status), { status: r.status, body });
+      return body;
+    }
+
+    // The one mutation: Approve Filing (admin-only, confirmation required).
+    async function doApproveFiling(caseId, ownerName, revenue, btnEl) {
+      if (!isAdmin()) { showToast('❌ Admin only — ask Tyler', 'error'); return; }
+      const c = await confirmAction({
+        title: '✅ Approve for Filing',
+        caseId,
+        message: `This will mark ${escapeHtml(ownerName || caseId)} (${fmtMoney(revenue)}) as READY_TO_FILE. The filing pipeline can then pick it up.`,
+        confirmLabel: '✅ Approve',
+        askReason: true,
+        good: true,
+      });
+      if (!c.ok) return;
+
+      // Disable button & show spinner during request
+      const origText = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = '⏳ Approving…';
+      try {
+        const result = await postCaseEvent(caseId, 'approve_for_filing', {
+          reason: c.reason || 'Approved from Pipeline Board',
+        });
+        showToast(`✅ ${caseId} approved for filing`, 'ok');
+        // Remove the card from Today's Focus after success (optimistic)
+        const card = btnEl.closest('.focus-card');
+        if (card) {
+          card.style.transition = 'opacity 0.3s';
+          card.style.opacity = '0';
+          setTimeout(() => { card.remove(); updateFocusMeta(); }, 320);
+        }
+        console.log('[board] approve_for_filing result', result);
+      } catch (e) {
+        showToast(`❌ ${caseId}: ${e.body?.error || e.message}`, 'error', 6000);
+        btnEl.disabled = false;
+        btnEl.textContent = origText;
       }
     }
+
+    function updateFocusMeta() {
+      const remaining = document.querySelectorAll('#focusRow .focus-card').length;
+      if (remaining === 0) {
+        document.getElementById('focusRow').innerHTML =
+          '<div class="focus-empty">All caught up — no actionable cases right now. ↻ Refresh to reload.</div>';
+      }
+    }
+
     function renderFocusCard(card, idx) {
-      const cta = card.cta || { label: 'Open', url: '/case?id=' + encodeURIComponent(card.case_id) };
-      const hv = card.high_value === true;
+      const cta = card.cta || { action: 'review_case' };
+      const meta = CTA_META[cta.action] || CTA_META.review_case;
+      const hv    = card.high_value === true;
       const stale = card.stale_level;
-      const days = card.days_since_last_activity;
-      const hvBadge = hv ? '<span class="badge badge-hv">💰 HV</span>' : '';
+      const days  = card.days_since_last_activity;
+      const hvBadge    = hv ? '<span class="badge badge-hv">💰 HV</span>' : '';
       const staleBadge = (stale === 'warning' || stale === 'critical')
         ? `<span class="badge badge-stale-${stale}">⏱ ${days}d</span>` : '';
+
+      // Role gate: admin-only CTAs are hidden (not just disabled) for operators/guests.
+      const adminOnly = meta.adminOnly;
+      const canAct    = adminOnly ? isAdmin() : true;
+      const hiddenCls = (adminOnly && !isAdmin()) ? ' fcta-hidden' : '';
+
+      // Navigation CTA (no mutation) — plain anchor.
+      // Mutation CTA (approve_filing) — button with data attrs for JS delegation.
+      let ctaHtml;
+      if (meta.mutation) {
+        ctaHtml = `<button
+          class="fcta ${meta.tone}${hiddenCls}"
+          data-action="approve_filing"
+          data-case-id="${escapeHtml(card.case_id)}"
+          data-owner="${escapeHtml(card.owner_name || '')}"
+          data-revenue="${card.estimated_revenue || 0}"
+          ${!canAct ? 'disabled aria-disabled="true"' : ''}
+        >${meta.label} →</button>`;
+      } else {
+        const href = cta.url || `/case?id=${encodeURIComponent(card.case_id)}&action=${cta.action || 'review_case'}`;
+        ctaHtml = `<a class="fcta ${meta.tone}" href="${href}">${meta.label} →</a>`;
+      }
+
+      // Secondary "Open case" link — always visible
+      const caseUrl = `/case?id=${encodeURIComponent(card.case_id)}`;
+
       return `
-        <div class="focus-card">
+        <div class="focus-card" data-case-id="${escapeHtml(card.case_id)}">
           <div class="ftop">
             <div class="frank">${idx + 1}</div>
             <span class="fid">${escapeHtml(card.case_id)}</span>
@@ -518,9 +727,25 @@
           <div class="fowner">${escapeHtml(card.owner_name)}</div>
           <div class="frev">${fmtMoney(card.estimated_revenue)}</div>
           <div class="fbadges">${hvBadge}${staleBadge}</div>
-          <a class="fcta ${ctaToneClass(cta.action)}" href="${cta.url}">${escapeHtml(cta.label)} →</a>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            ${ctaHtml}
+            <a class="fcta cta-muted" href="${caseUrl}" style="flex:0 0 auto;padding:8px 10px;font-size:12px;" title="Open case page">↗</a>
+          </div>
         </div>`;
     }
+
+    // Event delegation for mutation buttons (approve_filing)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action="approve_filing"]');
+      if (!btn) return;
+      e.preventDefault();
+      doApproveFiling(
+        btn.dataset.caseId,
+        btn.dataset.owner,
+        Number(btn.dataset.revenue),
+        btn
+      );
+    });
 
     async function loadFocus() {
       try {
@@ -536,11 +761,10 @@
         } else {
           row.innerHTML = data.cases.map(renderFocusCard).join('');
           const stale = data.stale_critical_count + data.stale_warning_count;
-          sub.textContent = `${data.count} cases · ${fmtMoney(data.total_revenue)} potential · ${stale} stale`;
+          sub.textContent = `${data.count} cases · ${fmtMoney(data.total_revenue)} potential · ${stale} stale`;
         }
         panel.style.display = 'block';
       } catch (e) {
-        // Silent fail — board still works without the focus panel.
         console.warn('Today Focus failed:', e.message);
       }
     }

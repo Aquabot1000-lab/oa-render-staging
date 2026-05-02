@@ -75,6 +75,7 @@ const EVENT_MAP = {
   comps_data_blocked:    { status: null,                          outreach: false, category: 'system', sets: { analysis_status: 'DATA_BLOCKED' } },
   package_rebuilt:       { status: null,                          outreach: false, category: 'system' },
   message_sent:          { status: null,                          outreach: true,  category: 'outreach' },
+  nov_requested:         { status: 'NOV_REQUEST_SENT',            outreach: true,  category: 'outreach' }, // Phase 7 (Tyler msg 28643): board "Request NOV" CTA
   status_override:       { status: null,                          outreach: false, category: 'decision' }, // payload.target_status required; tyler-only enforced at route
 };
 

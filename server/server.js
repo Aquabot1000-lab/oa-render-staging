@@ -2245,7 +2245,8 @@ if (isSupabaseEnabled()) {
                 'approve_for_filing', 'deny_no_opportunity', 'lock', 'unlock', 'status_override', 'filed'
             ]);
             const OPERATOR_ALLOWED_EVENTS = new Set([
-                'hold', 'unhold', 'note_added', 'note_upsert', 'comps_rerun', 'package_rebuilt', 'message_sent'
+                'hold', 'unhold', 'note_added', 'note_upsert', 'comps_rerun', 'package_rebuilt', 'message_sent',
+                'aoa_request_sent', 'nov_requested',  // Phase 7: board CTA events (Tyler msg 28643)
             ]);
             const role = req.user?.role || 'guest';
             if (ADMIN_ONLY_EVENTS.has(event) && role !== 'admin') {
