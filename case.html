@@ -806,79 +806,46 @@
             }).join('');
         }
 
-        function computeNextBestAction(d) {
+        // Phase 2: renderNextActionBanner — driven by next-action-engine output
+        // Reads caseData.next_action_engine injected by /api/case-view/full/:caseId
+        // Falls back to color-map on priority string if engine block missing.
+        // PURE READ ONLY — no DB writes, no events.
+        function renderNextActionBanner(d) {
             const banner = document.getElementById('nbaBanner');
-            const nbaText = document.getElementById('nbaText');
-            const nbaReason = document.getElementById('nbaReason');
-            const nbaIcon = document.getElementById('nbaIcon');
+            if (!banner) return;
 
-            const status = d.status || '';
-            const hasNotice = !!d.notice_url;
-            const wrongFile = (d.notes || '').includes('WRONG FILE');
-            const hasSig = !!d.signature;
-            const feePaid = d.initiation_fee_paid;
-            const savings = d.estimated_savings || 0;
-            const hasComps = d.data_validation_status !== 'insufficient_data' && !((d.comp_validation_status || '').includes('Only 0'));
-            const filing = d.filing_status || 'not_filed';
+            if (d.do_not_contact) { banner.style.display = 'none'; return; }
 
-            let text = '', reason = '', icon = '🎯';
+            const na = d.next_action_engine;
+            let action, priority, color, reason, icon;
 
-            if (d.do_not_contact) {
-                banner.style.display = 'none';
-                return;
-            }
-
-            // Priority logic
-            if (wrongFile) {
-                icon = '📱'; text = `Call ${(d.owner_name || '').split(' ')[0]} — needs correct notice upload`;
-                reason = 'Uploaded file is wrong (not a tax notice). Highest priority if savings are high.';
-            } else if (status === 'Ready to File' && !feePaid) {
-                icon = '💰'; text = `Confirm $79 initiation fee from ${(d.owner_name || '').split(' ')[0]}`;
-                reason = 'Case is ready to file but initiation fee is unpaid.';
-            } else if (status === 'Ready to File' && feePaid && filing === 'not_filed') {
-                icon = '📨'; text = `File protest for ${(d.owner_name || '').split(' ')[0]} with ${d.county || ''} County`;
-                reason = 'Fee paid, analysis complete, ready to file.';
-            } else if (status === 'Analysis Complete' && savings > 0 && !hasSig) {
-                icon = '✍️'; text = `Send signing link to ${(d.owner_name || '').split(' ')[0]}`;
-                reason = `$${savings.toLocaleString()}/yr savings found. Need signature to proceed.`;
-            } else if (status === 'Analysis Complete' && savings > 0) {
-                icon = '📊'; text = `Send savings report to ${(d.owner_name || '').split(' ')[0]}`;
-                reason = `$${savings.toLocaleString()}/yr savings identified. Move to close.`;
-            } else if ((status === 'Awaiting Notice' || status === 'Needs Review') && !hasNotice) {
-                icon = '📄'; text = `Get notice from ${(d.owner_name || '').split(' ')[0]}`;
-                reason = 'Cannot proceed without Notice of Appraised Value.';
-            } else if (status === 'Needs Review') {
-                icon = '🔍'; text = `Review case data for ${(d.owner_name || '').split(' ')[0]}`;
-                reason = d.review_reason || 'Manual review needed before proceeding.';
-            } else if (status === 'New') {
-                icon = '📧'; text = `Send intro message to ${(d.owner_name || '').split(' ')[0]}`;
-                reason = 'New lead — first contact not yet made.';
-            } else if (!hasComps && savings > 0) {
-                icon = '⚠️'; text = `Insufficient comp data — manual review needed`;
-                reason = 'Analysis shows savings but comp data is weak. Verify before filing.';
+            if (na && na.action) {
+                action   = na.action;
+                priority = na.priority;   // p1-p4
+                color    = na.color;
+                reason   = na.reason;
+                icon     = na.icon || '🎯';
             } else {
-                banner.style.display = 'none';
-                return;
+                // Fallback: nothing from engine — show generic
+                action = d.next_action || 'Review case';
+                priority = 'p4'; color = 'gray'; reason = 'Engine output unavailable'; icon = '🔍';
             }
 
-            // Map to color class by priority level (1=urgent, 2=high, 3=normal, 4=low)
-            const priorityMap = {
-                '📱': 1, '💰': 1, '📨': 1,
-                '✍️': 2, '📊': 2, '📄': 2,
-                '🔍': 3, '📧': 3,
-                '⚠️': 4
-            };
-            const pri = priorityMap[icon] || 4;
-            banner.className = `nba-banner nba-p${pri}`;
+            // Map priority → CSS class + human label
+            const classMap = { p1: 'nba-p1', p2: 'nba-p2', p3: 'nba-p3', p4: 'nba-p4' };
+            const labelMap = { p1: 'URGENT', p2: 'HIGH', p3: 'NORMAL', p4: 'LOW' };
+            banner.className = `nba-banner ${classMap[priority] || 'nba-p4'}`;
             banner.innerHTML = `
                 <div class="nba-icon">${icon}</div>
                 <div style="flex:1">
-                    <div class="nba-label">Next Action · Priority ${pri}</div>
-                    <div class="nba-text">${text}</div>
+                    <div class="nba-label">Next Action · ${labelMap[priority] || priority}</div>
+                    <div class="nba-text">${action}</div>
                     <div class="nba-reason">${reason}</div>
                 </div>`;
             banner.style.removeProperty('display');
         }
+        // Keep old name as alias so any residual callers don't break
+        function computeNextBestAction(d) { return renderNextActionBanner(d); }
 
         function renderAnalysisWarning(d) {
             // INCOMPLETE ADDRESS — highest priority warning
@@ -1166,7 +1133,7 @@
             renderReadinessGate(caseData);
             renderValueComparison(caseData);
             renderApprovalBar(caseData);
-            computeNextBestAction(caseData);
+            renderNextActionBanner(caseData);
             renderAnalysisWarning(caseData);
             renderTimeline(activities, comms);
             renderTasks(tasks);

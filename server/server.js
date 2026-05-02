@@ -2003,6 +2003,13 @@ if (isSupabaseEnabled()) {
         try {
             const { data, error } = await supabaseAdmin.from('submissions').select('*').eq('case_id', req.params.caseId).single();
             if (error || !data) return res.status(404).json({ error: 'Case not found' });
+            // Phase 2: attach pure read-only next_action computed from canonical fields
+            try {
+                const na = computeNextAction(data);
+                data.next_action_engine = {
+                    action: na.action, priority: na.priority, color: na.color, reason: na.reason, icon: na.icon
+                };
+            } catch (naErr) { console.warn('[case-view] next_action compute failed:', naErr.message); }
             res.json(data);
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
@@ -2069,11 +2076,11 @@ if (isSupabaseEnabled()) {
             try {
                 const { data: updated } = await supabaseAdmin.from('submissions').select('*').eq('case_id', case_id).single();
                 if (updated) {
-                    const { action, priority, icon } = computeNextAction(updated);
+                    const { action, legacy_priority, icon } = computeNextAction(updated);
                     const fp = computeFollowUpPriority(updated);
                     await supabaseAdmin.from('submissions').update({
                         next_action: icon + ' ' + action,
-                        next_action_priority: priority,
+                        next_action_priority: legacy_priority,
                         follow_up_priority: fp.priority,
                         follow_up_score: fp.score,
                         follow_up_reason: fp.reason
@@ -2113,11 +2120,11 @@ if (isSupabaseEnabled()) {
             // Recompute next_action + follow-up priority from new state
             const { data: updated } = await supabaseAdmin.from('submissions').select('*').eq('case_id', case_id).single();
             if (updated) {
-                const { action, priority, icon } = computeNextAction(updated);
+                const { action, legacy_priority, icon } = computeNextAction(updated);
                 const fp = computeFollowUpPriority(updated);
                 await supabaseAdmin.from('submissions').update({
                     next_action: icon + ' ' + action,
-                    next_action_priority: priority,
+                    next_action_priority: legacy_priority,
                     follow_up_priority: fp.priority,
                     follow_up_score: fp.score,
                     follow_up_reason: fp.reason
@@ -2181,8 +2188,14 @@ if (isSupabaseEnabled()) {
                 supabaseAdmin.from('activity_log').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(50)
             ]);
             if (subResult.error || !subResult.data) return res.status(404).json({ error: 'Case not found' });
+            // Phase 2: attach live next_action_engine block (pure read-only, no mutations)
+            const caseRow = subResult.data;
+            try {
+                const na = computeNextAction(caseRow);
+                caseRow.next_action_engine = { action: na.action, priority: na.priority, color: na.color, reason: na.reason, icon: na.icon };
+            } catch (naErr) { console.warn('[case-view/full] next_action compute failed:', naErr.message); }
             res.json({
-                case: subResult.data,
+                case: caseRow,
                 documents: docsResult.data || [],
                 communications: commsResult.data || [],
                 tasks: tasksResult.data || [],
@@ -2192,15 +2205,23 @@ if (isSupabaseEnabled()) {
     });
 
     // GET /api/case-view/next-actions — dashboard: all active cases sorted by next_action_priority
+    // Phase 2: each row gets a live-computed next_action_engine block from canonical fields.
     app.get('/api/case-view/next-actions', authenticateToken, async (req, res) => {
         try {
+            // Pull the wider field set the engine needs (canonical + comp_results for count)
             const { data, error } = await supabaseAdmin.from('submissions')
-                .select('case_id,owner_name,status,state,county,next_action,next_action_priority,estimated_savings,last_activity_at,last_contact_at')
+                .select('case_id,owner_name,status,state,county,next_action,next_action_priority,estimated_savings,estimated_tax_savings,last_activity_at,last_contact_at,aoa_signed,notice_received,filing_ready,filing_status,manual_status_lock,status_lock_reason,last_outreach_at,outcome,comp_results')
                 .not('status', 'in', '("Archived","Deleted","No Case","Resolved")')
                 .order('next_action_priority', { ascending: false })
                 .limit(100);
             if (error) throw error;
-            res.json(data || []);
+            const enriched = (data || []).map(row => {
+                try {
+                    const na = computeNextAction(row);
+                    return { ...row, next_action_engine: { action: na.action, priority: na.priority, color: na.color, reason: na.reason, icon: na.icon } };
+                } catch (naErr) { return row; }
+            });
+            res.json(enriched);
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -2535,9 +2556,9 @@ if (isSupabaseEnabled()) {
         try {
             const { data: lead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', req.params.caseId).single();
             if (!lead) return res.status(404).json({ error: 'Case not found' });
-            const { action, priority, icon } = computeNextAction(lead);
+            const { action, legacy_priority, icon } = computeNextAction(lead);
             const nextAction = icon + ' ' + action;
-            await supabaseAdmin.from('submissions').update({ next_action: nextAction, next_action_priority: priority }).eq('case_id', req.params.caseId);
+            await supabaseAdmin.from('submissions').update({ next_action: nextAction, next_action_priority: legacy_priority }).eq('case_id', req.params.caseId);
             res.json({ case_id: req.params.caseId, next_action: nextAction, priority });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
@@ -6913,7 +6934,7 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             if (isSupabaseEnabled()) {
                 const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', uploadCaseId).single();
                 if (freshLead) {
-                    const { action: na, priority: np, icon: ni } = computeNextAction(freshLead);
+                    const { action: na, legacy_priority: np, icon: ni } = computeNextAction(freshLead);
                     await supabaseAdmin.from('submissions').update({ next_action: ni + ' ' + na, next_action_priority: np }).eq('case_id', uploadCaseId);
                 }
             }
@@ -6938,7 +6959,7 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             // Recompute next_action after successful upload
             const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', uploadCaseId).single();
             if (freshLead) {
-                const { action: na, priority: np, icon: ni } = computeNextAction(freshLead);
+                const { action: na, legacy_priority: np, icon: ni } = computeNextAction(freshLead);
                 await supabaseAdmin.from('submissions').update({ next_action: ni + ' ' + na, next_action_priority: np }).eq('case_id', uploadCaseId);
             }
         }
@@ -7531,8 +7552,8 @@ app.patch('/api/submissions/:id', authenticateToken, async (req, res) => {
             if (isSupabaseEnabled()) {
                 const { data: freshLead } = await supabaseAdmin.from('submissions').select('*').eq('case_id', caseId).single();
                 if (freshLead) {
-                    const { action, priority, icon } = computeNextAction(freshLead);
-                    await supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString(), next_action: icon + ' ' + action, next_action_priority: priority })
+                    const { action, legacy_priority, icon } = computeNextAction(freshLead);
+                    await supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString(), next_action: icon + ' ' + action, next_action_priority: legacy_priority })
                         .eq('case_id', caseId);
                 } else {
                     supabaseAdmin.from('submissions').update({ last_activity_at: new Date().toISOString() })
