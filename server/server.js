@@ -69,6 +69,7 @@ const emailInboundRouter = require('./routes/email-inbound');
 const uriCommissionsRouter = require('./routes/uri-commissions');
 const pipelineRouter = require('./routes/pipeline');
 const pipelineBoardRouter = require('./routes/pipeline-board'); // Phase 5 — primary board
+const pipelinePriorityRouter = require('./routes/pipeline-priority'); // Phase 6 — revenue activation
 const esignRouter = require('./routes/esign');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
@@ -1998,6 +1999,9 @@ if (isSupabaseEnabled()) {
 
     // ══ PHASE 5: Pipeline Board (primary operational screen) ═════════════
     app.use('/api/pipeline-board', authenticateToken, pipelineBoardRouter);
+
+    // ══ PHASE 6: Revenue Activation — priority + Today's Focus ══════════
+    app.use('/api/pipeline-priority', authenticateToken, pipelinePriorityRouter);
 
     // ========================================
     // CASE VIEW API — Phase 2 Case Page

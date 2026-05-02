@@ -127,25 +127,49 @@ function classifyCase(row) {
   return 'ready_for_comps';
 }
 
+// Phase 6 thresholds (Tyler msg 28627)
+const HIGH_VALUE_REV  = 3000;
+const STALE_WARN_DAYS = 3;
+const STALE_CRIT_DAYS = 7;
+
+function daysSince(iso) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+function staleLevel(d) {
+  if (d == null) return null;
+  if (d > STALE_CRIT_DAYS) return 'critical';
+  if (d > STALE_WARN_DAYS) return 'warning';
+  return 'fresh';
+}
+
 function toCard(row) {
   const na = (() => {
     try { return computeNextAction(row); } catch { return null; }
   })();
+  const lastAt = row.last_activity_at || row.updated_at || null;
+  const days = daysSince(lastAt);
+  const rev = row.estimated_revenue != null ? Number(row.estimated_revenue) : null;
   return {
     case_id: row.case_id,
     owner_name: row.owner_name || '—',
     address: row.property_address || '—',
     county: row.county || null,
     estimated_tax_savings: row.estimated_tax_savings != null ? Number(row.estimated_tax_savings) : null,
-    estimated_revenue:     row.estimated_revenue     != null ? Number(row.estimated_revenue)     : null,
+    estimated_revenue:     rev,
+    high_value: rev != null && rev >= HIGH_VALUE_REV,
     status: row.status || null,
     filing_status: row.filing_status || null,
     next_action: na ? na.action : null,
     next_action_priority: na ? na.priority : null,
     next_action_icon:     na ? na.icon     : null,
     next_action_color:    na ? na.color    : null,
-    last_activity_at: row.last_activity_at || row.updated_at || null,
+    last_activity_at: lastAt,
     last_outreach_at: row.last_outreach_at || null,
+    days_since_last_activity: days,
+    stale_level: staleLevel(days),
     flags: {
       aoa_signed: row.aoa_signed === true,
       notice_received: row.notice_received === true,
