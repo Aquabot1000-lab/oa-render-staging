@@ -32,6 +32,29 @@ const SKIP_STATUSES = new Set(['NO_OPPORTUNITY', 'FILED', 'LOST_CONTACT', 'ARCHI
 const MAX_TOUCHES = 3;
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
+// WAITING_NOTICE is the NOV-needed flow (Phase 9 is AOA flow only — Tyler msg 28694)
+const NON_AOA_STATUSES = new Set(['WAITING_NOTICE', 'NOV_REQUEST_SENT']);
+
+// Test/seed denylist — never auto-outreach these (Tyler msg 28694)
+const TEST_NAME_TOKENS = ['pixel', 'webhook', 'final', 'test', 'meta lead', 'devnull'];
+const TEST_EMAIL_TOKENS = ['no@way.com', 'devnull', 'test@', 'example.com'];
+const TEST_STATUSES = new Set(['NEEDS_MANUAL_RECOVERY']);
+
+function looksLikeTestRow(row) {
+  if (!row) return true;
+  if (TEST_STATUSES.has(row.status)) return true;
+  const name = (row.owner_name || '').toLowerCase();
+  if (!name) return true;  // empty name = incomplete intake
+  for (const tok of TEST_NAME_TOKENS) {
+    if (name.includes(tok)) return true;
+  }
+  const email = (row.email || '').toLowerCase();
+  for (const tok of TEST_EMAIL_TOKENS) {
+    if (email.includes(tok)) return true;
+  }
+  return false;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Extract first-name from owner_name, fallback to "there". */
@@ -82,22 +105,53 @@ function buildMessages(touchNum, row) {
 function determineTouchNumber(row, stage, af, now) {
   const existingTouches = Array.isArray(af.auto_touches) ? af.auto_touches : [];
 
-  if (stage === 'needs_outreach') {
-    const ageMs = row.created_at ? now - new Date(row.created_at).getTime() : 0;
-    if (ageMs >= DAY_1 && !existingTouches.includes(1)) return 1;
+  // ── Cadence rule (Tyler msg 28694): touch number is driven by
+  //    *prior auto touches*, not by case age. Never start a cold case at
+  //    Touch 2 or Touch 3 just because it's old.
+  //
+  //  - empty auto_touches  → only Touch 1 is allowed (regardless of stage)
+  //  - touches=[1]         → Touch 2 only after 3+ days since auto Touch 1
+  //  - touches=[1,2]       → Touch 3 only after 2+ days since auto Touch 2
+  //  - touches=[1,2,3]     → done
+  //
+  //  Touch 1 also has a 24h-since-intake gate (let leads breathe).
+
+  if (existingTouches.length === 0) {
+    // First-ever auto touch. Pick the right starter message based on stage:
+    //  - needs_outreach (no AoA link sent yet)        → Touch 1 ("we found a potential overassessment...")
+    //  - aoa_sent (AoA link already sent manually)    → Touch 2 ("just checking...") gated on 3d since last manual outreach
+    if (stage === 'needs_outreach') {
+      const ageMs = row.created_at ? now - new Date(row.created_at).getTime() : 0;
+      if (ageMs < DAY_1) return null;
+      return 1;
+    }
+    if (stage === 'aoa_sent') {
+      // Don't auto-blast cases that just got their AoA — wait 3 days.
+      const anchor = row.last_outreach_at || row.updated_at;
+      const sinceMs = anchor ? now - new Date(anchor).getTime() : 0;
+      if (sinceMs < DAY_3) return null;
+      return 2;
+    }
     return null;
   }
 
-  if (stage === 'aoa_sent') {
-    const anchor = row.last_outreach_at || row.updated_at;
-    const sinceMs = anchor ? now - new Date(anchor).getTime() : 0;
+  // Subsequent touches — always require AOA-not-signed flow.
+  if (stage !== 'aoa_sent') return null;
 
-    // Touch 3 (Day 5) has priority check over Touch 2 (Day 3) — pick highest eligible
-    if (sinceMs >= DAY_5 && !existingTouches.includes(3)) return 3;
-    if (sinceMs >= DAY_3 && !existingTouches.includes(2)) return 2;
-    return null;
+  const lastAutoAt = af.last_auto_outreach_at
+    ? new Date(af.last_auto_outreach_at).getTime()
+    : null;
+  if (!lastAutoAt) return null;  // shouldn't happen, but guard
+  const sinceMs = now - lastAutoAt;
+
+  if (existingTouches.includes(2) && !existingTouches.includes(3)) {
+    // Touch 3 only after Touch 2 + 2 days (5 - 3 = 2)
+    return sinceMs >= (2 * 24 * ONE_H) ? 3 : null;
   }
-
+  if (existingTouches.includes(1) && !existingTouches.includes(2)) {
+    // Touch 2 only after Touch 1 + 3 days
+    return sinceMs >= DAY_3 ? 2 : null;
+  }
   return null;
 }
 
@@ -126,6 +180,7 @@ async function fetchCandidates(sb, hasAutoFlags) {
     .select(fields.join(','))
     .is('deleted_at', null)
     .is('archived_at', null)
+    .not('case_id', 'is', null)             // Tyler msg 28694: hard exclude null case_ids
     .not('status', 'in', `(${[...SKIP_STATUSES].join(',')})`)
     .limit(2000);
 
@@ -193,9 +248,20 @@ async function runAutoOutreach({ supabaseAdmin, dryRun, sendSMS, sendNotificatio
     stats.scanned++;
 
     // ── Safety filters ──────────────────────────────────────────────────────
+    // Belt-and-suspenders null check (DB query already excludes; protects against future query changes)
+    if (!row.case_id) { skip('null_case_id'); continue; }
+
+    // Test/seed denylist (Tyler msg 28694)
+    if (looksLikeTestRow(row))    { skip('test_or_seed'); continue; }
+
     if (row.do_not_contact)       { skip('do_not_contact'); continue; }
     if (row.automation_excluded)  { skip('automation_excluded'); continue; }
     if (row.fee_agreement_signed) { skip('already_signed'); continue; }
+    if (row.aoa_signed)           { skip('already_signed'); continue; }
+
+    // Phase 9 is AOA flow only — exclude NOV-needed and other non-AOA statuses
+    // (Tyler msg 28694: WAITING_NOTICE = NOV-needed flow, not AOA flow)
+    if (NON_AOA_STATUSES.has(row.status)) { skip('non_aoa_flow'); continue; }
 
     // TX state filter (null treated as TX)
     const state = (row.state || 'TX').toUpperCase();
