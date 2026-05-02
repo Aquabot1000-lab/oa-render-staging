@@ -885,6 +885,145 @@
             }
         }
 
+        // ═══ PHASE 3 UNIFIED TIMELINE RENDERER (read-only) ══════════════════════
+        // Consumes /api/case-view/timeline-unified/:caseId entries.
+        // Each entry: { source, id, timestamp, actor, event_type, details, before?, after? }
+        function summarizeTimelineEntry(e) {
+            const t = e.event_type || '';
+            const d = e.details || {};
+            const dot = (cls) => cls;
+            switch (t) {
+                // —— status / decisions ——
+                case 'status_change':       return { dot:'status',   text:`Status changed${d.reason ? ' — ' + d.reason : ''}` };
+                case 'state_transition':    return { dot:'status',   text:`Pipeline transition${d.reason ? ' — ' + d.reason : ''}` };
+                case 'status_corrected':    return { dot:'system',   text:`Status corrected${d.reason ? ' — ' + d.reason : ''}` };
+                case 'approve_for_filing':  return { dot:'agreement',text:`<strong>✅ Approved for Filing</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'deny_no_opportunity': return { dot:'system',   text:`<strong>⛔ No Opportunity</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'lost_contact':        return { dot:'system',   text:`<strong>📞 Lost contact</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'hold':                return { dot:'system',   text:`<strong>⏸ On hold</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'unhold':              return { dot:'system',   text:`<strong>▶ Unheld</strong>` };
+                case 'lock':                return { dot:'system',   text:`<strong>🔒 Locked</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'unlock':              return { dot:'system',   text:`<strong>🔓 Unlocked</strong>` };
+                case 'do_not_contact_set':  return { dot:'system',   text:`<strong>⛔ DO NOT CONTACT</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                // —— outreach ——
+                case 'aoa_request_sent':    return { dot:'email',    text:`AOA request sent (${d.channel || 'email'})` };
+                case 'drip_reminder':       return { dot:'sms',      text:`Auto reminder${d.type ? ' (' + d.type + ')' : ''} sent` };
+                case 'esign_reminder_scheduled': return { dot:'email', text:`E-sign reminder scheduled` };
+                case 'incomplete_address_outreach': return { dot:'email', text:`Outreach: incomplete address` };
+                // —— customer messages ——
+                case 'message_inbound_email':
+                case 'message_inbound_sms':
+                case 'message_inbound_phone':
+                case 'message_inbound_unknown': {
+                    const body = (d.body || '').slice(0, 120) + ((d.body || '').length > 120 ? '…' : '');
+                    return { dot:(d.channel || 'email'), text:`<strong>📥 Inbound ${(d.channel || '').toUpperCase()}</strong>${d.subject ? ' — ' + d.subject : ''}<br><span style="color:#94a3b8;font-size:12px;">${body}</span>` };
+                }
+                case 'message_outbound_email':
+                case 'message_outbound_sms':
+                case 'message_outbound_phone':
+                case 'message_outbound_unknown': {
+                    const body = (d.body || '').slice(0, 120) + ((d.body || '').length > 120 ? '…' : '');
+                    return { dot:(d.channel || 'email'), text:`<strong>📤 Outbound ${(d.channel || '').toUpperCase()}</strong> → ${d.recipient || '?'}${d.subject ? ' — ' + d.subject : ''}<br><span style="color:#94a3b8;font-size:12px;">${body}</span>` };
+                }
+                case 'message_outbound_email_failed':
+                case 'message_outbound_sms_failed':
+                    return { dot:'system', text:`<strong>✗ Send failed</strong> (${d.channel || ''}) → ${d.recipient || '?'}` };
+                case 'send_blocked_do_not_contact': return { dot:'system', text:`<strong>⛔ Send blocked</strong> (DNC flag)` };
+                // —— signatures ——
+                case 'esign_completed':
+                case 'agreement_signed':    return { dot:'agreement', text:`<strong>✍️ Agreement signed</strong>${d.signer || d.name ? ' by ' + (d.signer || d.name) : ''}${d.form ? ' (' + d.form + ')' : ''}` };
+                // —— notice / uploads ——
+                case 'notice_received':
+                case 'notice_uploaded_valid':
+                    return { dot:'upload', text:`<strong>📄 Notice received</strong>${d.county ? ' — ' + d.county + ' County' : ''}${d.market_value ? ', Market $' + Number(d.market_value).toLocaleString() : ''}` };
+                case 'notice_invalid':
+                    return { dot:'system', text:`<strong>⚠️ Invalid notice upload</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'document_uploaded':
+                    return { dot:'upload', text:`<strong>📎 Document uploaded:</strong> ${d.file_name || 'file'}${d.file_type ? ' (' + d.file_type + ')' : ''}` };
+                case 'upload':
+                    return { dot:'upload', text:`<strong>Upload:</strong> ${d.type || 'file'}${d.note ? ' — ' + d.note : ''}` };
+                // —— analysis ——
+                case 'analysis_run':        return { dot:'analysis', text:`Analysis run — ${d.comps || 0} comps, savings ${d.savings != null ? '$' + Number(d.savings).toLocaleString() : '—'}` };
+                case 'comps_rerun':         return { dot:'analysis', text:`<strong>🔄 Comps rerun</strong>${d.triggered_by ? ' by ' + d.triggered_by : ''}` };
+                case 'real_comp_recovery':  return { dot:'analysis', text:`Comp recovery${d.reason ? ' — ' + d.reason : ''}` };
+                case 'data_blocked_taxnet_failure': return { dot:'system', text:`<strong>⛔ Data blocked</strong> (TaxNet failure)` };
+                case 'synthetic_comps_blocked': return { dot:'system', text:`<strong>⛔ Synthetic comps blocked</strong>` };
+                // —— package + filing ——
+                case 'package_built':
+                case 'package_finalized_map_valid':
+                case 'package_rebuilt':
+                    return { dot:'agreement', text:`<strong>📦 Filing package built</strong>` };
+                case 'package_approved':
+                    return { dot:'agreement', text:`<strong>✅ Package approved</strong>${d.by ? ' by ' + d.by : ''}` };
+                case 'package_rejected':
+                    return { dot:'system', text:`<strong>❌ Package rejected</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'build_blocked_by_gate':
+                    return { dot:'system', text:`<strong>⛔ Build blocked</strong>${d.reason ? ' — ' + d.reason : ''}` };
+                case 'protest_filed':
+                case 'auto_filed':
+                case 'filed':
+                    return { dot:'agreement', text:`<strong>📨 Protest filed</strong>${d.county ? ' with ' + d.county + ' County' : ''}${d.confirmation_number ? ' — Conf# <strong>' + d.confirmation_number + '</strong>' : ''}` };
+                case 'filing_confirmed':
+                    return { dot:'agreement', text:`<strong>✅ Filing confirmed</strong>${d.confirmation_number ? ' — Conf# ' + d.confirmation_number : ''}` };
+                // —— notes ——
+                case 'note_added':
+                case 'note': {
+                    const badge = d.note_type ? `<span style="font-size:10px;background:#312e81;color:#a5b4fc;padding:1px 6px;border-radius:4px;margin-left:4px;">${d.note_type}</span>` : '';
+                    return { dot:'note', text:`<strong>Note${badge}:</strong> ${d.text || d.note || ''}` };
+                }
+                // —— system / misc ——
+                case 'lead_created':       return { dot:'system', text:`<strong>Lead created</strong> via ${d.source || 'unknown'}` };
+                case 'duplicate_merged':   return { dot:'system', text:`Duplicate merged${d.merged_from ? ' from ' + d.merged_from : ''}` };
+                case 'property_data_refreshed': return { dot:'system', text:`Property data refreshed` };
+                case 'approval_queue_normalization': return { dot:'system', text:`Approval queue normalized` };
+                case 'close_attempt':      return { dot:(d.channel === 'sms' ? 'sms' : 'email'), text:`Close attempt via ${d.channel || 'unknown'}` };
+                case 'vip_status_alert':   return { dot:'system', text:`<strong>⭐ VIP alert</strong>${d.vip_reason ? ' — ' + d.vip_reason : ''}` };
+                default: {
+                    const reason = d.reason ? ' — ' + d.reason : '';
+                    return { dot:'system', text:`<strong>${t.replace(/_/g,' ')}</strong>${reason}` };
+                }
+            }
+        }
+
+        // Format actor with friendly capitalization
+        function formatActor(a) {
+            if (!a) return 'system';
+            const lower = String(a).toLowerCase();
+            if (lower === 'tyler' || lower === 'tyler@overassessed.ai') return 'Tyler';
+            if (lower === 'uri' || lower === 'uri@overassessed.ai') return 'Uri';
+            if (lower === 'aquabot' || lower === 'system' || lower === 'state-controller') return 'System';
+            if (lower === 'customer') return 'Customer';
+            if (lower.includes('@')) return lower.split('@')[0];
+            return a;
+        }
+
+        function renderUnifiedTimeline(entries) {
+            const body = document.getElementById('timelineBody');
+            const count = entries.length;
+            const cnEl = document.getElementById('tlCount');
+            if (cnEl) cnEl.textContent = count;
+            if (count === 0) { body.innerHTML = '<div class="empty-state">No timeline events yet</div>'; return; }
+
+            body.innerHTML = '<div class="timeline">' + entries.map(e => {
+                const s = summarizeTimelineEntry(e);
+                const beforeAfter = (e.before || e.after) ? `
+                    <div class="timeline-diff">
+                        ${e.before ? `<span class="from">${e.before}</span><span class="arr">→</span>` : ''}
+                        ${e.after ? `<span class="to">${e.after}</span>` : ''}
+                    </div>` : '';
+                const sourceBadge = e.source && e.source !== 'activity_log'
+                    ? `<span style="font-size:9px;background:#1e293b;color:#64748b;padding:1px 5px;border-radius:3px;margin-left:4px;text-transform:uppercase;">${e.source}</span>`
+                    : '';
+                return `
+                    <div class="tl-item">
+                        <div class="tl-dot ${s.dot || 'system'}"></div>
+                        <div class="tl-time">${fmtDateTime(e.timestamp)}</div>
+                        <div class="timeline-actor">${formatActor(e.actor)}${sourceBadge}</div>
+                        <div class="tl-content">${s.text}${beforeAfter}</div>
+                    </div>`;
+            }).join('') + '</div>';
+        }
+
         function renderTimeline(activities, comms) {
             const body = document.getElementById('timelineBody');
             // Merge activities and comms into one timeline
@@ -1135,7 +1274,17 @@
             renderApprovalBar(caseData);
             renderNextActionBanner(caseData);
             renderAnalysisWarning(caseData);
-            renderTimeline(activities, comms);
+            // Phase 3: prefer unified timeline endpoint; fall back to legacy local merge
+            try {
+                const u = await apiGet(`timeline-unified/${caseId}`);
+                if (u && u.entries) {
+                    renderUnifiedTimeline(u.entries);
+                } else {
+                    renderTimeline(activities, comms);
+                }
+            } catch (_) {
+                renderTimeline(activities, comms);
+            }
             renderTasks(tasks);
             updateActionBarState();
         }

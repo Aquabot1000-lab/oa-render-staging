@@ -2025,6 +2025,123 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // ══ PHASE 3 UNIFIED TIMELINE (2026-05-01) ═════════════════════════════════
+    // GET /api/case-view/timeline-unified/:caseId
+    // Read-only merged view: activity_log (primary) + communications +
+    // esign_tokens + case_documents (supplemental — only if missing from activity_log).
+    // Returns plain-English-ready entries with actor, before/after, source.
+    // PURE READ. NO MUTATIONS.
+    app.get('/api/case-view/timeline-unified/:caseId', authenticateToken, async (req, res) => {
+        try {
+            const caseId = req.params.caseId;
+            const [actR, commR, esignR, docsR] = await Promise.all([
+                supabaseAdmin.from('activity_log').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(200),
+                supabaseAdmin.from('communications').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(200),
+                supabaseAdmin.from('esign_tokens').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(50),
+                supabaseAdmin.from('case_documents').select('*').eq('case_id', caseId).order('uploaded_at', { ascending: false }).limit(100),
+            ]);
+
+            const activities = actR.data || [];
+            const communications = commR.data || [];
+            const esigns = esignR.data || [];
+            const documents = docsR.data || [];
+
+            // Build a set of activity-log fingerprints to dedupe supplements
+            const actActions = new Set(activities.map(a => a.action));
+            const actSignedTimes = new Set(activities
+                .filter(a => /sign|esign|agreement/i.test(a.action))
+                .map(a => new Date(a.created_at).toISOString().slice(0, 16)));
+            const actUploadTimes = new Set(activities
+                .filter(a => /upload|notice/i.test(a.action))
+                .map(a => new Date(a.created_at).toISOString().slice(0, 16)));
+
+            const entries = [];
+
+            // 1) activity_log — primary source (already has actor/details/before/after)
+            for (const a of activities) {
+                entries.push({
+                    source: 'activity_log',
+                    id: 'act:' + a.id,
+                    timestamp: a.created_at,
+                    actor: a.actor || 'system',
+                    event_type: a.action,
+                    details: a.details || {},
+                    before: a.before || a.details?.from || a.details?.before || null,
+                    after:  a.after  || a.details?.to   || a.details?.after  || null,
+                });
+            }
+
+            // 2) communications — always include (different surface)
+            for (const c of communications) {
+                const direction = c.direction || 'outbound';
+                const isInbound = direction === 'inbound';
+                entries.push({
+                    source: 'communications',
+                    id: 'comm:' + c.id,
+                    timestamp: c.created_at,
+                    actor: isInbound ? 'customer' : (c.sent_by || 'system'),
+                    event_type: 'message_' + direction + '_' + (c.channel || 'unknown') + (c.status === 'failed' ? '_failed' : ''),
+                    details: {
+                        channel: c.channel,
+                        recipient: c.recipient,
+                        subject: c.subject,
+                        body: c.body,
+                        status: c.status,
+                        direction,
+                    },
+                });
+            }
+
+            // 3) esign_tokens — supplement only if no matching signature event in activity_log
+            for (const e of esigns) {
+                if (e.signed_at) {
+                    const t = new Date(e.signed_at).toISOString().slice(0, 16);
+                    if (actSignedTimes.has(t)) continue; // already in activity_log
+                    if (actActions.has('esign_completed') || actActions.has('agreement_signed')) continue;
+                    entries.push({
+                        source: 'esign_tokens',
+                        id: 'esign:' + e.id,
+                        timestamp: e.signed_at,
+                        actor: e.signer_name || e.signer_email || 'customer',
+                        event_type: 'esign_completed',
+                        details: { signer: e.signer_name, email: e.signer_email, token_id: e.id },
+                        before: 'unsigned',
+                        after: 'signed',
+                    });
+                }
+            }
+
+            // 4) case_documents — supplement only if no matching upload event in activity_log
+            for (const d of documents) {
+                const t = new Date(d.uploaded_at).toISOString().slice(0, 16);
+                if (actUploadTimes.has(t)) continue;
+                entries.push({
+                    source: 'case_documents',
+                    id: 'doc:' + d.id,
+                    timestamp: d.uploaded_at,
+                    actor: d.uploaded_by || 'customer',
+                    event_type: 'document_uploaded',
+                    details: {
+                        file_name: d.file_name,
+                        file_type: d.file_type,
+                        file_url: d.file_url,
+                        file_size: d.file_size_bytes,
+                    },
+                });
+            }
+
+            // Sort newest first
+            entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            // Stats summary for sanity
+            const counts = entries.reduce((m, e) => { m[e.source] = (m[e.source] || 0) + 1; return m; }, {});
+            res.json({ case_id: caseId, count: entries.length, sources: counts, entries });
+        } catch (e) {
+            console.error('[timeline-unified] error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // GET /api/case-view/tasks/:caseId
     app.get('/api/case-view/tasks/:caseId', authenticateToken, async (req, res) => {
         try {
