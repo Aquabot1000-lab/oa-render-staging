@@ -2026,6 +2026,70 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // ═══ PHASE 1 CASE COMMAND PANEL (2026-05-01) ═══════════════════════════
+    // POST /api/case-view/event — unified case-event endpoint backed by state-controller.
+    // Replaces ad-hoc per-action endpoints. ALL state mutations go through
+    // updateCaseState() (single source of truth per Tyler msg 28194 + 28321).
+    //
+    // Body: { case_id, event, payload? }
+    // event ∈ EVENT_MAP keys (state-controller.js)
+    // Role gating per Phase 7:
+    //   admin-only events: approve_for_filing, deny_no_opportunity, lock,
+    //                       unlock, status_override
+    //   operator-allowed:  hold, unhold, note_added, comps_rerun,
+    //                       package_rebuilt, message_sent
+    app.post('/api/case-view/event', authenticateToken, async (req, res) => {
+        try {
+            const { case_id, event, payload } = req.body;
+            if (!case_id || !event) return res.status(400).json({ error: 'case_id and event required' });
+
+            // Phase 7 role gating
+            const ADMIN_ONLY_EVENTS = new Set([
+                'approve_for_filing', 'deny_no_opportunity', 'lock', 'unlock', 'status_override', 'filed'
+            ]);
+            const OPERATOR_ALLOWED_EVENTS = new Set([
+                'hold', 'unhold', 'note_added', 'comps_rerun', 'package_rebuilt', 'message_sent'
+            ]);
+            const role = req.user?.role || 'guest';
+            if (ADMIN_ONLY_EVENTS.has(event) && role !== 'admin') {
+                return res.status(403).json({ error: 'Insufficient permissions', required: 'admin', current: role, event });
+            }
+            if (!ADMIN_ONLY_EVENTS.has(event) && !OPERATOR_ALLOWED_EVENTS.has(event)) {
+                return res.status(400).json({ error: `Unknown or unsupported event: ${event}` });
+            }
+
+            const actor = req.user?.email || req.user?.username || role;
+            const result = await updateCaseState(case_id, event, {
+                ...(payload || {}),
+                actor,
+                actor_role: role,
+            });
+
+            // Recompute next_action + follow-up priority from new state
+            try {
+                const { data: updated } = await supabaseAdmin.from('submissions').select('*').eq('case_id', case_id).single();
+                if (updated) {
+                    const { action, priority, icon } = computeNextAction(updated);
+                    const fp = computeFollowUpPriority(updated);
+                    await supabaseAdmin.from('submissions').update({
+                        next_action: icon + ' ' + action,
+                        next_action_priority: priority,
+                        follow_up_priority: fp.priority,
+                        follow_up_score: fp.score,
+                        follow_up_reason: fp.reason
+                    }).eq('case_id', case_id);
+                }
+            } catch (recomputeErr) {
+                console.warn('[case-event] next-action recompute failed:', recomputeErr.message);
+            }
+
+            res.json({ ok: true, ...result });
+        } catch (e) {
+            console.error('[case-event] error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // POST /api/case-view/change-status — admin-only manual status override (Phase 7)
     app.post('/api/case-view/change-status', authenticateToken, requireAdmin, async (req, res) => {
         try {

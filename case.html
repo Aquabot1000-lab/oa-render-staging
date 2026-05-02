@@ -240,6 +240,53 @@
             .savings-banner { flex-direction: column; text-align: center; gap: 12px; }
             .savings-right { text-align: center; }
         }
+
+        /* ===== PHASE 1 COMMAND PANEL (2026-05-01) ===== */
+        .command-panel { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+        .cmd-btn { background:#1f2236; color:#e2e8f0; border:1px solid #2d3148; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap; font-family:inherit; }
+        .cmd-btn:hover { background:#252944; border-color:#475569; transform:translateY(-1px); }
+        .cmd-btn.cmd-approve { background:#065f46; border-color:#10b981; color:#d1fae5; }
+        .cmd-btn.cmd-approve:hover { background:#047857; }
+        .cmd-btn.cmd-deny { background:#7f1d1d; border-color:#ef4444; color:#fee2e2; }
+        .cmd-btn.cmd-deny:hover { background:#991b1b; }
+        .cmd-btn.cmd-hold { background:#78350f; border-color:#f59e0b; color:#fef3c7; }
+        .cmd-btn.cmd-hold:hover { background:#92400e; }
+        .cmd-btn[data-disabled="true"] { opacity:.45; cursor:not-allowed; pointer-events:none; }
+        .cmd-more { position:relative; }
+        .cmd-more-menu { display:none; position:absolute; top:calc(100% + 4px); right:0; background:#1a1d2e; border:1px solid #2d3148; border-radius:8px; padding:4px; min-width:180px; box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:1000; }
+        .cmd-more-menu.open { display:flex; flex-direction:column; gap:2px; }
+        .cmd-more-menu button { background:transparent; color:#e2e8f0; border:none; padding:8px 12px; text-align:left; font-size:12px; font-weight:600; cursor:pointer; border-radius:6px; font-family:inherit; }
+        .cmd-more-menu button:hover { background:#252944; }
+        /* fast note bar */
+        .fastnote-bar { display:flex; gap:8px; align-items:center; background:#161827; border-bottom:1px solid #2d3148; padding:8px 24px; }
+        .fastnote-type { background:#1f2236; color:#e2e8f0; border:1px solid #2d3148; border-radius:6px; padding:6px 8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+        .fastnote-input { flex:1; background:#0f1117; color:#e2e8f0; border:1px solid #2d3148; border-radius:6px; padding:8px 12px; font-size:13px; font-family:inherit; }
+        .fastnote-input:focus { outline:none; border-color:#6366f1; }
+        .fastnote-hint { font-size:11px; color:#64748b; }
+        /* next action banner */
+        .nba-banner { border-radius:12px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:14px; border:1px solid; }
+        .nba-p1 { background:linear-gradient(135deg,#7f1d1d,#991b1b); border-color:#ef4444; }
+        .nba-p2 { background:linear-gradient(135deg,#78350f,#92400e); border-color:#f59e0b; }
+        .nba-p3 { background:linear-gradient(135deg,#1e3a8a,#1e40af); border-color:#3b82f6; }
+        .nba-p4 { background:linear-gradient(135deg,#1f2937,#374151); border-color:#475569; }
+        .nba-icon { font-size:24px; }
+        .nba-label { font-size:11px; text-transform:uppercase; letter-spacing:.5px; font-weight:700; opacity:.8; }
+        .nba-text  { font-size:15px; font-weight:600; margin-top:2px; }
+        .nba-reason{ font-size:12px; opacity:.75; margin-top:4px; }
+        /* confirm modal */
+        .confirm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; align-items:center; justify-content:center; }
+        .confirm-modal.open { display:flex; }
+        .confirm-box { background:#1a1d2e; border:1px solid #2d3148; border-radius:12px; padding:24px; max-width:440px; width:90%; }
+        .confirm-box h3 { color:#f1f5f9; font-size:18px; margin-bottom:8px; }
+        .confirm-box p  { color:#94a3b8; font-size:14px; margin-bottom:16px; line-height:1.5; }
+        .confirm-box textarea { width:100%; background:#0f1117; color:#e2e8f0; border:1px solid #2d3148; border-radius:6px; padding:10px; font-size:13px; font-family:inherit; resize:vertical; min-height:70px; margin-bottom:16px; }
+        .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
+        /* timeline enhanced */
+        .timeline-actor { font-size:11px; color:#a78bfa; font-weight:600; }
+        .timeline-diff  { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#94a3b8; margin-top:3px; }
+        .timeline-diff .from { color:#fca5a5; text-decoration:line-through; }
+        .timeline-diff .arr  { color:#64748b; }
+        .timeline-diff .to   { color:#86efac; font-weight:600; }
     </style>
   <!-- P0 auth client (2026-05-01) — replaces hard-coded auto-login -->
   <script src="/lib/auth-client.js"></script>
@@ -254,8 +301,39 @@
         </div>
         <div class="topbar-right">
             <button class="btn-outline" onclick="refreshData()">↻ Refresh</button>
+            <!-- PHASE 1 COMMAND PANEL (2026-05-01) — 1-click execution -->
+            <div class="command-panel" id="commandPanel" data-role="">
+                <button class="cmd-btn cmd-approve"  data-admin-only onclick="cmdApproveFiling()"  title="Approve for Filing (admin)">✅ Approve Filing</button>
+                <button class="cmd-btn cmd-hold"     onclick="cmdHold()"             title="Place case on hold">⏸ Hold</button>
+                <button class="cmd-btn cmd-deny"     data-admin-only onclick="cmdDenyNoOpp()"     title="Mark No Opportunity (admin)">⛔ No Opportunity</button>
+                <button class="cmd-btn cmd-docs"     onclick="cmdRequestDocs()"      title="Request documents from customer">📄 Request Docs</button>
+                <button class="cmd-btn cmd-msg"      onclick="cmdSendMessage()"      title="Send message to customer">✉️ Message</button>
+                <button class="cmd-btn cmd-note"     onclick="focusFastNote()"       title="Add a note (Ctrl+/)">📝 Note</button>
+                <div class="cmd-more">
+                    <button class="cmd-btn cmd-more-btn" onclick="toggleCmdMore(event)" title="More actions">More ▾</button>
+                    <div class="cmd-more-menu" id="cmdMoreMenu">
+                        <button onclick="cmdRerunComps()">🔄 Rerun Comps</button>
+                        <button onclick="cmdRebuildPackage()">📦 Rebuild Package</button>
+                        <button class="admin-only-item" data-admin-only onclick="cmdLock()">🔒 Lock</button>
+                        <button class="admin-only-item" data-admin-only onclick="cmdUnlock()">🔓 Unlock</button>
+                    </div>
+                </div>
+            </div>
             <button class="btn-primary" id="btnChangeStatus" onclick="showStatusModal()">Change Status</button>
         </div>
+    </div>
+
+    <!-- Fast Note Bar (Phase 1) -->
+    <div class="fastnote-bar" id="fastNoteBar">
+        <select id="fastNoteType" class="fastnote-type">
+            <option value="general">📝 General</option>
+            <option value="call">📞 Call</option>
+            <option value="decision">⚖️ Decision</option>
+            <option value="issue">⚠️ Issue</option>
+        </select>
+        <input type="text" id="fastNoteText" class="fastnote-input" placeholder="Add a note (Enter to save, Esc to cancel)…" maxlength="500" />
+        <button class="btn-primary" onclick="saveFastNote()">Save</button>
+        <span class="fastnote-hint">Ctrl+/ to focus · Enter to save</span>
     </div>
 
     <!-- Pipeline Stepper -->
@@ -294,16 +372,9 @@
                 ⛔ DO NOT CONTACT — <span id="dncReason"></span>
             </div>
 
-            <!-- Next Best Action Banner -->
-            <div id="nbaBanner" style="display:none; background: linear-gradient(135deg, #312e81, #4338ca); border: 1px solid #4f46e5; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: none;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="font-size:24px;" id="nbaIcon">🎯</div>
-                    <div style="flex:1;">
-                        <div style="font-size:11px; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">Next Best Action</div>
-                        <div style="font-size:15px; color:#f1f5f9; font-weight:600; margin-top:2px;" id="nbaText"></div>
-                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;" id="nbaReason"></div>
-                    </div>
-                </div>
+            <!-- Next Action Banner (Phase 1 — always visible, color-coded by priority) -->
+            <div id="nbaBanner" class="nba-banner nba-p4" style="display:none">
+                <!-- populated by computeNextBestAction() -->
             </div>
 
             <!-- Action Bar -->
@@ -790,10 +861,23 @@
                 return;
             }
 
-            nbaIcon.textContent = icon;
-            nbaText.textContent = text;
-            nbaReason.textContent = reason;
-            banner.style.display = 'block';
+            // Map to color class by priority level (1=urgent, 2=high, 3=normal, 4=low)
+            const priorityMap = {
+                '📱': 1, '💰': 1, '📨': 1,
+                '✍️': 2, '📊': 2, '📄': 2,
+                '🔍': 3, '📧': 3,
+                '⚠️': 4
+            };
+            const pri = priorityMap[icon] || 4;
+            banner.className = `nba-banner nba-p${pri}`;
+            banner.innerHTML = `
+                <div class="nba-icon">${icon}</div>
+                <div style="flex:1">
+                    <div class="nba-label">Next Action · Priority ${pri}</div>
+                    <div class="nba-text">${text}</div>
+                    <div class="nba-reason">${reason}</div>
+                </div>`;
+            banner.style.removeProperty('display');
         }
 
         function renderAnalysisWarning(d) {
@@ -845,7 +929,48 @@
                 switch (a.action) {
                     case 'lead_created': text = `<strong>Lead created</strong> via ${det.source || 'unknown'}`; dotClass = 'system'; break;
                     case 'drip_reminder': text = `<strong>Auto reminder</strong> (${det.type || ''}) sent`; dotClass = 'sms'; break;
-                    case 'status_change': text = `<strong>Status changed</strong>${det.from ? ' from ' + det.from : ''} → <strong>${det.to || '?'}</strong>${det.reason ? ' — ' + det.reason : ''}`; dotClass = 'status'; break;
+                    case 'status_change': {
+                        const fromStr = det.from || det.prior_status || '';
+                        const toStr   = det.to   || det.applied_status || '?';
+                        const diffHtml = fromStr
+                            ? `<div class="timeline-diff"><span class="from">${fromStr}</span><span class="arr">→</span><span class="to">${toStr}</span></div>`
+                            : `<div class="timeline-diff"><span class="to">${toStr}</span></div>`;
+                        text = `<strong>Status changed</strong>${det.reason ? ' — ' + det.reason : ''}${diffHtml}`;
+                        dotClass = 'status'; break;
+                    }
+                    case 'approve_for_filing': {
+                        text = `<strong>✅ Approved for Filing</strong>${det.reason ? ' — ' + det.reason : ''}<div class="timeline-diff"><span class="to">READY_TO_FILE</span></div>`;
+                        dotClass = 'agreement'; break;
+                    }
+                    case 'deny_no_opportunity': {
+                        text = `<strong>⛔ Marked No Opportunity</strong>${det.reason ? ' — ' + det.reason : ''}<div class="timeline-diff"><span class="to">NO_OPPORTUNITY</span></div>`;
+                        dotClass = 'system'; break;
+                    }
+                    case 'hold': {
+                        text = `<strong>⏸ Case placed on Hold</strong>${det.reason ? ' — ' + det.reason : ''}`;
+                        dotClass = 'system'; break;
+                    }
+                    case 'lock': {
+                        text = `<strong>🔒 Case Locked</strong>${det.reason ? ' — ' + det.reason : ''}`;
+                        dotClass = 'system'; break;
+                    }
+                    case 'unlock': {
+                        text = `<strong>🔓 Case Unlocked</strong>`;
+                        dotClass = 'system'; break;
+                    }
+                    case 'note_added': {
+                        const badge = det.note_type ? `<span style="font-size:10px;background:#312e81;color:#a5b4fc;padding:1px 6px;border-radius:4px;margin-left:4px;">${det.note_type}</span>` : '';
+                        text = `<strong>Note${badge}:</strong> ${det.text || det.note || ''}`;
+                        dotClass = 'note'; break;
+                    }
+                    case 'comps_rerun': {
+                        text = `<strong>🔄 Comps Rerun triggered</strong>${det.triggered_by ? ' by ' + det.triggered_by : ''}`;
+                        dotClass = 'analysis'; break;
+                    }
+                    case 'package_rebuilt': {
+                        text = `<strong>📦 Package Rebuild triggered</strong>`;
+                        dotClass = 'system'; break;
+                    }
                     case 'analysis_run': text = `<strong>Analysis run</strong> — ${det.comps || 0} comps, savings ${fmtMoney(det.savings)}`; dotClass = 'analysis'; break;
                     case 'note': text = `<strong>Note:</strong> ${det.text || ''}`; dotClass = 'note'; break;
                     case 'upload': text = `<strong>Upload:</strong> ${det.type || 'file'}${det.note ? ' — ' + det.note : ''}`; dotClass = 'upload'; break;
@@ -887,8 +1012,9 @@
 
             body.innerHTML = '<div class="timeline">' + items.map(i => `
                 <div class="tl-item">
-                    <div class="tl-dot ${i.dotClass}"></div>
-                    <div class="tl-time">${fmtDateTime(i.time)} · ${i.actor || 'system'}</div>
+                    <div class="tl-dot ${i.dotClass || 'system'}"></div>
+                    <div class="tl-time">${fmtDateTime(i.time)}</div>
+                    ${i.actor ? `<div class="timeline-actor">${i.actor}</div>` : ''}
                     <div class="tl-content">${i.html}</div>
                 </div>
             `).join('') + '</div>';
@@ -1637,6 +1763,165 @@
         if (caseId && currentUser) {
             loadAll();
         }
+
+        // ═════ PHASE 1 COMMAND PANEL — wired to /api/case-view/event ═════
+        // ALL state mutations go through state-controller.updateCaseState().
+        // No direct DB writes. Phase 7 roles enforced server-side AND surfaced in UI.
+
+        const ADMIN_ROLE = 'admin';
+        function getRole() { return (currentUser && currentUser.role) || 'guest'; }
+        function isAdmin() { return getRole() === ADMIN_ROLE; }
+
+        // Apply role gating: hide/disable admin-only buttons for non-admins
+        function applyRoleGating() {
+            const role = getRole();
+            const panel = document.getElementById('commandPanel');
+            if (panel) panel.dataset.role = role;
+            document.querySelectorAll('[data-admin-only]').forEach(el => {
+                if (role !== ADMIN_ROLE) {
+                    el.dataset.disabled = 'true';
+                    el.title = (el.title || '') + ' — admin only';
+                }
+            });
+        }
+
+        // Unified event poster — single network surface for all command-panel actions
+        async function postCaseEvent(event, payload, opts) {
+            opts = opts || {};
+            try {
+                const r = await window.authedFetch('/api/case-view/event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ case_id: caseId, event, payload: payload || {} })
+                });
+                const j = await r.json();
+                if (!r.ok || j.error) {
+                    showToast('❌ ' + (j.error || ('HTTP ' + r.status)), 'error');
+                    return null;
+                }
+                if (!opts.silent) {
+                    const status = j.applied_status || (j.locked ? 'LOCKED' : 'OK');
+                    showToast('✓ ' + event + ' → ' + status, 'success');
+                }
+                // Refresh everything so banner + timeline + status reflect new state
+                await loadAll();
+                return j;
+            } catch (e) {
+                showToast('❌ ' + e.message, 'error');
+                return null;
+            }
+        }
+
+        // ── Confirmation modal (lightweight, no jQuery) ──
+        function confirmAction(opts) {
+            return new Promise(resolve => {
+                let modal = document.getElementById('confirmModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'confirmModal';
+                    modal.className = 'confirm-modal';
+                    modal.innerHTML = '<div class="confirm-box"><h3 id="cmTitle"></h3><p id="cmMsg"></p><textarea id="cmReason" placeholder="Reason (optional)"></textarea><div class="confirm-actions"><button class="btn-outline" id="cmCancel">Cancel</button><button class="btn-primary" id="cmOk"></button></div></div>';
+                    document.body.appendChild(modal);
+                }
+                document.getElementById('cmTitle').textContent = opts.title || 'Confirm';
+                document.getElementById('cmMsg').textContent = opts.message || 'Are you sure?';
+                const reasonEl = document.getElementById('cmReason');
+                reasonEl.style.display = opts.askReason ? 'block' : 'none';
+                reasonEl.value = '';
+                const okBtn = document.getElementById('cmOk');
+                okBtn.textContent = opts.confirmLabel || 'Confirm';
+                okBtn.style.background = opts.danger ? '#dc2626' : '#6366f1';
+                modal.classList.add('open');
+                const cleanup = (val) => { modal.classList.remove('open'); resolve(val); };
+                okBtn.onclick = () => cleanup({ ok: true, reason: reasonEl.value.trim() });
+                document.getElementById('cmCancel').onclick = () => cleanup({ ok: false });
+            });
+        }
+
+        // ── Command Panel actions ──
+        async function cmdApproveFiling() {
+            if (!isAdmin()) return showToast('❌ Admin only', 'error');
+            const c = await confirmAction({ title: 'Approve for Filing', message: 'This will mark the case READY_TO_FILE and the filing pipeline can pick it up. Continue?', confirmLabel: '✅ Approve', askReason: true });
+            if (!c.ok) return;
+            await postCaseEvent('approve_for_filing', { reason: c.reason });
+        }
+        async function cmdHold() {
+            const c = await confirmAction({ title: 'Place on Hold', message: 'Status will be locked. Use "Unlock" from More menu to release.', confirmLabel: '⏸ Hold', askReason: true });
+            if (!c.ok) return;
+            await postCaseEvent('hold', { reason: c.reason || 'Placed on hold' });
+        }
+        async function cmdDenyNoOpp() {
+            if (!isAdmin()) return showToast('❌ Admin only', 'error');
+            const c = await confirmAction({ title: 'Mark No Opportunity', message: 'This permanently flags the case as NO_OPPORTUNITY and locks it. No further outreach.', confirmLabel: '⛔ Mark No Opp', askReason: true, danger: true });
+            if (!c.ok) return;
+            await postCaseEvent('deny_no_opportunity', { reason: c.reason || 'No opportunity' });
+        }
+        async function cmdRequestDocs() {
+            // Documents-request maps to existing notice/AOA flow; surfaced via state-controller note + outreach
+            if (typeof actionRequestNotice === 'function') return actionRequestNotice();
+            await postCaseEvent('message_sent', { channel:'email', kind:'request_docs' });
+        }
+        function cmdSendMessage() {
+            if (typeof actionEmail === 'function') return actionEmail();
+            focusFastNote();
+        }
+        function focusFastNote() {
+            const el = document.getElementById('fastNoteText');
+            if (el) { el.focus(); el.select(); }
+        }
+        function toggleCmdMore(e) {
+            e && e.stopPropagation();
+            document.getElementById('cmdMoreMenu').classList.toggle('open');
+        }
+        document.addEventListener('click', () => {
+            const m = document.getElementById('cmdMoreMenu');
+            if (m) m.classList.remove('open');
+        });
+
+        async function cmdRerunComps() {
+            await postCaseEvent('comps_rerun', { triggered_by: 'command-panel' });
+        }
+        async function cmdRebuildPackage() {
+            await postCaseEvent('package_rebuilt', { triggered_by: 'command-panel' });
+        }
+        async function cmdLock() {
+            if (!isAdmin()) return showToast('❌ Admin only', 'error');
+            const c = await confirmAction({ title: 'Lock Case', message: 'Lock prevents automation/state changes until unlocked.', confirmLabel: '🔒 Lock', askReason: true });
+            if (!c.ok) return;
+            await postCaseEvent('lock', { reason: c.reason || 'Manual lock' });
+        }
+        async function cmdUnlock() {
+            if (!isAdmin()) return showToast('❌ Admin only', 'error');
+            await postCaseEvent('unlock', {});
+        }
+
+        // ── Fast note save (<10s flow) ──
+        async function saveFastNote() {
+            const txt = (document.getElementById('fastNoteText').value || '').trim();
+            const type = document.getElementById('fastNoteType').value || 'general';
+            if (!txt) return showToast('Empty note', 'error');
+            const r = await postCaseEvent('note_added', { text: txt, note_type: type }, { silent: true });
+            if (r) {
+                document.getElementById('fastNoteText').value = '';
+                showToast('✓ Note saved (' + type + ')', 'success');
+            }
+        }
+        // Keyboard shortcuts: Ctrl+/ focus, Enter save, Esc clear
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                focusFastNote();
+            }
+            const inp = document.getElementById('fastNoteText');
+            if (inp && document.activeElement === inp) {
+                if (e.key === 'Enter') { e.preventDefault(); saveFastNote(); }
+                if (e.key === 'Escape') { inp.value = ''; inp.blur(); }
+            }
+        });
+
+        // Apply role gating once user is known
+        if (currentUser) applyRoleGating();
+        else { const _u = setInterval(() => { if (currentUser) { applyRoleGating(); clearInterval(_u); } }, 200); }
     </script>
 </body>
 </html>
