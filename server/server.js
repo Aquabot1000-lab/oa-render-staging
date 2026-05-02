@@ -2025,20 +2025,26 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    // ══ PHASE 3 UNIFIED TIMELINE (2026-05-01) ═════════════════════════════════
+    // ══ PHASE 3 UNIFIED TIMELINE (2026-05-01, hardened 2026-05-02) ═══════════════════════
     // GET /api/case-view/timeline-unified/:caseId
-    // Read-only merged view: activity_log (primary) + communications +
-    // esign_tokens + case_documents (supplemental — only if missing from activity_log).
-    // Returns plain-English-ready entries with actor, before/after, source.
+    // Read-only merged view: activity_log + communications + esign_tokens + case_documents.
+    //
+    // Tyler msg 28566 hardening:
+    //   - NO timestamp-based dedupe — every event shows up exactly once.
+    //   - Deterministic dedupe key = (source + id). Two rows with the same
+    //     (source,id) collapse; otherwise everything is preserved.
+    //   - Strict ordering: timestamp DESC, then source priority
+    //     (activity_log > communications > esign_tokens > case_documents).
+    //
     // PURE READ. NO MUTATIONS.
     app.get('/api/case-view/timeline-unified/:caseId', authenticateToken, async (req, res) => {
         try {
             const caseId = req.params.caseId;
             const [actR, commR, esignR, docsR] = await Promise.all([
-                supabaseAdmin.from('activity_log').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(200),
-                supabaseAdmin.from('communications').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(200),
-                supabaseAdmin.from('esign_tokens').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(50),
-                supabaseAdmin.from('case_documents').select('*').eq('case_id', caseId).order('uploaded_at', { ascending: false }).limit(100),
+                supabaseAdmin.from('activity_log').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(500),
+                supabaseAdmin.from('communications').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(500),
+                supabaseAdmin.from('esign_tokens').select('*').eq('case_id', caseId).order('created_at', { ascending: false }).limit(100),
+                supabaseAdmin.from('case_documents').select('*').eq('case_id', caseId).order('uploaded_at', { ascending: false }).limit(200),
             ]);
 
             const activities = actR.data || [];
@@ -2046,22 +2052,14 @@ if (isSupabaseEnabled()) {
             const esigns = esignR.data || [];
             const documents = docsR.data || [];
 
-            // Build a set of activity-log fingerprints to dedupe supplements
-            const actActions = new Set(activities.map(a => a.action));
-            const actSignedTimes = new Set(activities
-                .filter(a => /sign|esign|agreement/i.test(a.action))
-                .map(a => new Date(a.created_at).toISOString().slice(0, 16)));
-            const actUploadTimes = new Set(activities
-                .filter(a => /upload|notice/i.test(a.action))
-                .map(a => new Date(a.created_at).toISOString().slice(0, 16)));
-
+            const SOURCE_PRIORITY = { activity_log: 4, communications: 3, esign_tokens: 2, case_documents: 1 };
             const entries = [];
 
-            // 1) activity_log — primary source (already has actor/details/before/after)
+            // 1) activity_log — primary, always included
             for (const a of activities) {
                 entries.push({
                     source: 'activity_log',
-                    id: 'act:' + a.id,
+                    id: a.id,
                     timestamp: a.created_at,
                     actor: a.actor || 'system',
                     event_type: a.action,
@@ -2071,71 +2069,69 @@ if (isSupabaseEnabled()) {
                 });
             }
 
-            // 2) communications — always include (different surface)
+            // 2) communications — always included (independent surface)
             for (const c of communications) {
                 const direction = c.direction || 'outbound';
                 const isInbound = direction === 'inbound';
                 entries.push({
                     source: 'communications',
-                    id: 'comm:' + c.id,
+                    id: c.id,
                     timestamp: c.created_at,
                     actor: isInbound ? 'customer' : (c.sent_by || 'system'),
                     event_type: 'message_' + direction + '_' + (c.channel || 'unknown') + (c.status === 'failed' ? '_failed' : ''),
-                    details: {
-                        channel: c.channel,
-                        recipient: c.recipient,
-                        subject: c.subject,
-                        body: c.body,
-                        status: c.status,
-                        direction,
-                    },
+                    details: { channel: c.channel, recipient: c.recipient, subject: c.subject, body: c.body, status: c.status, direction },
                 });
             }
 
-            // 3) esign_tokens — supplement only if no matching signature event in activity_log
+            // 3) esign_tokens — always included when signed_at is present.
+            //    No timestamp dedupe (Tyler 28566). If activity_log already logged the
+            //    event, both rows still render — deterministic (source,id) key keeps them distinct.
             for (const e of esigns) {
-                if (e.signed_at) {
-                    const t = new Date(e.signed_at).toISOString().slice(0, 16);
-                    if (actSignedTimes.has(t)) continue; // already in activity_log
-                    if (actActions.has('esign_completed') || actActions.has('agreement_signed')) continue;
-                    entries.push({
-                        source: 'esign_tokens',
-                        id: 'esign:' + e.id,
-                        timestamp: e.signed_at,
-                        actor: e.signer_name || e.signer_email || 'customer',
-                        event_type: 'esign_completed',
-                        details: { signer: e.signer_name, email: e.signer_email, token_id: e.id },
-                        before: 'unsigned',
-                        after: 'signed',
-                    });
-                }
+                if (!e.signed_at) continue;
+                entries.push({
+                    source: 'esign_tokens',
+                    id: e.id,
+                    timestamp: e.signed_at,
+                    actor: e.signer_name || e.signer_email || 'customer',
+                    event_type: 'esign_completed',
+                    details: { signer: e.signer_name, email: e.signer_email, token_id: e.id },
+                    before: 'unsigned',
+                    after: 'signed',
+                });
             }
 
-            // 4) case_documents — supplement only if no matching upload event in activity_log
+            // 4) case_documents — always included.
             for (const d of documents) {
-                const t = new Date(d.uploaded_at).toISOString().slice(0, 16);
-                if (actUploadTimes.has(t)) continue;
                 entries.push({
                     source: 'case_documents',
-                    id: 'doc:' + d.id,
+                    id: d.id,
                     timestamp: d.uploaded_at,
                     actor: d.uploaded_by || 'customer',
                     event_type: 'document_uploaded',
-                    details: {
-                        file_name: d.file_name,
-                        file_type: d.file_type,
-                        file_url: d.file_url,
-                        file_size: d.file_size_bytes,
-                    },
+                    details: { file_name: d.file_name, file_type: d.file_type, file_url: d.file_url, file_size: d.file_size_bytes },
                 });
             }
 
-            // Sort newest first
-            entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            // Deterministic dedupe by composite key (source + id). This only collapses
+            // duplicates from the same source row — never cross-source events.
+            const byKey = new Map();
+            for (const e of entries) {
+                const k = `${e.source}:${e.id}`;
+                if (!byKey.has(k)) byKey.set(k, e);
+            }
+            const deduped = Array.from(byKey.values());
 
-            // Stats summary for sanity
-            const counts = entries.reduce((m, e) => { m[e.source] = (m[e.source] || 0) + 1; return m; }, {});
-            res.json({ case_id: caseId, count: entries.length, sources: counts, entries });
+            // Strict ordering: timestamp DESC, then source priority DESC
+            // (activity_log first when timestamps tie).
+            deduped.sort((a, b) => {
+                const ta = new Date(a.timestamp).getTime();
+                const tb = new Date(b.timestamp).getTime();
+                if (tb !== ta) return tb - ta;
+                return (SOURCE_PRIORITY[b.source] || 0) - (SOURCE_PRIORITY[a.source] || 0);
+            });
+
+            const counts = deduped.reduce((m, e) => { m[e.source] = (m[e.source] || 0) + 1; return m; }, {});
+            res.json({ case_id: caseId, count: deduped.length, sources: counts, entries: deduped });
         } catch (e) {
             console.error('[timeline-unified] error:', e.message);
             res.status(500).json({ error: e.message });
@@ -2165,61 +2161,47 @@ if (isSupabaseEnabled()) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // Phase 4 hardening (Tyler 28566): both PUT and DELETE go through the
+    // controller. Routes look up case_id (read-only), then dispatch note_upsert.
     app.put('/api/case-view/notes/:noteId', authenticateToken, async (req, res) => {
         try {
             const { text, note_type } = req.body;
             if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
-            const NOTE_TYPES = new Set(['call', 'decision', 'issue', 'general']);
-            if (note_type && !NOTE_TYPES.has(note_type)) return res.status(400).json({ error: 'invalid note_type' });
 
-            // Fetch note first to get case_id for activity_log
-            const { data: existing, error: fetchErr } = await supabaseAdmin
-                .from('case_notes').select('*').eq('id', req.params.noteId).is('deleted_at', null).single();
-            if (fetchErr || !existing) return res.status(404).json({ error: 'Note not found' });
+            const { data: existing } = await supabaseAdmin
+                .from('case_notes').select('case_id,note_type').eq('id', req.params.noteId).is('deleted_at', null).single();
+            if (!existing) return res.status(404).json({ error: 'Note not found' });
 
             const actor = req.user?.email || req.user?.username || 'system';
-            // Write activity_log first via state-controller
-            await updateCaseState(existing.case_id, 'note_added', {
+            const result = await updateCaseState(existing.case_id, 'note_upsert', {
                 actor,
-                text: `[edited] ${text.trim()}`,
+                actor_role: req.user?.role || 'guest',
+                note_action: 'update',
+                note_id: req.params.noteId,
+                text: text.trim(),
                 note_type: note_type || existing.note_type,
-                note_id: existing.id,
-                note_action: 'edit',
-            }).catch(e => console.warn('[notes/put] activity_log warn:', e.message));
-
-            const { data, error } = await supabaseAdmin
-                .from('case_notes')
-                .update({ text: text.trim(), note_type: note_type || existing.note_type })
-                .eq('id', req.params.noteId)
-                .is('deleted_at', null)
-                .select('id,case_id,note_type,text,actor,created_at,updated_at,edit_count')
-                .single();
-            if (error) throw error;
-            res.json({ ok: true, note: data });
+                reason: 'note edit',
+            });
+            if (result.note_error) return res.status(400).json({ error: result.note_error });
+            res.json({ ok: true, note: result.note?.note });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
     app.delete('/api/case-view/notes/:noteId', authenticateToken, async (req, res) => {
         try {
-            const { data: existing, error: fetchErr } = await supabaseAdmin
-                .from('case_notes').select('*').eq('id', req.params.noteId).is('deleted_at', null).single();
-            if (fetchErr || !existing) return res.status(404).json({ error: 'Note not found' });
+            const { data: existing } = await supabaseAdmin
+                .from('case_notes').select('case_id,text,note_type').eq('id', req.params.noteId).is('deleted_at', null).single();
+            if (!existing) return res.status(404).json({ error: 'Note not found' });
 
             const actor = req.user?.email || req.user?.username || 'system';
-            // Write activity_log first
-            await updateCaseState(existing.case_id, 'note_added', {
+            const result = await updateCaseState(existing.case_id, 'note_upsert', {
                 actor,
-                text: `[deleted note] ${existing.text.slice(0, 80)}`,
-                note_type: existing.note_type,
-                note_id: existing.id,
+                actor_role: req.user?.role || 'guest',
                 note_action: 'delete',
-            }).catch(e => console.warn('[notes/delete] activity_log warn:', e.message));
-
-            const { error } = await supabaseAdmin
-                .from('case_notes')
-                .update({ deleted_at: new Date().toISOString(), deleted_by: actor })
-                .eq('id', req.params.noteId);
-            if (error) throw error;
+                note_id: req.params.noteId,
+                reason: `deleted: ${(existing.text || '').slice(0, 80)}`,
+            });
+            if (result.note_error) return res.status(400).json({ error: result.note_error });
             res.json({ ok: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
@@ -2254,7 +2236,7 @@ if (isSupabaseEnabled()) {
                 'approve_for_filing', 'deny_no_opportunity', 'lock', 'unlock', 'status_override', 'filed'
             ]);
             const OPERATOR_ALLOWED_EVENTS = new Set([
-                'hold', 'unhold', 'note_added', 'comps_rerun', 'package_rebuilt', 'message_sent'
+                'hold', 'unhold', 'note_added', 'note_upsert', 'comps_rerun', 'package_rebuilt', 'message_sent'
             ]);
             const role = req.user?.role || 'guest';
             if (ADMIN_ONLY_EVENTS.has(event) && role !== 'admin') {
@@ -2265,25 +2247,14 @@ if (isSupabaseEnabled()) {
             }
 
             const actor = req.user?.email || req.user?.username || role;
+            // Phase 4 hardening (Tyler 28566): the controller owns case_notes writes too.
+            // For backwards compat we accept event='note_added' from the fast-note bar and
+            // route it through note_upsert internally (controller handles both names).
             const result = await updateCaseState(case_id, event, {
                 ...(payload || {}),
                 actor,
                 actor_role: role,
             });
-
-            // Phase 4: if note_added, persist to case_notes (via Supabase, no direct write bypass)
-            if (event === 'note_added' && payload?.text) {
-                try {
-                    await supabaseAdmin.from('case_notes').insert({
-                        case_id,
-                        note_type: payload.note_type || 'general',
-                        text: payload.text,
-                        actor,
-                    });
-                } catch (noteErr) {
-                    console.warn('[case-event] case_notes insert failed (non-fatal):', noteErr.message);
-                }
-            }
 
             // Recompute next_action + follow-up priority from new state
             try {

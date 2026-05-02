@@ -64,6 +64,12 @@ const EVENT_MAP = {
   lock:                  { status: null,                          outreach: false, category: 'decision', lock: true },
   unlock:                { status: null,                          outreach: false, category: 'decision', sets: { manual_status_lock: false } },
   note_added:            { status: null,                          outreach: false, category: 'note' },
+  // Phase 4 hardening (Tyler msg 28566): all note CRUD flows through controller.
+  // payload.note_action: 'create' | 'update' | 'delete'  (default 'create')
+  // payload.note_id:     uuid (required for update/delete)
+  // payload.text:        note body (required for create/update)
+  // payload.note_type:   'call'|'decision'|'issue'|'general' (default 'general')
+  note_upsert:           { status: null,                          outreach: false, category: 'note' },
   comps_rerun:           { status: null,                          outreach: false, category: 'system' },
   comps_completed:       { status: null,                          outreach: false, category: 'system' }, // payload.metrics + payload.comp_results expected
   comps_data_blocked:    { status: null,                          outreach: false, category: 'system', sets: { analysis_status: 'DATA_BLOCKED' } },
@@ -448,6 +454,19 @@ async function updateCaseState(caseId, event, payload = {}) {
     result.activity_log_id = logIns?.id;
   }
 
+  // ══ Phase 4 hardening (Tyler msg 28566): note CRUD lives inside the controller ══
+  // Routes never touch case_notes directly; everything funnels through here so that
+  // activity_log is ALWAYS written first, and the DB write is always paired.
+  if (event === 'note_upsert' || event === 'note_added') {
+    try {
+      const noteRes = await applyNoteMutation(sb, caseId, event, payload, result.activity_log_id);
+      result.note = noteRes;
+    } catch (noteErr) {
+      warnings.push(`note mutation failed: ${noteErr.message}`);
+      result.note_error = noteErr.message;
+    }
+  }
+
   result.ok = true;
   console.log(`[state-controller] ${caseId} ${event} → ${result.applied_status}${result.locked ? ' (LOCKED, status unchanged)' : ''} | savings=${result.metrics?.estimated_savings ?? '—'} | comps=${result.metrics?.comps_count ?? 0}`);
   return result;
@@ -523,10 +542,72 @@ async function rebuildAllMetrics(opts = {}) {
   return stats;
 }
 
+// ═══ Phase 4 hardening: note CRUD inside the controller ══════════════════════════════════
+// Reads payload.note_action, dispatches to case_notes table.
+// Returns { action, note? } or throws on validation error.
+async function applyNoteMutation(sb, caseId, event, payload, activityLogId) {
+  const NOTE_TYPES = new Set(['call', 'decision', 'issue', 'general']);
+  const action = payload.note_action || (payload.note_id ? 'update' : 'create');
+  const actor = payload.actor || 'system';
+
+  if (action === 'create') {
+    const text = (payload.text || '').trim();
+    if (!text) throw new Error('note text required for create');
+    const note_type = payload.note_type || 'general';
+    if (!NOTE_TYPES.has(note_type)) throw new Error(`invalid note_type: ${note_type}`);
+    const { data, error } = await sb.from('case_notes').insert({
+      case_id: caseId,
+      note_type,
+      text,
+      actor,
+    }).select('id,case_id,note_type,text,actor,created_at,updated_at,edit_count').single();
+    if (error) throw error;
+    return { action, note: data, activity_log_id: activityLogId };
+  }
+
+  if (action === 'update') {
+    if (!payload.note_id) throw new Error('note_id required for update');
+    const text = (payload.text || '').trim();
+    if (!text) throw new Error('note text required for update');
+    const patch = { text };
+    if (payload.note_type) {
+      if (!NOTE_TYPES.has(payload.note_type)) throw new Error(`invalid note_type: ${payload.note_type}`);
+      patch.note_type = payload.note_type;
+    }
+    const { data, error } = await sb.from('case_notes')
+      .update(patch)
+      .eq('id', payload.note_id)
+      .eq('case_id', caseId)
+      .is('deleted_at', null)
+      .select('id,case_id,note_type,text,actor,created_at,updated_at,edit_count')
+      .single();
+    if (error) throw error;
+    if (!data) throw new Error('note not found or already deleted');
+    return { action, note: data, activity_log_id: activityLogId };
+  }
+
+  if (action === 'delete') {
+    if (!payload.note_id) throw new Error('note_id required for delete');
+    const { data, error } = await sb.from('case_notes')
+      .update({ deleted_at: new Date().toISOString(), deleted_by: actor })
+      .eq('id', payload.note_id)
+      .eq('case_id', caseId)
+      .is('deleted_at', null)
+      .select('id')
+      .single();
+    if (error) throw error;
+    if (!data) throw new Error('note not found or already deleted');
+    return { action, note_id: data.id, activity_log_id: activityLogId };
+  }
+
+  throw new Error(`unknown note_action: ${action}`);
+}
+
 module.exports = {
   updateCaseState,
   rebuildAllMetrics,
   computeMetrics,
   EVENT_MAP,
   PROTECTED_STATUSES,
+  applyNoteMutation,
 };
