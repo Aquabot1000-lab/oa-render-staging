@@ -1,134 +1,205 @@
 /**
- * daily-task-loop.js
+ * services/daily-task-loop.js
  *
- * Daily task digest loop
- * Pulls all cases needing attention and sends a single Telegram digest
+ * Phase 8 — Daily Command (Tyler msg 28665)
+ * Replaces legacy task digest with buildTodayFocus()-driven digest.
+ * Runs at 8 AM CDT and 2 PM CDT.
+ *
+ * Digest includes:
+ *   - Top 5 actionable cases (case_id, owner, $revenue, next_action / cta label)
+ *   - Total actionable revenue
+ *   - Highlights:
+ *       • Any case > $5k not touched in 3+ days
+ *       • Any READY_TO_FILE not approved (aoa_signed=true, filing_ready=false)
+ *       • Any AOA not sent within 24h (stage=needs_outreach, age > 24h)
+ *
+ * sendNotificationEmail is used for email (no-ops silently if NOTIFY_EMAIL not set).
+ * dryRun: true → builds digest but does NOT send Telegram or email; prints to console only.
  */
+
+'use strict';
+
+const { buildTodayFocus } = require('../routes/pipeline-priority');
+
+// sendNotificationEmail is imported lazily to avoid circular deps at module load.
+// We accept it as a parameter from server.js via runDailyTaskLoop.
 
 /**
- * Runs the daily task loop
- * @param {Object} supabaseAdmin - Supabase admin client
- * @param {Function} sendTelegramAlert - Telegram alert function
- * @returns {Promise<Object>} { cases_reviewed: number, digest_sent: boolean }
+ * Formats a dollar amount, e.g. 12500 → "$12,500"
  */
-async function runDailyTaskLoop(supabaseAdmin, sendTelegramAlert) {
-    console.log('[DailyTaskLoop] Starting daily digest...');
+function fmtMoney(n) {
+  if (n == null || !Number.isFinite(n)) return '—';
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
 
-    try {
-        const now = new Date();
+/**
+ * Build the Daily Command digest text (Telegram HTML + plain email HTML).
+ *
+ * @param {{ top, totalRev, highlights }} focus — result from buildTodayFocus()
+ * @param {string} label — "AM" | "PM"
+ * @returns {{ telegram: string, emailSubject: string, emailHtml: string }}
+ */
+function buildDigest(focus, label) {
+  const { top, totalRev, highlights } = focus;
+  const date = new Date().toLocaleDateString('en-US', {
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: 'America/Chicago',
+  });
 
-        // Pull all cases that need attention
-        const { data: cases, error } = await supabaseAdmin
-            .from('submissions')
-            .select('case_id, owner_name, next_action, next_follow_up_at, estimated_savings, filing_ready, status')
-            .lte('next_follow_up_at', now.toISOString())
-            .neq('do_not_contact', true)
-            .is('deleted_at', null)
-            .neq('filing_submitted', true);
+  // ── Telegram message (HTML parse_mode) ──
+  let tg = `📊 <b>OverAssessed Daily Command — ${date} ${label}</b>\n\n`;
+  tg += `<b>💰 Top ${top.length} Actionable Cases</b> | Total: ${fmtMoney(totalRev)}\n`;
 
-        if (error) {
-            console.error('[DailyTaskLoop] Query error:', error);
-            return { cases_reviewed: 0, digest_sent: false, error: error.message };
-        }
+  if (top.length === 0) {
+    tg += '  (no actionable cases right now)\n';
+  } else {
+    top.forEach((c, i) => {
+      const ctaLabel = c.cta?.label || c.next_action || 'Review';
+      tg += `  ${i + 1}. <b>${c.case_id}</b> [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)} — ${ctaLabel}\n`;
+    });
+  }
 
-        if (!cases || cases.length === 0) {
-            console.log('[DailyTaskLoop] No cases need attention today');
-            return { cases_reviewed: 0, digest_sent: false };
-        }
+  // Highlights
+  const { highValueStale, readyToFileBlocked, aoaNotSent24h } = highlights;
 
-        // Sort by priority
-        const prioritized = {
-            urgent: [],      // filing_ready = true
-            docs: [],        // status = NEEDS_REVIEW or DOCUMENT_RECEIVED
-            highValue: [],   // estimated_savings > 5000
-            other: []        // everything else
-        };
+  tg += '\n<b>🔍 Highlights</b>\n';
 
-        cases.forEach(c => {
-            if (c.filing_ready === true) {
-                prioritized.urgent.push(c);
-            } else if (['NEEDS_REVIEW', 'DOCUMENT_RECEIVED'].includes(c.status)) {
-                prioritized.docs.push(c);
-            } else if (c.estimated_savings && c.estimated_savings > 5000) {
-                prioritized.highValue.push(c);
-            } else {
-                prioritized.other.push(c);
-            }
-        });
+  if (highValueStale.length) {
+    tg += `⚠️ <b>High-value stale (${highValueStale.length})</b> — &gt;$5k, not touched 3+ days:\n`;
+    highValueStale.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)} — ${c.days_since_last_activity}d idle\n`;
+    });
+    if (highValueStale.length > 5) tg += `  (+ ${highValueStale.length - 5} more)\n`;
+  } else {
+    tg += '✅ High-value stale: none\n';
+  }
 
-        // Build digest message
-        const dateStr = now.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+  if (readyToFileBlocked.length) {
+    tg += `🚀 <b>READY_TO_FILE not approved (${readyToFileBlocked.length})</b>:\n`;
+    readyToFileBlocked.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)}\n`;
+    });
+    if (readyToFileBlocked.length > 5) tg += `  (+ ${readyToFileBlocked.length - 5} more)\n`;
+  } else {
+    tg += '✅ READY_TO_FILE blocked: none\n';
+  }
 
-        let digest = `📋 <b>DAILY TASK DIGEST — ${dateStr}</b>\n\n`;
+  if (aoaNotSent24h.length) {
+    tg += `⏰ <b>AOA not sent &gt;24h (${aoaNotSent24h.length})</b>:\n`;
+    aoaNotSent24h.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)}\n`;
+    });
+    if (aoaNotSent24h.length > 5) tg += `  (+ ${aoaNotSent24h.length - 5} more)\n`;
+  } else {
+    tg += '✅ AOA overdue: none\n';
+  }
 
-        // Urgent section
-        if (prioritized.urgent.length > 0) {
-            digest += `🔴 <b>URGENT (${prioritized.urgent.length} cases)</b>\n`;
-            prioritized.urgent.forEach(c => {
-                const savings = c.estimated_savings ? `$${c.estimated_savings.toLocaleString()}` : 'Unknown';
-                digest += `• ${c.case_id} [${c.owner_name}] — ${c.next_action || 'Ready to file'} — savings: ${savings}\n`;
-            });
-            digest += '\n';
-        }
+  // ── Email subject + HTML body ──
+  const emailSubject = `📊 OverAssessed Daily Command — ${date} ${label}`;
 
-        // Docs section
-        if (prioritized.docs.length > 0) {
-            digest += `🟡 <b>DOCS RECEIVED (${prioritized.docs.length} cases)</b>\n`;
-            prioritized.docs.forEach(c => {
-                const savings = c.estimated_savings ? `$${c.estimated_savings.toLocaleString()}` : 'Unknown';
-                digest += `• ${c.case_id} [${c.owner_name}] — ${c.next_action || 'Review document'} — savings: ${savings}\n`;
-            });
-            digest += '\n';
-        }
+  // Simple text-safe HTML for email
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // High value section
-        if (prioritized.highValue.length > 0) {
-            digest += `💰 <b>HIGH VALUE (${prioritized.highValue.length} cases)</b>\n`;
-            prioritized.highValue.forEach(c => {
-                const savings = c.estimated_savings ? `$${c.estimated_savings.toLocaleString()}` : 'Unknown';
-                digest += `• ${c.case_id} [${c.owner_name}] — ${c.next_action || 'Follow up'} — savings: ${savings}\n`;
-            });
-            digest += '\n';
-        }
+  let emailHtml = `<h2>📊 OverAssessed Daily Command — ${esc(date)} ${esc(label)}</h2>`;
+  emailHtml += `<h3>💰 Top ${top.length} Actionable Cases — Total: ${esc(fmtMoney(totalRev))}</h3>`;
+  if (top.length === 0) {
+    emailHtml += '<p><em>No actionable cases right now.</em></p>';
+  } else {
+    emailHtml += '<ol>';
+    top.forEach(c => {
+      const ctaLabel = c.cta?.label || c.next_action || 'Review';
+      emailHtml += `<li><strong>${esc(c.case_id)}</strong> [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))} — ${esc(ctaLabel)}</li>`;
+    });
+    emailHtml += '</ol>';
+  }
 
-        // Other section
-        if (prioritized.other.length > 0) {
-            digest += `🟢 <b>FOLLOW UP (${prioritized.other.length} cases)</b>\n`;
-            prioritized.other.forEach(c => {
-                const savings = c.estimated_savings ? `$${c.estimated_savings.toLocaleString()}` : 'Unknown';
-                digest += `• ${c.case_id} [${c.owner_name}] — ${c.next_action || 'Follow up'} — savings: ${savings}\n`;
-            });
-            digest += '\n';
-        }
+  emailHtml += '<h3>🔍 Highlights</h3><ul>';
 
-        digest += `<b>Total: ${cases.length} cases need attention</b>`;
+  if (highValueStale.length) {
+    emailHtml += `<li>⚠️ <strong>High-value stale (${highValueStale.length})</strong> — &gt;$5k, not touched 3+ days<ul>`;
+    highValueStale.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))} — ${c.days_since_last_activity}d idle</li>`;
+    });
+    emailHtml += '</ul></li>';
+  } else {
+    emailHtml += '<li>✅ High-value stale: none</li>';
+  }
 
-        // Send to Telegram
-        if (typeof sendTelegramAlert === 'function') {
-            await sendTelegramAlert(digest);
-            console.log(`[DailyTaskLoop] Digest sent — ${cases.length} cases`);
-        } else {
-            console.warn('[DailyTaskLoop] sendTelegramAlert not available');
-        }
+  if (readyToFileBlocked.length) {
+    emailHtml += `<li>🚀 <strong>READY_TO_FILE not approved (${readyToFileBlocked.length})</strong><ul>`;
+    readyToFileBlocked.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))}</li>`;
+    });
+    emailHtml += '</ul></li>';
+  } else {
+    emailHtml += '<li>✅ READY_TO_FILE blocked: none</li>';
+  }
 
-        return {
-            cases_reviewed: cases.length,
-            digest_sent: true
-        };
+  if (aoaNotSent24h.length) {
+    emailHtml += `<li>⏰ <strong>AOA not sent &gt;24h (${aoaNotSent24h.length})</strong><ul>`;
+    aoaNotSent24h.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))}</li>`;
+    });
+    emailHtml += '</ul></li>';
+  } else {
+    emailHtml += '<li>✅ AOA overdue: none</li>';
+  }
 
-    } catch (err) {
-        console.error('[DailyTaskLoop] Exception:', err);
-        return {
-            cases_reviewed: 0,
-            digest_sent: false,
-            error: err.message
-        };
+  emailHtml += '</ul>';
+
+  return { telegram: tg, emailSubject, emailHtml };
+}
+
+/**
+ * Run the Daily Command digest.
+ *
+ * @param {Object} supabaseAdmin — Supabase admin client
+ * @param {Function} sendTelegramAlert — from server-notifications.js
+ * @param {{ dryRun?: boolean, label?: string, sendNotificationEmail?: Function }} opts
+ * @returns {Promise<{ cases_reviewed: number, digest_sent: boolean }>}
+ */
+async function runDailyTaskLoop(supabaseAdmin, sendTelegramAlert, opts = {}) {
+  const dryRun = opts.dryRun === true;
+  // Determine AM/PM label from current CDT time
+  const hourCDT = new Date().toLocaleString('en-US', {
+    hour: 'numeric', hour12: false, timeZone: 'America/Chicago',
+  });
+  const label = opts.label || (Number(hourCDT) < 13 ? 'AM' : 'PM');
+
+  console.log(`[DailyTaskLoop] Starting Daily Command (${label})${dryRun ? ' [DRY RUN]' : ''}...`);
+
+  try {
+    const focus = await buildTodayFocus({ sb: supabaseAdmin, limit: 5 });
+    const { telegram: tgText, emailSubject, emailHtml } = buildDigest(focus, label);
+
+    if (dryRun) {
+      console.log('[DailyTaskLoop] [DRY RUN] Digest text:\n', tgText);
+      return { cases_reviewed: focus.top.length, digest_sent: false, dry_run: true };
     }
+
+    // Send Telegram
+    if (typeof sendTelegramAlert === 'function') {
+      await sendTelegramAlert(tgText).catch(err =>
+        console.error('[DailyTaskLoop] Telegram error:', err.message)
+      );
+      console.log(`[DailyTaskLoop] Telegram digest sent — ${focus.top.length} focus cases`);
+    } else {
+      console.warn('[DailyTaskLoop] sendTelegramAlert not available');
+    }
+
+    // Send email (no-op if sendNotificationEmail not provided or NOTIFY_EMAIL not set)
+    if (typeof opts.sendNotificationEmail === 'function') {
+      await opts.sendNotificationEmail({ subject: emailSubject, html: emailHtml }).catch(err =>
+        console.error('[DailyTaskLoop] Email error:', err.message)
+      );
+    }
+
+    return { cases_reviewed: focus.top.length, digest_sent: true };
+  } catch (err) {
+    console.error('[DailyTaskLoop] Exception:', err);
+    return { cases_reviewed: 0, digest_sent: false, error: err.message };
+  }
 }
 
 module.exports = { runDailyTaskLoop };

@@ -17,10 +17,16 @@
 // Performance: single SELECT, indexed reads (see migration 009). No N+1.
 // All next_action computation is in-memory after the read.
 // ═════════════════════════════════════════════════════════════════════════
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
 const { computeNextAction } = require('../lib/next-action-engine');
+const { getColumns } = require('../services/state-controller');
+
+// Phase 8: 7-day window for automation badge freshness
+const SEVEN_DAYS_MS = 7 * 86400000;
 
 // Column ids in display order. UI uses this for left→right rendering.
 const COLUMN_ORDER = [
@@ -145,6 +151,21 @@ function staleLevel(d) {
   return 'fresh';
 }
 
+// Phase 8: derive automation badge booleans from automation_flags jsonb.
+function automationBooleans(row) {
+  const af = row.automation_flags || {};
+  const recent = (key) => {
+    if (!af[key]) return false;
+    const t = new Date(af[key]).getTime();
+    return Number.isFinite(t) && (Date.now() - t) < SEVEN_DAYS_MS;
+  };
+  return {
+    automation_followup:  recent('auto_followup_sent_at'),
+    automation_overdue:   recent('action_overdue_at'),
+    automation_escalated: recent('escalated_at'),
+  };
+}
+
 function toCard(row) {
   const na = (() => {
     try { return computeNextAction(row); } catch { return null; }
@@ -177,6 +198,8 @@ function toCard(row) {
       manual_status_lock: row.manual_status_lock === true,
       vip: row.vip === true,
     },
+    // Phase 8: automation badge booleans
+    ...automationBooleans(row),
   };
 }
 
@@ -198,7 +221,9 @@ router.get('/', async (req, res) => {
   const t0 = Date.now();
   try {
     // Single indexed SELECT — only the columns we need for classification + cards.
-    const FIELDS = [
+    // Phase 8: include automation_flags when the column exists (graceful fallback).
+    const cols = await getColumns(supabaseAdmin).catch(() => new Set());
+    const FIELD_LIST = [
       'case_id', 'owner_name', 'property_address', 'county',
       'status', 'filing_status', 'filing_ready', 'filing_submitted', 'filed_at',
       'aoa_signed', 'notice_received',
@@ -207,11 +232,12 @@ router.get('/', async (req, res) => {
       'last_activity_at', 'last_outreach_at', 'updated_at',
       'comp_results', 'vip',
       'do_not_contact', 'archived_at',
-    ].join(',');
+      ...(cols.has('automation_flags') ? ['automation_flags'] : []),
+    ];
 
     const { data: rows, error } = await supabaseAdmin
       .from('submissions')
-      .select(FIELDS)
+      .select(FIELD_LIST.join(','))
       .is('deleted_at', null)
       .is('archived_at', null)
       .order('estimated_revenue', { ascending: false, nullsFirst: false })

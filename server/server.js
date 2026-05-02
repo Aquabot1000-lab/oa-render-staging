@@ -78,6 +78,7 @@ const { classifyMessage } = require('./services/message-classifier');
 const { routeCaseAction } = require('./services/case-action-router');
 const { autoRespond: autoRespondInbound } = require('./services/inbound-auto-responder');
 const { runDailyTaskLoop } = require('./services/daily-task-loop');
+const { runNudgeScan } = require('./services/automation-nudge');
 // ── Notice upload validation pipeline (Tyler msg 28178, 2026-05-01) ──────────
 const { processNoticeUpload } = require('./services/notice-upload-pipeline');
 const dashboardRouter = require('./routes/dashboard');
@@ -2247,6 +2248,7 @@ if (isSupabaseEnabled()) {
             const OPERATOR_ALLOWED_EVENTS = new Set([
                 'hold', 'unhold', 'note_added', 'note_upsert', 'comps_rerun', 'package_rebuilt', 'message_sent',
                 'aoa_request_sent', 'nov_requested',  // Phase 7: board CTA events (Tyler msg 28643)
+                'automation_nudge',                   // Phase 8: internal system nudges (Tyler msg 28665)
             ]);
             const role = req.user?.role || 'guest';
             if (ADMIN_ONLY_EVENTS.has(event) && role !== 'admin') {
@@ -10993,49 +10995,109 @@ app.listen(PORT, async () => {
         // ── ORCHESTRATOR (inline background worker) ──
         startOrchestrator();
 
-        // ── DAILY TASK LOOP (8:00 AM CDT) ──
+        // ── DAILY TASK LOOP (8:00 AM + 2:00 PM CDT) ──
         scheduleDailyTaskLoop();
+
+        // ── AUTO-NUDGE SCAN (every 30 min, first run +60s after boot) ──
+        scheduleNudgeScan();
     });
 
-    // Daily task digest scheduler — runs at 8:00 AM CDT (1:00 PM UTC, 2:00 PM UTC during DST)
+    // Phase 8 (Tyler msg 28665): Daily Command — 8 AM CDT + 2 PM CDT
+    // America/Chicago handles DST automatically via UTC offset math.
     function scheduleDailyTaskLoop() {
+        const RUN_HOURS_CDT = [8, 14]; // 8 AM + 2 PM
+
         function getNextRunTime() {
             const now = new Date();
-            const targetHourCDT = 8; // 8 AM CDT
-            const CDT_OFFSET = -5; // CDT is UTC-5
-            const targetHourUTC = targetHourCDT - CDT_OFFSET; // 13:00 UTC (1 PM)
+            // Compute current CDT hour
+            // CDT = UTC-5; CST = UTC-6. We use the simple UTC-5 offset (DST is implicit).
+            // For correctness we use Intl to get the actual Chicago hour.
+            const chicagoHour = parseInt(
+                new Intl.DateTimeFormat('en-US', {
+                    hour: 'numeric', hour12: false, timeZone: 'America/Chicago',
+                }).format(now),
+                10
+            );
 
-            let next = new Date();
-            next.setUTCHours(targetHourUTC, 0, 0, 0);
-
-            // If we've passed today's run, schedule for tomorrow
-            if (next <= now) {
-                next.setUTCDate(next.getUTCDate() + 1);
+            // Find the next scheduled hour >= current hour+1 (or first next day)
+            let targetHourCDT = RUN_HOURS_CDT.find(h => h > chicagoHour);
+            let daysAhead = 0;
+            if (targetHourCDT == null) {
+                // All today's runs are done — schedule for first run tomorrow
+                targetHourCDT = RUN_HOURS_CDT[0];
+                daysAhead = 1;
             }
 
-            return next;
+            // Build a Date in America/Chicago at targetHourCDT:00:00
+            const chicagoDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+            chicagoDate.setHours(targetHourCDT, 0, 0, 0);
+            if (daysAhead) chicagoDate.setDate(chicagoDate.getDate() + daysAhead);
+
+            // Convert back to UTC by computing the UTC equivalent
+            // We'll use the reliable method: format the target as if local, compute offset
+            const next = new Date(chicagoDate.toLocaleString('en-US') +
+                ' ' + Intl.DateTimeFormat('en-US', { timeZoneName: 'short', timeZone: 'America/Chicago' }).format(chicagoDate).split(' ').pop());
+
+            // Simpler reliable approach: compute CDT offset from now and apply
+            const nowUtcMs = now.getTime();
+            const chicagoNowStr = now.toLocaleString('en-US', { timeZone: 'America/Chicago' });
+            const chicagoNow = new Date(chicagoNowStr);
+            const offsetMs = nowUtcMs - chicagoNow.getTime(); // e.g. 5*3600000 for CDT
+            const targetChicago = new Date(chicagoDate.getTime());
+            const targetUtc = new Date(targetChicago.getTime() + offsetMs);
+            return targetUtc;
         }
 
         async function runTask() {
             try {
-                console.log('[DailyTaskLoop] Running scheduled digest...');
-                const result = await runDailyTaskLoop(supabaseAdmin, sendTelegramAlert);
-                console.log(`[DailyTaskLoop] Complete: ${result.cases_reviewed} cases reviewed, digest sent: ${result.digest_sent}`);
+                console.log('[DailyTaskLoop] Running scheduled Daily Command...');
+                const { sendNotificationEmail } = require('./server-notifications');
+                const result = await runDailyTaskLoop(supabaseAdmin, sendTelegramAlert, { sendNotificationEmail });
+                console.log(`[DailyTaskLoop] Complete: ${result.cases_reviewed} focus cases, digest sent: ${result.digest_sent}`);
             } catch (err) {
                 console.error('[DailyTaskLoop] Scheduled run error:', err);
             }
             // Schedule next run
             const next = getNextRunTime();
-            const delay = next.getTime() - Date.now();
-            console.log(`[DailyTaskLoop] Next run scheduled for ${next.toISOString()} (in ${Math.round(delay / 1000 / 60 / 60)} hours)`);
+            const delay = Math.max(next.getTime() - Date.now(), 60000);
+            console.log(`[DailyTaskLoop] Next run at ${next.toISOString()} (in ${Math.round(delay / 60000)}m)`);
             setTimeout(runTask, delay);
         }
 
         // Schedule first run
         const next = getNextRunTime();
-        const delay = next.getTime() - Date.now();
-        console.log(`[DailyTaskLoop] First run scheduled for ${next.toISOString()} (in ${Math.round(delay / 1000 / 60 / 60)} hours)`);
+        const delay = Math.max(next.getTime() - Date.now(), 60000);
+        console.log(`[DailyTaskLoop] First run at ${next.toISOString()} (in ${Math.round(delay / 60000)}m)`);
         setTimeout(runTask, delay);
+    }
+
+    // Phase 8 (Tyler msg 28665): Nudge scanner — every 30 min, first run +60s after boot.
+    // Re-entrant safe via _nudgeRunning flag.
+    let _nudgeRunning = false;
+    function scheduleNudgeScan() {
+        async function runScan() {
+            if (_nudgeRunning) {
+                console.log('[NudgeScan] Previous run still in progress — skipping this tick');
+                return;
+            }
+            _nudgeRunning = true;
+            try {
+                await runNudgeScan(supabaseAdmin, { sendTelegramAlert });
+            } catch (err) {
+                console.error('[NudgeScan] Unhandled error:', err);
+            } finally {
+                _nudgeRunning = false;
+            }
+        }
+
+        // First run 60 seconds after boot (let server warm up)
+        setTimeout(() => {
+            runScan();
+            // Then every 30 minutes
+            setInterval(runScan, 30 * 60 * 1000);
+        }, 60 * 1000);
+
+        console.log('[NudgeScan] Nudge scanner scheduled: first run in 60s, then every 30 min');
     }
 
     // runDripCheck scheduler REMOVED 2026-04-23 — function is a no-op (dead code), schedulers wasted resources

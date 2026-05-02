@@ -1,46 +1,42 @@
 // ═════════════════════════════════════════════════════════════════════════
-// routes/pipeline-priority.js  (Phase 6 — 2026-05-02, Tyler msg 28627)
+// routes/pipeline-priority.js  (Phase 8 — 2026-05-02, Tyler msg 28665)
 // ─────────────────────────────────────────────────────────────────────────
 // Revenue Activation endpoints.
 //
 // GET /api/pipeline-priority
 //   → Top N cases (default 10) by estimated_revenue DESC.
-//     Excludes NO_OPPORTUNITY, LOST_CONTACT, FILED.
-//     Each entry: case_id, owner, address, estimated_revenue,
-//                 estimated_tax_savings, stage (pipeline column),
-//                 next_action, last_activity_at, days_since_last_activity,
-//                 high_value, stale_level, cta {action, url, label}.
 //
 // GET /api/pipeline-priority/today
-//   → Today's Focus: top 5 ACTIONABLE revenue cases, filtered to those
-//     where Tyler/Uri can take an immediate action (Send AOA, Request NOV,
-//     Approve Filing, Review Case). Excludes locked workflow rows where the
-//     next move belongs to the customer (e.g. waiting on signature).
+//   → Today's Focus: top 5 ACTIONABLE revenue cases.
 //
-// Pure read. No mutations. Reuses Phase 5 classifier.
+// Phase 8 additions:
+//   - buildTodayFocus({ sb, limit }) — exported for daily-task-loop.js
+//   - buildPriorityList({ sb, limit }) — exported for future use
+//   - automation_followup / automation_overdue / automation_escalated booleans on each card
+//   - automation_flags included in SELECT when column is available (graceful fallback)
 // ═════════════════════════════════════════════════════════════════════════
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
 const { computeNextAction } = require('../lib/next-action-engine');
 const { classifyCase, COLUMN_META } = require('./pipeline-board');
+const { getColumns } = require('../services/state-controller');
 
 // ── Thresholds (Tyler msg 28627) ─────────────────────────────────────────
 const HIGH_VALUE_REV     = 3000;   // estimated_revenue >= 3000 → high-value
 const STALE_WARN_DAYS    = 3;      // >3 days → warn
 const STALE_CRIT_DAYS    = 7;      // >7 days → critical
+const SEVEN_DAYS_MS      = 7 * 86400000;
 
-// Stages NOT shown on priority list (Tyler spec: exclude NO_OPP/LOST/FILED)
 const EXCLUDED_STAGES = new Set(['no_opportunity', 'filed']);
 
-// Stages that map to a clear actor-of-next-step. We only surface in
-// "Today's Focus" if the next action is on US, not on the customer or
-// on a system process.
 const ACTIONABLE_STAGES = new Set([
-  'needs_outreach',     // we send AOA
-  'ready_for_comps',    // we run comps / build package
-  'ready_to_file',      // we approve & file
-  'blocked',            // we unblock (review-case CTA)
+  'needs_outreach',
+  'ready_for_comps',
+  'ready_to_file',
+  'blocked',
 ]);
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -58,8 +54,6 @@ function staleLevel(days) {
   return 'fresh';
 }
 
-// CTA mapping per stage. Returns { action, label, url } or null when the
-// next move belongs to the customer/system (not Tyler/Uri).
 function ctaForStage(stageId, row) {
   const caseId = row.case_id;
   const caseUrl = `/case?id=${encodeURIComponent(caseId)}`;
@@ -68,7 +62,6 @@ function ctaForStage(stageId, row) {
     case 'needs_outreach':
       return { action: 'send_aoa', label: 'Send AOA', url: caseUrl, primary: true };
     case 'aoa_sent':
-      // Waiting on customer — no action surfaced in Today's Focus.
       return { action: 'review_case', label: 'Review Case', url: caseUrl, primary: false };
     case 'signed_waiting_nov':
       return { action: 'request_nov', label: 'Request NOV', url: caseUrl, primary: true };
@@ -81,6 +74,22 @@ function ctaForStage(stageId, row) {
     default:
       return { action: 'review_case', label: 'Review Case', url: caseUrl, primary: false };
   }
+}
+
+// Returns automation badge booleans from automation_flags jsonb.
+// A flag is "active" when the timestamp exists and is < 7 days old.
+function automationBooleans(row) {
+  const af = row.automation_flags || {};
+  const recent = (key) => {
+    if (!af[key]) return false;
+    const t = new Date(af[key]).getTime();
+    return Number.isFinite(t) && (Date.now() - t) < SEVEN_DAYS_MS;
+  };
+  return {
+    automation_followup:  recent('auto_followup_sent_at'),
+    automation_overdue:   recent('action_overdue_at'),
+    automation_escalated: recent('escalated_at'),
+  };
 }
 
 function enrich(row, stageId) {
@@ -119,24 +128,39 @@ function enrich(row, stageId) {
       vip: row.vip === true,
     },
     cta: ctaForStage(stageId, row),
+    // Phase 8: automation badge booleans
+    ...automationBooleans(row),
+    // Raw data fields needed for highlights in daily-task-loop
+    _raw: {
+      created_at: row.created_at || null,
+      aoa_signed: row.aoa_signed === true,
+      filing_ready: row.filing_ready === true,
+    },
   };
 }
 
-const SELECT_FIELDS = [
+const SELECT_FIELDS_BASE = [
   'case_id', 'owner_name', 'property_address', 'county',
   'status', 'filing_status', 'filing_ready', 'filing_submitted', 'filed_at',
   'aoa_signed', 'notice_received',
   'manual_status_lock', 'status_lock_reason',
   'estimated_revenue', 'estimated_tax_savings', 'estimated_savings', 'savings',
-  'last_activity_at', 'last_outreach_at', 'updated_at',
+  'last_activity_at', 'last_outreach_at', 'updated_at', 'created_at',
   'comp_results', 'vip',
   'do_not_contact', 'archived_at',
-].join(',');
+];
 
-async function fetchActiveCases() {
-  const { data, error } = await supabaseAdmin
+// Fetch all active cases using provided sb client (or default supabaseAdmin).
+// Includes automation_flags if the column is available.
+async function fetchActiveCases(sb) {
+  const sbClient = sb || supabaseAdmin;
+  const cols = await getColumns(sbClient).catch(() => new Set());
+  const fields = [...SELECT_FIELDS_BASE];
+  if (cols.has('automation_flags')) fields.push('automation_flags');
+
+  const { data, error } = await sbClient
     .from('submissions')
-    .select(SELECT_FIELDS)
+    .select(fields.join(','))
     .is('deleted_at', null)
     .is('archived_at', null)
     .order('estimated_revenue', { ascending: false, nullsFirst: false })
@@ -146,32 +170,105 @@ async function fetchActiveCases() {
   return data || [];
 }
 
+// ── Shared data-building helpers (exported for daily-task-loop.js) ─────────
+
+/**
+ * Build the full priority list (all active, non-excluded cases, sorted by revenue).
+ * @param {{ sb?: object, limit?: number }} opts
+ */
+async function buildPriorityList({ sb, limit = 10 } = {}) {
+  const rows = await fetchActiveCases(sb);
+  const enriched = [];
+  for (const row of rows) {
+    const stage = classifyCase(row);
+    if (EXCLUDED_STAGES.has(stage)) continue;
+    enriched.push(enrich(row, stage));
+  }
+
+  enriched.sort((a, b) => {
+    const ra = a.estimated_revenue == null ? -1 : a.estimated_revenue;
+    const rb = b.estimated_revenue == null ? -1 : b.estimated_revenue;
+    if (rb !== ra) return rb - ra;
+    const ta = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+    const tb = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+    return tb - ta;
+  });
+
+  const top = enriched.slice(0, limit);
+  const totalRev = top.reduce((s, c) => s + (c.estimated_revenue || 0), 0);
+  return { top, totalRev, all: enriched };
+}
+
+/**
+ * Build Today's Focus: actionable cases + highlights for Daily Command digest.
+ * @param {{ sb?: object, limit?: number }} opts
+ * @returns {{
+ *   top: object[],        // top actionable cases (up to limit)
+ *   totalRev: number,     // total revenue of ALL actionable cases
+ *   highlights: {
+ *     highValueStale: object[],      // >$5k, >3d untouched
+ *     readyToFileBlocked: object[],  // ready_to_file + aoa_signed=true + filing_ready=false
+ *     aoaNotSent24h: object[],       // needs_outreach + case age >24h
+ *   }
+ * }}
+ */
+async function buildTodayFocus({ sb, limit = 5 } = {}) {
+  const rows = await fetchActiveCases(sb);
+  const NOW = Date.now();
+
+  const enriched = [];
+  for (const row of rows) {
+    const stage = classifyCase(row);
+    if (EXCLUDED_STAGES.has(stage)) continue;
+    const card = enrich(row, stage);
+    enriched.push(card);
+  }
+
+  enriched.sort((a, b) => {
+    const ra = a.estimated_revenue == null ? -1 : a.estimated_revenue;
+    const rb = b.estimated_revenue == null ? -1 : b.estimated_revenue;
+    if (rb !== ra) return rb - ra;
+    const ta = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+    const tb = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+    return tb - ta;
+  });
+
+  const actionable = enriched.filter(c => ACTIONABLE_STAGES.has(c.stage));
+  const top = actionable.slice(0, limit);
+  const totalRev = actionable.reduce((s, c) => s + (c.estimated_revenue || 0), 0);
+
+  // Highlights
+  const highValueStale = enriched.filter(c =>
+    (c.estimated_revenue || 0) > 5000 &&
+    (c.days_since_last_activity || 0) > 3
+  );
+
+  const readyToFileBlocked = enriched.filter(c =>
+    c.stage === 'ready_to_file' &&
+    c._raw.aoa_signed === true &&
+    c._raw.filing_ready !== true
+  );
+
+  const aoaNotSent24h = enriched.filter(c => {
+    if (c.stage !== 'needs_outreach') return false;
+    const created = c._raw.created_at;
+    if (!created) return false;
+    return NOW - new Date(created).getTime() > 86400000;
+  });
+
+  return {
+    top,
+    totalRev,
+    highlights: { highValueStale, readyToFileBlocked, aoaNotSent24h },
+  };
+}
+
 // ── GET /api/pipeline-priority ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
   const t0 = Date.now();
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
-    const rows = await fetchActiveCases();
-
-    const enriched = [];
-    for (const row of rows) {
-      const stage = classifyCase(row);
-      if (EXCLUDED_STAGES.has(stage)) continue;
-      enriched.push(enrich(row, stage));
-    }
-
-    // Sort: estimated_revenue DESC NULLS LAST, last_activity_at DESC
-    enriched.sort((a, b) => {
-      const ra = a.estimated_revenue == null ? -1 : a.estimated_revenue;
-      const rb = b.estimated_revenue == null ? -1 : b.estimated_revenue;
-      if (rb !== ra) return rb - ra;
-      const ta = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
-      const tb = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
-      return tb - ta;
-    });
-
-    const top = enriched.slice(0, limit);
-    const totalRev = top.reduce((s, c) => s + (c.estimated_revenue || 0), 0);
+    const { top, totalRev } = await buildPriorityList({ limit });
 
     res.json({
       generated_at: new Date().toISOString(),
@@ -189,36 +286,12 @@ router.get('/', async (req, res) => {
 });
 
 // ── GET /api/pipeline-priority/today ──────────────────────────────────────
-// Top 5 actionable revenue cases. Filters to stages where the next move is
-// on Tyler/Uri (not waiting on customer or system).
 router.get('/today', async (req, res) => {
   const t0 = Date.now();
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
-    const rows = await fetchActiveCases();
+    const { top, totalRev } = await buildTodayFocus({ limit });
 
-    const enriched = [];
-    for (const row of rows) {
-      const stage = classifyCase(row);
-      if (EXCLUDED_STAGES.has(stage)) continue;
-      // Today's Focus = stages where WE act next.
-      if (!ACTIONABLE_STAGES.has(stage)) continue;
-      enriched.push(enrich(row, stage));
-    }
-
-    // Same sort: revenue DESC, then recency DESC.
-    // (Stale cases are NOT auto-promoted; revenue still rules. Stale is shown via badge.)
-    enriched.sort((a, b) => {
-      const ra = a.estimated_revenue == null ? -1 : a.estimated_revenue;
-      const rb = b.estimated_revenue == null ? -1 : b.estimated_revenue;
-      if (rb !== ra) return rb - ra;
-      const ta = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
-      const tb = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
-      return tb - ta;
-    });
-
-    const top = enriched.slice(0, limit);
-    const totalRev = top.reduce((s, c) => s + (c.estimated_revenue || 0), 0);
     const staleCrit = top.filter(c => c.stale_level === 'critical').length;
     const staleWarn = top.filter(c => c.stale_level === 'warning').length;
 
@@ -239,6 +312,9 @@ router.get('/today', async (req, res) => {
 });
 
 module.exports = router;
-module.exports.HIGH_VALUE_REV = HIGH_VALUE_REV;
+module.exports.HIGH_VALUE_REV  = HIGH_VALUE_REV;
 module.exports.STALE_WARN_DAYS = STALE_WARN_DAYS;
 module.exports.STALE_CRIT_DAYS = STALE_CRIT_DAYS;
+module.exports.buildTodayFocus    = buildTodayFocus;
+module.exports.buildPriorityList  = buildPriorityList;
+module.exports.automationBooleans = automationBooleans;

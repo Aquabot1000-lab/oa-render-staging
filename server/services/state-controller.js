@@ -77,6 +77,8 @@ const EVENT_MAP = {
   message_sent:          { status: null,                          outreach: true,  category: 'outreach' },
   nov_requested:         { status: 'NOV_REQUEST_SENT',            outreach: true,  category: 'outreach' }, // Phase 7 (Tyler msg 28643): board "Request NOV" CTA
   status_override:       { status: null,                          outreach: false, category: 'decision' }, // payload.target_status required; tyler-only enforced at route
+  // Phase 8 (Tyler msg 28665): internal automation nudges. No status change. No outreach.
+  automation_nudge:      { status: null,                          outreach: false, category: 'system' },
 };
 
 // Statuses that NEVER allow downgrade (terminal/protected). Manual lock can still apply.
@@ -338,6 +340,14 @@ async function updateCaseState(caseId, event, payload = {}) {
       if (!cols.has(k)) { warnings.push(`column ${k} missing — skipped`); continue; }
       patch[k] = v === 'NOW' ? NOW : v;
     }
+  }
+
+  // Phase 8 (Tyler msg 28665): JSONB merge for automation_flags.
+  // Caller passes payload.flag_updates = { key: isoTimestamp } to set automation timestamps.
+  // The controller merges (not replaces) so existing timestamps are preserved.
+  if (payload.flag_updates && cols.has('automation_flags')) {
+    const merged = { ...(row.automation_flags || {}), ...payload.flag_updates };
+    patch.automation_flags = merged;
   }
 
   // Lock if event requires it
@@ -608,6 +618,7 @@ module.exports = {
   updateCaseState,
   rebuildAllMetrics,
   computeMetrics,
+  getColumns,
   EVENT_MAP,
   PROTECTED_STATUSES,
   applyNoteMutation,
