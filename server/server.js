@@ -2249,6 +2249,7 @@ if (isSupabaseEnabled()) {
                 'hold', 'unhold', 'note_added', 'note_upsert', 'comps_rerun', 'package_rebuilt', 'message_sent',
                 'aoa_request_sent', 'nov_requested',  // Phase 7: board CTA events (Tyler msg 28643)
                 'automation_nudge',                   // Phase 8: internal system nudges (Tyler msg 28665)
+                'message_sent_auto',                   // Phase 9: controlled auto-outreach (Tyler msg 28669)
             ]);
             const role = req.user?.role || 'guest';
             if (ADMIN_ONLY_EVENTS.has(event) && role !== 'admin') {

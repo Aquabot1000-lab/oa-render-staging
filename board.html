@@ -588,6 +588,9 @@
       const autoBadge    = card.automation_followup  ? '<span class="badge badge-auto" title="Auto follow-up sent recently">⚡ Auto</span>' : '';
       const overdueBadge = card.automation_overdue   ? '<span class="badge badge-overdue" title="Action overdue">⏰ Overdue</span>' : '';
       const escalBadge   = card.automation_escalated ? '<span class="badge badge-escalated" title="Escalated">🔥 Escalated</span>' : '';
+      // Phase 9: auto-outreach badge
+      const autoMsgCount = card.auto_outreach_count || 0;
+      const autoMsgBadge = card.auto_message_sent ? `<span class="badge badge-auto" title="Auto-outreach sent">📤 Auto msg${autoMsgCount > 1 ? ' (×' + autoMsgCount + ')' : ''}</span>` : '';
 
       return `
         <a class="${classes.join(' ')}" href="${url}">
@@ -608,7 +611,7 @@
           <div class="card-foot">
             ${hvBadge}
             ${staleBadge}
-            ${autoBadge}${overdueBadge}${escalBadge}
+            ${autoBadge}${overdueBadge}${escalBadge}${autoMsgBadge}
             <span class="badge badge-status">${escapeHtml(status)}</span>
             ${locked ? '<span class="badge badge-locked" title="manual_status_lock=true">🔒 Lock</span>' : ''}
             <span class="card-time">${fmtTime(card.last_activity_at)}</span>
@@ -705,6 +708,9 @@
       const fAutoBadge = card.automation_followup  ? '<span class="badge badge-auto">⚡ Auto</span>' : '';
       const fOvBadge   = card.automation_overdue   ? '<span class="badge badge-overdue">⏰ Overdue</span>' : '';
       const fEscBadge  = card.automation_escalated ? '<span class="badge badge-escalated">🔥 Escalated</span>' : '';
+      // Phase 9: auto-outreach badge for focus card
+      const fAutoMsgCount = card.auto_outreach_count || 0;
+      const fAutoMsgBadge = card.auto_message_sent ? `<span class="badge badge-auto">📤 Auto msg${fAutoMsgCount > 1 ? ' (×' + fAutoMsgCount + ')' : ''}</span>` : '';
 
       // Role gate: admin-only CTAs are hidden (not just disabled) for operators/guests.
       const adminOnly = meta.adminOnly;
@@ -740,7 +746,7 @@
           </div>
           <div class="fowner">${escapeHtml(card.owner_name)}</div>
           <div class="frev">${fmtMoney(card.estimated_revenue)}</div>
-          <div class="fbadges">${hvBadge}${staleBadge}${fAutoBadge}${fOvBadge}${fEscBadge}</div>
+          <div class="fbadges">${hvBadge}${staleBadge}${fAutoBadge}${fOvBadge}${fEscBadge}${fAutoMsgBadge}</div>
           <div style="display:flex;gap:8px;margin-top:6px;">
             ${ctaHtml}
             <a class="fcta cta-muted" href="${caseUrl}" style="flex:0 0 auto;padding:8px 10px;font-size:12px;" title="Open case page">↗</a>

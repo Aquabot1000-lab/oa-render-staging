@@ -77,18 +77,23 @@ function ctaForStage(stageId, row) {
 }
 
 // Returns automation badge booleans from automation_flags jsonb.
-// A flag is "active" when the timestamp exists and is < 7 days old.
+// A flag is "active" when the timestamp exists and is within the window.
 function automationBooleans(row) {
   const af = row.automation_flags || {};
-  const recent = (key) => {
+  const now = Date.now();
+  const recent = (key, windowMs) => {
     if (!af[key]) return false;
     const t = new Date(af[key]).getTime();
-    return Number.isFinite(t) && (Date.now() - t) < SEVEN_DAYS_MS;
+    return Number.isFinite(t) && (now - t) < (windowMs || SEVEN_DAYS_MS);
   };
+  // Phase 9: auto_message_sent — truthy if last_auto_outreach_at within 14 days
+  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
   return {
     automation_followup:  recent('auto_followup_sent_at'),
     automation_overdue:   recent('action_overdue_at'),
     automation_escalated: recent('escalated_at'),
+    auto_message_sent:    recent('last_auto_outreach_at', FOURTEEN_DAYS_MS),
+    auto_outreach_count:  Number(af.auto_outreach_count) || 0,
   };
 }
 

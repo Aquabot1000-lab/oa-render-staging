@@ -915,6 +915,7 @@
                 case 'do_not_contact_set':  return { dot:'system',   text:`<strong>⛔ DO NOT CONTACT</strong>${d.reason ? ' — ' + d.reason : ''}` };
                 // —— outreach ——
                 case 'aoa_request_sent':    return { dot:'email',    text:`AOA request sent (${d.channel || 'email'})` };
+                case 'message_sent_auto':   return { dot:'email',    text:`📤 <strong>Auto-outreach sent</strong> (${d.touch || '?'}, ${d.channel || 'sms'})${d.body_preview ? ' — <em>' + d.body_preview.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').slice(0, 100) + '…</em>' : ''}` };
                 case 'drip_reminder':       return { dot:'sms',      text:`Auto reminder${d.type ? ' (' + d.type + ')' : ''} sent` };
                 case 'esign_reminder_scheduled': return { dot:'email', text:`E-sign reminder scheduled` };
                 case 'incomplete_address_outreach': return { dot:'email', text:`Outreach: incomplete address` };

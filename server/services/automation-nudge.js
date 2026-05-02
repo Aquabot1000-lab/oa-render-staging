@@ -26,6 +26,7 @@
 
 const { updateCaseState, getColumns } = require('./state-controller');
 const { classifyCase } = require('../routes/pipeline-board');
+const { runAutoOutreach } = require('./auto-outreach');
 
 const TWENTY_FOUR_H = 24 * 60 * 60 * 1000;
 const THREE_DAYS    = 3  * 24 * 60 * 60 * 1000;
@@ -276,6 +277,28 @@ async function runNudgeScan(supabaseAdmin, opts = {}) {
   }
 
   console.log(`[NudgeScan] Done — scanned=${stats.scanned} fired=${stats.fired} skipped_idempotent=${stats.skipped_idempotent} escalations=${stats.escalations}`);
+
+  // ── Phase 9: Controlled Auto-Outreach ───────────────────────────────────────
+  // Only runs when AUTO_OUTREACH_ENABLED=true (kill switch, default false).
+  const autoOutreachEnabled = process.env.AUTO_OUTREACH_ENABLED === 'true';
+  console.log(`[AutoOutreach] enabled=${autoOutreachEnabled}`);
+  if (autoOutreachEnabled) {
+    try {
+      const aoResult = await runAutoOutreach({
+        supabaseAdmin,
+        dryRun,
+        sendSMS: opts.sendSMS,
+        sendNotificationEmail: opts.sendNotificationEmail,
+      });
+      if (!aoResult.disabled) {
+        console.log(`[AutoOutreach] scanned=${aoResult.scanned} sent=${aoResult.sent} dryRun=${aoResult.dryRun}`);
+        stats.auto_outreach = aoResult;
+      }
+    } catch (err) {
+      console.error('[AutoOutreach] Unhandled error in runAutoOutreach:', err.message);
+    }
+  }
+
   return stats;
 }
 

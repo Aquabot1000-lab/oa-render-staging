@@ -79,6 +79,8 @@ const EVENT_MAP = {
   status_override:       { status: null,                          outreach: false, category: 'decision' }, // payload.target_status required; tyler-only enforced at route
   // Phase 8 (Tyler msg 28665): internal automation nudges. No status change. No outreach.
   automation_nudge:      { status: null,                          outreach: false, category: 'system' },
+  // Phase 9 (Tyler msg 28669): controlled customer auto-outreach (AOA not sent / not signed).
+  message_sent_auto:     { status: null,                          outreach: true,  category: 'outreach' },
 };
 
 // Statuses that NEVER allow downgrade (terminal/protected). Manual lock can still apply.
