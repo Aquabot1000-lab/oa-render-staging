@@ -3435,6 +3435,61 @@ if (isSupabaseEnabled()) {
         }
     });
 
+    // 7. POST /api/case-view/action/close-case — Phase 10 terminal outcome (admin-only)
+    app.post('/api/case-view/action/close-case', authenticateToken, requireAdmin, async (req, res) => {
+        try {
+            const { case_id, event, final_value, original_value, tax_savings, revenue_collected, outcome_date } = req.body;
+            if (!case_id) return res.status(400).json({ error: 'case_id required' });
+
+            const VALID_EVENTS = ['case_won', 'case_lost', 'no_change', 'withdrawn'];
+            if (!VALID_EVENTS.includes(event)) {
+                return res.status(400).json({ error: `event must be one of: ${VALID_EVENTS.join(', ')}` });
+            }
+
+            const numericFields = { final_value, original_value, tax_savings, revenue_collected };
+            const missing = Object.entries(numericFields)
+                .filter(([, v]) => v === undefined || v === null || !Number.isFinite(Number(v)))
+                .map(([k]) => k);
+            if (missing.length) {
+                return res.status(400).json({ error: `Missing or non-finite numeric fields: ${missing.join(', ')}` });
+            }
+
+            const result = await updateCaseState(case_id, event, {
+                final_value: Number(final_value),
+                original_value: Number(original_value),
+                tax_savings: Number(tax_savings),
+                revenue_collected: Number(revenue_collected),
+                outcome_date: outcome_date || new Date().toISOString().split('T')[0],
+                actor: req.user?.email || 'tyler',
+                actor_role: 'admin',
+                force: true, // admin close overrides PROTECTED_STATUSES (FILED → CLOSED_*)
+                flag_updates: { closed: new Date().toISOString() }
+            });
+
+            // Telegram alert on wins
+            if (event === 'case_won') {
+                try {
+                    // Fetch owner_name for the alert (best-effort)
+                    let owner_name = case_id;
+                    if (isSupabaseEnabled()) {
+                        const { data: nameRow } = await supabaseAdmin
+                            .from('submissions').select('owner_name').eq('case_id', case_id).single();
+                        if (nameRow?.owner_name) owner_name = nameRow.owner_name;
+                    }
+                    await sendTelegramAlert(
+                        `🏆 CASE WON — ${case_id} (${owner_name})\nTax savings: $${Number(tax_savings).toLocaleString()}\nRevenue: $${Number(revenue_collected).toLocaleString()}`
+                    );
+                } catch (_) { /* non-fatal */ }
+            }
+
+            console.log(`[Action:CloseCase] ${case_id} | event=${event} | savings=${tax_savings} | revenue=${revenue_collected}`);
+            res.json({ ok: true, result });
+        } catch (e) {
+            console.error('[Action:CloseCase] Error:', e.message);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // ==================== NEEDS REVIEW AUTO-OUTREACH ====================
     const { classifyIssue, getOutreachTemplates, resolveCounty } = require('./lib/needs-review-engine');
 
@@ -4025,6 +4080,50 @@ app.post('/api/admin/check-outcomes', authenticateToken, requireAdmin, async (re
     try {
         const result = await checkAllPendingOutcomes();
         res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== PHASE 10: OUTCOMES SUMMARY ====================
+// GET /api/outcomes/summary — admin-only aggregate of closed cases
+app.get('/api/outcomes/summary', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('submissions')
+            .select('outcome_status, tax_savings, revenue_collected')
+            .not('outcome_status', 'is', null);
+        if (error) throw error;
+
+        const byOutcome = { won: { count: 0, tax_savings: 0, revenue: 0 }, lost: { count: 0, tax_savings: 0, revenue: 0 }, no_change: { count: 0, tax_savings: 0, revenue: 0 }, withdrawn: { count: 0, tax_savings: 0, revenue: 0 } };
+        let totalTaxSavings = 0, totalRevenue = 0;
+        for (const row of (data || [])) {
+            const key = row.outcome_status; // 'won'|'lost'|'no_change'|'withdrawn'
+            if (!byOutcome[key]) continue;
+            byOutcome[key].count += 1;
+            byOutcome[key].tax_savings += Number(row.tax_savings) || 0;
+            byOutcome[key].revenue += Number(row.revenue_collected) || 0;
+            totalTaxSavings += Number(row.tax_savings) || 0;
+            totalRevenue += Number(row.revenue_collected) || 0;
+        }
+        const wins = byOutcome.won.count;
+        const losses = byOutcome.lost.count;
+        const noChanges = byOutcome.no_change.count;
+        const withdrawals = byOutcome.withdrawn.count;
+        const totalClosed = wins + losses + noChanges + withdrawals;
+        const denominator = wins + losses + noChanges; // withdrawals excluded from win-rate
+        const winRate = denominator > 0 ? Math.round((wins / denominator) * 10000) / 10000 : 0;
+        const avgRevenue = totalClosed > 0 ? Math.round((totalRevenue / totalClosed) * 100) / 100 : 0;
+
+        res.json({
+            total_closed: totalClosed,
+            win_rate: winRate,
+            wins, losses, no_changes: noChanges, withdrawals,
+            total_tax_savings: Math.round(totalTaxSavings * 100) / 100,
+            total_revenue_collected: Math.round(totalRevenue * 100) / 100,
+            avg_revenue_per_case: avgRevenue,
+            by_outcome: byOutcome
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

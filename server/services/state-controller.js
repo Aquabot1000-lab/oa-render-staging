@@ -81,10 +81,21 @@ const EVENT_MAP = {
   automation_nudge:      { status: null,                          outreach: false, category: 'system' },
   // Phase 9 (Tyler msg 28669): controlled customer auto-outreach (AOA not sent / not signed).
   message_sent_auto:     { status: null,                          outreach: true,  category: 'outreach' },
+  // ── Phase 10 (Tyler msg 28887): Close Tracking + Revenue Attribution ─────
+  // All four are TERMINAL events. Each requires payload:
+  //   { final_value, original_value, tax_savings, revenue_collected, outcome_date }
+  // The controller (not callers) writes outcome_status, closed_at, closed_by, and
+  // marks status as CLOSED_<outcome>. activity_log entry is written first as always.
+  case_won:       { status: 'CLOSED_WON',       outreach: false, category: 'outcome', terminal: true, outcome_status: 'won' },
+  case_lost:      { status: 'CLOSED_LOST',      outreach: false, category: 'outcome', terminal: true, outcome_status: 'lost' },
+  no_change:      { status: 'CLOSED_NO_CHANGE', outreach: false, category: 'outcome', terminal: true, outcome_status: 'no_change' },
+  withdrawn:      { status: 'CLOSED_WITHDRAWN', outreach: false, category: 'outcome', terminal: true, outcome_status: 'withdrawn' },
 };
 
 // Statuses that NEVER allow downgrade (terminal/protected). Manual lock can still apply.
-const PROTECTED_STATUSES = new Set(['FILED', 'WITHDRAWN', 'CLOSED', 'PROTEST_HEARING_SCHEDULED', 'PROTEST_RESOLVED']);
+const PROTECTED_STATUSES = new Set(['FILED', 'WITHDRAWN', 'CLOSED', 'PROTEST_HEARING_SCHEDULED', 'PROTEST_RESOLVED',
+  // Phase 10 terminal close states — once closed, do not auto-revert.
+  'CLOSED_WON', 'CLOSED_LOST', 'CLOSED_NO_CHANGE', 'CLOSED_WITHDRAWN']);
 
 // Surface-detected column set, populated lazily.
 let _columnsCache = null;
@@ -350,6 +361,40 @@ async function updateCaseState(caseId, event, payload = {}) {
   if (payload.flag_updates && cols.has('automation_flags')) {
     const merged = { ...(row.automation_flags || {}), ...payload.flag_updates };
     patch.automation_flags = merged;
+  }
+
+  // ── Phase 10 (Tyler msg 28887): outcome-event payload validation + writes ──
+  // For case_won / case_lost / no_change / withdrawn the controller is the SINGLE writer
+  // of outcome_status, outcome_date, final_value, original_value, tax_savings,
+  // revenue_collected, closed_at, closed_by. Callers cannot write these directly.
+  if (def.terminal && def.outcome_status) {
+    // Required numeric fields. Allow zero (e.g. lost = $0 savings) but not undefined/NaN.
+    const required = ['final_value', 'original_value', 'tax_savings', 'revenue_collected'];
+    const missing  = required.filter(k => payload[k] === undefined || payload[k] === null || Number.isNaN(Number(payload[k])));
+    if (missing.length) {
+      throw new Error(`updateCaseState: event=${event} requires numeric payload fields [${missing.join(', ')}]`);
+    }
+    // Sanity: final_value must be ≤ original_value for 'won' outcomes.
+    const fv = Number(payload.final_value);
+    const ov = Number(payload.original_value);
+    if (def.outcome_status === 'won' && fv > ov) {
+      warnings.push(`case_won: final_value (${fv}) > original_value (${ov}) — not a reduction; consider no_change`);
+    }
+    if (cols.has('outcome_status'))    patch.outcome_status    = def.outcome_status;
+    if (cols.has('outcome_date'))      patch.outcome_date      = payload.outcome_date || NOW;
+    if (cols.has('final_value'))       patch.final_value       = fv;
+    if (cols.has('original_value'))    patch.original_value    = ov;
+    if (cols.has('tax_savings'))       patch.tax_savings       = Number(payload.tax_savings);
+    if (cols.has('revenue_collected')) patch.revenue_collected = Number(payload.revenue_collected);
+    if (cols.has('closed_at'))         patch.closed_at         = NOW;
+    if (cols.has('closed_by'))         patch.closed_by         = payload.actor || 'unknown';
+    // Legacy mirror: keep `outcome` text in sync for any old callers.
+    if (cols.has('outcome')) {
+      patch.outcome = def.outcome_status === 'won' ? 'WIN'
+                    : def.outcome_status === 'lost' ? 'LOSS'
+                    : def.outcome_status === 'no_change' ? 'NO_CHANGE'
+                    : 'WITHDRAWN';
+    }
   }
 
   // Lock if event requires it

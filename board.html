@@ -179,6 +179,14 @@
     .badge-auto      { background: rgba(124,156,255,0.12); color: var(--accent); }
     .badge-overdue   { background: var(--warn-bg); color: var(--warn); }
     .badge-escalated { background: var(--bad-bg); color: var(--bad); animation: pulse 2s infinite; }
+    /* Phase 10: outcome badge classes */
+    .badge-outcome-won       { background: #10b981; color: #fff; }
+    .badge-outcome-lost      { background: #ef4444; color: #fff; }
+    .badge-outcome-no-change { background: #6b7280; color: #fff; }
+    .badge-outcome-withdrawn { background: #f59e0b; color: #fff; }
+    /* Closed cards: muted opacity */
+    .card.closed-case { opacity: 0.55; }
+    .card.closed-case:hover { opacity: 0.8; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
     .card-line1 {
       display: flex;
@@ -575,10 +583,12 @@
       const days = card.days_since_last_activity;
       const url = '/case?id=' + encodeURIComponent(card.case_id);
 
+      const isClosed = (card.status || '').startsWith('CLOSED_');
       const classes = ['card'];
       if (hv) classes.push('high-value');
       if (stale === 'warning')  classes.push('stale-warning');
       if (stale === 'critical') classes.push('stale-critical');
+      if (isClosed) classes.push('closed-case');
 
       const staleBadge = (stale === 'warning' || stale === 'critical')
         ? `<span class="badge badge-stale-${stale}" title="${days}d since last activity">⏱ ${days}d</span>`
@@ -591,6 +601,12 @@
       // Phase 9: auto-outreach badge
       const autoMsgCount = card.auto_outreach_count || 0;
       const autoMsgBadge = card.auto_message_sent ? `<span class="badge badge-auto" title="Auto-outreach sent">📤 Auto msg${autoMsgCount > 1 ? ' (×' + autoMsgCount + ')' : ''}</span>` : '';
+      // Phase 10: outcome badge
+      const outcomeLabels = { won: 'WON', lost: 'LOST', no_change: 'NO CHANGE', withdrawn: 'WITHDRAWN' };
+      const outcomeCls    = { won: 'badge-outcome-won', lost: 'badge-outcome-lost', no_change: 'badge-outcome-no-change', withdrawn: 'badge-outcome-withdrawn' };
+      const outcomeBadge = card.outcome_status
+        ? `<span class="badge ${outcomeCls[card.outcome_status] || ''}">${outcomeLabels[card.outcome_status] || card.outcome_status}</span>`
+        : '';
 
       return `
         <a class="${classes.join(' ')}" href="${url}">
@@ -611,6 +627,7 @@
           <div class="card-foot">
             ${hvBadge}
             ${staleBadge}
+            ${outcomeBadge}
             ${autoBadge}${overdueBadge}${escalBadge}${autoMsgBadge}
             <span class="badge badge-status">${escapeHtml(status)}</span>
             ${locked ? '<span class="badge badge-locked" title="manual_status_lock=true">🔒 Lock</span>' : ''}

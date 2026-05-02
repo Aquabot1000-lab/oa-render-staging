@@ -281,6 +281,19 @@
         .confirm-box p  { color:#94a3b8; font-size:14px; margin-bottom:16px; line-height:1.5; }
         .confirm-box textarea { width:100%; background:#0f1117; color:#e2e8f0; border:1px solid #2d3148; border-radius:6px; padding:10px; font-size:13px; font-family:inherit; resize:vertical; min-height:70px; margin-bottom:16px; }
         .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
+        /* Phase 10: Close Case modal */
+        .close-case-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; }
+        .close-case-modal.open { display:flex; }
+        .close-case-box { background:#1a1d2e; border:1px solid #2d3148; border-radius:14px; padding:24px; max-width:480px; width:92%; }
+        .close-case-box h3 { color:#f1f5f9; font-size:17px; margin-bottom:4px; }
+        .close-case-box .sub { color:#94a3b8; font-size:13px; margin-bottom:18px; }
+        .close-case-field { margin-bottom:14px; }
+        .close-case-field label { display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+        .close-case-field select,
+        .close-case-field input  { width:100%; background:#0f1117; color:#e2e8f0; border:1px solid #2d3148; border-radius:6px; padding:8px 10px; font-size:14px; font-family:inherit; box-sizing:border-box; }
+        .close-case-field input:focus, .close-case-field select:focus { outline:none; border-color:#6366f1; }
+        .close-case-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
+        .close-case-err { color:#fca5a5; font-size:13px; margin-top:10px; display:none; }
         /* timeline enhanced */
         .timeline-actor { font-size:11px; color:#a78bfa; font-weight:600; }
         .timeline-diff  { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#94a3b8; margin-top:3px; }
@@ -316,6 +329,7 @@
                         <button onclick="cmdRebuildPackage()">📦 Rebuild Package</button>
                         <button class="admin-only-item" data-admin-only onclick="cmdLock()">🔒 Lock</button>
                         <button class="admin-only-item" data-admin-only onclick="cmdUnlock()">🔓 Unlock</button>
+                        <button class="admin-only-item" data-admin-only onclick="cmdCloseCase()">🏁 Close Case</button>
                     </div>
                 </div>
             </div>
@@ -2125,6 +2139,106 @@
         // Apply role gating once user is known
         if (currentUser) applyRoleGating();
         else { const _u = setInterval(() => { if (currentUser) { applyRoleGating(); clearInterval(_u); } }, 200); }
+
+        // ── Phase 10: Close Case modal ──────────────────────────────
+        function cmdCloseCase() {
+            if (!isAdmin()) return showToast('❌ Admin only', 'error');
+            // Pre-fill original_value from case data if available
+            const assessedVal = (window._caseData && window._caseData.assessed_value) ? window._caseData.assessed_value : '';
+            let modal = document.getElementById('closeCaseModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'closeCaseModal';
+                modal.className = 'close-case-modal';
+                modal.innerHTML = `
+                  <div class="close-case-box">
+                    <h3>🏁 Close Case</h3>
+                    <div class="sub">Record final protest outcome. This is a terminal action and cannot be undone.</div>
+                    <div class="close-case-field">
+                      <label>Outcome</label>
+                      <select id="ccEvent">
+                        <option value="case_won">Won</option>
+                        <option value="case_lost">Lost</option>
+                        <option value="no_change">No Change</option>
+                        <option value="withdrawn">Withdrawn</option>
+                      </select>
+                    </div>
+                    <div class="close-case-field">
+                      <label>Final Value ($)</label>
+                      <input type="number" id="ccFinalValue" placeholder="285000" min="0">
+                    </div>
+                    <div class="close-case-field">
+                      <label>Original Value ($)</label>
+                      <input type="number" id="ccOriginalValue" placeholder="340000" min="0">
+                    </div>
+                    <div class="close-case-field">
+                      <label>Tax Savings ($)</label>
+                      <input type="number" id="ccTaxSavings" placeholder="1237.50" min="0" step="0.01">
+                    </div>
+                    <div class="close-case-field">
+                      <label>Revenue Collected ($) <span style="color:#6366f1;font-size:11px;">auto = savings × 0.25</span></label>
+                      <input type="number" id="ccRevenue" placeholder="309.38" min="0" step="0.01">
+                    </div>
+                    <div class="close-case-field">
+                      <label>Outcome Date</label>
+                      <input type="date" id="ccDate">
+                    </div>
+                    <div class="close-case-err" id="ccErr"></div>
+                    <div class="close-case-actions">
+                      <button class="btn-outline" onclick="document.getElementById('closeCaseModal').classList.remove('open')">Cancel</button>
+                      <button class="btn-primary" style="background:#10b981;" onclick="submitCloseCase()">Confirm Close</button>
+                    </div>
+                  </div>`;
+                document.body.appendChild(modal);
+                // Auto-compute revenue when tax_savings changes
+                document.getElementById('ccTaxSavings').addEventListener('input', function() {
+                    const rev = document.getElementById('ccRevenue');
+                    if (rev && !rev.dataset.dirty) rev.value = Math.round(Number(this.value) * 0.25 * 100) / 100 || '';
+                });
+                document.getElementById('ccRevenue').addEventListener('input', function() {
+                    this.dataset.dirty = '1';
+                });
+            }
+            // Set defaults
+            document.getElementById('ccOriginalValue').value = assessedVal;
+            document.getElementById('ccDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ccErr').style.display = 'none';
+            document.getElementById('ccRevenue').removeAttribute('data-dirty');
+            modal.classList.add('open');
+        }
+
+        async function submitCloseCase() {
+            const errEl = document.getElementById('ccErr');
+            const payload = {
+                case_id: caseId,
+                event: document.getElementById('ccEvent').value,
+                final_value: Number(document.getElementById('ccFinalValue').value),
+                original_value: Number(document.getElementById('ccOriginalValue').value),
+                tax_savings: Number(document.getElementById('ccTaxSavings').value),
+                revenue_collected: Number(document.getElementById('ccRevenue').value),
+                outcome_date: document.getElementById('ccDate').value
+            };
+            const badFields = ['final_value','original_value','tax_savings','revenue_collected'].filter(k => !Number.isFinite(payload[k]));
+            if (badFields.length) {
+                errEl.textContent = 'Please fill in all numeric fields: ' + badFields.join(', ');
+                errEl.style.display = 'block';
+                return;
+            }
+            try {
+                const r = await window.authedFetch('/api/case-view/action/close-case', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const j = await r.json();
+                if (!r.ok || j.error) throw new Error(j.error || 'HTTP ' + r.status);
+                document.getElementById('closeCaseModal').classList.remove('open');
+                showToast('✓ Case closed — ' + payload.event.replace('_', ' '), 'success');
+                await loadAll();
+            } catch (e) {
+                errEl.textContent = e.message;
+                errEl.style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>
