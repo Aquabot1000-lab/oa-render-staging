@@ -1082,43 +1082,68 @@ router.post('/send', async (req, res) => {
         const { case_id, email, phone, owner_name } = req.body;
         if (!case_id || !email) return res.status(400).json({ error: 'case_id and email required' });
 
-        // ── DUPLICATE-SIGNATURE GUARD (Tyler msg 28792, 2026-05-02) ──────────
-        // Hard block: if customer has already signed (either AOA or fee agreement),
-        // do NOT create another token, do NOT email. Log a prevention event so
-        // we have an audit trail of every blocked attempt.
-        // Root cause of OA-0013 Apr 26 duplicate: this endpoint had no pre-flight check.
+        // ── PRE-FLIGHT GUARDS (Tyler msg 28792 + 28814, 2026-05-02) ──────────────
+        // ORDER (do not change without thinking through state machine):
+        //   1. INVALID-CASE GUARD: case must exist in submissions  →  404
+        //   2. DUPLICATE-SIGNATURE GUARD: aoa OR fee already signed →  409
+        //   3. Proceed (token + email)
+        //
+        // Both guards share ONE query. Every block writes to activity_log.
+        // Root cause of OA-0013 Apr 26 duplicate: this endpoint had no pre-flight checks.
+        let existingSub;
         try {
-            const { data: existingSub } = await supabaseAdmin
+            const { data, error: lookupErr } = await supabaseAdmin
                 .from('submissions')
-                .select('aoa_signed, fee_agreement_signed')
+                .select('case_id, aoa_signed, fee_agreement_signed')
                 .eq('case_id', case_id)
-                .single();
-
-            if (existingSub && (existingSub.aoa_signed === true || existingSub.fee_agreement_signed === true)) {
-                console.warn(`[esign/send] BLOCKED duplicate sign request for ${case_id} — already signed (aoa=${existingSub.aoa_signed}, fee=${existingSub.fee_agreement_signed})`);
-                await supabaseAdmin.from('activity_log').insert({
-                    case_id,
-                    actor: 'system:esign-guard',
-                    action: 'sign_prompt_blocked',
-                    details: {
-                        reason: 'aoa_signed OR fee_agreement_signed = true — duplicate send prevented',
-                        endpoint: 'POST /api/esign/send',
-                        attempted_recipient: email,
-                        aoa_signed: existingSub.aoa_signed,
-                        fee_agreement_signed: existingSub.fee_agreement_signed,
-                    },
-                    created_at: new Date().toISOString(),
-                }).catch(() => {});
-                return res.status(409).json({
-                    error: 'Customer has already signed their authorization. Duplicate signing email blocked.',
-                    already_signed: true,
-                    case_id,
-                });
-            }
+                .maybeSingle();
+            // maybeSingle() returns data=null when 0 rows (no error). Real DB errors still throw.
+            if (lookupErr) throw lookupErr;
+            existingSub = data;
         } catch (guardErr) {
-            console.error(`[esign/send] guard pre-flight check failed for ${case_id}:`, guardErr.message);
-            // Fail-closed: if we can't verify signed state, block to be safe
-            return res.status(503).json({ error: 'Signature pre-flight check failed; refusing to send to avoid duplicate prompts.' });
+            console.error(`[esign/send] pre-flight DB check failed for ${case_id}:`, guardErr.message);
+            // Fail-closed: if we can't verify state, block to be safe
+            return res.status(503).json({ error: 'Pre-flight check failed; refusing to send to avoid invalid/duplicate prompts.' });
+        }
+
+        // ---- Guard 1: invalid case ----
+        if (!existingSub) {
+            console.warn(`[esign/send] BLOCKED — case ${case_id} not found in submissions`);
+            await supabaseAdmin.from('activity_log').insert({
+                case_id,
+                actor: 'system:esign-guard',
+                action: 'sign_request_invalid_case',
+                details: {
+                    endpoint: 'POST /api/esign/send',
+                    case_id,
+                    attempted_recipient: email,
+                },
+                created_at: new Date().toISOString(),
+            }).catch(() => {});
+            return res.status(404).json({ error: 'Case not found', case_id });
+        }
+
+        // ---- Guard 2: already signed ----
+        if (existingSub.aoa_signed === true || existingSub.fee_agreement_signed === true) {
+            console.warn(`[esign/send] BLOCKED duplicate sign request for ${case_id} — already signed (aoa=${existingSub.aoa_signed}, fee=${existingSub.fee_agreement_signed})`);
+            await supabaseAdmin.from('activity_log').insert({
+                case_id,
+                actor: 'system:esign-guard',
+                action: 'sign_prompt_blocked',
+                details: {
+                    reason: 'aoa_signed OR fee_agreement_signed = true — duplicate send prevented',
+                    endpoint: 'POST /api/esign/send',
+                    attempted_recipient: email,
+                    aoa_signed: existingSub.aoa_signed,
+                    fee_agreement_signed: existingSub.fee_agreement_signed,
+                },
+                created_at: new Date().toISOString(),
+            }).catch(() => {});
+            return res.status(409).json({
+                error: 'Customer has already signed their authorization. Duplicate signing email blocked.',
+                already_signed: true,
+                case_id,
+            });
         }
         // ─────────────────────────────────────────────────────────────────────
 

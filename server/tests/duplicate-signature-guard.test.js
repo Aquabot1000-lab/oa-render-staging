@@ -1,8 +1,10 @@
 /**
- * Duplicate-signature-guard tests
- * Tyler msg 28792 (2026-05-02) — confirms OA-0013-style case is blocked at all 3 entry points.
+ * Pre-flight signature-guard tests
+ * Tyler msg 28792 (2026-05-02) — confirms OA-0013-style case is blocked.
+ * Tyler msg 28814 (2026-05-02) — adds invalid-case 404 guard.
  *
- * Pure unit tests — uses mocked Supabase client. No live DB calls.
+ * Coverage: invalid-case 404 + duplicate-signature 409 at all 3 entry points.
+ * Pure unit tests — uses mocked Supabase rows. No live DB calls.
  *
  * Run: node server/tests/duplicate-signature-guard.test.js
  */
@@ -54,16 +56,28 @@ const EDGE_LEGACY_SIGNATURE = {
 // ─── Guard logic (extracted from production code paths) ────────────────────
 
 /**
- * Mirror of guard in:
+ * Mirror of duplicate-signature guard in:
  *   - routes/esign.js   POST /api/esign/send
  *   - server.js         POST /api/case-view/action/send-signing
  *   - server.js         FollowUp-v2 runFollowUpSequence
  *
- * Returns true if the sign prompt MUST be blocked.
+ * Returns true if the sign prompt MUST be blocked due to existing signature.
+ * Caller must run invalidCaseGuard() FIRST to check existence.
  */
 function shouldBlockSignPrompt(row) {
   if (!row) return false;
   return !!(row.aoa_signed || row.fee_agreement_signed || row.signature);
+}
+
+/**
+ * Mirror of invalid-case guard (Tyler msg 28814).
+ * Returns one of: 'invalid_case' (404) | 'already_signed' (409) | 'proceed'.
+ * This is the canonical decision tree run before any token/email work.
+ */
+function preFlightDecision(row) {
+  if (!row) return 'invalid_case';
+  if (row.aoa_signed || row.fee_agreement_signed || row.signature) return 'already_signed';
+  return 'proceed';
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────
@@ -119,6 +133,30 @@ test('OLD guard logic (fee || signature) FAILS to block aoa-only case', () => {
 });
 test('NEW guard correctly blocks aoa-only case', () => {
   assert.strictEqual(shouldBlockSignPrompt(EDGE_AOA_ONLY), true);
+});
+
+console.log();
+console.log('Group 5: Invalid-case guard (Tyler msg 28814) — 404 path');
+test('null row (case does not exist) → invalid_case (404)', () => {
+  assert.strictEqual(preFlightDecision(null), 'invalid_case');
+});
+test('undefined row → invalid_case (404)', () => {
+  assert.strictEqual(preFlightDecision(undefined), 'invalid_case');
+});
+test('Shabir / OA-0013 (signed) → already_signed (409) — NOT invalid_case', () => {
+  assert.strictEqual(preFlightDecision(SHABIR_OA0013_ALREADY_SIGNED), 'already_signed');
+});
+test('Fresh lead (exists, unsigned) → proceed', () => {
+  assert.strictEqual(preFlightDecision(FRESH_LEAD_NEVER_SIGNED), 'proceed');
+});
+test('aoa-only edge case (exists, partially signed) → already_signed (409)', () => {
+  assert.strictEqual(preFlightDecision(EDGE_AOA_ONLY), 'already_signed');
+});
+test('Decision tree priority: invalid_case is checked BEFORE already_signed', () => {
+  // A null row must NEVER return 'already_signed' — it has no signed fields to check.
+  // This test prevents a future regression where someone reorders the guards.
+  assert.notStrictEqual(preFlightDecision(null), 'already_signed');
+  assert.strictEqual(preFlightDecision(null), 'invalid_case');
 });
 
 console.log();

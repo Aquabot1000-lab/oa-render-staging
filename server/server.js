@@ -1584,9 +1584,20 @@ async function runFollowUpSequence() {
             // Skip excluded cases
             if (c.automation_excluded || c.manual_only) continue;
 
-            // SIGNING GUARD — skip cases that are already signed (Tyler msg 28792, 2026-05-02 — hardened)
-            // Hard block: aoa_signed OR fee_agreement_signed OR signature = true
-            // Root cause of OA-0013 Apr 26 duplicate: this guard didn't check aoa_signed,
+            // PRE-FLIGHT GUARDS (Tyler msg 28792 + 28814, 2026-05-02 — hardened)
+            // Order: invalid-case skip → duplicate-signature skip → proceed.
+            // FollowUp-v2 already iterates rows from submissions, so every row
+            // is by definition a valid case. The invalid-case skip is here for
+            // defense in depth: catches any malformed row (e.g. NULL case_id).
+
+            // ---- Guard 1: invalid/malformed case ----
+            if (!c || !c.case_id) {
+                console.log('[FollowUp-v2] Skipped malformed row — missing case_id');
+                continue;
+            }
+
+            // ---- Guard 2: already signed ----
+            // Root cause of OA-0013 Apr 26 duplicate: old guard didn't check aoa_signed,
             // so cases with aoa_signed=true could still receive follow-up sign prompts.
             if (c.aoa_signed || c.fee_agreement_signed || c.signature) {
                 console.log('[FollowUp-v2] Skipped ' + c.case_id + ' — already signed (aoa=' + !!c.aoa_signed + ', fee=' + !!c.fee_agreement_signed + ', sig=' + !!c.signature + ')');
@@ -3233,14 +3244,43 @@ if (isSupabaseEnabled()) {
             const { case_id, channel, phone, email, owner_name, estimated_savings } = req.body;
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
 
-            // SIGNING GUARD — check if already signed (Tyler msg 28792, 2026-05-02 — hardened)
-            // Hard block: aoa_signed OR fee_agreement_signed OR signature = true
-            // Root cause of OA-0013 Apr 26 duplicate: this guard only checked fee_agreement_signed
-            // and signature, missing aoa_signed. Now checks all 3 + logs every block to activity_log.
-            const { data: signCheck } = await supabaseAdmin.from('submissions')
-                .select('aoa_signed, fee_agreement_signed, fee_agreement_signed_at, signature')
-                .eq('case_id', case_id).single();
-            if (signCheck && (signCheck.aoa_signed || signCheck.fee_agreement_signed || signCheck.signature)) {
+            // PRE-FLIGHT GUARDS (Tyler msg 28792 + 28814, 2026-05-02 — hardened)
+            // ORDER:
+            //   1. INVALID-CASE GUARD: case must exist in submissions  →  404
+            //   2. DUPLICATE-SIGNATURE GUARD: aoa OR fee OR sig = true →  409
+            //   3. Proceed
+            // Both guards share ONE query. Every block writes activity_log.
+            let signCheck;
+            try {
+                const { data, error: lookupErr } = await supabaseAdmin.from('submissions')
+                    .select('case_id, aoa_signed, fee_agreement_signed, fee_agreement_signed_at, signature')
+                    .eq('case_id', case_id).maybeSingle();
+                if (lookupErr) throw lookupErr;
+                signCheck = data;
+            } catch (lookupErr) {
+                console.error(`[Action:SendSigning] pre-flight DB check failed for ${case_id}:`, lookupErr.message);
+                return res.status(503).json({ error: 'pre_flight_failed', message: 'Pre-flight check failed; refusing to send.' });
+            }
+
+            // ---- Guard 1: invalid case ----
+            if (!signCheck) {
+                console.log(`[Action:SendSigning] ⛔ BLOCKED — case ${case_id} not found in submissions`);
+                await supabaseAdmin.from('activity_log').insert({
+                    case_id,
+                    actor: 'system:signing-guard',
+                    action: 'sign_request_invalid_case',
+                    details: {
+                        endpoint: 'POST /api/case-view/action/send-signing',
+                        case_id,
+                        attempted_recipient: email,
+                    },
+                    created_at: new Date().toISOString(),
+                }).catch(() => {});
+                return res.status(404).json({ error: 'case_not_found', message: 'Case not found', case_id });
+            }
+
+            // ---- Guard 2: already signed ----
+            if (signCheck.aoa_signed || signCheck.fee_agreement_signed || signCheck.signature) {
                 console.log(`[Action:SendSigning] ⛔ BLOCKED — ${case_id} already signed (aoa=${signCheck.aoa_signed}, fee=${signCheck.fee_agreement_signed}, at=${signCheck.fee_agreement_signed_at || 'unknown'})`);
                 await supabaseAdmin.from('activity_log').insert({
                     case_id,
