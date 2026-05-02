@@ -89,6 +89,8 @@
         .tab.active{background:#1f6feb;color:#fff}
         .panel{display:none}.panel.active{display:block}
     </style>
+  <!-- P0 auth client (2026-05-01) -->
+  <script src="/lib/auth-client.js"></script>
 </head>
 <body>
     <div class="header">
@@ -218,7 +220,10 @@
 const SB='https://ylxreuqvofgbpsatfsvr.supabase.co';
 const OA='https://disciplined-alignment-production.up.railway.app';
 const MC='https://mission-control-production-8225.up.railway.app';
-let tk='';
+// P0: auth guard — no hardcoded credentials
+const _currentUser = AuthClient.requireAuth({ minRole: 'operator' });
+if (!_currentUser) { throw new Error('AUTH_REDIRECT'); }
+let tk = AuthClient.getToken(); // pre-seeded from localStorage
 
 function showTab(id){
     document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',t.textContent.toLowerCase().includes(id)||
@@ -272,17 +277,10 @@ function followUpInfo(fu){
 function pct(n){return n!=null?Math.round(n*10)/10+'%':'—'}
 function card(num,lbl,cls,sub){return `<div class="card ${cls||''}"><div class="num ${cls?cls[0]:''}">${num}</div><div class="lbl">${lbl}</div>${sub?'<div class="sub">'+sub+'</div>':''}</div>`}
 
-async function getToken(){
-    if(tk)return tk;
-    try{
-        const r=await fetch(OA+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'tyler@overassessed.ai',password:'OverAssessed!2026'})});
-        const d=await r.json();tk=d.token;return tk;
-    }catch(e){return'';}
-}
+function getToken(){ return AuthClient.getToken() || ''; }
 
 async function apiFetch(path){
-    const t=await getToken();
-    const r=await fetch(OA+path,{headers:{'Authorization':'Bearer '+t}});
+    const r = await AuthClient.fetchAuthed(path);
     return r.json();
 }
 

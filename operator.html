@@ -106,8 +106,12 @@
   </div>
 </div>
 
+<script src="/lib/auth-client.js"></script>
 <script>
-const TOKEN = localStorage.getItem('oa_token') || sessionStorage.getItem('oa_token');
+// P0 (2026-05-01): use shared AuthClient. Operator/admin both allowed.
+const _user = AuthClient.requireAuth({ minRole: 'operator' });
+if (!_user) { throw new Error('AUTH_REDIRECT'); }
+const TOKEN = AuthClient.getToken();
 async function load() {
   try {
     const headers = TOKEN ? { 'Authorization': `Bearer ${TOKEN}` } : {};

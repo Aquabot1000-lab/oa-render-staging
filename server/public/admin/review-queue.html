@@ -32,6 +32,8 @@
         .filters button.active { background: #4fc3f7; color: #000; }
         #loading { text-align: center; padding: 40px; color: #888; }
     </style>
+  <!-- P0 auth client (2026-05-01) -->
+  <script src="/lib/auth-client.js"></script>
 </head>
 <body>
     <h1>📋 Document Review Queue</h1>
@@ -67,18 +69,12 @@
 <script>
 const OA = window.location.origin;
 let allQueue = [];
-let token = localStorage.getItem('oa_token');
+// P0: auth guard — no hardcoded credentials
+const _currentUser = AuthClient.requireAuth({ minRole: 'operator' });
+if (!_currentUser) { throw new Error('AUTH_REDIRECT'); }
+const token = AuthClient.getToken();
 
-async function login() {
-    const r = await fetch(OA + '/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'tyler@overassessed.ai', password: 'OverAssessed!2026' })
-    });
-    const d = await r.json();
-    token = d.token;
-    localStorage.setItem('oa_token', token);
-}
+// login() removed — auth is now handled by AuthClient via /login page
 
 function badgeClass(status) {
     if (status === 'No Case') return 'badge-nocase';
@@ -123,10 +119,9 @@ function filterBy(status) {
 }
 
 async function load() {
-    if (!token) await login();
     try {
-        const r = await fetch(OA + '/api/admin/review-queue', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (r.status === 401 || r.status === 403) { await login(); return load(); }
+        const r = await AuthClient.fetchAuthed(OA + '/api/admin/review-queue');
+        if (r.status === 401) { AuthClient.logout(); return; }
         const d = await r.json();
         allQueue = d.queue;
         renderSummary(d.summary);

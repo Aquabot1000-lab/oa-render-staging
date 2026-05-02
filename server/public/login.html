@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sign in — Worthey Enterprise</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0c10, #161b22);
+      color: #c9d1d9;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    h1 { font-size: 22px; color: #fff; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: #8b949e; margin-bottom: 28px; }
+    label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    input {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #f0f6fc;
+      font-size: 14px;
+      margin-bottom: 18px;
+      transition: border-color .15s;
+    }
+    input:focus { outline: none; border-color: #58a6ff; }
+    button {
+      width: 100%;
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 11px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    button:hover { background: #2ea043; }
+    button:disabled { background: #484f58; cursor: not-allowed; }
+    .err {
+      background: rgba(248,81,73,0.1);
+      color: #f85149;
+      border: 1px solid rgba(248,81,73,0.4);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .err.show { display: block; }
+    .footer { font-size: 11px; color: #484f58; text-align: center; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <form class="card" id="loginForm" autocomplete="on">
+    <h1>Worthey Enterprise</h1>
+    <div class="sub">Sign in to access the case operator console.</div>
+
+    <div class="err" id="err"></div>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required autocomplete="username" autofocus />
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required autocomplete="current-password" />
+
+    <button type="submit" id="submitBtn">Sign in</button>
+
+    <div class="footer">Authorized users only. All access is logged.</div>
+  </form>
+
+  <script>
+    const TOKEN_KEY = 'oa_auth_token';
+    const USER_KEY  = 'oa_auth_user';
+    const params    = new URLSearchParams(window.location.search);
+    const returnTo  = params.get('return') || '/admin';
+
+    const form = document.getElementById('loginForm');
+    const errEl = document.getElementById('err');
+    const btn = document.getElementById('submitBtn');
+
+    function showErr(msg) { errEl.textContent = msg; errEl.classList.add('show'); }
+    function clearErr() { errEl.textContent = ''; errEl.classList.remove('show'); }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErr();
+      btn.disabled = true; btn.textContent = 'Signing in…';
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await r.json();
+
+        if (!r.ok) {
+          showErr(data.error || 'Invalid credentials');
+          btn.disabled = false; btn.textContent = 'Sign in';
+          return;
+        }
+
+        // Forced password change flow — redirect to setup page
+        if (data.must_change_password) {
+          window.location.replace(data.redirect || `/auth/setup?token=${data.setup_token}`);
+          return;
+        }
+
+        // Store token + user
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+
+        // Bounce to where the user was trying to go
+        // Prevent open-redirect: only allow same-origin paths
+        let target = returnTo;
+        if (!target.startsWith('/') || target.startsWith('//')) target = '/admin';
+        window.location.replace(target);
+      } catch (e) {
+        showErr('Network error: ' + e.message);
+        btn.disabled = false; btn.textContent = 'Sign in';
+      }
+    });
+
+    // If already authenticated and not expired, skip straight to returnTo
+    (function () {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) return;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.exp && Date.now() / 1000 < payload.exp) {
+          let target = returnTo;
+          if (!target.startsWith('/') || target.startsWith('//')) target = '/admin';
+          // Only auto-redirect if they were sent here by an auth guard, not if
+          // they intentionally typed /login (no return= param).
+          if (params.has('return')) window.location.replace(target);
+        }
+      } catch { /* malformed token, stay on page */ }
+    })();
+  </script>
+</body>
+</html>

@@ -18,15 +18,8 @@ async function readJsonFile(f) {
     if (!Array.isArray(users)) users = [];
     console.log('Users before boot:', users.map(u => u.email + ' (' + u.role + ')'));
     
-    // Admin account — always reset password
-    const adminHash = await bcrypt.hash('OverAssessed!2026', 10);
-    const adminIdx = users.findIndex(u => u.email === 'tyler@overassessed.ai');
-    if (adminIdx >= 0) {
-        users[adminIdx].password = adminHash;
-        users[adminIdx].role = 'admin';
-    } else {
-        users.push({ id: uuidv4(), email: 'tyler@overassessed.ai', password: adminHash, name: 'Tyler Worthey', role: 'admin', createdAt: new Date().toISOString() });
-    }
+    // P0 (2026-05-01): password reset removed from test script.
+    // Use INIT_ADMIN_PASSWORD env var or /api/auth/issue-setup-link instead.
     
     // Uri agent account — create if missing, reset password if exists
     const uriHash = await bcrypt.hash('OA-Uri-2026!', 10);

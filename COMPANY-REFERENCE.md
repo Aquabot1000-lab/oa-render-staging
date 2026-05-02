@@ -62,8 +62,8 @@
 - **Publishable Key:** sb_publishable_nzhOPJSnpZ0j6O5sMQji2Q_dxGvSrsz
 - **Tables:** clients, properties, appeals, documents, payments, case_counter, exemptions, referrals
 - **Auth Users:**
-  - Tyler: d797f5f5... / OverAssessed!2026
-  - Uri: 85a64b2e... / OverAssessed!Uri2026
+  - Tyler: d797f5f5... / [password rotated — see 1Password]
+  - Uri: 85a64b2e... / [password rotated — see 1Password]
 - **psql path:** /opt/homebrew/opt/libpq/bin/psql
 
 ---

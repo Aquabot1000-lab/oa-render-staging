@@ -177,6 +177,11 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '..', 'adm
 app.get('/case', (req, res) => res.sendFile(path.join(__dirname, '..', 'case.html')));
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
 app.get('/operator', (req, res) => res.sendFile(path.join(__dirname, '..', 'operator.html')));
+// P0 (2026-05-01): proper login page replaces hard-coded auto-login in admin pages.
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+// Shared frontend auth client (used by case.html, command-center, review-queue, admin)
+app.get('/lib/auth-client.js', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'lib', 'auth-client.js')));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -814,25 +819,20 @@ async function initializeDataFiles() {
             }
         }
     } catch { /* no legacy file, fine */ }
-    // Ensure Tyler admin account exists on boot (preserve existing users)
-    // NOTE: Uri's password is NO LONGER reset on boot — he manages his own credential
-    // via the magic-link reset flow. Tyler's reset stays intentional per current ops.
-    {
-        let users = await readJsonFile(USERS_FILE);
-        if (!Array.isArray(users)) users = [];
-
-        // Admin account — always reset password to known value (Tyler-only)
-        const adminHash = await bcrypt.hash('OverAssessed!2026', 10);
-        const adminIdx = users.findIndex(u => u.email === 'tyler@overassessed.ai');
-        if (adminIdx >= 0) {
-            users[adminIdx].password = adminHash;
-            users[adminIdx].role = 'admin';
-        } else {
-            users.push({ id: uuidv4(), email: 'tyler@overassessed.ai', password: adminHash, name: 'Tyler Worthey', role: 'admin', createdAt: new Date().toISOString() });
-        }
-
-        await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-        console.log('[Init] Tyler admin synced — tyler@overassessed.ai (admin)');
+    // P0 (2026-05-01): Removed hard-coded password reset on boot.
+    // Auth is now Supabase-backed (auth_users table). The users.json file is a
+    // read-only boot fallback ONLY and must not be used to reset passwords.
+    // To reset Tyler's password: use /api/auth/issue-setup-link (admin-only) or
+    // set INIT_ADMIN_PASSWORD env var for a one-time forced reset (then unset it).
+    if (process.env.INIT_ADMIN_PASSWORD) {
+        try {
+            const adminHash = await bcrypt.hash(process.env.INIT_ADMIN_PASSWORD, 10);
+            const { error } = await supabaseAdmin.from('auth_users')
+                .update({ password_hash: adminHash, must_change_password: false, updated_at: new Date().toISOString() })
+                .eq('email', 'tyler@overassessed.ai');
+            if (error) console.error('[Init] INIT_ADMIN_PASSWORD reset failed:', error.message);
+            else console.log('[Init] INIT_ADMIN_PASSWORD applied to tyler@overassessed.ai — unset this env var now.');
+        } catch (e) { console.error('[Init] INIT_ADMIN_PASSWORD error:', e.message); }
     }
     await fs.mkdir(noticesDir, { recursive: true });
 }

@@ -926,7 +926,8 @@
     </div>
 
 <script>
-let token = localStorage.getItem('oa_token');
+// P0: prefer shared AuthClient key, fall back to legacy key
+let token = localStorage.getItem('oa_auth_token') || localStorage.getItem('oa_token');
 let currentUser = null;
 let submissions = [];
 let pipelineStats = {};
@@ -963,7 +964,10 @@ async function doLogin() {
         if (!res.ok) throw new Error(data.error);
         token = data.token;
         currentUser = data.user;
-        localStorage.setItem('oa_token', token);
+        // P0: store under shared AuthClient key so case.html + command-center share session
+        localStorage.setItem('oa_auth_token', token);
+        localStorage.setItem('oa_auth_user', JSON.stringify(data.user));
+        localStorage.setItem('oa_token', token); // legacy key kept for backward compat
         showDashboard();
     } catch (e) {
         const el = document.getElementById('loginError');

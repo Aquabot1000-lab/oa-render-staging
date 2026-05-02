@@ -272,12 +272,17 @@ function followUpInfo(fu){
 function pct(n){return n!=null?Math.round(n*10)/10+'%':'—'}
 function card(num,lbl,cls,sub){return `<div class="card ${cls||''}"><div class="num ${cls?cls[0]:''}">${num}</div><div class="lbl">${lbl}</div>${sub?'<div class="sub">'+sub+'</div>':''}</div>`}
 
+// P0 (2026-05-01): hardcoded credentials removed. This file is a local dev
+// copy — not served by the live server. Use /login to authenticate via
+// server/public/admin/command-center.html (the live-served version).
 async function getToken(){
     if(tk)return tk;
-    try{
-        const r=await fetch(OA+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'tyler@overassessed.ai',password:'OverAssessed!2026'})});
-        const d=await r.json();tk=d.token;return tk;
-    }catch(e){return'';}
+    tk=localStorage.getItem('oa_auth_token')||'';
+    if(!tk){
+        alert('No auth token found. Please sign in at /login first.');
+        window.location.replace('/login?return='+encodeURIComponent(window.location.pathname));
+    }
+    return tk;
 }
 
 async function apiFetch(path){
