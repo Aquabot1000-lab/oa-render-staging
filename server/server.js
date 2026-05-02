@@ -138,7 +138,13 @@ app.use((req, res, next) => {
 // ==================== BUILD VERSION (cache busting) ====================
 // Timestamp set at server start; changes on every deploy
 const BUILD_VERSION = Date.now().toString(36); // compact: e.g. 'lz5r8k1'
-console.log(`\u2705 Build version: ${BUILD_VERSION}`);
+// Render-injected vars (set automatically on every build by Render);
+// fall back gracefully when running locally or on another host.
+const BUILD_COMMIT = process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown';
+const BUILD_REPO   = process.env.RENDER_GIT_REPO_SLUG || 'Aquabot1000-lab/oa-render-staging';
+const BUILD_BRANCH = process.env.RENDER_GIT_BRANCH || 'main';
+const BUILD_STARTED_AT = new Date().toISOString();
+console.log(`\u2705 Build version: ${BUILD_VERSION} | repo=${BUILD_REPO}@${BUILD_BRANCH} | commit=${(BUILD_COMMIT||'').slice(0,7)}`);
 
 // Remove trailing slashes EXCEPT for /blog/ (which needs index.html)
 // Fixes "alternate page with proper canonical" in GSC
@@ -171,7 +177,15 @@ app.use((req, res, next) => {
 });
 
 // Build version endpoint (for front-end cache invalidation check)
-app.get('/api/version', (req, res) => res.json({ version: BUILD_VERSION, deployed: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({
+    version: BUILD_VERSION,
+    deployed: new Date().toISOString(),
+    started_at: BUILD_STARTED_AT,
+    commit: BUILD_COMMIT,
+    commit_short: (BUILD_COMMIT || '').slice(0, 7),
+    repo: BUILD_REPO,
+    branch: BUILD_BRANCH,
+}));
 
 // Serve HTML pages EARLY (before static middleware which causes directory redirect loops)
 // Cache headers already set by global middleware above
