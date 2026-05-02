@@ -68,6 +68,7 @@ const emailNurtureRouter = require('./routes/email-nurture');
 const emailInboundRouter = require('./routes/email-inbound');
 const uriCommissionsRouter = require('./routes/uri-commissions');
 const pipelineRouter = require('./routes/pipeline');
+const pipelineBoardRouter = require('./routes/pipeline-board'); // Phase 5 — primary board
 const esignRouter = require('./routes/esign');
 const { checkAllPendingOutcomes } = require('./services/outcome-monitor');
 
@@ -175,6 +176,7 @@ app.get('/api/version', (req, res) => res.json({ version: BUILD_VERSION, deploye
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
 app.get('/case', (req, res) => res.sendFile(path.join(__dirname, '..', 'case.html')));
+app.get('/board', (req, res) => res.sendFile(path.join(__dirname, '..', 'board.html'))); // Phase 5
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '..', 'portal.html')));
 app.get('/operator', (req, res) => res.sendFile(path.join(__dirname, '..', 'operator.html')));
 // P0 (2026-05-01): proper login page replaces hard-coded auto-login in admin pages.
@@ -1993,6 +1995,9 @@ if (isSupabaseEnabled()) {
     app.use('/api/db/payments', authenticateToken, paymentsRouter);
     app.use('/api/db/exemptions', authenticateToken, exemptionsRouter);
     app.use('/api/db/referrals', authenticateToken, referralsRouter);
+
+    // ══ PHASE 5: Pipeline Board (primary operational screen) ═════════════
+    app.use('/api/pipeline-board', authenticateToken, pipelineBoardRouter);
 
     // ========================================
     // CASE VIEW API — Phase 2 Case Page
