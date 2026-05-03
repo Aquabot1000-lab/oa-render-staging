@@ -2224,6 +2224,19 @@
                 errEl.style.display = 'block';
                 return;
             }
+            // Phase 10.1: no zero-value wins. case_won requires positive savings AND revenue.
+            if (payload.event === 'case_won') {
+                if (!(payload.tax_savings > 0)) {
+                    errEl.textContent = 'Tax savings must be greater than $0 for a Won outcome. Use "No Change" for $0 outcomes.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                if (!(payload.revenue_collected > 0)) {
+                    errEl.textContent = 'Revenue collected must be greater than $0 for a Won outcome. Use "No Change" for $0 outcomes.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+            }
             try {
                 const r = await window.authedFetch('/api/case-view/action/close-case', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },

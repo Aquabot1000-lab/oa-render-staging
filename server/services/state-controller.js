@@ -380,6 +380,18 @@ async function updateCaseState(caseId, event, payload = {}) {
     if (def.outcome_status === 'won' && fv > ov) {
       warnings.push(`case_won: final_value (${fv}) > original_value (${ov}) — not a reduction; consider no_change`);
     }
+    // Phase 10.1 (Tyler msg 28939): no zero-value wins. case_won REQUIRES positive
+    // tax_savings AND positive revenue_collected. Reject otherwise.
+    if (def.outcome_status === 'won') {
+      const ts = Number(payload.tax_savings);
+      const rc = Number(payload.revenue_collected);
+      if (!(ts > 0)) {
+        throw new Error(`updateCaseState: event=case_won requires tax_savings > 0 (got ${ts}). Use no_change for $0 outcomes.`);
+      }
+      if (!(rc > 0)) {
+        throw new Error(`updateCaseState: event=case_won requires revenue_collected > 0 (got ${rc}). Use no_change for $0 outcomes.`);
+      }
+    }
     if (cols.has('outcome_status'))    patch.outcome_status    = def.outcome_status;
     if (cols.has('outcome_date'))      patch.outcome_date      = payload.outcome_date || NOW;
     if (cols.has('final_value'))       patch.final_value       = fv;

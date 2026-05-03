@@ -168,6 +168,62 @@ async function runAll() {
   });
 
   // ── Test 2: case_lost ────────────────────────────────────────────────────────
+  // ── Test 1c: case_won with zero tax_savings rejected (Phase 10.1 / msg 28939) ──
+  await test('case_won: tax_savings=0 → throws "requires tax_savings > 0"', async () => {
+    resetColumnCache();
+    const { updateCaseState } = require('../services/state-controller');
+
+    const sb = makeMockSb({
+      case_id: 'OA-TEST-WON', status: 'FILED', assessed_value: 340000,
+    });
+
+    let threw = false;
+    try {
+      await updateCaseState('OA-TEST-WON', 'case_won', {
+        _sb: sb,
+        final_value: 340000, original_value: 340000,
+        tax_savings: 0, revenue_collected: 309.38,
+        outcome_date: '2026-05-01',
+        actor: 'tyler', actor_role: 'admin', force: true,
+      });
+    } catch (e) {
+      threw = true;
+      assert.ok(
+        e.message.includes('requires tax_savings > 0'),
+        `Error should mention 'requires tax_savings > 0', got: ${e.message}`
+      );
+    }
+    assert.ok(threw, 'case_won with tax_savings=0 should be rejected');
+  });
+
+  // ── Test 1d: case_won with zero revenue_collected rejected (Phase 10.1) ──
+  await test('case_won: revenue_collected=0 → throws "requires revenue_collected > 0"', async () => {
+    resetColumnCache();
+    const { updateCaseState } = require('../services/state-controller');
+
+    const sb = makeMockSb({
+      case_id: 'OA-TEST-WON', status: 'FILED', assessed_value: 340000,
+    });
+
+    let threw = false;
+    try {
+      await updateCaseState('OA-TEST-WON', 'case_won', {
+        _sb: sb,
+        final_value: 285000, original_value: 340000,
+        tax_savings: 1237.50, revenue_collected: 0,
+        outcome_date: '2026-05-01',
+        actor: 'tyler', actor_role: 'admin', force: true,
+      });
+    } catch (e) {
+      threw = true;
+      assert.ok(
+        e.message.includes('requires revenue_collected > 0'),
+        `Error should mention 'requires revenue_collected > 0', got: ${e.message}`
+      );
+    }
+    assert.ok(threw, 'case_won with revenue_collected=0 should be rejected');
+  });
+
   await test('case_lost: OA-TEST-LOST → CLOSED_LOST with zero savings/revenue', async () => {
     resetColumnCache();
     const { updateCaseState } = require('../services/state-controller');

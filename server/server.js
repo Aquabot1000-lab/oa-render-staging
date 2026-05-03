@@ -3454,6 +3454,23 @@ if (isSupabaseEnabled()) {
                 return res.status(400).json({ error: `Missing or non-finite numeric fields: ${missing.join(', ')}` });
             }
 
+            // Phase 10.1 (Tyler msg 28939): no zero-value wins.
+            // case_won REQUIRES positive tax_savings AND positive revenue_collected.
+            if (event === 'case_won') {
+                if (!(Number(tax_savings) > 0)) {
+                    return res.status(400).json({
+                        error: 'case_won requires tax_savings > 0. Use no_change for $0 outcomes.',
+                        field: 'tax_savings'
+                    });
+                }
+                if (!(Number(revenue_collected) > 0)) {
+                    return res.status(400).json({
+                        error: 'case_won requires revenue_collected > 0. Use no_change for $0 outcomes.',
+                        field: 'revenue_collected'
+                    });
+                }
+            }
+
             const result = await updateCaseState(case_id, event, {
                 final_value: Number(final_value),
                 original_value: Number(original_value),
