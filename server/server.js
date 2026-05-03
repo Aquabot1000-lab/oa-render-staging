@@ -7421,7 +7421,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
             .select(NEW_METRIC_COLS + BASE_SELECT)
             .not('status', 'in', '("Archived","Deleted","No Case","NO_OPPORTUNITY","LOST_CONTACT")')
             .not('case_id', 'like', 'BM-%')
-            .is('do_not_contact', null);
+            .not('do_not_contact', 'is', true);  // bugfix (Tyler msg 28999): include NULL + false; exclude only DNC=true. Column was backfilled false on all rows, prior `.is(null)` excluded everything.
         if (error && /does not exist/i.test(error.message || '')) {
             console.warn('[pipeline-stats] new metric columns not yet present — falling back to legacy select');
             ({ data: rows, error } = await supabaseAdmin
@@ -7429,7 +7429,7 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
                 .select(BASE_SELECT)
                 .not('status', 'in', '("Archived","Deleted","No Case","NO_OPPORTUNITY","LOST_CONTACT")')
                 .not('case_id', 'like', 'BM-%')
-                .is('do_not_contact', null));
+                .not('do_not_contact', 'is', true));  // bugfix (Tyler msg 28999): see above
         }
         if (error) throw error;
         const subs = rows || [];
