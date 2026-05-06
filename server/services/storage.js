@@ -66,13 +66,50 @@ async function uploadFile(fileData, remotePath, contentType) {
 }
 
 /**
- * Upload a notice file for a case
+ * Upload a notice file for a case.
+ *
+ * SAFETY: Uses unique timestamped filenames so customer uploads NEVER overwrite
+ * each other. Path format: notices/{case_id}/{ISO-timestamp}_{slugified-original}.{ext}
+ *
+ * Why: Previous behavior used `notices/{caseId}/notice.{ext}` with `upsert:true`,
+ * which destroyed prior uploads on every re-upload. Migration history (Tyler msg 30496):
+ * the storage layer is now append-only for customer-facing uploads.
  */
 async function uploadNotice(caseId, file) {
-    const ext = path.extname(file.originalname || file.filename || '.pdf');
-    const remotePath = `notices/${caseId}/notice${ext}`;
+    const original = file.originalname || file.filename || 'notice.pdf';
+    const ext = path.extname(original) || '.pdf';
+    // Slugify base name: keep alnum + dash, collapse rest to '-', cap at 40 chars
+    const baseRaw = path.basename(original, ext) || 'notice';
+    const slug = baseRaw.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40) || 'notice';
+    // ISO timestamp without ':' or '.' (filesystem-safe, sortable)
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const remotePath = `notices/${caseId}/${stamp}_${slug}${ext}`;
     const source = file.buffer || file.path;
-    return uploadFile(source, remotePath, file.mimetype || 'application/octet-stream');
+
+    // Use upsert:false so a path collision (extremely unlikely with timestamp) errors
+    // instead of silently overwriting. uploadFile() defaults to upsert:true; override here.
+    const sb = getClient();
+    if (!sb) return null;
+    let buffer;
+    if (typeof source === 'string') {
+        buffer = fsSync.readFileSync(source);
+    } else {
+        buffer = source;
+    }
+    const { error } = await sb.storage
+        .from(BUCKET)
+        .upload(remotePath, buffer, { contentType: file.mimetype || 'application/octet-stream', upsert: false });
+    if (error) {
+        console.error(`[Storage] Notice upload failed for ${remotePath}:`, error.message);
+        return null;
+    }
+    const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(remotePath);
+    const url = urlData?.publicUrl || `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${remotePath}`;
+    console.log(`[Storage] ✅ Notice uploaded (append-only): ${remotePath}`);
+    return { url, path: remotePath };
 }
 
 /**
