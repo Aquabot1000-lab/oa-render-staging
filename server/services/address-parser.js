@@ -271,7 +271,8 @@ const GA_CITY_COUNTY = {
 function parseAddress(address, hints = {}) {
     if (!address) return { state: null, county: null, flagged: true, reason: 'no-address' };
 
-    const addr = address.trim();
+    // Strip trailing ', USA' / ', United States' / ', US' — Google Maps autocomplete often appends these
+    let addr = address.trim().replace(/,?\s*(USA|United States|US)\s*$/i, '').trim();
     const addrUpper = addr.toUpperCase();
     let state = null;
     let county = hints.county || null;
@@ -314,10 +315,11 @@ function parseAddress(address, hints = {}) {
         }
     }
 
-    // Pattern 3: Full state name before ZIP without comma (e.g., "456 Pine Ave Atlanta Georgia 30301")
+    // Pattern 3: Full state name before ZIP — with or without comma/separator
+    // Handles: "Atlanta Georgia 30301", "nacogdoches, texas, 75965", "Atlanta, Georgia 30301"
     if (!state) {
         const stateNames = Object.keys(STATE_MAP).filter(k => k.length > 2);
-        const statePattern = new RegExp('\\b(' + stateNames.join('|') + ')\\s+\\d{5}', 'i');
+        const statePattern = new RegExp('\\b(' + stateNames.join('|') + ')[,\\s]+\\d{5}', 'i');
         const fullNameMatch = addr.match(statePattern);
         if (fullNameMatch) {
             state = STATE_MAP[fullNameMatch[1].toUpperCase()] || null;

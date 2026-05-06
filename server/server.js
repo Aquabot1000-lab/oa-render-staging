@@ -2857,7 +2857,7 @@ if (isSupabaseEnabled()) {
 
     // ==================== CASE PAGE ACTION ENDPOINTS ====================
     // Shared helpers for all actions
-    async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status, error_code }) {
+    async function logCommunication(supabase, { case_id, submission_id, direction, channel, recipient, subject, body, status, error_code, twilio_sid, message_id, metadata, failure_reason }) {
         const row = {
             case_id,
             submission_id: submission_id || null,
@@ -2871,6 +2871,12 @@ if (isSupabaseEnabled()) {
         };
         // Store error code directly (column exists on communications table)
         if (error_code) row.error_code = String(error_code);
+        // Track provider IDs and metadata for delivery reconciliation
+        if (twilio_sid) row.twilio_sid = twilio_sid;
+        if (failure_reason) row.failure_reason = failure_reason;
+        if (metadata || message_id) {
+            row.metadata = Object.assign({}, metadata || {}, message_id ? { message_id } : {});
+        }
         const { data, error } = await supabase.from('communications').insert(row).select('id').single();
         if (error) console.error('[CommLog] Error:', error.message);
         return data;
@@ -2962,13 +2968,20 @@ if (isSupabaseEnabled()) {
         try {
             const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
             const sendOpts = { body, to: normalized };
-            if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+            // Prefer the explicitly-registered TWILIO_PHONE_NUMBER (A2P-approved standalone DID)
+            // over TWILIO_MESSAGING_SERVICE_SID — the messaging service campaign is currently
+            // 'undeclared' use-case and triggers Twilio error 30034 (campaign vetting incomplete).
+            // Set TWILIO_USE_MESSAGING_SERVICE=1 to opt back into the messaging service once
+            // the A2P 10DLC use-case is declared and the campaign is approved.
+            if (process.env.TWILIO_USE_MESSAGING_SERVICE === '1' && process.env.TWILIO_MESSAGING_SERVICE_SID) {
                 sendOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-            } else {
-                sendOpts.from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+            } else if (process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_SMS_NUMBER) {
+                sendOpts.from = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_SMS_NUMBER;
+            } else if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+                sendOpts.messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
             }
             const msg = await twilioClient.messages.create(sendOpts);
-            console.log(`[SMS] SENT to ${normalized} | SID=${msg.sid} | status=${msg.status}`);
+            console.log(`[SMS] SENT to ${normalized} | SID=${msg.sid} | status=${msg.status} | from=${sendOpts.from || 'service:'+sendOpts.messagingServiceSid}`);
             return { sent: true, sid: msg.sid, status: msg.status };
         } catch (e) {
             const errorCode = e.code || e.status || null;
@@ -3032,14 +3045,16 @@ if (isSupabaseEnabled()) {
             return { sent: false, reason: 'sendgrid_not_configured' };
         }
         try {
-            await sgMail.send({
+            const [response] = await sgMail.send({
                 to,
                 from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
                 replyTo: replyTo || { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
                 subject,
                 html: htmlBody.replace(/\n/g, '<br>')
             });
-            return { sent: true };
+            const messageId = response?.headers?.['x-message-id'] || null;
+            console.log(`[Email] SENT to ${to} | x-message-id=${messageId} | status=${response?.statusCode}`);
+            return { sent: true, messageId, statusCode: response?.statusCode };
         } catch (e) {
             console.error('[Email] Send failed:', e.message);
             return { sent: false, reason: e.message };
@@ -3207,10 +3222,16 @@ if (isSupabaseEnabled()) {
             if (!case_id) return res.status(400).json({ error: 'case_id required' });
             const submission_id = await getSubmissionId(supabaseAdmin, case_id);
             const firstName = (owner_name || '').split(' ')[0] || 'there';
+            // Capitalize county for customer-facing display (e.g. 'montgomery' -> 'Montgomery')
+            const countyDisplay = (county || '').toString().trim()
+                ? county.toString().trim().replace(/\b\w/g, c => c.toUpperCase())
+                : 'your';
+            // Per-case upload URL so customer doesn't have to identify their case
+            const uploadUrl = `https://overassessed.ai/upload?case=${encodeURIComponent(case_id)}`;
 
-            const smsBody = `Hi ${firstName}, have you received your Notice of Appraised Value from ${county || 'your'} County? Upload it at overassessed.ai/upload — takes 30 seconds. We need it to file your protest.`;
+            const smsBody = `Hi ${firstName}, have you received your Notice of Appraised Value from ${countyDisplay} County? Upload it at ${uploadUrl} — takes 30 seconds. We need it to file your protest.`;
             const emailSubject = `Upload Your Notice — We're Ready to File`;
-            const emailBody = `Hi ${firstName},\n\nTo complete your property tax protest, we need your Notice of Appraised Value from ${county || 'your'} County.\n\nUpload it here (takes 30 seconds):\nhttps://overassessed.ai/upload\n\nThe notice is usually mailed in April-May. If you haven't received it yet, let us know.\n\nBest,\nOverAssessed Team`;
+            const emailBody = `Hi ${firstName},\n\nTo complete your property tax protest, we need your Notice of Appraised Value from ${countyDisplay} County.\n\nUpload it here (takes 30 seconds):\n${uploadUrl}\n\nThe notice is usually mailed in April-May. If you haven't received it yet, let us know.\n\nBest,\nOverAssessed Team`;
 
             const results = { sms: null, email: null };
 
@@ -3218,14 +3239,23 @@ if (isSupabaseEnabled()) {
                 results.sms = await sendSMSAction(phone, smsBody);
                 await logCommunication(supabaseAdmin, {
                     case_id, submission_id, direction: 'outbound', channel: 'sms',
-                    recipient: phone, body: smsBody, status: results.sms.sent ? 'sent' : 'failed'
+                    recipient: phone, body: smsBody,
+                    status: results.sms.sent ? 'sent' : 'failed',
+                    twilio_sid: results.sms.sid || null,
+                    error_code: results.sms.error_code || null,
+                    failure_reason: results.sms.sent ? null : results.sms.reason,
+                    metadata: { purpose: 'request_notice', sent_via: 'crm_button' }
                 });
             }
             if ((channel === 'email' || channel === 'both') && email) {
                 results.email = await sendEmailAction(email, emailSubject, emailBody);
                 await logCommunication(supabaseAdmin, {
                     case_id, submission_id, direction: 'outbound', channel: 'email',
-                    recipient: email, subject: emailSubject, body: emailBody, status: results.email.sent ? 'sent' : 'failed'
+                    recipient: email, subject: emailSubject, body: emailBody,
+                    status: results.email.sent ? 'sent' : 'failed',
+                    message_id: results.email.messageId || null,
+                    failure_reason: results.email.sent ? null : results.email.reason,
+                    metadata: { purpose: 'request_notice', sent_via: 'crm_button', provider: 'sendgrid' }
                 });
             }
 
@@ -5142,33 +5172,46 @@ app.post('/api/pre-register', async (req, res) => {
             if (data.address_fix_requested) {
                 console.log(`[Pre-Reg] ⛔ address_fix_requested=true for ${data.id} — skipping outreach`);
             } else if (process.env.SENDGRID_API_KEY) {
-                try {
-                    const firstName = (name || 'there').split(' ')[0];
-                    const candidates = geocodeMatches.slice(0, 3).map(m => m.matchedAddress);
-                    const { subject: confirmSubject, html: confirmHtml } = addressConfirmationEmail({
-                        firstName,
-                        originalAddress: property_address,
-                        highConfidence,
-                        suggestedAddress,
-                        candidates,
-                        channel: 'email'
-                    });
-                    await sgMail.send({
-                        to: email,
-                        bcc: [{ email: 'tyler@overassessed.ai' }],
-                        from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
-                        replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
-                        subject: confirmSubject, html: confirmHtml
-                    });
-                    console.log(`[Pre-Reg] ✅ Address confirmation email sent to ${email} (highConfidence=${highConfidence})`);
-                    try { await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id); } catch(e) { console.error('[Pre-Reg] address_fix_requested update failed:', e.message); }
+                // HIGH-CONFIDENCE auto-resolved → send the standard "You're registered" confirmation
+                // instead of an address-confirmation email. The customer doesn't need to do anything.
+                if (highConfidence) {
                     try {
-                        await supabaseAdmin.from('activity_log').insert({
-                            case_id: data.id, actor: 'system', action: 'incomplete_address_outreach',
-                            details: { geocode_matches: geocodeMatches.length, high_confidence: highConfidence, suggested: suggestedAddress, email_sent: true, template: 'addressConfirmationEmail' }
+                        const firstName = (name || 'there').split(' ')[0];
+                        const resolvedCounty = county || null;
+                        await sgMail.send({
+                            to: email,
+                            bcc: [{ email: 'tyler@overassessed.ai' }],
+                            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                            subject: `You're Registered — Next Step When Notices Arrive`,
+                            html: preRegistrationEmail({ firstName, propertyAddress: suggestedAddress || property_address, county: resolvedCounty })
                         });
-                    } catch(e) { console.error('[Pre-Reg] activity_log insert failed:', e.message); }
-                } catch (emailErr) { console.error('[Pre-Reg] Address confirmation email failed:', emailErr.message); }
+                        console.log(`[Pre-Reg] ✅ Auto-resolved → sent standard confirmation to ${email} (resolved: ${suggestedAddress})`);
+                        try { await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id); } catch(e) {}
+                        try { await supabaseAdmin.from('activity_log').insert({ case_id: data.id, actor: 'system', action: 'auto_resolved_confirmation', details: { suggested: suggestedAddress, email_sent: true } }); } catch(e) {}
+                    } catch (emailErr) { console.error('[Pre-Reg] Auto-resolved confirmation email failed:', emailErr.message); }
+                } else {
+                    // LOW-CONFIDENCE or NO geocode match → ask the customer to confirm
+                    try {
+                        const firstName = (name || 'there').split(' ')[0];
+                        const candidates = geocodeMatches.slice(0, 3).map(m => m.matchedAddress);
+                        const { subject: confirmSubject, html: confirmHtml } = addressConfirmationEmail({
+                            firstName, originalAddress: property_address,
+                            highConfidence: false, suggestedAddress: null,
+                            candidates, channel: 'email'
+                        });
+                        await sgMail.send({
+                            to: email,
+                            bcc: [{ email: 'tyler@overassessed.ai' }],
+                            from: { email: process.env.SENDGRID_FROM_EMAIL || 'notifications@overassessed.ai', name: 'OverAssessed' },
+                            replyTo: { email: 'tyler@reply.overassessed.ai', name: 'Tyler Worthey' },
+                            subject: confirmSubject, html: confirmHtml
+                        });
+                        console.log(`[Pre-Reg] ⚠️ Address confirmation sent to ${email} (no high-confidence geocode)`);
+                        try { await supabaseAdmin.from('pre_registrations').update({ address_fix_requested: true }).eq('id', data.id); } catch(e) { console.error('[Pre-Reg] address_fix_requested update failed:', e.message); }
+                        try { await supabaseAdmin.from('activity_log').insert({ case_id: data.id, actor: 'system', action: 'incomplete_address_outreach', details: { geocode_matches: geocodeMatches.length, high_confidence: false, email_sent: true, template: 'addressConfirmationEmail' } }); } catch(e) { console.error('[Pre-Reg] activity_log insert failed:', e.message); }
+                    } catch (emailErr) { console.error('[Pre-Reg] Address confirmation email failed:', emailErr.message); }
+                }
             }
 
             // 5. SMS if phone available
@@ -5212,11 +5255,29 @@ app.post('/api/pre-register', async (req, res) => {
             } catch (e) { console.error('Pre-reg confirmation email failed:', e.message); }
         }
         }
-        // Notify admin
-        const flagNote = parsed.flagged ? ` ⚠️ FLAGGED: ${parsed.reason}` : '';
-        try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${property_address}, ${county || '—'} County, ${state || '?'}${flagNote}`); } catch(e) {}
-        try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${property_address}<br>${county || '—'} County, ${state || '?'}<br><em>Status: ${insertData.status}</em>${flagNote ? '<br><strong style="color:red">' + flagNote + '</strong>' : ''}</p>`); } catch(e) {}
-        try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${property_address}\n<b>County:</b> ${county || '—'}\n<b>State:</b> ${state || '⚠️ UNKNOWN'}\n<b>Status:</b> ${insertData.status}${flagNote ? '\n<b>⚠️ ' + parsed.reason + '</b>' : ''}`); } catch(e) {}
+
+        // ── Admin notification ──
+        // Fire AFTER geocoding so we can show resolved address instead of raw flagged input.
+        // If geocode resolved the address with high confidence, suppress the FLAGGED label
+        // and show the clean resolved address instead. Only show ⚠️ FLAGGED if address truly
+        // could not be resolved (highConfidence=false after geocode attempt).
+        {
+            // highConfidence and suggestedAddress are set in the geocode block above when
+            // isIncompletePreReg=true. For complete addresses they remain undefined.
+            const geocodeResolved = typeof highConfidence !== 'undefined' ? highConfidence : false;
+            const resolvedDisplay = geocodeResolved ? suggestedAddress : null;
+            const stillFlagged = parsed.flagged && !geocodeResolved;
+            const flagNote = stillFlagged ? ` ⚠️ FLAGGED: ${parsed.reason}` : '';
+            const addrDisplay = resolvedDisplay
+                ? `${property_address} → <i>${resolvedDisplay}</i> (auto-resolved ✅)`
+                : property_address;
+            const countyDisplay = county || '—';
+            const stateDisplay = state || (geocodeResolved ? 'TX' : '⚠️ UNKNOWN');
+            const statusDisplay = geocodeResolved ? 'WAITING_FOR_NOTICE_UPLOAD (auto-resolved)' : insertData.status;
+            try { await sendNotificationSMS(`New pre-registration: ${name} (${email}) - ${resolvedDisplay || property_address}, ${countyDisplay} County, ${stateDisplay}${flagNote}`); } catch(e) {}
+            try { await sendNotificationEmail('New Pre-Registration', `<p><strong>${name}</strong> (${email})<br>${resolvedDisplay || property_address}<br>${countyDisplay} County, ${stateDisplay}<br><em>Status: ${statusDisplay}</em>${flagNote ? '<br><strong style="color:red">' + flagNote + '</strong>' : ''}</p>`); } catch(e) {}
+            try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${addrDisplay}\n<b>County:</b> ${countyDisplay}\n<b>State:</b> ${stateDisplay}\n<b>Status:</b> ${statusDisplay}${stillFlagged ? '\n<b>⚠️ ' + parsed.reason + '</b>' : ''}`); } catch(e) {}
+        }
 
         res.json({ success: true, id: data.id });
     } catch (error) {
