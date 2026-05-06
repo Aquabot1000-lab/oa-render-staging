@@ -1630,7 +1630,9 @@ async function runFollowUpSequence() {
             const firstName = (c.owner_name || '').split(' ')[0] || 'there';
             const savings = parseFloat(c.estimated_savings) || 0;
             const savingsLine = savings > 0 ? ' We\'ve identified $' + savings.toLocaleString() + '/yr in potential savings.' : '';
-            const uploadUrl = 'https://overassessed.ai/quick-upload';
+            // ── UPLOAD URL: must be tokenized or falls through to marketing page (fix: Tyler msg 30458)
+            const _uploadToken1 = crypto.createHash('sha256').update(c.case_id + ':' + (c.email||'').toLowerCase()).digest('hex').substring(0,8);
+            const uploadUrl = `https://overassessed.ai/upload/${c.case_id}/${_uploadToken1}`;
             const signUrl = 'https://overassessed.ai/sign?case=' + c.case_id;
             // CANONICAL status check — updated 2026-04-23
             const isAwaitingNotice = c.status === 'AWAITING_NOTICE' || c.status === 'NEEDS_REVIEW';
@@ -3227,7 +3229,10 @@ if (isSupabaseEnabled()) {
                 ? county.toString().trim().replace(/\b\w/g, c => c.toUpperCase())
                 : 'your';
             // Per-case upload URL so customer doesn't have to identify their case
-            const uploadUrl = `https://overassessed.ai/upload?case=${encodeURIComponent(case_id)}`;
+            // ── UPLOAD URL: tokenized so it actually opens the upload page (fix: Tyler msg 30458)
+            const { data: _sub4token } = await supabaseAdmin.from('submissions').select('email').eq('case_id', case_id).single();
+            const _uploadToken2 = crypto.createHash('sha256').update(case_id + ':' + (_sub4token?.email||'').toLowerCase()).digest('hex').substring(0,8);
+            const uploadUrl = `https://overassessed.ai/upload/${case_id}/${_uploadToken2}`;
 
             const smsBody = `Hi ${firstName}, have you received your Notice of Appraised Value from ${countyDisplay} County? Upload it at ${uploadUrl} — takes 30 seconds. We need it to file your protest.`;
             const emailSubject = `Upload Your Notice — We're Ready to File`;
@@ -9629,10 +9634,23 @@ app.post('/twiml/sms-incoming', async (req, res) => {
             console.log(`[Inbound SMS] STOP received — marked sms_unusable for ${caseId}`);
         }
 
+        // ── SENTIMENT CLASSIFICATION (Tyler msg 30413) ──────────────────────────
+        const _detectSentiment = (text) => {
+            const t = (text || '').toLowerCase();
+            if (/fuck|shit|piss\s?off|asshole|scam|fraud|sue|lawsuit|complaint|horrible|terrible|awful|stop\s+texting|leave\s+me\s+alone|do\s+not\s+contact/.test(t)) return 'hostile';
+            if (/frustrated|annoyed|useless|broken|doesn.t work|keeps\s+sending|already\s+told|out\s+of\s+country|not\s+working|waste/.test(t)) return 'frustrated';
+            if (/^\s*(stop|stopall|unsubscribe|cancel|end|quit)\s*$/i.test(text)) return 'opt_out';
+            if (/out\s+of\s+(the\s+)?country|traveling|abroad|overseas|vacation|away/.test(t)) return 'ooc';
+            if (/thank|great|awesome|perfect|love|appreciate|excellent|sounds\s+good|will\s+do/.test(t)) return 'positive';
+            return 'neutral';
+        };
+        const _sentiment = isStopCmd ? 'opt_out' : _detectSentiment(body);
+        const _isNegative = ['hostile','frustrated','ooc'].includes(_sentiment);
+
         // Insert into communications table
         try {
             const commRecord = {
-                case_id: caseId === 'UNKNOWN' ? null : caseId,
+                case_id: caseId === 'UNKNOWN' ? 'UNKNOWN' : caseId,
                 submission_id: matchedCase?.id || null,
                 direction: 'inbound',
                 channel: 'sms',
@@ -9641,11 +9659,35 @@ app.post('/twiml/sms-incoming', async (req, res) => {
                 status: 'received',
                 twilio_sid: req.body?.MessageSid || req.body?.SmsSid || null,
                 handled: false,
+                sentiment: _sentiment,
+                review_required: _isNegative || !matchedCase,
                 created_at: new Date().toISOString()
             };
             const { error: commErr } = await supabaseAdmin.from('communications').insert(commRecord);
             if (commErr) console.error('[Inbound SMS] communications insert failed:', commErr.message);
-            else console.log(`[Inbound SMS] Saved to communications — case: ${caseId}, handled: false`);
+            else console.log(`[Inbound SMS] Saved to communications — case: ${caseId}, sentiment: ${_sentiment}, review_required: ${commRecord.review_required}`);
+
+            // ── GLOBAL SAFETY RULE (Tyler msg 30413): pause outbound on ANY inbound reply ──
+            if (matchedCase) {
+                const pauseReason = _sentiment === 'hostile'
+                    ? `Hostile reply received ${new Date().toISOString().slice(0,10)} — requires Tyler review before any outbound`
+                    : _sentiment === 'ooc'
+                    ? `Customer indicated out-of-country ${new Date().toISOString().slice(0,10)} — pause until back`
+                    : _sentiment === 'opt_out'
+                    ? `Customer sent STOP ${new Date().toISOString().slice(0,10)}`
+                    : `Customer replied ${new Date().toISOString().slice(0,10)} — safety pause pending Tyler review`;
+
+                await supabaseAdmin.from('submissions').update({
+                    replied: true,
+                    last_customer_reply_at: new Date().toISOString(),
+                    sentiment_flag: _sentiment,
+                    inbound_reply_paused: true,
+                    inbound_reply_paused_reason: pauseReason,
+                    next_followup_at: null,           // cancel any queued follow-up
+                    updated_at: new Date().toISOString()
+                }).eq('case_id', caseId);
+                console.log(`[Inbound SMS] Safety pause applied — ${caseId} paused (sentiment: ${_sentiment})`);
+            }
 
             // ── CONTROL LAYER: Classify and route customer SMS messages ──
             if (matchedCase && !isStopCmd) {
@@ -9675,14 +9717,17 @@ app.post('/twiml/sms-incoming', async (req, res) => {
             console.error('[Inbound SMS] communications insert exception:', commEx.message);
         }
 
-        // Telegram alert (kept as backup notification)
+        // Telegram alert with sentiment flag
         const caseInfo = matchedCase ? `Case: ${caseId} (${customerName})` : 'No case match';
+        const sentimentEmoji = { hostile: '🔴', frustrated: '🟠', ooc: '✈️', opt_out: '🚫', positive: '🟢', neutral: '⚪️' }[_sentiment] || '⚪️';
         await sendTelegramAlert(
-            `📱 <b>INBOUND SMS</b>\n\n` +
+            `📱 <b>INBOUND SMS</b> ${sentimentEmoji} <b>${_sentiment.toUpperCase()}</b>\n\n` +
             `<b>From:</b> ${from}\n` +
             `<b>${caseInfo}</b>\n` +
             `<b>Message:</b> ${body.substring(0, 500)}` +
-            (isStopCmd ? `\n\n⚠️ <b>STOP received — SMS blocked for ${caseId}</b>` : '')
+            (isStopCmd ? `\n\n🚫 <b>STOP received — SMS blocked for ${caseId}</b>` : '') +
+            (_isNegative && matchedCase ? `\n\n⏸️ <b>Outbound PAUSED for ${caseId} — review required</b>` : '') +
+            (!matchedCase ? `\n\n⚠️ <b>No case match — stored as UNKNOWN</b>` : '')
         );
         
     } catch (err) {

@@ -132,17 +132,21 @@ function getOutreachTemplates(caseData, issue) {
     const address = caseData.property_address || 'your property';
     const county = caseData.county || '';
     const caseId = caseData.case_id || '';
+    // ── Tokenized upload URL — bare /upload redirects to marketing page (fix: Tyler msg 30458)
+    const crypto = require('crypto');
+    const _tok = crypto.createHash('sha256').update(caseId + ':' + (caseData.email||'').toLowerCase()).digest('hex').substring(0,8);
+    const uploadUrl = caseId ? `https://overassessed.ai/upload/${caseId}/${_tok}` : 'https://overassessed.ai/upload';
 
     const templates = {
         WRONG_DOCUMENT: {
-            sms: `Hi ${firstName}, we received your upload for your property tax case but it doesn't appear to be a Notice of Appraised Value. Could you re-upload the correct document? It's the notice from ${county || 'your'} County showing your assessed value. Upload here: https://overassessed.ai/upload — takes 30 seconds.`,
+            sms: `Hi ${firstName}, we received your upload for your property tax case but it doesn't appear to be a Notice of Appraised Value. Could you re-upload the correct document? It's the notice from ${county || 'your'} County showing your assessed value. Upload here: ${uploadUrl} — takes 30 seconds.`,
             emailSubject: `Action Needed: Please Re-Upload Your Notice — ${caseId}`,
-            emailBody: `Hi ${firstName},\n\nThank you for uploading a document for your property at ${address}. However, the file doesn't appear to be a Notice of Appraised Value from ${county || 'your'} County.\n\nThe Notice of Appraised Value is typically a letter from your county appraisal district showing your property's assessed/market value for the current tax year. It's usually mailed in April-May.\n\nPlease re-upload the correct document here:\nhttps://overassessed.ai/upload\n\nIf you're unsure which document to upload, just reply to this email and we'll help.\n\nBest,\nOverAssessed Team`
+            emailBody: `Hi ${firstName},\n\nThank you for uploading a document for your property at ${address}. However, the file doesn't appear to be a Notice of Appraised Value from ${county || 'your'} County.\n\nThe Notice of Appraised Value is typically a letter from your county appraisal district showing your property's assessed/market value for the current tax year. It's usually mailed in April-May.\n\nPlease re-upload the correct document here:\n${uploadUrl}\n\nIf you're unsure which document to upload, just reply to this email and we'll help.\n\nBest,\nOverAssessed Team`
         },
         MISSING_NOTICE: {
-            sms: `Hi ${firstName}, this is OverAssessed. To move forward with your property tax protest for ${address}, we need your Notice of Appraised Value from ${county || 'your'} County. Upload it here: https://overassessed.ai/upload — takes 30 seconds.`,
+            sms: `Hi ${firstName}, this is OverAssessed. To move forward with your property tax protest for ${address}, we need your Notice of Appraised Value from ${county || 'your'} County. Upload it here: ${uploadUrl} — takes 30 seconds.`,
             emailSubject: `Upload Your Notice to Start Saving — ${caseId}`,
-            emailBody: `Hi ${firstName},\n\nWe're ready to analyze your property at ${address} for potential tax savings.\n\nTo proceed, we need your Notice of Appraised Value from ${county || 'your'} County. This is the letter showing your property's assessed value for the current tax year.\n\nUpload it here (takes 30 seconds):\nhttps://overassessed.ai/upload\n\nHaven't received your notice yet? No problem — they typically arrive in April-May. We'll keep your case ready and notify you when it's time.\n\nBest,\nOverAssessed Team`
+            emailBody: `Hi ${firstName},\n\nWe're ready to analyze your property at ${address} for potential tax savings.\n\nTo proceed, we need your Notice of Appraised Value from ${county || 'your'} County. This is the letter showing your property's assessed value for the current tax year.\n\nUpload it here (takes 30 seconds):\n${uploadUrl}\n\nHaven't received your notice yet? No problem — they typically arrive in April-May. We'll keep your case ready and notify you when it's time.\n\nBest,\nOverAssessed Team`
         },
         INCOMPLETE_ADDRESS: {
             sms: `Hi ${firstName}, this is OverAssessed. We need your full property address (street, city, state, zip) to process your tax protest case. Can you reply with the complete address?`,
