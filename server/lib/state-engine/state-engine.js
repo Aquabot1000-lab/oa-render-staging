@@ -38,6 +38,34 @@ const TX_STATES = new Set([
 ]);
 
 /**
+ * PROTECTED STATUSES — never overwritten by the state engine, even without
+ * manual_status_lock=true. These represent customer-facing workflow states
+ * that the deterministic engine cannot infer correctly from raw artifacts.
+ *
+ * If you are tempted to remove one of these, talk to Tyler first.
+ * (See migration 005_submissions_manual_status_lock.sql.)
+ */
+const PROTECTED_STATUSES = new Set([
+  // Customer / workflow stand-down
+  'NO_OPPORTUNITY',
+  'NO_OPPORTUNITY_INSUFFICIENT_GAP',
+  'DO_NOT_FILE',
+  'CUSTOMER_HOLD_2026',
+  // Outreach in flight (engine has no upload yet so it would revert to WAITING_*)
+  'AOA_REQUEST_SENT',
+  'NOV_REQUEST_SENT',
+  // Filing-ready locks (manually verified comp set / package)
+  'READY_FOR_FILING_ON_NOV',
+  // WA-specific (engine is TX-only; out-of-TX would revert to INTAKE)
+  'WA_SIGNING_LINK_SENT',
+  'READY_TO_FILE_WA',
+  // Filed states — engine cannot verify filing from artifacts; never un-file (Tyler msg 30560)
+  'Filed',
+  'FILED',
+  'FILED_PENDING_RESPONSE',
+]);
+
+/**
  * Determine canonical pipeline state for a single case.
  *
  * @param {object} sub    — row from submissions (all relevant columns)
@@ -47,6 +75,28 @@ const TX_STATES = new Set([
  */
 function computeState(sub, esign, docs) {
   const blockers = [];
+
+  // ── STATUS PROTECTION (added 2026-05-01 per Tyler msg 28078) ───────────
+  // 1. Manual lock always wins
+  if (sub.manual_status_lock === true) {
+    return {
+      state:    sub.status,
+      reason:   `LOCKED: manual_status_lock=true${sub.status_lock_reason ? ' (' + sub.status_lock_reason + ')' : ''}`,
+      blockers: ['manual_lock'],
+      cadEngine: null,
+      locked:   true,
+    };
+  }
+  // 2. Auto-protected statuses (customer-facing workflow states the engine cannot infer)
+  if (PROTECTED_STATUSES.has(sub.status)) {
+    return {
+      state:    sub.status,
+      reason:   `PROTECTED: status "${sub.status}" is in PROTECTED_STATUSES`,
+      blockers: ['protected_status'],
+      cadEngine: null,
+      locked:   true,
+    };
+  }
 
   // ── DNC / archived / test ────────────────────────────────────────────────
   if (sub.do_not_contact) return { state: 'INTAKE', reason: 'do_not_contact=true; no automation', blockers: ['DNC flag set'], cadEngine: null };
@@ -184,7 +234,8 @@ async function reconcileAll(supabase, { dryRun = false, verbose = false } = {}) 
   const { data: subs, error: e1 } = await supabase.from('submissions').select(
     'case_id,owner_name,county,state,property_address,upload_status,notice_url,agent_form_signed,fee_agreement_signed,' +
     'filing_ready,filing_submitted,filed_at,filing_approved,do_not_contact,archived_at,deleted_at,status,' +
-    'filing_package_meta,upload_status,county_notice_status'
+    'filing_package_meta,upload_status,county_notice_status,' +
+    'manual_status_lock,status_lock_reason,filing_confirmation_number'
   );
   if (e1) throw new Error('reconcileAll: submissions fetch: ' + JSON.stringify(e1));
 
@@ -210,7 +261,7 @@ async function reconcileAll(supabase, { dryRun = false, verbose = false } = {}) 
     if (sub.deleted_at) continue;
     const esign = esignMap[sub.case_id] || [];
     const docs  = docsMap[sub.case_id]  || [];
-    const { state: newState, reason, blockers, cadEngine } = computeState(sub, esign, docs);
+    const { state: newState, reason, blockers, cadEngine, locked } = computeState(sub, esign, docs);
 
     const changed = sub.status !== newState;
     results.push({
@@ -223,7 +274,15 @@ async function reconcileAll(supabase, { dryRun = false, verbose = false } = {}) 
       reason,
       blockers,
       cadEngine,
+      locked: !!locked,
     });
+
+    // Skip ALL writes for locked cases — not even last_activity_at touched.
+    // (See PROTECTED_STATUSES + manual_status_lock above.)
+    if (locked) {
+      if (verbose) console.log(`[state-engine] ${sub.case_id} 🔒 skipped (${reason})`);
+      continue;
+    }
 
     if (changed && !dryRun) {
       writes.push(
@@ -272,4 +331,4 @@ async function reconcileAll(supabase, { dryRun = false, verbose = false } = {}) 
   return { results, transitions };
 }
 
-module.exports = { computeState, reconcileAll };
+module.exports = { computeState, reconcileAll, PROTECTED_STATUSES };

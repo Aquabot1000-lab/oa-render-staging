@@ -7511,14 +7511,40 @@ app.get('/api/pipeline-stats', authenticateToken, async (req, res) => {
             'Monitoring': 0,
             'Resolved': 0
         };
+        // DB uses mixed naming conventions — map both to canonical dashboard buckets.
+        // Tyler msg 30560: state-engine was writing snake_case/UPPER statuses that never
+        // matched the dashboard's canonical string keys, so everything fell to Needs Review.
+        const STATUS_MAP = {
+            // Canonical (pass-through)
+            'New': 'New',
+            'Needs Review': 'Needs Review',
+            'Awaiting Notice': 'Awaiting Notice',
+            'Analysis Complete': 'Analysis Complete',
+            'Ready to File': 'Ready to File',
+            'Filed': 'Filed',
+            'Monitoring': 'Monitoring',
+            'Resolved': 'Resolved',
+            // DB / state-engine variants
+            'INTAKE': 'Needs Review',
+            'WAITING_NOTICE': 'Awaiting Notice',
+            'NOV_REQUEST_SENT': 'Awaiting Notice',
+            'AOA_REQUEST_SENT': 'Needs Review',
+            'WAITING_SIGNATURE': 'Needs Review',
+            'SIGNED_READY_TO_FILE': 'Ready to File',
+            'READY_TO_FILE': 'Ready to File',
+            'FILED': 'Filed',
+            'FILED_PENDING_RESPONSE': 'Filed',
+            'CAD_BLOCKED': 'Needs Review',
+            'NEEDS_MANUAL_RECOVERY': 'Needs Review',
+            'NO_OPPORTUNITY': 'Resolved',
+            'LOST_CONTACT': 'Needs Review',
+            'MONITORING': 'Monitoring',
+            'RESOLVED': 'Resolved',
+        };
         subs.forEach(s => {
-            const status = s.status || 'New';
-            if (pipeline.hasOwnProperty(status)) {
-                pipeline[status]++;
-            } else {
-                // Any non-canonical status falls to Needs Review
-                pipeline['Needs Review']++;
-            }
+            const raw = s.status || 'New';
+            const canonical = STATUS_MAP[raw] || 'Needs Review';
+            pipeline[canonical]++;
         });
 
         // Signed = fee_agreement_signed IS TRUE (actual signed documents)
