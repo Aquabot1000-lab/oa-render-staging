@@ -2085,13 +2085,8 @@ function renderFilings() {
 function filterFilings() { renderFilings(); }
 
 async function autoFileFiling(id) {
-    if (!confirm('Start browser automation to file this protest with the county portal?')) return;
-    try {
-        const res = await fetch(`${API}/api/filings/${id}/auto-file`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
-        const data = await res.json();
-        alert(data.message || 'Automation started!');
-        setTimeout(loadFilings, 5000);
-    } catch (err) { alert('Error: ' + err.message); }
+    // AUTO-FILING DISABLED 2026-05-09 (Tyler directive)
+    alert('Auto-filing is disabled. To file a case, tell Tyler the Case ID and he will issue an explicit "FILE OA-XXXX" command.');
 }
 
 async function bulkGeneratePackets() {
@@ -2106,14 +2101,8 @@ async function bulkGeneratePackets() {
 }
 
 async function bulkAutoFile() {
-    const ready = filingsData.filter(f => f.status === 'form_signed' && f.portal_pin && f.portal_account_id);
-    if (!ready.length) return alert('No filings ready for auto-filing (need form_signed status + portal credentials).');
-    if (!confirm(`Auto-file ${ready.length} filings?`)) return;
-    for (const f of ready) {
-        try { await fetch(`${API}/api/filings/${f.id}/auto-file`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) }); } catch {}
-    }
-    alert(`Started automation for ${ready.length} filings!`);
-    setTimeout(loadFilings, 10000);
+    // AUTO-FILING DISABLED 2026-05-09 (Tyler directive)
+    alert('Bulk auto-filing is disabled. All filings require explicit "FILE OA-XXXX" approval from Tyler.');
 }
 
 function exportFilingsCSV() {

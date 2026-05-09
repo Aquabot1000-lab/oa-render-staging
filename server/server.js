@@ -7439,30 +7439,31 @@ app.post('/api/upload-notice/:id', uploadNotice.single('notice'), async (req, re
             });
         }
 
-        // ── AUTO-FILE TRIGGER: If case is signed + has notice → prepare filing ──
-        const canAutoFile = ['Signed', 'Form Signed'].includes(sub.status) && filePath;
-        if (canAutoFile) {
-            console.log(`[AutoFile] 🚀 Notice received for signed case ${sub.caseId} — triggering auto-file preparation`);
+        // ── AUTO-FILE TRIGGER: DISABLED 2026-05-09 (Tyler directive) ──
+        // Old behavior generated a filing package + emailed "🚀 AUTO-FILE READY".
+        // New rule: signed + notice received → case moves to READY_FOR_TYLER_REVIEW only.
+        const isSignedAndNoticed = ['Signed', 'Form Signed'].includes(sub.status) && filePath;
+        if (isSignedAndNoticed) {
+            console.log(`[ReviewQueue] Notice received for signed case ${sub.caseId} — marking READY_FOR_TYLER_REVIEW (no auto-filing).`);
             try {
-                const { prepareFilingPackage } = require('./services/auto-file');
-                const filingPkg = await prepareFilingPackage(
-                    { caseId: sub.caseId, ownerName: sub.ownerName, propertyAddress: sub.propertyAddress, pin: sub.pin },
-                    { address: sub.propertyAddress, assessedValue: sub.assessedValue, accountId: sub.pin },
-                    { recommendedValue: null, reduction: sub.estimatedSavings, estimatedSavings: sub.estimatedSavings, comps: [] }
-                );
-                console.log(`[AutoFile] ✅ Filing package prepared for ${sub.caseId}`);
+                if (typeof supabaseAdmin !== 'undefined' && supabaseAdmin) {
+                    await supabaseAdmin.from('submissions').update({
+                        filing_status: 'READY_FOR_TYLER_REVIEW',
+                        last_activity_at: new Date().toISOString()
+                    }).eq('case_id', sub.caseId);
+                }
                 sendNotificationEmail(
-                    `🚀 AUTO-FILE READY - ${sub.caseId}`,
-                    `<p>Notice uploaded + case signed. Filing package auto-generated for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
+                    `Review needed - ${sub.caseId}`,
+                    `<p>Signed authorization received and notice uploaded for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
                      <p><b>County:</b> ${sub.county || 'unknown'} | <b>State:</b> ${sub.state}</p>
-                     <p>Ready to submit to county portal. Review and approve filing.</p>`
+                     <p>The case is now <b>pending internal review</b>. No filing will occur until you reply "FILE ${sub.caseId}".</p>`
                 );
-            } catch (afErr) {
-                console.error(`[AutoFile] Error preparing filing for ${sub.caseId}:`, afErr.message);
+            } catch (rqErr) {
+                console.error(`[ReviewQueue] Error transitioning ${sub.caseId}:`, rqErr.message);
             }
         }
 
-        res.json({ success: true, message: 'Notice uploaded', filePath, autoFileTriggered: canAutoFile });
+        res.json({ success: true, message: 'Notice uploaded', filePath, readyForReview: isSignedAndNoticed, autoFiled: false });
     } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: 'Failed to upload notice' });
@@ -7870,22 +7871,23 @@ app.patch('/api/submissions/:id/status', authenticateToken, async (req, res) => 
                 console.log(`Status notification sent to ${sub.email} for ${status}`);
             }
 
-            // ── AUTO-FILE TRIGGER: Status changed to Signed + notice exists → prepare filing ──
+            // ── AUTO-FILE TRIGGER: DISABLED 2026-05-09 (Tyler directive) ──
+            // Old behavior generated a filing package + emailed "🚀 AUTO-FILE READY".
+            // New rule: signed + notice on file → READY_FOR_TYLER_REVIEW only.
             if (['Signed', 'Form Signed'].includes(status) && sub.noticeOfValue) {
-                console.log(`[AutoFile] 🚀 Case ${sub.caseId} signed + notice on file — triggering auto-file`);
+                console.log(`[ReviewQueue] Case ${sub.caseId} signed + notice on file — marking READY_FOR_TYLER_REVIEW (no auto-filing).`);
                 try {
-                    const { prepareFilingPackage } = require('./services/auto-file');
-                    const filingPkg = await prepareFilingPackage(
-                        { caseId: sub.caseId, ownerName: sub.ownerName, propertyAddress: sub.propertyAddress, pin: sub.pin },
-                        { address: sub.propertyAddress, assessedValue: sub.assessedValue, accountId: sub.pin },
-                        { recommendedValue: null, reduction: sub.estimatedSavings, estimatedSavings: sub.estimatedSavings, comps: [] }
-                    );
-                    console.log(`[AutoFile] ✅ Filing package prepared for ${sub.caseId}`);
+                    if (typeof supabaseAdmin !== 'undefined' && supabaseAdmin) {
+                        await supabaseAdmin.from('submissions').update({
+                            filing_status: 'READY_FOR_TYLER_REVIEW',
+                            last_activity_at: new Date().toISOString()
+                        }).eq('case_id', sub.caseId);
+                    }
                     sendNotificationEmail(
-                        `🚀 AUTO-FILE READY - ${sub.caseId}`,
-                        `<p>Case signed + notice on file. Filing package auto-generated for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
+                        `Review needed - ${sub.caseId}`,
+                        `<p>Signed authorization confirmed and notice on file for <b>${sub.caseId}</b> (${sub.ownerName}).</p>
                          <p><b>County:</b> ${sub.county || 'unknown'} | <b>State:</b> ${sub.state}</p>
-                         <p>Ready to submit to county portal.</p>`
+                         <p>The case is now <b>pending internal review</b>. No filing will occur until you reply "FILE ${sub.caseId}".</p>`
                     );
                 } catch (afErr) {
                     console.error(`[AutoFile] Error preparing filing for ${sub.caseId}:`, afErr.message);

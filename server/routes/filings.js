@@ -320,6 +320,13 @@ router.post('/:id/auto-file', async (req, res) => {
             automation_log: [...(filing.automation_log || []), { timestamp: new Date().toISOString(), message: 'Automation started', level: 'info' }]
         }).eq('id', req.params.id);
 
+        // ─── KILL-SWITCH (2026-05-09 Tyler directive) ───
+        try {
+          const { assertFilingAllowed } = require('../services/_filing-killswitch');
+          assertFilingAllowed(filing.case_id || filing.id, 'routes/filings.js::POST /:id/auto-file');
+        } catch (kErr) {
+          return res.status(403).json({ error: kErr.message, code: kErr.code });
+        }
         // Run automation asynchronously
         const { autoFile } = require('../services/county-automation');
         const headless = req.body.headless !== false;
@@ -387,6 +394,14 @@ router.post('/:id/upload-evidence', async (req, res) => {
 
         res.json({ success: true, message: 'Evidence upload started' });
 
+        // ─── KILL-SWITCH (2026-05-09 Tyler directive) ─── (evidence upload also touches portal)
+        try {
+          const { assertFilingAllowed } = require('../services/_filing-killswitch');
+          assertFilingAllowed(filing.case_id || filing.id, 'routes/filings.js::POST /:id/upload-evidence');
+        } catch (kErr) {
+          if (!res.headersSent) return res.status(403).json({ error: kErr.message, code: kErr.code });
+          return;
+        }
         const { uploadEvidence } = require('../services/county-automation');
         const result = await uploadEvidence(filing, { headless: req.body.headless !== false });
 

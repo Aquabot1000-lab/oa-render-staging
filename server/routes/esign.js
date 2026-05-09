@@ -188,6 +188,23 @@ router.post('/:token/submit', express.json(), async (req, res) => {
           }
         }
 
+        // PRIORITY_QUEUE rule (Tyler 2026-05-09 msg 31043):
+        // any customer who signs AOA OR uploads NOV moves to priority queue immediately.
+        try {
+          await supabaseAdmin
+            .from('submissions')
+            .update({ priority_queue: true, priority_queue_reason: 'aoa_signed', priority_queue_at: signedAt })
+            .eq('case_id', signData.case_id);
+          await supabaseAdmin.from('activity_log').insert({
+            case_id: signData.case_id,
+            actor: 'system:priority-queue',
+            action: 'priority_queue_added',
+            details: { trigger: 'aoa_signed', signed_at: signedAt }
+          });
+        } catch (_pqErr) {
+          console.error('[esign] PRIORITY_QUEUE flag failed:', _pqErr.message);
+        }
+
         // Generate signed PDF — REQUIRED, blocking, no silent failures
         console.log(`[esign] ▶ Starting PDF generation for case ${signData.case_id} (state=${preSub?.state || 'TX'})`);
         let signedPdfUrl = null;
@@ -556,28 +573,47 @@ router.post('/:token/submit', express.json(), async (req, res) => {
                     return;
                 }
 
-                // Notify internal team on TX/GA signature (unified fan-out)
+                // ── AUTO-FILE DISABLED 2026-05-09 (Tyler directive) ──
+                // Signing triggers READY_FOR_TYLER_REVIEW only. No portal submission.
+                // Filing only begins after explicit "FILE OA-XXXX" from Tyler.
                 try {
                     const ownerName = subData?.owner_name || signData.signer_name || 'Property Owner';
                     const sigCounty = subData?.county || '';
+
+                    // Move case to READY_FOR_TYLER_REVIEW
+                    await supabaseAdmin.from('submissions').update({
+                        status: 'WAITING_NOTICE',
+                        filing_status: 'READY_FOR_TYLER_REVIEW',
+                        last_activity_at: new Date().toISOString()
+                    }).eq('case_id', signData.case_id);
+
+                    // Log the transition
+                    await supabaseAdmin.from('activity_log').insert({
+                        case_id: signData.case_id, actor: 'esign-webhook',
+                        action: 'state.moved_to_tyler_review',
+                        details: {
+                            event: 'esign_completed',
+                            county: sigCounty,
+                            next_step: 'READY_FOR_TYLER_REVIEW — no filing until explicit Tyler approval',
+                            auto_file: false
+                        }, created_at: new Date().toISOString()
+                    });
+
+                    // Notify Tyler (no auto-filing language)
                     if (process.env.SENDGRID_API_KEY) {
                         const sgMail = require('@sendgrid/mail');
                         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
                         await _team.notifyEmail(sgMail, {
                             subject: `✅ Protest Signed — ${signData.case_id} (${ownerName}, ${sigCounty} County)`,
-                            html: `<div style="font-family:sans-serif;max-width:600px;padding:20px;"><h3>✅ TX/GA Petition Signed</h3><p><b>Case:</b> ${signData.case_id}</p><p><b>Owner:</b> ${ownerName}</p><p><b>County:</b> ${sigCounty}</p><p><b>Signed at:</b> ${signedAt}</p><p>Auto-filing in progress.</p></div>`
+                            html: `<div style="font-family:sans-serif;max-width:600px;padding:20px;"><h3>✅ TX/GA Petition Signed</h3><p><b>Case:</b> ${signData.case_id}</p><p><b>Owner:</b> ${ownerName}</p><p><b>County:</b> ${sigCounty}</p><p><b>Signed at:</b> ${signedAt}</p><p>Signed authorization received. Case is <b>pending internal review</b>. Reply "FILE ${signData.case_id}" to authorize filing.</p></div>`
                         });
                     }
-                    await _team.notifyTelegram(`✅ <b>TX/GA Protest Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${subData?.owner_name || signData.signer_name}\n<b>County:</b> ${subData?.county || '?'}\n<b>Signed at:</b> ${signedAt}\n🚀 Auto-filing in progress...`);
+                    await _team.notifyTelegram(`✅ <b>TX/GA Protest Signed</b>\n\n<b>Case:</b> ${signData.case_id}\n<b>Owner:</b> ${subData?.owner_name || signData.signer_name}\n<b>County:</b> ${subData?.county || '?'}\n<b>Signed at:</b> ${signedAt}\n\n📋 Pending internal review. Reply <b>FILE ${signData.case_id}</b> to authorize filing.`);
                 } catch (teamAlertErr) {
                     console.error('[esign] Team sign alert failed:', teamAlertErr.message);
                 }
 
-                // Default path: auto-file via email runner (other counties)
-                const { fileByEmail } = require('../filing-automation/runners/email-runner');
-                console.log(`[esign] 🚀 Auto-filing ${signData.case_id} after signature...`);
-                const result = await fileByEmail(signData.case_id, { dryRun: false, submitMode: true });
-                console.log(`[esign] 📬 Auto-file result for ${signData.case_id}:`, JSON.stringify(result));
+                console.log(`[esign] ✅ ${signData.case_id} moved to READY_FOR_TYLER_REVIEW. No auto-filing.`);
             } catch (autoFileErr) {
                 console.error(`[esign] ❌ Auto-file FAILED for ${signData.case_id}:`, autoFileErr.message);
             }
@@ -1140,10 +1176,12 @@ router.post('/send', async (req, res) => {
             details: { token_prefix: token.slice(0, 8) },
         });
 
-        await supabaseAdmin.from('activity_log').insert({
-            case_id, actor: 'tyler', action: 'esign_sent',
-            details: { sign_url, email, token: token.slice(0, 8) + '...' }
-        }).catch(() => {});
+        try {
+            await supabaseAdmin.from('activity_log').insert({
+                case_id, actor: 'tyler', action: 'esign_sent',
+                details: { sign_url, email, token: token.slice(0, 8) + '...' }
+            });
+        } catch (_) {}
 
         const sgMail = require('@sendgrid/mail');
         if (process.env.SENDGRID_API_KEY) {

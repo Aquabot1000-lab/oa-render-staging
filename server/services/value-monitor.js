@@ -511,7 +511,7 @@ async function notifyTyler(client, values) {
                     <tr><td style="padding:8px;font-weight:bold;">Change:</td><td style="padding:8px;">${direction} ${changePct}% ($${Math.abs(change).toLocaleString()})</td></tr>
                     <tr><td style="padding:8px;font-weight:bold;">Form Signed:</td><td style="padding:8px;">${client.hasSigned ? '✅ Yes' : '❌ No'}</td></tr>
                 </table>
-                ${client.hasSigned ? '<p style="background:#2ecc71;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;">Ready to file protest — auto-filing will be triggered!</p>' : '<p style="background:#f39c12;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;">⚠️ Form not signed yet — cannot auto-file.</p>'}
+                ${client.hasSigned ? '<p style="background:#2ecc71;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;">Signed authorization received — pending internal review before filing.</p>' : '<p style="background:#f39c12;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;">⚠️ Awaiting signed authorization before protest can proceed.</p>'}
                 <hr style="border:none;border-top:1px solid #eee;margin:1rem 0;">
                 <p style="font-size:0.8rem;color:#999;text-align:center;">OverAssessed Value Monitor</p>
             </div>
@@ -610,26 +610,14 @@ async function runMonitor() {
                 // Update Supabase
                 await updateSupabase(client, result.values);
 
-                // Trigger auto-filing if form is signed and county supports eFile
+                // ─── AUTO-FILING DISABLED 2026-05-09 (Tyler directive) ───
+                // Old behavior auto-filed via puppeteer. New rule: mark for review only.
                 const countyConfig = COUNTY_CONFIGS[client.county];
                 if (client.hasSigned && countyConfig && countyConfig.supportsEfile) {
-                    addLogEntry(state, `Triggering auto-file for ${client.caseId} (${client.county} eFile)`, 'alert');
-                    state.clients[client.caseId].autoFileTriggered = true;
-                    state.clients[client.caseId].autoFileTriggerTime = new Date().toISOString();
-                    
-                    // Auto-file will be handled by auto-file.js
-                    // For now, just mark it as ready
-                    try {
-                        const autoFile = require('./auto-file');
-                        if (autoFile.fileFBCADProtest) {
-                            // Don't await — let it run async
-                            autoFile.fileFBCADProtest(client).catch(err => {
-                                console.error(`[ValueMonitor] Auto-file error for ${client.caseId}:`, err.message);
-                            });
-                        }
-                    } catch (err) {
-                        addLogEntry(state, `Could not trigger auto-file: ${err.message}`, 'warn');
-                    }
+                    addLogEntry(state, `Marking ${client.caseId} READY_FOR_TYLER_REVIEW (auto-filing disabled).`, 'alert');
+                    state.clients[client.caseId].readyForReview = true;
+                    state.clients[client.caseId].readyForReviewAt = new Date().toISOString();
+                    state.clients[client.caseId].autoFileTriggered = false;
                 }
             }
             

@@ -187,6 +187,9 @@ async function generateFilingPDF(caseData, propertyData, compResults, filingData
  * @returns {Object} Filing result with confirmation details
  */
 async function fileFBCADProtest(client) {
+    // ─── KILL-SWITCH (2026-05-09 Tyler directive) ───
+    const { assertFilingAllowed } = require('./_filing-killswitch');
+    assertFilingAllowed(client && client.caseId, 'auto-file.js::fileFBCADProtest');
     const puppeteer = require('puppeteer');
     
     await fs.promises.mkdir(CONFIRMATIONS_DIR, { recursive: true });
