@@ -3738,14 +3738,16 @@ app.post('/api/agreements/sign', async (req, res) => {
                 source: 'web-agreement-v2'
             }).select('id, case_id').single();
             submissionId = newSub.id;
-            // Tyler msg 31932: fire live intake pipeline for every new lead (non-blocking)
-            if (newSub && newSub.case_id) {
+            // Tyler msg 31932: fire live intake pipeline (gated behind ENABLE_LIVE_INTAKE_HOOKS — default OFF per Tyler msg 34891)
+            if (newSub && newSub.case_id && process.env.ENABLE_LIVE_INTAKE_HOOKS === 'true') {
                 setImmediate(async () => {
                     try {
                         const { processLead } = require('./lib/live-intake-pipeline');
                         const result = await processLead(newSub.case_id, { actor: 'server:web-agreement-v2' });
                         console.log(`[live-intake] ${newSub.case_id} → ${result.final_queue} | steps: ${Object.keys(result.steps).join(',')}`);                    } catch (e) { console.error('[live-intake] pipeline error:', e.message); }
                 });
+            } else if (newSub && newSub.case_id) {
+                console.log(`[live-intake] DISABLED (ENABLE_LIVE_INTAKE_HOOKS!=true) — skipping for ${newSub.case_id}`);
             }
         }
 
@@ -5293,14 +5295,10 @@ app.post('/api/pre-register', async (req, res) => {
             try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${addrDisplay}\n<b>County:</b> ${countyDisplay}\n<b>State:</b> ${stateDisplay}\n<b>Status:</b> ${statusDisplay}${stillFlagged ? '\n<b>⚠️ ' + parsed.reason + '</b>' : ''}`); } catch(e) {}
         }
 
-        // === AUTO-PROMOTION (Tyler msg 33473 / 33473, 2026-05-13) ===
-        // Permanent hook: pre_registrations → submissions → pipeline.
-        // Only fires for non-NEEDS_REVIEW rows (i.e. address resolved or geocoded).
-        // NEEDS_REVIEW rows wait until the customer confirms via the address-confirm email.
-        // Fire-and-forget: never block the API response. Errors log only.
+        // === AUTO-PROMOTION (Tyler msg 33473) — GATED behind ENABLE_PRE_REG_AUTO_PROMOTE (default OFF per Tyler msg 34891) ===
         try {
             const eligibleForPromotion = insertData.status !== 'NEEDS_REVIEW' || (typeof geocodeResolved !== 'undefined' && geocodeResolved);
-            if (eligibleForPromotion) {
+            if (eligibleForPromotion && process.env.ENABLE_PRE_REG_AUTO_PROMOTE === 'true') {
                 setImmediate(async () => {
                     try {
                         const { promoteOne } = require('./lib/pre-reg-promoter');
@@ -5318,6 +5316,8 @@ app.post('/api/pre-register', async (req, res) => {
                         console.error(`[Auto-Promote] failed for pre_reg ${data.id}:`, autoErr.message);
                     }
                 });
+            } else if (eligibleForPromotion) {
+                console.log(`[Auto-Promote] DISABLED (ENABLE_PRE_REG_AUTO_PROMOTE!=true) — pre_reg ${data.id} not auto-promoted`);
             } else {
                 console.log(`[Auto-Promote] holding pre_reg ${data.id} (status=${insertData.status}) — waiting on address confirmation`);
             }
@@ -5442,8 +5442,8 @@ app.post('/api/simple-lead', async (req, res) => {
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
-                // Tyler msg 31932: fire live intake pipeline for every new lead (non-blocking)
-                if (fbData && fbData.case_id) {
+                // Tyler msg 31932: live intake pipeline (gated behind ENABLE_LIVE_INTAKE_HOOKS — default OFF per Tyler msg 34891)
+                if (fbData && fbData.case_id && process.env.ENABLE_LIVE_INTAKE_HOOKS === 'true') {
                     setImmediate(async () => {
                         try {
                             const { processLead } = require('./lib/live-intake-pipeline');
@@ -5451,6 +5451,8 @@ app.post('/api/simple-lead', async (req, res) => {
                             console.log(`[live-intake] ${fbData.case_id} → ${result.final_queue} | steps: ${Object.keys(result.steps).join(',')}`);
                         } catch (e) { console.error('[live-intake] pipeline error:', e.message); }
                     });
+                } else if (fbData && fbData.case_id) {
+                    console.log(`[live-intake] DISABLED (ENABLE_LIVE_INTAKE_HOOKS!=true) — skipping for ${fbData.case_id}`);
                 }
 
                 // === AUTO-RESPONSE SYSTEM ===
@@ -11376,20 +11378,23 @@ app.listen(PORT, async () => {
         // ── AUTO-NUDGE SCAN (every 30 min, first run +60s after boot) ──
         scheduleNudgeScan();
 
-        // ── SCRAPER RETRY QUEUE (Tyler msg 33473, 2026-05-13) ──
-        // NEEDS_LIVE_SCRAPER auto-retries every 30 min; first run +5min after boot.
-        try {
-            const { runRetryCycle, init: initRetry } = require('./lib/scraper-retry-queue');
-            initRetry(supabaseAdmin);
-            setTimeout(() => {
-                runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] first-run error:', e.message));
-                setInterval(() => {
-                    runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] cycle error:', e.message));
-                }, 30 * 60 * 1000);
-            }, 5 * 60 * 1000);
-            console.log(`🔁 Scraper retry queue: every 30 min (first run +5min)`);
-        } catch (e) {
-            console.error('[scraper-retry] init failed:', e.message);
+        // ── SCRAPER RETRY QUEUE (Tyler msg 33473) ── GATED behind ENABLE_SCRAPER_RETRY_QUEUE (default OFF per Tyler msg 34891)
+        if (process.env.ENABLE_SCRAPER_RETRY_QUEUE === 'true') {
+            try {
+                const { runRetryCycle, init: initRetry } = require('./lib/scraper-retry-queue');
+                initRetry(supabaseAdmin);
+                setTimeout(() => {
+                    runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] first-run error:', e.message));
+                    setInterval(() => {
+                        runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] cycle error:', e.message));
+                    }, 30 * 60 * 1000);
+                }, 5 * 60 * 1000);
+                console.log(`🔁 Scraper retry queue: every 30 min (first run +5min)`);
+            } catch (e) {
+                console.error('[scraper-retry] init failed:', e.message);
+            }
+        } else {
+            console.log('[scraper-retry] DISABLED (ENABLE_SCRAPER_RETRY_QUEUE!=true) — not initialized');
         }
     });
 
