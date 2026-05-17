@@ -23,6 +23,7 @@ const { supabaseAdmin } = require('../lib/supabase');
 const { computeNextAction } = require('../lib/next-action-engine');
 const { classifyCase, COLUMN_META } = require('./pipeline-board');
 const { getColumns } = require('../services/state-controller');
+const { classifyFilingWindow, ctaForWindow } = require('../lib/filing-window');
 
 // ── Thresholds (Tyler msg 28627) ─────────────────────────────────────────
 const HIGH_VALUE_REV     = 3000;   // estimated_revenue >= 3000 → high-value
@@ -135,21 +136,29 @@ function enrich(row, stageId) {
     cta: ctaForStage(stageId, row),
     // Phase 8: automation badge booleans
     ...automationBooleans(row),
-    // Raw data fields needed for highlights in daily-task-loop
+    // Raw data fields needed for highlights + filing-window classification
     _raw: {
       created_at: row.created_at || null,
       aoa_signed: row.aoa_signed === true,
       filing_ready: row.filing_ready === true,
+      filing_submitted: row.filing_submitted === true,
+      state: row.state || null,
+      county: row.county || null,
+      assessed_value: row.assessed_value || null,
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      automation_flags: row.automation_flags || null,
+      filing_status: row.filing_status || null,
     },
   };
 }
 
 const SELECT_FIELDS_BASE = [
-  'case_id', 'owner_name', 'property_address', 'county',
+  'case_id', 'owner_name', 'property_address', 'county', 'state',
   'status', 'filing_status', 'filing_ready', 'filing_submitted', 'filed_at',
   'aoa_signed', 'notice_received',
   'manual_status_lock', 'status_lock_reason',
   'estimated_revenue', 'estimated_tax_savings', 'estimated_savings', 'savings',
+  'assessed_value', 'tags',
   'last_activity_at', 'last_outreach_at', 'updated_at', 'created_at',
   'comp_results', 'vip',
   'do_not_contact', 'archived_at',
@@ -238,6 +247,19 @@ async function buildTodayFocus({ sb, limit = 5 } = {}) {
     return tb - ta;
   });
 
+  // ── Filing window classification (Tyler msg 34806) ── [MOVED BEFORE top slice]
+  // Tag every enriched card with its window class so the top-N list reflects
+  // the corrected CTA (e.g. "Late Remedy Review" instead of "Send AOA" for
+  // closed-window cases) and so highlight buckets render correctly.
+  for (const c of enriched) {
+    c.filing_window = classifyFilingWindow(c._raw);
+    if (c.filing_window && c.filing_window !== 'UNKNOWN' && c.filing_window !== 'ACTIVE_FILING_WINDOW') {
+      const replacement = ctaForWindow(c.filing_window, c.cta?.label);
+      c.cta = { ...(c.cta || {}), label: replacement.label, action: replacement.action, window_note: replacement.note };
+      c.next_action = replacement.label;
+    }
+  }
+
   const actionable = enriched.filter(c => ACTIONABLE_STAGES.has(c.stage));
   const top = actionable.slice(0, limit);
   const totalRev = actionable.reduce((s, c) => s + (c.estimated_revenue || 0), 0);
@@ -254,17 +276,31 @@ async function buildTodayFocus({ sb, limit = 5 } = {}) {
     c._raw.filing_ready !== true
   );
 
+  // Only count AOA-not-sent for ACTIVE window cases — closed windows route to other tracks.
   const aoaNotSent24h = enriched.filter(c => {
     if (c.stage !== 'needs_outreach') return false;
+    if (c.filing_window !== 'ACTIVE_FILING_WINDOW') return false;
     const created = c._raw.created_at;
     if (!created) return false;
     return NOW - new Date(created).getTime() > 86400000;
   });
 
+  // New highlight buckets for closed-window cases.
+  const lateRemedyReview = enriched.filter(c => c.filing_window === 'LATE_REMEDY_REVIEW');
+  const missedStandardDeadline = enriched.filter(c => c.filing_window === 'MISSED_STANDARD_DEADLINE');
+  const candidates2027 = enriched.filter(c => c.filing_window === '2027_CANDIDATE');
+
   return {
     top,
     totalRev,
-    highlights: { highValueStale, readyToFileBlocked, aoaNotSent24h },
+    highlights: {
+      highValueStale,
+      readyToFileBlocked,
+      aoaNotSent24h,
+      lateRemedyReview,
+      missedStandardDeadline,
+      candidates2027,
+    },
   };
 }
 

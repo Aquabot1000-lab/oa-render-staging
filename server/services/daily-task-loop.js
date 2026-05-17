@@ -60,7 +60,14 @@ function buildDigest(focus, label) {
   }
 
   // Highlights
-  const { highValueStale, readyToFileBlocked, aoaNotSent24h } = highlights;
+  const {
+    highValueStale,
+    readyToFileBlocked,
+    aoaNotSent24h,
+    lateRemedyReview = [],
+    missedStandardDeadline = [],
+    candidates2027 = [],
+  } = highlights;
 
   tg += '\n<b>🔍 Highlights</b>\n';
 
@@ -85,13 +92,37 @@ function buildDigest(focus, label) {
   }
 
   if (aoaNotSent24h.length) {
-    tg += `⏰ <b>AOA not sent &gt;24h (${aoaNotSent24h.length})</b>:\n`;
+    tg += `⏰ <b>AOA not sent &gt;24h — ACTIVE WINDOW (${aoaNotSent24h.length})</b>:\n`;
     aoaNotSent24h.slice(0, 5).forEach(c => {
       tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)}\n`;
     });
     if (aoaNotSent24h.length > 5) tg += `  (+ ${aoaNotSent24h.length - 5} more)\n`;
   } else {
-    tg += '✅ AOA overdue: none\n';
+    tg += '✅ AOA overdue (active window): none\n';
+  }
+
+  if (lateRemedyReview.length) {
+    tg += `🔎 <b>Late Remedy Review (${lateRemedyReview.length})</b> — §25.25 / no-notice / certified-roll:\n`;
+    lateRemedyReview.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)}\n`;
+    });
+    if (lateRemedyReview.length > 5) tg += `  (+ ${lateRemedyReview.length - 5} more)\n`;
+  }
+
+  if (missedStandardDeadline.length) {
+    tg += `⏳ <b>Missed Standard Deadline (${missedStandardDeadline.length})</b> — late follow-up + 2027 track:\n`;
+    missedStandardDeadline.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}] — ${fmtMoney(c.estimated_revenue)}\n`;
+    });
+    if (missedStandardDeadline.length > 5) tg += `  (+ ${missedStandardDeadline.length - 5} more)\n`;
+  }
+
+  if (candidates2027.length) {
+    tg += `📅 <b>2027 Candidates (${candidates2027.length})</b> — monitor for parcel split / next-cycle:\n`;
+    candidates2027.slice(0, 5).forEach(c => {
+      tg += `  • ${c.case_id} [${c.owner_name}]\n`;
+    });
+    if (candidates2027.length > 5) tg += `  (+ ${candidates2027.length - 5} more)\n`;
   }
 
   // ── Email subject + HTML body ──
@@ -137,13 +168,37 @@ function buildDigest(focus, label) {
   }
 
   if (aoaNotSent24h.length) {
-    emailHtml += `<li>⏰ <strong>AOA not sent &gt;24h (${aoaNotSent24h.length})</strong><ul>`;
+    emailHtml += `<li>⏰ <strong>AOA not sent &gt;24h — ACTIVE WINDOW (${aoaNotSent24h.length})</strong><ul>`;
     aoaNotSent24h.slice(0, 5).forEach(c => {
       emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))}</li>`;
     });
     emailHtml += '</ul></li>';
   } else {
-    emailHtml += '<li>✅ AOA overdue: none</li>';
+    emailHtml += '<li>✅ AOA overdue (active window): none</li>';
+  }
+
+  if (lateRemedyReview.length) {
+    emailHtml += `<li>🔎 <strong>Late Remedy Review (${lateRemedyReview.length})</strong> — §25.25 / no-notice / certified-roll<ul>`;
+    lateRemedyReview.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))}</li>`;
+    });
+    emailHtml += '</ul></li>';
+  }
+
+  if (missedStandardDeadline.length) {
+    emailHtml += `<li>⏳ <strong>Missed Standard Deadline (${missedStandardDeadline.length})</strong> — late follow-up + 2027 track<ul>`;
+    missedStandardDeadline.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}] — ${esc(fmtMoney(c.estimated_revenue))}</li>`;
+    });
+    emailHtml += '</ul></li>';
+  }
+
+  if (candidates2027.length) {
+    emailHtml += `<li>📅 <strong>2027 Candidates (${candidates2027.length})</strong> — monitor parcel split / next cycle<ul>`;
+    candidates2027.slice(0, 5).forEach(c => {
+      emailHtml += `<li>${esc(c.case_id)} [${esc(c.owner_name)}]</li>`;
+    });
+    emailHtml += '</ul></li>';
   }
 
   emailHtml += '</ul>';

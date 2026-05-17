@@ -1206,8 +1206,8 @@ function buildTelegramLeadAlert(sub) {
 <b>Priority:</b> ${priority}
 <b>Score:</b> ${score}
 
-<b>Next Action (BOT):</b> ⛔ FROZEN — no auto-processing (build mode)
-<b>Next Action (TYLER):</b> Manually trigger analysis when ready`;
+<b>Next Action (BOT):</b> ✅ AUTO-ANALYSIS QUEUED
+<b>Next Action (TYLER):</b> Analysis running — results will auto-populate`;
 }
 
 // OA SMS KILL SWITCH — disabled until Twilio 10DLC fully verified
@@ -3738,6 +3738,15 @@ app.post('/api/agreements/sign', async (req, res) => {
                 source: 'web-agreement-v2'
             }).select('id, case_id').single();
             submissionId = newSub.id;
+            // Tyler msg 31932: fire live intake pipeline for every new lead (non-blocking)
+            if (newSub && newSub.case_id) {
+                setImmediate(async () => {
+                    try {
+                        const { processLead } = require('./lib/live-intake-pipeline');
+                        const result = await processLead(newSub.case_id, { actor: 'server:web-agreement-v2' });
+                        console.log(`[live-intake] ${newSub.case_id} → ${result.final_queue} | steps: ${Object.keys(result.steps).join(',')}`);                    } catch (e) { console.error('[live-intake] pipeline error:', e.message); }
+                });
+            }
         }
 
         // AUTO-CREATE CLIENT on agreement sign
@@ -5284,6 +5293,38 @@ app.post('/api/pre-register', async (req, res) => {
             try { await sendTelegramAlert(`📋 NEW PRE-REGISTRATION\n\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Property:</b> ${addrDisplay}\n<b>County:</b> ${countyDisplay}\n<b>State:</b> ${stateDisplay}\n<b>Status:</b> ${statusDisplay}${stillFlagged ? '\n<b>⚠️ ' + parsed.reason + '</b>' : ''}`); } catch(e) {}
         }
 
+        // === AUTO-PROMOTION (Tyler msg 33473 / 33473, 2026-05-13) ===
+        // Permanent hook: pre_registrations → submissions → pipeline.
+        // Only fires for non-NEEDS_REVIEW rows (i.e. address resolved or geocoded).
+        // NEEDS_REVIEW rows wait until the customer confirms via the address-confirm email.
+        // Fire-and-forget: never block the API response. Errors log only.
+        try {
+            const eligibleForPromotion = insertData.status !== 'NEEDS_REVIEW' || (typeof geocodeResolved !== 'undefined' && geocodeResolved);
+            if (eligibleForPromotion) {
+                setImmediate(async () => {
+                    try {
+                        const { promoteOne } = require('./lib/pre-reg-promoter');
+                        const lip = require('./lib/live-intake-pipeline');
+                        lip.init(supabaseAdmin);
+                        const promoteRes = await promoteOne(data.id, { actor: 'auto-hook-on-insert', ref: 'msg33473' });
+                        if (promoteRes && promoteRes.case_id) {
+                            console.log(`[Auto-Promote] ✅ pre_reg ${data.id} → ${promoteRes.case_id}; running pipeline...`);
+                            const trace = await lip.processLead(promoteRes.case_id, { actor: 'auto-hook-on-insert' });
+                            console.log(`[Auto-Promote] pipeline → queue=${trace?.final_queue || trace?.steps?.queue || 'UNKNOWN'} for ${promoteRes.case_id}`);
+                        } else if (promoteRes && promoteRes.skipped) {
+                            console.log(`[Auto-Promote] skipped pre_reg ${data.id}: ${promoteRes.skipped}`);
+                        }
+                    } catch (autoErr) {
+                        console.error(`[Auto-Promote] failed for pre_reg ${data.id}:`, autoErr.message);
+                    }
+                });
+            } else {
+                console.log(`[Auto-Promote] holding pre_reg ${data.id} (status=${insertData.status}) — waiting on address confirmation`);
+            }
+        } catch (hookErr) {
+            console.error('[Auto-Promote] hook setup failed:', hookErr.message);
+        }
+
         res.json({ success: true, id: data.id });
     } catch (error) {
         console.error('Pre-registration error:', error);
@@ -5401,6 +5442,16 @@ app.post('/api/simple-lead', async (req, res) => {
                 };
                 const { data: fbData, error: fbError } = await supabaseAdmin.from('submissions').insert(fallback).select().single();
                 if (fbError) throw fbError;
+                // Tyler msg 31932: fire live intake pipeline for every new lead (non-blocking)
+                if (fbData && fbData.case_id) {
+                    setImmediate(async () => {
+                        try {
+                            const { processLead } = require('./lib/live-intake-pipeline');
+                            const result = await processLead(fbData.case_id, { actor: 'server:simple-form' });
+                            console.log(`[live-intake] ${fbData.case_id} → ${result.final_queue} | steps: ${Object.keys(result.steps).join(',')}`);
+                        } catch (e) { console.error('[live-intake] pipeline error:', e.message); }
+                    });
+                }
 
                 // === AUTO-RESPONSE SYSTEM ===
                 const leadId = fbData.id;
@@ -6138,15 +6189,24 @@ app.post('/api/intake', upload.single('noticeFile'), async (req, res) => {
             console.error('[Intake] Failed to create Stripe checkout:', stripeErr.message);
         }
 
-        // ⛔ FREEZE: Do NOT enqueue analyze_lead jobs — build mode (Tyler directive 2026-04-09)
-        // Leads are created but no auto-analysis or status changes until explicitly approved
-        console.log(`[Intake] ⛔ FREEZE — skipping analyze_lead job for ${caseId} (build mode)`);
+        // ✅ UNFROZEN 2026-05-16 — Tyler directive msg 34781 + msg 34817
+        // All standard new leads auto-enqueue analyze_lead for the orchestrator.
+        // HARD_BLOCK gating happens inside orchAnalyzeLead.
+        try {
+            await supabaseAdmin.from('job_queue').insert({
+                job_type: 'analyze_lead',
+                payload: { lead_id: submission.id, case_id: caseId },
+                status: 'pending',
+                priority: 10,
+                max_retries: 3
+            });
+            console.log(`[Intake] ✅ analyze_lead job enqueued for ${caseId}`);
+        } catch (enqErr) {
+            console.error(`[Intake] Failed to enqueue analyze_lead for ${caseId}:`, enqErr.message);
+        }
 
-        // ⛔ AUTO-ANALYSIS DISABLED — Tyler directive 2026-04-07
-        // System-wide data integrity failure: analysis engine generates fake comp addresses
-        // DO NOT re-enable until validation layer is built and verified
-        console.log(`[AutoAnalysis] ⛔ DISABLED for ${caseId} — data integrity freeze`);
-        if (false) { // FROZEN
+        // Legacy auto-analysis (kept disabled — new flow uses orchestrator)
+        if (false) { // FROZEN — legacy setTimeout path, replaced by orchestrator queue above
         setTimeout(async () => {
             try {
                 console.log(`[AutoAnalysis] Starting auto-analysis for new case ${caseId}`);
@@ -6329,9 +6389,22 @@ app.post('/api/commercial-intake', async (req, res) => {
         const welcomeHtml = buildWelcomeEmail(submission);
         sendClientEmail(email, `Welcome to OverAssessed - Case ${caseId}`, welcomeHtml);
 
-        // ⛔ AUTO-ANALYSIS DISABLED — data integrity freeze 2026-04-07
-        console.log(`[AutoAnalysis] ⛔ DISABLED for commercial ${caseId}`);
-        if (false) { // FROZEN
+        // ✅ UNFROZEN 2026-05-16 — Tyler directive msg 34781 + msg 34817
+        try {
+            await supabaseAdmin.from('job_queue').insert({
+                job_type: 'analyze_lead',
+                payload: { lead_id: submission.id, case_id: caseId, commercial: true },
+                status: 'pending',
+                priority: 10,
+                max_retries: 3
+            });
+            console.log(`[Intake] ✅ analyze_lead job enqueued for commercial ${caseId}`);
+        } catch (enqErr) {
+            console.error(`[Intake] Failed to enqueue analyze_lead for commercial ${caseId}:`, enqErr.message);
+        }
+
+        // Legacy auto-analysis (kept disabled)
+        if (false) { // FROZEN — legacy setTimeout path, replaced by orchestrator queue above
         setTimeout(async () => {
             try {
                 console.log(`[AutoAnalysis] Starting auto-analysis for commercial case ${caseId}`);
@@ -11302,6 +11375,22 @@ app.listen(PORT, async () => {
 
         // ── AUTO-NUDGE SCAN (every 30 min, first run +60s after boot) ──
         scheduleNudgeScan();
+
+        // ── SCRAPER RETRY QUEUE (Tyler msg 33473, 2026-05-13) ──
+        // NEEDS_LIVE_SCRAPER auto-retries every 30 min; first run +5min after boot.
+        try {
+            const { runRetryCycle, init: initRetry } = require('./lib/scraper-retry-queue');
+            initRetry(supabaseAdmin);
+            setTimeout(() => {
+                runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] first-run error:', e.message));
+                setInterval(() => {
+                    runRetryCycle({ logger: console }).catch(e => console.error('[scraper-retry] cycle error:', e.message));
+                }, 30 * 60 * 1000);
+            }, 5 * 60 * 1000);
+            console.log(`🔁 Scraper retry queue: every 30 min (first run +5min)`);
+        } catch (e) {
+            console.error('[scraper-retry] init failed:', e.message);
+        }
     });
 
     // Phase 8 (Tyler msg 28665): Daily Command — 8 AM CDT + 2 PM CDT

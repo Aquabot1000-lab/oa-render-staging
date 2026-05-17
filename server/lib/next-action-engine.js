@@ -40,6 +40,7 @@
  */
 
 const { readTaxSavings } = require('./metric-shim');
+const { classifyFilingWindow } = require('./filing-window');
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -93,6 +94,14 @@ function computeNextAction(caseRow) {
   const comps          = compsCount(row);
   const outcome        = (row.outcome || '').toUpperCase();
 
+  // ── Filing-window awareness (Tyler msg 34818, 2026-05-16) ──
+  // Compute classification once; rules below short-circuit to late-remedy / 2027
+  // tracks when the standard window is closed.
+  const filingWindow = classifyFilingWindow(row);
+  const windowClosed = filingWindow === 'LATE_REMEDY_REVIEW'
+    || filingWindow === 'MISSED_STANDARD_DEADLINE'
+    || filingWindow === '2027_CANDIDATE';
+
   // ── ordered rules (first match wins) ──
 
   // 0. Manual lock — always first
@@ -106,7 +115,38 @@ function computeNextAction(caseRow) {
     });
   }
 
-  // 1. AOA not signed, never reached out
+  // 0b. Window closed + no signature — do NOT push standard "Send AOA" CTA.
+  //     Route to late-remedy / 2027 tracking instead.
+  if (!aoaSigned && windowClosed) {
+    if (filingWindow === '2027_CANDIDATE') {
+      return wrap({
+        action: 'Monitor for 2027 cycle',
+        priority: 'p4',
+        color: 'gray',
+        reason: 'tagged as 2027_PROTEST_CANDIDATE / NEW_CONSTRUCTION_POTENTIAL',
+        icon: '📅',
+      });
+    }
+    if (filingWindow === 'LATE_REMEDY_REVIEW') {
+      return wrap({
+        action: 'Late-remedy review (§25.25 / no-notice / certified-roll)',
+        priority: 'p3',
+        color: 'yellow',
+        reason: 'standard window closed; data-rich case eligible for late-remedy evaluation',
+        icon: '🔎',
+      });
+    }
+    // MISSED_STANDARD_DEADLINE
+    return wrap({
+      action: 'Late follow-up + 2027 candidate',
+      priority: 'p3',
+      color: 'yellow',
+      reason: 'standard window closed; data-poor lead — send late follow-up and preserve for 2027',
+      icon: '⏳',
+    });
+  }
+
+  // 1. AOA not signed, never reached out (ACTIVE WINDOW only)
   if (!aoaSigned && !hasOutreach) {
     return wrap({
       action: 'Send AOA request',
@@ -184,7 +224,18 @@ function computeNextAction(caseRow) {
   }
 
   // 8. Filing ready, not yet filed
+  //    If window is closed, recharacterize as late-remedy / internal review candidate
+  //    (Tyler msg 34818: no more "ready for filing approval" urgency for closed-window cases).
   if (filingReady && filingStatus !== 'FILED') {
+    if (windowClosed) {
+      return wrap({
+        action: 'Late-remedy / internal review candidate',
+        priority: 'p3',
+        color: 'yellow',
+        reason: `filing_ready=true but filing window=${filingWindow}; route to late-remedy review (no urgent approval)`,
+        icon: '🔎',
+      });
+    }
     return wrap({
       action: 'Approve for filing',
       priority: 'p1',
