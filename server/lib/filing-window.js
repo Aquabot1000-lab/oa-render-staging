@@ -69,7 +69,8 @@ function effectiveDeadline(row, statutoryDeadline) {
   const state = (row.state || '').toUpperCase();
   const rule = NOTICE_DATE_RULES[state];
   if (rule) {
-    const noticeDateStr = row.notice_date || row.notice_mailed_at || flags.notice_date || flags.notice_mailed_at;
+    // Schema columns: customer_notice_confirmed_at (timestamp), notice_received (bool), automation_flags.notice_date override
+    const noticeDateStr = flags.notice_date || row.customer_notice_confirmed_at;
     if (noticeDateStr) {
       const nd = new Date(noticeDateStr);
       if (!isNaN(nd.getTime())) {
