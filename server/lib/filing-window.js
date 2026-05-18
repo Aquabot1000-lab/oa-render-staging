@@ -25,7 +25,7 @@
 const STANDARD_DEADLINES = {
   TX: { month: 5, day: 15 }, // May 15
   AZ: { month: 4, day: 21 }, // Maricopa 2027 TY = April 21, 2026 (verified Tyler msg 34943)
-  CO: { month: 6, day: 1 },  // Colorado NOV protest — June 1 (C.R.S. § 39-5-122)
+  CO: { month: 6, day: 8 },  // Colorado NOV protest — June 8 (verified 2026-05-17 across Denver/Boulder/Jefferson/Douglas/Arapahoe/Adams/El Paso). C.R.S. § 39-5-122 says "by June 1 OR June 8 if extended" — all 7 priority counties confirmed June 8 for 2026 cycle. Abatement deadline (separate track) = June 30.
   // WA: county-by-county; deadline = max(July 1, NOV_date + 60 days). We rely on row.notice_date + 60 via effectiveDeadline() override below.
   WA: { month: 7, day: 1 },  // RCW 84.40.038 minimum baseline; per-county may extend later via NOV+60 path
 };
