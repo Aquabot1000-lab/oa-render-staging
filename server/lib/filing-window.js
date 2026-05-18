@@ -24,7 +24,16 @@
 // because that's the primary filing state today.
 const STANDARD_DEADLINES = {
   TX: { month: 5, day: 15 }, // May 15
-  AZ: { month: 4, day: 25 }, // typical AZ admin protest end-of-April
+  AZ: { month: 4, day: 21 }, // Maricopa 2027 TY = April 21, 2026 (verified Tyler msg 34943)
+  CO: { month: 6, day: 1 },  // Colorado NOV protest — June 1 (C.R.S. § 39-5-122)
+  // WA: county-by-county; deadline = max(July 1, NOV_date + 60 days). We rely on row.notice_date + 60 via effectiveDeadline() override below.
+  WA: { month: 7, day: 1 },  // RCW 84.40.038 minimum baseline; per-county may extend later via NOV+60 path
+};
+
+// States where the deadline is driven by NOV date + N days (overrides the calendar default if later)
+const NOTICE_DATE_RULES = {
+  TX: { plusDays: 30 }, // §41.44(a)(1)(B)
+  WA: { plusDays: 60 }, // RCW 84.40.038 — 60 days after NOV mail
 };
 
 function getStandardDeadlineForYear(state, year) {
@@ -56,13 +65,17 @@ function effectiveDeadline(row, statutoryDeadline) {
     if (!isNaN(ov.getTime())) effective = ov;
   }
 
-  // Notice-date + 30 days (TX §41.44(a)(1)(B))
-  const noticeDateStr = row.notice_date || row.notice_mailed_at || flags.notice_date || flags.notice_mailed_at;
-  if (noticeDateStr) {
-    const nd = new Date(noticeDateStr);
-    if (!isNaN(nd.getTime())) {
-      const plus30 = new Date(nd.getTime() + 30 * 86400000);
-      if (plus30.getTime() > effective.getTime()) effective = plus30;
+  // Notice-date + N days rule (state-specific)
+  const state = (row.state || '').toUpperCase();
+  const rule = NOTICE_DATE_RULES[state];
+  if (rule) {
+    const noticeDateStr = row.notice_date || row.notice_mailed_at || flags.notice_date || flags.notice_mailed_at;
+    if (noticeDateStr) {
+      const nd = new Date(noticeDateStr);
+      if (!isNaN(nd.getTime())) {
+        const plusN = new Date(nd.getTime() + rule.plusDays * 86400000);
+        if (plusN.getTime() > effective.getTime()) effective = plusN;
+      }
     }
   }
 
