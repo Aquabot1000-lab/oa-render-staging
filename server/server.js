@@ -5107,9 +5107,11 @@ app.post('/api/pre-register', async (req, res) => {
         
         // Parse state and county from address
         const { parseAddress } = require('./services/address-parser');
+        const { normalizeCounty } = require('./services/cad-resolution');
         const parsed = parseAddress(property_address, { county: formCounty, state: req.body.state });
         const state = parsed.state || null;
-        const county = parsed.county || formCounty || null;
+        // Tyler msg 34931: canonical county = lowercase + trim + strip "County" suffix
+        const county = normalizeCounty(parsed.county || formCounty || null);
         
         // === PROPERTY DEDUP CHECK (pre-register → submissions) ===
         const dupe = await findDuplicate(supabaseAdmin, property_address, email, name);
@@ -5376,9 +5378,11 @@ app.post('/api/simple-lead', async (req, res) => {
 
         // Auto-detect state and county from address
         const { parseAddress } = require('./services/address-parser');
+        const { normalizeCounty } = require('./services/cad-resolution');
         const parsed = parseAddress(finalPropertyAddress, { state: validatedState || state_hint, county: submitted_county });
         let state = validatedState || parsed.state;
-        let county = parsed.county || submitted_county || null;
+        // Tyler msg 34931: canonical county = lowercase + trim + strip "County" suffix
+        let county = normalizeCounty(parsed.county || submitted_county || null);
 
         if (parsed.flagged) {
             console.log(`[SIMPLE LEAD] ⚠️ Address flagged: ${finalPropertyAddress} → state=${state || 'UNKNOWN'}, reason=${parsed.reason}`);
